@@ -3,7 +3,7 @@ package com.ttmrase.crownfall.core.sim
 import com.ttmrase.crownfall.core.model.satMul
 
 /** basis point 計算を 1 か所に集約する（端数は常に切り捨て）。 */
-internal object Buffs {
+object Buffs {
     private const val BP_ONE = 10_000L
 
     /** `value × (10000 + bp) / 10000`（切り捨て、飽和）。倍率が 0 未満にはならない。 */
