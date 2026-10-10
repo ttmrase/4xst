@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -141,10 +140,7 @@ fun CrownfallNavHost(
     LaunchedEffect(route, ready != null, destination?.route) {
         val target = route
         if (target != null && ready != null && destination != null && destination.route != Screen.Title.route) {
-            pendingRoute.value = null
-            if (Screen.entries.any { it.route == target }) {
-                navController.navigate(target) { launchSingleTop = true }
-            }
+            navController.openPendingRoute(pendingRoute)
         }
     }
 
@@ -207,7 +203,7 @@ fun CrownfallNavHost(
                         BottomDestination.entries.forEach { item ->
                             NavigationBarItem(
                                 selected = destination.hierarchy.any { it.route == item.screen.route },
-                                onClick = { navController.openTab(item.screen.route) },
+                                onClick = { navController.navigateBottom(item) },
                                 icon = {
                                     val isAlliance = item == BottomDestination.Alliance
                                     val isCity = item == BottomDestination.City
@@ -412,22 +408,5 @@ fun CrownfallNavHost(
                 },
             )
         }
-    }
-}
-
-/**
- * 下部ナビのタブへ移る。城内は常にスタックの底（City）まで戻る。他のタブは、すでにスタックにあればそこまで戻り
- * （子画面からタブのルートへ）、無ければ City の上に積む。saveState / restoreState は使わない（子画面を含む
- * スタックが復元されて城内に戻れなくなるため）。戻るを繰り返すと「子画面 → タブのルート → 城内 → 退出の確認」になる。
- */
-internal fun NavController.openTab(route: String) {
-    if (popBackStack(route, inclusive = false)) return
-    navigate(route) {
-        if (route == Screen.City.route) {
-            popUpTo(graph.id) { inclusive = false }
-        } else {
-            popUpTo(Screen.City.route) { inclusive = false }
-        }
-        launchSingleTop = true
     }
 }
