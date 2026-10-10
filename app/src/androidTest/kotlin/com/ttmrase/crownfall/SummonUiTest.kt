@@ -30,11 +30,12 @@ class SummonUiTest {
     @get:Rule
     val rule = createEmptyComposeRule()
 
-    private fun gold(h: AppHarness) = h.state().resources.gold
+    private fun gold(h: AppHarness) = h.state().gems
 
     private val data = ClasspathDataSource.load()
 
-    private fun costOfOne(): Long = Summoner.table(data, SummonKind.NORMAL).gold
+    // 召喚画面の既定はプレミアム（ジェム消費）
+    private fun costOfOne(): Long = Summoner.table(data, SummonKind.PREMIUM).gems
 
     private fun center(
         rect: DpRect,
@@ -55,20 +56,23 @@ class SummonUiTest {
             val onceCenter = center(onceNode.getBoundsInRoot(), density)
             val before = gold(h)
             val cost = costOfOne()
-            assertTrue("normal summon must cost gold here (no tickets in this preset)", cost > 0)
+            assertTrue("premium summon must cost gems here (no tickets in this preset)", cost > 0)
 
             // 単発 → 演出が始まる
+            // 演出は有限アニメなので、時計を止めておかないと Compose が演出の終わりまで待ってしまう
+            rule.mainClock.autoAdvance = false
             onceNode.performTouchInput { click() }
-            h.waitText(h.str(R.string.summon_skip), substring = true)
-            rule.waitForIdle()
+            rule.mainClock.advanceTimeBy(500)
+            assertTrue("the ritual (Skip) must be shown", h.hasText(h.str(R.string.summon_skip), true))
             val afterFirst = gold(h)
             assertEquals("one summon costs exactly one", before - cost, afterFirst)
             Screenshots.save("summon_ritual_charge")
 
             // 演出中に、下の「単発」ボタンがあった位置を何度もタップしても、増減しない
             repeat(4) { rule.onRoot().performTouchInput { click(onceCenter) } }
-            rule.waitForIdle()
+            rule.mainClock.advanceTimeBy(300)
             assertEquals("taps during the ritual must not summon again", afterFirst, gold(h))
+            rule.mainClock.autoAdvance = true
 
             // 演出が終わるまでスキップし、結果の画面へ
             Espresso.pressBack()
@@ -97,10 +101,11 @@ class SummonUiTest {
         h.open("summon")
         h.step("summon_stages") {
             h.waitText(h.str(R.string.summon_ten), substring = true)
-            rule.onAllNodesWithText(h.str(R.string.summon_ten), substring = true)[0].performTouchInput { click() }
-            h.waitText(h.str(R.string.summon_skip), substring = true)
-            // 時計を止めて、段階ごとに撮る
+            // 時計を止めてからタップし、段階ごとに撮る
             rule.mainClock.autoAdvance = false
+            rule.onAllNodesWithText(h.str(R.string.summon_ten), substring = true)[0].performTouchInput { click() }
+            rule.mainClock.advanceTimeBy(100)
+            assertTrue("the ritual (Skip) must be shown", h.hasText(h.str(R.string.summon_skip), true))
             for ((i, ms) in listOf(200L, 700L, 700L, 900L).withIndex()) {
                 rule.mainClock.advanceTimeBy(ms)
                 Screenshots.save("summon_ten_stage_${i + 1}")

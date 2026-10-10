@@ -23,8 +23,12 @@ class ShopVipUiTest {
 
     private fun payFirstYenButton(h: AppHarness) {
         h.waitText("¥", substring = true)
+        Screenshots.save("pay_1_list")
         rule.onAllNodesWithText("¥", substring = true)[0].performClick()
+        rule.waitForIdle()
+        Screenshots.save("pay_2_after_click")
         h.click(h.str(R.string.billing_one_tap))
+        Screenshots.save("pay_3_after_one_tap")
     }
 
     @Test
@@ -104,7 +108,7 @@ class ShopVipUiTest {
             rule.waitForIdle()
             assertTrue(
                 "the raid banner must be shown",
-                h.hasText(h.str(R.string.raid_banner).substringBefore('%'), true),
+                h.hasText(h.str(R.string.raid_stage_banner).substringBefore('%'), true),
             )
             Screenshots.save("raid_banner")
         }
