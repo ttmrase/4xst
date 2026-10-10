@@ -388,6 +388,10 @@ object GameDataLoader {
         if (m.march.baseSecPerTile <= 0 || m.march.refSpeed <= 0 || m.march.scoutSecPerTile <= 0) {
             fail("$where: march times must be positive")
         }
+        val mr = m.march
+        if (mr.baseSlots < 1 || mr.castleLevelPerSlot < 1 || mr.troopCapBase < 1 || mr.maxHeroes < 0) {
+            fail("$where: march slots / troop cap must be positive")
+        }
         if (m.combat.maxRounds < 1 || m.combat.woundedPct !in 0..100 || m.combat.defenseK <= 0) {
             fail(
                 "$where: combat rules are invalid",

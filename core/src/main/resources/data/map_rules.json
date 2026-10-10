@@ -48,7 +48,8 @@
   "expPerLevel": 50
  },
  "refreshPeriodSec": 3600,
- "march": {"baseSecPerTile": 30, "refSpeed": 10, "scoutSecPerTile": 10, "rallyWaitSec": 300, "maxHeroes": 2},
+ "march": {"baseSecPerTile": 30, "refSpeed": 10, "scoutSecPerTile": 10, "rallyWaitSec": 300, "maxHeroes": 2,
+  "baseSlots": 2, "castleLevelPerSlot": 6, "troopCapBase": 1000, "troopCapPerCastleLevel": 400},
  "scout": {"baseErrorPct": 40, "errorPctPerWatchtowerLevel": 2, "minErrorPct": 0},
  "loot": {
   "resourcesPerLevel": {"food": 200, "wood": 200, "stone": 150, "gold": 50},

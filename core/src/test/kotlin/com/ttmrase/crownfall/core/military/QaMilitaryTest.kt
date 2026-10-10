@@ -229,7 +229,7 @@ class QaMilitaryTest {
         assertEquals(ActionFailure.QueueFull, Actions.startHeal(started, mapOf(troop to 1L), data).failure())
         val all = Actions.startHeal(s, mapOf(troop to 10L), data).ok()
         assertTrue(troop !in all.wounded, "fully healed batch leaves no zero entry")
-        val done = tick(all, 1_000_000).state
+        val done = tick(all, 100_000).state
         assertEquals(10L, done.troops[troop])
         assertTrue(done.wounded.isEmpty())
     }

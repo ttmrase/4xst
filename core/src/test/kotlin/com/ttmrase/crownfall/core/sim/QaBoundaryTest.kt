@@ -109,7 +109,11 @@ class QaBoundaryTest {
 
     @Test
     fun productionAtLongMaxStaysSaturatedAndNonNegative() {
-        val s = TestSupport.newGame().copy(resources = Resources(Long.MAX_VALUE, Long.MAX_VALUE - 1, 0, 0))
+        val s =
+            TestSupport.newGame().copy(
+                resources = Resources(Long.MAX_VALUE, Long.MAX_VALUE - 1, 0, 0),
+                map = com.ttmrase.crownfall.core.map.MapState(nextRaidEpochSec = Long.MAX_VALUE / 4),
+            )
         val r = tick(s, 10 * day).state
         assertEquals(Long.MAX_VALUE, r.resources.food)
         assertTrue(r.resources.wood >= Long.MAX_VALUE - 1)

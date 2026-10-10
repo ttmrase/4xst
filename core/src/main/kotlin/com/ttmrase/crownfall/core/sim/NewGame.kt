@@ -2,6 +2,7 @@ package com.ttmrase.crownfall.core.sim
 
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.hero.HeroBootstrap
+import com.ttmrase.crownfall.core.map.MapState
 import com.ttmrase.crownfall.core.model.BuildingSlot
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameState
@@ -32,6 +33,7 @@ object NewGame {
                 slots = slots,
                 items = ng.items,
                 rngState = seed,
+                map = MapState(seed = seed, rngState = seed),
                 playerName = playerName,
                 starterHeroId = starterHeroId,
             ),

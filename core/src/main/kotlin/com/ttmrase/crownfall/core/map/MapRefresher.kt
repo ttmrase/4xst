@@ -3,6 +3,7 @@ package com.ttmrase.crownfall.core.map
 import com.ttmrase.crownfall.core.data.LevelBand
 import com.ttmrase.crownfall.core.data.MapRules
 import com.ttmrase.crownfall.core.model.ResourceType
+import com.ttmrase.crownfall.core.model.satAdd
 import com.ttmrase.crownfall.core.util.SeededRandom
 
 /** 資源ノードと野蛮人の補充（密度目標まで、空きタイルへ乱数で配置）。 */
@@ -65,7 +66,7 @@ object MapRefresher {
             rngState = rng.state,
             nodes = nodes,
             barbarians = barbs,
-            nextRefreshEpochSec = now + rules.refreshPeriodSec,
+            nextRefreshEpochSec = satAdd(now, rules.refreshPeriodSec),
         )
     }
 }

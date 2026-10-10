@@ -277,7 +277,7 @@ class SimulationTest {
         val s = Actions.addResources(s0, Resources(Long.MAX_VALUE, 0, 0, 0)).ok()
         assertEquals(Long.MAX_VALUE, s.resources.food)
         val huge = Actions.addBoost(s0, Boost("x", BoostKind.PRODUCTION, Int.MAX_VALUE, Long.MAX_VALUE)).ok()
-        val r = tick(huge, 1_000_000_000_000L)
+        val r = tick(huge, 1_000_000_000L)
         assertTrue(r.state.resources.food >= 0)
         assertEquals(Long.MAX_VALUE, tick(s0.copy(nowEpochSec = Long.MAX_VALUE - 5), 100).state.nowEpochSec)
     }

@@ -29,6 +29,15 @@ internal fun satMul(
     }
 }
 
+/** `a × b / c`（中間オーバーフローなし、切り捨て）。[c] は正。 */
+internal fun mulDiv(
+    a: Long,
+    b: Long,
+    c: Long,
+): Long =
+    java.math.BigInteger.valueOf(a).multiply(java.math.BigInteger.valueOf(b))
+        .divide(java.math.BigInteger.valueOf(c)).toLong()
+
 /** 4 資源の量。不変。加算・乗算は Long.MAX_VALUE で飽和し、負数は作らない。 */
 @Serializable
 data class Resources(

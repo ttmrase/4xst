@@ -82,5 +82,17 @@ object OfflineCatchUp {
             boosts = s.boosts.map { it.copy(untilEpochSec = it.untilEpochSec + sec) },
             secondBuilderUntilEpochSec =
                 if (s.secondBuilderUntilEpochSec > 0) s.secondBuilderUntilEpochSec + sec else 0,
+            marches =
+                s.marches.map {
+                    it.copy(
+                        phaseStartEpochSec = it.phaseStartEpochSec + sec,
+                        phaseEndEpochSec = it.phaseEndEpochSec + sec,
+                    )
+                },
+            map =
+                s.map.copy(
+                    nextRefreshEpochSec = if (s.map.nextRefreshEpochSec > 0) s.map.nextRefreshEpochSec + sec else 0,
+                    nextRaidEpochSec = if (s.map.nextRaidEpochSec > 0) s.map.nextRaidEpochSec + sec else 0,
+                ),
         )
 }

@@ -70,6 +70,10 @@ data class MarchRules(
     val scoutSecPerTile: Long,
     val rallyWaitSec: Long,
     val maxHeroes: Int,
+    val baseSlots: Int,
+    val castleLevelPerSlot: Int,
+    val troopCapBase: Long,
+    val troopCapPerCastleLevel: Long,
 )
 
 /** 偵察の精度（Watchtower の Lv が高いほど誤差が小さい）。 */

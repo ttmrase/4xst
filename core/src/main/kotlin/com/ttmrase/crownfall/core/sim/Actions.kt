@@ -10,6 +10,9 @@ import com.ttmrase.crownfall.core.economy.GemSkip
 import com.ttmrase.crownfall.core.hero.HeroGrowth
 import com.ttmrase.crownfall.core.hero.SummonKind
 import com.ttmrase.crownfall.core.hero.Summoner
+import com.ttmrase.crownfall.core.map.TileRef
+import com.ttmrase.crownfall.core.march.MailBox
+import com.ttmrase.crownfall.core.march.MarchKind
 import com.ttmrase.crownfall.core.military.Military
 import com.ttmrase.crownfall.core.model.Boost
 import com.ttmrase.crownfall.core.model.BuildingType
@@ -60,6 +63,24 @@ sealed interface ActionFailure {
     data object NodeNotFound : ActionFailure
 
     data object AlreadyResearching : ActionFailure
+
+    /** 行軍の枠が埋まっている。 */
+    data object NoMarchSlot : ActionFailure
+
+    /** 1 隊の兵数上限を超えている。 */
+    data object OverCapacity : ActionFailure
+
+    /** 英雄がほかの行軍に出ている。 */
+    data object HeroBusy : ActionFailure
+
+    /** 行軍の目的地が不正（対象が無い・範囲外）。 */
+    data object InvalidTarget : ActionFailure
+
+    /** 出撃できる兵が無い（空・所持数超過）。 */
+    data object NoTroops : ActionFailure
+
+    /** 行軍が見つからない。 */
+    data object MarchNotFound : ActionFailure
 
     /** 研究の前提不足。[missingAcademy] は必要な Academy Lv（足りているなら null）、[missingNodes] は不足している先行ノード。 */
     data class ResearchPrereqNotMet(
@@ -464,6 +485,32 @@ object Actions {
         val settled = Simulation.tick(next, 0, data)
         return ActionResult.Success(settled.state, settled.events)
     }
+
+    /** [kind] の行軍を [target] へ出す（兵は城から外れる）。 */
+    fun startMarch(
+        state: GameState,
+        kind: MarchKind,
+        target: TileRef,
+        troops: Map<String, Long>,
+        heroIds: List<String>,
+        data: GameData,
+    ): ActionResult = MarchActions.start(state, kind, target, troops, heroIds, data)
+
+    /** 行軍 [marchId] を呼び戻す。 */
+    fun recallMarch(
+        state: GameState,
+        marchId: Long,
+        data: GameData,
+    ): ActionResult = MarchActions.recall(state, marchId, data)
+
+    /** メール [mailId] を既読にする。 */
+    fun markMailRead(
+        state: GameState,
+        mailId: Long,
+    ): ActionResult = ActionResult.Success(MailBox.markRead(state, mailId))
+
+    /** すべてのメールを既読にする。 */
+    fun markAllMailRead(state: GameState): ActionResult = ActionResult.Success(MailBox.markAllRead(state))
 
     private fun fail(reason: ActionFailure) = ActionResult.Failure(reason)
 }

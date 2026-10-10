@@ -1,6 +1,8 @@
 package com.ttmrase.crownfall.core.model
 
 import com.ttmrase.crownfall.core.map.MapState
+import com.ttmrase.crownfall.core.march.March
+import com.ttmrase.crownfall.core.march.MarchKind
 import kotlinx.serialization.Serializable
 
 /**
@@ -34,6 +36,8 @@ data class GameState(
     val map: MapState = MapState(),
     val mails: List<Mail> = emptyList(),
     val nextMailId: Long = 1,
+    val marches: List<March> = emptyList(),
+    val nextMarchId: Long = 1,
 )
 
 /** tick / アクションが出すイベント（UI・通知・チャットへの入力）。 */
@@ -64,4 +68,19 @@ sealed interface GameEvent {
 
     /** 英雄を召喚した。 */
     data class HeroSummoned(val result: SummonResult) : GameEvent
+
+    /** メールを受け取った。 */
+    data class MailReceived(val mailId: Long, val kind: MailKind) : GameEvent
+
+    /** 行軍 [marchId] が帰還した。 */
+    data class MarchReturned(val marchId: Long, val kind: MarchKind) : GameEvent
+
+    /** NPC の襲撃が [arrivalEpochSec] に到着する（予告）。 */
+    data class RaidIncoming(val arrivalEpochSec: Long) : GameEvent
+
+    /** 襲撃を撃退した。 */
+    data class PlayerDefendedRaid(val mailId: Long) : GameEvent
+
+    /** 襲撃に敗れ、資源を奪われた。 */
+    data class PlayerDefeated(val mailId: Long) : GameEvent
 }

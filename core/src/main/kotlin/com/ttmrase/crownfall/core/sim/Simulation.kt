@@ -3,6 +3,7 @@ package com.ttmrase.crownfall.core.sim
 import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.buff.BuffSet
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.march.WorldSim
 import com.ttmrase.crownfall.core.military.Military
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameEvent
@@ -40,7 +41,7 @@ object Simulation {
         while (true) {
             s = settleDue(s, data, events)
             if (s.nowEpochSec >= target) break
-            val segEnd = minOf(target, nextBoundary(s))
+            val segEnd = minOf(target, nextBoundary(s, data))
             s = produce(s, segEnd - s.nowEpochSec, data, events)
             s = s.copy(nowEpochSec = segEnd)
         }
@@ -86,12 +87,15 @@ object Simulation {
         data: GameData,
     ): Int = data.rules.baseBuildQueues + if (state.secondBuilderUntilEpochSec > state.nowEpochSec) 1 else 0
 
-    private fun nextBoundary(s: GameState): Long {
+    private fun nextBoundary(
+        s: GameState,
+        data: GameData,
+    ): Long {
         var next = Long.MAX_VALUE
         for (t in s.timers) if (t.endEpochSec > s.nowEpochSec) next = minOf(next, t.endEpochSec)
         for (b in s.boosts) if (b.untilEpochSec > s.nowEpochSec) next = minOf(next, b.untilEpochSec)
         if (s.secondBuilderUntilEpochSec > s.nowEpochSec) next = minOf(next, s.secondBuilderUntilEpochSec)
-        return next
+        return minOf(next, WorldSim.nextBoundary(s, data))
     }
 
     /** 現在時刻で期限を迎えたバフ除去とタイマー完了を確定させる（終了時刻の早い順、同時刻は id 順）。 */
@@ -151,7 +155,7 @@ object Simulation {
                 )
             s = syncStorageFlags(s, data)
         }
-        return s
+        return WorldSim.settle(s, data, events)
     }
 
     /**
