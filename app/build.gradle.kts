@@ -79,7 +79,15 @@ android {
     }
 
     testOptions {
-        unitTests.all { it.useJUnitPlatform() }
+        unitTests.all {
+            it.useJUnitPlatform()
+            // 失敗したテストのメッセージを CI のログに出す（レポートの artifact を開かなくても原因が読める）
+            it.testLogging {
+                events("failed")
+                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                showStackTraces = false
+            }
+        }
         // Robolectric（NavController と Compose の回帰テスト）が manifest とリソースを使う
         unitTests.isIncludeAndroidResources = true
     }
