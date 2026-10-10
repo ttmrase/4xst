@@ -16,8 +16,11 @@ class GameDataLoaderTest {
         chunk: Int = 1,
         queues: Int = 1,
         newGame: String = "{\"resources\": {}}",
+        minSec: Int = 300,
+        heroes: String = "[\"a\", \"b\", \"c\"]",
     ) = "{\"offlineCapSec\": $offlineCap, \"catchUpChunkSec\": $chunk, " +
-        "\"baseBuildQueues\": $queues, \"newGame\": $newGame}"
+        "\"baseBuildQueues\": $queues, \"offlineSummaryMinSec\": $minSec, \"starterHeroes\": $heroes, " +
+        "\"newGame\": $newGame}"
 
     private fun parseWith(
         name: String,
@@ -36,6 +39,8 @@ class GameDataLoaderTest {
         assertEquals(3, data.buildings.getValue(BuildingType.QUARRY).count)
         assertEquals(2, data.buildings.getValue(BuildingType.GOLD_MINE).count)
         assertEquals(86400, data.rules.offlineCapSec)
+        assertEquals(300, data.rules.offlineSummaryMinSec)
+        assertEquals(listOf("hero_aldric", "hero_seren", "hero_brann"), data.rules.starterHeroes)
     }
 
     @Test
@@ -130,6 +135,9 @@ class GameDataLoaderTest {
         assertFailsWith<GameDataException> { GameDataLoader.parse(raw - "rules.json") }
         assertLoadFails("buildings.json", "{ not json", "buildings.json")
         assertLoadFails("buildings.json", """{"buildings": []}""", "missing types")
+        assertLoadFails("rules.json", rulesJson(minSec = -1), "offlineSummaryMinSec")
+        assertLoadFails("rules.json", rulesJson(heroes = "[\"a\", \"b\"]"), "starterHeroes")
+        assertLoadFails("rules.json", rulesJson(heroes = "[\"a\", \"a\", \"b\"]"), "starterHeroes")
         assertLoadFails(
             "rules.json",
             rulesJson(offlineCap = -1),

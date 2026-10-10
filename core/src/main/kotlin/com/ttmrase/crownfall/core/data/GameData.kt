@@ -71,6 +71,8 @@ data class Rules(
     val offlineCapSec: Long,
     val catchUpChunkSec: Long,
     val baseBuildQueues: Int,
+    val offlineSummaryMinSec: Long,
+    val starterHeroes: List<String>,
     val newGame: NewGameRules,
 )
 

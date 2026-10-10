@@ -20,6 +20,9 @@ data class GameState(
     val nextJobId: Long = 1,
     val rngState: Long = 0,
     val storageFullFlags: Set<ResourceType> = emptySet(),
+    val playerName: String = "",
+    val starterHeroId: String? = null,
+    val tutorialStep: Int = 0,
 )
 
 /** tick / アクションが出すイベント（UI・通知・チャットへの入力）。 */

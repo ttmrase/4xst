@@ -2,6 +2,8 @@
  "offlineCapSec": 86400,
  "catchUpChunkSec": 60,
  "baseBuildQueues": 1,
+ "offlineSummaryMinSec": 300,
+ "starterHeroes": ["hero_aldric", "hero_seren", "hero_brann"],
  "newGame": {
   "resources": {"food": 5000, "wood": 5000, "stone": 3000, "gold": 500},
   "gems": 200,

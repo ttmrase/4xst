@@ -31,6 +31,8 @@ private class RulesDto(
     val offlineCapSec: Long,
     val catchUpChunkSec: Long,
     val baseBuildQueues: Int,
+    val offlineSummaryMinSec: Long = 300,
+    val starterHeroes: List<String> = emptyList(),
     val newGame: NewGameDto,
 )
 
@@ -61,6 +63,8 @@ object GameDataLoader {
     const val RULES = "rules.json"
     const val ITEMS = "items.json"
     const val SPEEDUP = "speedup.json"
+
+    private const val STARTER_HERO_COUNT = 3
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -152,6 +156,10 @@ object GameDataLoader {
         if (dto.offlineCapSec < 0) fail("rules.json: offlineCapSec must be >= 0")
         if (dto.catchUpChunkSec < 1) fail("rules.json: catchUpChunkSec must be >= 1")
         if (dto.baseBuildQueues < 1) fail("rules.json: baseBuildQueues must be >= 1")
+        if (dto.offlineSummaryMinSec < 0) fail("rules.json: offlineSummaryMinSec must be >= 0")
+        if (dto.starterHeroes.size != STARTER_HERO_COUNT || dto.starterHeroes.toSet().size != STARTER_HERO_COUNT) {
+            fail("rules.json: starterHeroes must have $STARTER_HERO_COUNT distinct ids")
+        }
         val ng = dto.newGame
         if (!nonNegative(ng.resources) || ng.gems < 0) fail("rules.json: newGame has negative resources/gems")
         for ((type, levels) in ng.initialLevels) {
@@ -173,6 +181,8 @@ object GameDataLoader {
             offlineCapSec = dto.offlineCapSec,
             catchUpChunkSec = dto.catchUpChunkSec,
             baseBuildQueues = dto.baseBuildQueues,
+            offlineSummaryMinSec = dto.offlineSummaryMinSec,
+            starterHeroes = dto.starterHeroes,
             newGame = NewGameRules(ng.resources, ng.gems, ng.initialLevels, ng.items),
         )
     }
