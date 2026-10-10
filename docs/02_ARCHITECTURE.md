@@ -214,4 +214,22 @@ jobs:
 - **AI プロバイダ**: 既定の順は Gemini → Scripted（ユーザー確定）。タイムアウト 8 秒。429・5xx・ネットワーク失敗なら次へ。予算（毎時 20 / 日 200）を超えたら Scripted。壊れた JSON は 1 行の発話として扱う。
 - **セキュリティ**: API キーは Android Keystore の AES/GCM で暗号化し、DataStore に保存する。ログやプロンプトに出さない。平文 HTTP はプライベート IP・localhost・*.local だけを AiRouter が許可する（network_security_config では IP の範囲を指定できないため、アプリ側の検査で守る）。
 - kover の対象: `:core` の alliance と chat。`:ai` の router と providers。
+- M5 で確定した実装上の判断:
+  - Gemini の既定モデルは `gemini-3.1-flash-lite`（GA。2026-10 時点で無料枠の対象。preview 版は 2026-05-25 に提供終了。出典: ai.google.dev の changelog と pricing）。設定画面で変更できる。
+  - OkHttp はリダイレクトに追従しない（UrlPolicy をすり抜けないため）。
+  - 応答 JSON の扱い: プレーンテキストの応答は 1 行の発話にする。`{` で始まる壊れた JSON は "text" の値を抜き出し、できなければ失敗扱い（次のプロバイダへ）にする。
+  - Keystore と ChatCoordinator の例外でアプリを落とさない（CancellationException 以外は捕まえる）。
+  - DM は活動時間外でも返信する。ワールドは読み取り専用。プロンプトにはゲーム内のプレイヤー名だけを含める。
+
+## 12. ショップ・擬似課金の設計（M6 で Director が決定）
+- 絶対条件は 04 §1 のとおり（実決済 SDK と billing 依存は無し、ブランドを模倣しない、通信しない）。CI で billing 依存を検査する。
+- `core.shop`（OfferEngine / FakeLedger / VipCalculator / PiggyBank / LuckyWheel / DailyDeals / MonthPass / GrowthFund）は純関数。状態は `GameState.shop`。
+- オファーは `shop.offerQueue` に積み、`:app` の OfferPresenter が先頭から表示する。
+  - 頻度（LOW 2 / STANDARD 5 / MASS 無制限、1 セッションあたり）、クールダウン、連鎖は最大 3、復活は MASS のときだけ。いずれも `:core` で判定する。
+  - セッションは前景になったときの `beginSession` で始まる。
+- `Actions.fakePurchase` は、内容の付与・初回 2 倍・VIP pt・台帳・レシートメール・連鎖をまとめて原子的に行う。決済シートの演出（処理時間、2% のエラー、紙吹雪）は UI だけで行い、「完了」を表示する瞬間に dispatch する。
+- FakeLedger はゲームのロジックから参照しない（上限 5000 件、あふれたら集計値に畳む）。VIP は `shop.vipPoints` で管理する。
+- VIP の特典は既存の仕組みに接続する: 採集バフは BuffAggregator、オフライン上限は capSec、ジェムスキップは割引 bp、VIP6 の 2 本目ビルダーは buildQueueCapacity。
+- 日付の区切りは `settings.utcOffsetSec` の現地日付。デイリーディールは (seed, localDay) のハッシュで決める。
+- kover の対象に shop を追加する。
 

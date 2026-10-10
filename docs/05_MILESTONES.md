@@ -64,7 +64,7 @@ DoD: CI の APK で Castle Lv1→5 が遊べる。Debugger がエミュレータ
 | T4.4 | UI: Canvas マップ（ズーム/パン、可視範囲描画）、タイル詳細、部隊編成（兵・英雄・数量）、行軍アイコン、報告メール |
 テスト: 戦闘決定論、三すくみ係数、距離/時間、積載上限。
 
-## M5 同盟・AI チャット — 発行済み 2026-10-10（設計は 02 §11）
+## M5 同盟・AI チャット — 実装済み・Director Approve 2026-10-10（HEAD 9a427d9、CI run 38041077339。QA と要修正 6 件の待ち。設計は 02 §11）
 | ID | 内容 |
 | --- | --- |
 | T5.1 | `personas.json`、`AllianceScheduler`（活動時間帯・確率・オフライン生成）、好感度 |
@@ -76,7 +76,7 @@ DoD: CI の APK で Castle Lv1→5 が遊べる。Debugger がエミュレータ
 テスト: Scripted のみで全イベントに応答がある、MockWebServer で 200/429/timeout/壊れ JSON、予算超過でフォールバック。
 DoD: キー無しで完全動作。キー有りは Debugger が設定画面経路をコードレビュー（実キーは使わない）。
 
-## M6 ショップ・擬似課金
+## M6 ショップ・擬似課金 — 発行済み 2026-10-10（設計は 02 §12）
 | ID | 内容 |
 | --- | --- |
 | T6.1 | `offers.json`（全 SKU・パック・トリガー DSL）、`OfferEngine`（トリガー評価・クールダウン・キュー・頻度設定・復活）、`FakeLedger`、`VipCalculator` + `vip.json` |
