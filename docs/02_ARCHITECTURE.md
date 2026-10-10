@@ -246,4 +246,14 @@ jobs:
 - 通知は、onStop の時点で確定している未来の時刻だけを WorkManager で予約する（`NotificationPlanner.plan`。純関数）。背景でシミュレーションは回さない。**既知の制約**: 未来の AI のメンション・DM は予測できないので通知しない。
 - オンデバイス LLM（T7.5）は M9 へ繰り越す。
 - kover の対象に quest / event / notify を追加する。
+- M7 で確定した実装上の判断:
+  - 逆転パックを購入した後は、リーダーの追従を購入時点の自力スコアで固定する（`followCapSelf`。M7 REVIEW。購入後の自力の伸びはそのままリードになる）。
+  - 週をまたいだオフライン分のイベントは、新しい週に計上する。
+  - 戦力成長祭の自力スコアは、週の開始時からの戦力の増加分。
+
+## 14. リリース（M8 で Director が決定）
+- 署名の安定化: 固定の debug keystore（`app/debug.keystore`。秘密ではない）をコミットし、CI の run ごとに署名が変わって上書きインストールできなくなる問題を防ぐ。
+- release: GitHub Secrets（RELEASE_KEYSTORE_B64 / RELEASE_STORE_PASSWORD / RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD）があればそれで署名し、無ければ debug 鍵で署名して `crownfall-release-debugsigned.apk` にする。鍵とパスワードはリポジトリにもログにも出さない。
+- R8（minify）は無効（実機で検証できない環境での、シリアライズまわりの実行時クラッシュを避けるため）。
+- 1.0.0（versionCode 100）。CI のログに、両 APK の署名証明書の SHA-256 を出す。
 

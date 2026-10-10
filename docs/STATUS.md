@@ -1,6 +1,6 @@
 # STATUS（Director が更新）
 
-- 現在のマイルストーン: **M7 クエスト・イベント・通知・仕上げ**（発行済み・実装中）。M0〜M6 は ✅ 完了
+- 現在のマイルストーン: **M8 QA・リリース**（発行済み）。M7 は実装済み・Director Approve（QA と要修正の待ち）。M0〜M6 は ✅ 完了
 - 統合ブランチ: `claude/4x-strategy-game-planning-oxo80w`
 - 最終更新: 2026-10-10 Director
 
@@ -25,7 +25,11 @@
 | T4.1〜T4.4 + 修正 | Implementer | ✅ 完了 | 6f3616f〜59f6176, d5bfb9c, e316217 |
 | T5.1〜T5.6 + 修正 | Implementer | ✅ 完了 | 12f38e7〜9a427d9, 71c9f8f |
 | T6.1〜T6.5 + 修正 | Implementer | ✅ 完了 | 10ed532, d966afb, 13a1b86, 60f5b54 |
-| T7.1〜T7.4 | Implementer | 発行済み | - |
+| T7.1〜T7.4 | Implementer | Director Approve・QA 待ち | 3e1076b, e174cae, 495aa3e |
+| M7 要修正 3 件（逆転パックの追従の固定、毎秒の重い再計算、通知設定の同期） | Implementer | 依頼済み | - |
+| T8.2（release ビルド、署名の安定化、README）・T8.4（性能パス） | Implementer | 発行済み | - |
+| T8.1（スモークチェックリスト、ベンチ、セーブ互換の fixture）・CI のリリース対応 | Debugger | 発行済み | - |
+| T8.3（docs の最終同期） | Director | M8 の完了後 | - |
 | CI に koverVerify を追加・M1 の境界テスト | Debugger | ✅ 完了 | 795d5fe |
 | M2 の QA・GameSession の境界テスト | Debugger | ✅ 完了 | 46cdc42 |
 | FileSaveStorage の :app ユニットテスト（CI に testDebugUnitTest を追加） | Debugger | ✅ 完了 | 425d9d5 |
@@ -34,7 +38,8 @@
 | M4 の QA | Debugger | ✅ 完了 | b09c35e |
 | CI に :ai の koverVerify と billing 依存の検査を追加・M5 の QA | Debugger | ✅ 完了 | 2dc11e1, 13c046b, 0665c70 |
 | M6 の QA・ブランド名の検査 | Debugger | ✅ 完了 | 2aa10b1 |
-| CI の grep ステップの終了コード修正・M7 の QA | Debugger | 依頼済み | - |
+| CI の grep ステップの終了コード修正 | Debugger | ✅ 完了 | 62fedd3 |
+| M7 の QA | Debugger | 依頼済み | - |
 
 ## 直近の決定事項
 - 技術構成: Kotlin / Compose。`:core` `:ai` は JVM、`:app` は CI でのみビルド（02 §0）
@@ -50,7 +55,8 @@
 - コアシミュレーションの設計規則 R1〜R9（02 §7）。M2 のセッションと UI の設計（02 §8: GameSession を :core に置く、保存はスロットリング、TooNew は上書きしない）。M3 の設計（02 §9: バフは加算で集約、キューは種類ごとに独立、維持費は正味レート、召喚の確率と天井）。M4 の設計（02 §10: マップは静的部分 + 動的オーバーレイ、行軍と襲撃も tick の境界、戦闘は整数演算）。M7 の設計（02 §13: クエストはイベント駆動、NPC ランキングの追従とボーナスの除外、通知は予測できるものだけ）。M6 の設計（02 §12: オファーのキュー、頻度の制御、購入の原子性、台帳は参照しない）。M5 の設計（02 §11: チャットのきっかけまでを :core が決定論的に生成、分のグリッドのスケジューラ、Keystore に暗号化したキー、平文 HTTP はプライベート IP だけ）。`tools/**` を Implementer の書き込み領域に追加
 
 ## ユーザー確認待ち（Planner 経由）
-- なし（ゲーム名・AI 既定プロバイダは確定済み）
+- 任意: release の署名鍵を GitHub Secrets に登録するか（未登録なら debug 鍵で署名した release APK になる。個人利用では実害なし）
+- 好み: オファー頻度の既定は「量産型（無制限）」（設定で変更できる）
 
 ## 既知の問題
 - 未来の AI のメンション・DM は通知できない（背景でシミュレーションを回さないため。M9 で検討）
