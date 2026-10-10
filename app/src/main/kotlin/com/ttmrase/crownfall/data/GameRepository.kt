@@ -39,6 +39,8 @@ class GameRepository(
 ) {
     private val storage = FileSaveStorage(File(context.filesDir, "save"))
     private val _startup = MutableStateFlow<Startup>(Startup.Loading)
+
+    @Volatile
     private var foreground = false
 
     /** 起動状態。 */
@@ -78,6 +80,8 @@ class GameRepository(
         starterHeroId: String,
     ) {
         val ready = _startup.value as? Startup.Ready ?: return
+        // 新しい版のセーブは上書きしない（Title でも防いでいるが二重の安全策）。
+        if (ready.load is LoadResult.TooNew) return
         val seed = System.nanoTime() xor clock.nowEpochSec()
         ready.session.newGame(playerName, starterHeroId, seed)
         _startup.value = ready.copy(load = LoadResult.Loaded)
