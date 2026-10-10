@@ -91,7 +91,7 @@ AI の設定が無くても、全機能が定型文（スクリプト）で動�
 - オファーの頻度は設定画面で下げられる（低 / 標準 / 大量）。
 
 ## 開発者向けビルド手順
-上の「ビルド」の各節を参照。署名の設定は `app/build.gradle.kts`。release の署名鍵を使うには、CI の Secrets に `RELEASE_KEYSTORE_B64`（keystore を base64 にしたもの）、`RELEASE_STORE_PASSWORD`、`RELEASE_KEY_ALIAS`、`RELEASE_KEY_PASSWORD` を登録する。ローカルでは環境変数 `RELEASE_KEYSTORE_FILE`（keystore のパス）と上の 3 つを設定する。揃っていなければ固定の debug 鍵で署名する。鍵やパスワードをリポジトリやログに書かないこと。
+上の「ビルド」の各節を参照。署名の設定は `app/build.gradle.kts`。release の署名鍵を使うには、CI の Secrets に `RELEASE_KEYSTORE_B64`（keystore を base64 にしたもの）、`RELEASE_STORE_PASSWORD`、`RELEASE_KEY_ALIAS`、`RELEASE_KEY_PASSWORD` を登録する。ローカルでは環境変数 `RELEASE_KEYSTORE_PATH`（keystore のパス）と上の 3 つを設定する。揃っていなければ固定の debug 鍵で署名する。鍵やパスワードをリポジトリやログに書かないこと。
 
 ### 配布について
 このアプリは個人利用のサイドロード専用で、**Google Play では配布しない**。理由は冒頭の「重要な注意」を参照。
