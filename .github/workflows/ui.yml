@@ -7,6 +7,8 @@ name: ui
 
 on:
   push:
+    branches-ignore:
+      - qa-screenshots
   workflow_dispatch:
 
 permissions:
@@ -21,6 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     continue-on-error: true
+    permissions:
+      contents: write # qa-screenshots ブランチへ画像を追記するため（このジョブだけ）
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -64,6 +68,14 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           disable-animations: true
           script: bash .github/scripts/run-ui-tests.sh
+      - name: Publish screenshots to the qa-screenshots branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_NUMBER: ${{ github.run_number }}
+          SHA: ${{ github.sha }}
+          JOB_STATUS: ${{ job.status }}
+        run: bash .github/scripts/publish-screenshots.sh
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
