@@ -1,6 +1,11 @@
 package com.ttmrase.crownfall.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -82,6 +87,8 @@ import kotlinx.coroutines.launch
 
 /** 単一 Activity 用の NavHost と下部ナビ（Title では非表示）。 */
 private const val CLAIM_PERIOD_MS = 30_000L
+private const val TRANSITION_MS = 180
+private const val SLIDE_DIV = 12
 
 @Composable
 fun CrownfallNavHost(
@@ -239,6 +246,14 @@ fun CrownfallNavHost(
                     navController = navController,
                     startDestination = Screen.Title.route,
                     modifier = Modifier.weight(1f),
+                    enterTransition = {
+                        fadeIn(tween(TRANSITION_MS)) + slideInHorizontally(tween(TRANSITION_MS)) { it / SLIDE_DIV }
+                    },
+                    exitTransition = { fadeOut(tween(TRANSITION_MS)) },
+                    popEnterTransition = { fadeIn(tween(TRANSITION_MS)) },
+                    popExitTransition = {
+                        fadeOut(tween(TRANSITION_MS)) + slideOutHorizontally(tween(TRANSITION_MS)) { it / SLIDE_DIV }
+                    },
                 ) {
                     composable(Screen.Title.route) {
                         TitleScreen(

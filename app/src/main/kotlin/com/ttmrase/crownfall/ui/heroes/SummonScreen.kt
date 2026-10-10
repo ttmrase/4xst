@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
@@ -77,6 +76,7 @@ import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.heroNameRes
 import com.ttmrase.crownfall.ui.rarityColor
+import com.ttmrase.crownfall.ui.theme.PressButton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -312,7 +312,7 @@ private fun SummonButton(
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
-    Button(onClick = onClick, enabled = enabled, modifier = modifier) {
+    PressButton(onClick = onClick, enabled = enabled, modifier = modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(label, style = MaterialTheme.typography.titleSmall)
             Text(cost, style = MaterialTheme.typography.labelSmall)

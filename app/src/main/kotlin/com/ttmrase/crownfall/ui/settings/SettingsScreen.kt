@@ -193,6 +193,8 @@ private fun SettingsForm(
             modifier = Modifier.fillMaxWidth(),
         ) { Text(stringResource(R.string.settings_save)) }
         HorizontalDivider()
+        SoundSettingsSection()
+        HorizontalDivider()
         NotificationSettingsSection(session)
         if (session != null) {
             HorizontalDivider()

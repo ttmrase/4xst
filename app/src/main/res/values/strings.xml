@@ -551,6 +551,9 @@
     <string name="chat_input_hint">メッセージを入力</string>
     <string name="chat_send">送信</string>
     <string name="chat_world_readonly">ワールドチャットは読み取り専用です</string>
+    <string name="settings_sound_title">サウンド</string>
+    <string name="settings_sound_effects">効果音（演出・ボタン）</string>
+    <string name="settings_sound_note">端末がマナーモード / サイレントのときは、オンでも鳴りません。</string>
     <string name="settings_loading">読み込み中…</string>
     <string name="settings_ai_title">AI チャット</string>
     <string name="settings_ai_note">API キーが無くても、定型文（Scripted）で遊べます。キーはこの端末の Keystore で暗号化して保存され、ログには出ません。</string>

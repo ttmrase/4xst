@@ -551,6 +551,9 @@
     <string name="chat_input_hint">Type a message</string>
     <string name="chat_send">Send</string>
     <string name="chat_world_readonly">World chat is read-only</string>
+    <string name="settings_sound_title">Sound</string>
+    <string name="settings_sound_effects">Sound effects (rituals, buttons)</string>
+    <string name="settings_sound_note">Nothing plays while the device is on vibrate or silent, even when this is on.</string>
     <string name="settings_loading">Loading…</string>
     <string name="settings_ai_title">AI chat</string>
     <string name="settings_ai_note">The game works without any key using scripted lines. Keys are encrypted with the device Keystore and never logged.</string>

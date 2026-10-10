@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +29,7 @@ import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.OfferBadge
 import com.ttmrase.crownfall.core.data.PackContents
+import com.ttmrase.crownfall.ui.theme.PressButton
 
 private const val PULSE_SCALE = 1.05f
 private const val PULSE_MS = 650
@@ -142,7 +142,7 @@ fun OfferCard(
                     FlipCountdown(it)
                 }
             }
-            Button(
+            PressButton(
                 onClick = onBuy,
                 enabled = !soldOut,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),

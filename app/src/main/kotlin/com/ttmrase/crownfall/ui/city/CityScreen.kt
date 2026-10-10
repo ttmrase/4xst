@@ -63,6 +63,9 @@ import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.researchNodeName
 import com.ttmrase.crownfall.ui.territory.TerritoryView
+import com.ttmrase.crownfall.ui.theme.AnimatedNumber
+import com.ttmrase.crownfall.ui.theme.GoldPanel
+import com.ttmrase.crownfall.ui.theme.GoldText
 import com.ttmrase.crownfall.ui.titleRes
 import com.ttmrase.crownfall.ui.troopNameById
 import kotlinx.coroutines.launch
@@ -272,31 +275,25 @@ private fun StatusBar(
     val live by session.state.collectAsStateWithLifecycle()
     val state = live ?: return
     val cap = Simulation.storageCap(state, data)
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(12.dp),
-    ) {
+    GoldPanel(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
         Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
+                GoldText(
                     stringResource(R.string.power_label) + "  " +
                         ShortNumber.format(PowerCalculator.total(state, data)),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
                 )
-                Text(
-                    stringResource(R.string.res_gems) + "  " + ShortNumber.format(state.gems),
-                    style = MaterialTheme.typography.titleSmall,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.res_gems) + "  ", style = MaterialTheme.typography.titleSmall)
+                    AnimatedNumber(state.gems, style = MaterialTheme.typography.titleSmall)
+                }
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 ResourceType.entries.forEach { type ->
                     val full = cap > 0 && state.resources[type] >= cap
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(stringResource(type.nameRes()), style = MaterialTheme.typography.labelSmall)
-                        Text(
-                            ShortNumber.format(state.resources[type]),
-                            style = MaterialTheme.typography.bodyMedium,
+                        AnimatedNumber(
+                            state.resources[type],
                             color =
                                 if (full) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
                         )
