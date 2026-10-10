@@ -1,0 +1,8 @@
+{
+ "tiers": [
+  {"upToSec": 60, "gemsPerHour": 180},
+  {"upToSec": 3600, "gemsPerHour": 54},
+  {"upToSec": 86400, "gemsPerHour": 21},
+  {"upToSec": null, "gemsPerHour": 15}
+ ]
+}
