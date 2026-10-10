@@ -7,7 +7,7 @@
 ## 完了
 | マイルストーン | 完了 | 根拠 |
 | --- | --- | --- |
-| 1.0.1 ホットフィックス（S1 × 2: ポップアップから戻れない、城内へ戻れない） | 2026-10-10 | e85e283 / d2b41e4 + レビュー修正 ac75fb4（退出待ちでも戻るが効く）、HEAD 4986231 で CI run 111 が緑（jvm / apk）、Debugger QA-OK（QaPopupTest 4、NavActionsTest 9、BackPressTest 4。Robolectric を導入）、Director Approve |
+| 1.0.1 ホットフィックス（S1 × 2: ポップアップから戻れない、城内へ戻れない） | 2026-10-10 | e85e283 / d2b41e4 + レビュー修正 ac75fb4（退出待ちでも戻るが効く）、HEAD 4986231 で CI run 111（38061992582）が緑（jvm / apk。APK は debug 36.5MB / release 32.5MB で M9 と同等）、Debugger QA-OK（QaPopupTest 4、NavActionsTest 9、BackPressTest 4。Robolectric を導入）、Director Approve |
 | M0 基盤 | 2026-10-10 | HEAD 00f5f9b、CI run 38028345848（jvm と apk が緑、crownfall-debug-apk あり）、Debugger QA-OK、Director Approve |
 | M9 拡張（オンデバイス LLM・うるさい通知） | 2026-10-10 | 7d5ed68 + 修正 ec6bcc3、CI run 93 が緑（LiteRT-LM 0.18.0、Kotlin 2.4.0、APK は debug 36.5MB / release 32.5MB）、Debugger QA-OK（先読みと実際の catch-up の一致、通知の選別、襲撃の段階の R3、48h 先読み 28ms）、Director Approve |
 | M8 QA・リリース | 2026-10-10 | f3261e6、CI run 78 が緑（debug と release（debugsigned）の APK、証明書の照合、billing の検査）、Debugger QA-OK（スモークチェックリスト、M1〜M7 のセーブ互換、ベンチ）、docs の同期（T8.3）、Director Approve |
