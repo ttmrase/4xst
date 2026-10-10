@@ -136,6 +136,9 @@ private fun MapContent(
     var selected by remember { mutableStateOf<TileRef?>(null) }
     var formation by remember { mutableStateOf<Pair<MarchKind, TileRef>?>(null) }
     var marchesOpen by remember { mutableStateOf(false) }
+    var formationError by remember { mutableStateOf<String?>(null) }
+    var marchError by remember { mutableStateOf<String?>(null) }
+    var sending by remember { mutableStateOf(false) }
     val center = data.mapRules.center
 
     fun centerOnCastle() {
@@ -205,6 +208,7 @@ private fun MapContent(
             data = data,
             tile = ref,
             onAction = { kind ->
+                formationError = null
                 formation = kind to ref
                 selected = null
             },
@@ -217,13 +221,19 @@ private fun MapContent(
             data = data,
             kind = kind,
             target = ref,
+            error = formationError,
+            sending = sending,
             onSend = { troops, heroes ->
-                scope.launch {
-                    val result = session.dispatch { Actions.startMarch(it, kind, ref, troops, heroes, data) }
-                    if (result is ActionResult.Failure) {
-                        snackbarHostState.showReplacing(failureMessage(context, result.reason))
-                    } else {
-                        formation = null
+                if (!sending) {
+                    sending = true
+                    scope.launch {
+                        val result = session.dispatch { Actions.startMarch(it, kind, ref, troops, heroes, data) }
+                        if (result is ActionResult.Failure) {
+                            formationError = failureMessage(context, result.reason)
+                        } else {
+                            formation = null
+                        }
+                        sending = false
                     }
                 }
             },
@@ -234,12 +244,11 @@ private fun MapContent(
         MarchListSheet(
             state = s,
             data = data,
+            error = marchError,
             onRecall = { id ->
                 scope.launch {
                     val result = session.dispatch { Actions.recallMarch(it, id, data) }
-                    if (result is ActionResult.Failure) {
-                        snackbarHostState.showReplacing(failureMessage(context, result.reason))
-                    }
+                    marchError = (result as? ActionResult.Failure)?.let { failureMessage(context, it.reason) }
                 }
             },
             onDismiss = { marchesOpen = false },

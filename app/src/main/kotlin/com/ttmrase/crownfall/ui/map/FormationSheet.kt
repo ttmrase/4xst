@@ -17,6 +17,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -45,6 +46,8 @@ fun FormationSheet(
     data: GameData,
     kind: MarchKind,
     target: TileRef,
+    error: String?,
+    sending: Boolean,
     onSend: (Map<String, Long>, List<String>) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -52,7 +55,7 @@ fun FormationSheet(
     val context = LocalContext.current
     val counts = remember { mutableStateMapOf<String, Float>() }
     val heroes = remember { mutableStateListOf<String>() }
-    val available = state.troops.filterValues { it > 0 }.keys.sorted()
+    val available = state.troops.filterValues { it > 0 }.keys.filter { it in data.troops }.sorted()
     val busy = Marching.busyHeroes(state)
     val maxHeroes = data.mapRules.march.maxHeroes
     val picked =
@@ -60,13 +63,19 @@ fun FormationSheet(
             .filterValues { it > 0 }
     val total = picked.values.sum()
     val cap = Marching.troopCap(state, data)
+    val slotFree = state.marches.size < Marching.slots(state, data)
+    LaunchedEffect(busy) { heroes.removeAll { it in busy } }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                stringResource(R.string.formation_title) + " — " + stringResource(kind.nameRes()),
+                stringResource(
+                    R.string.formation_title_kind,
+                    stringResource(R.string.formation_title),
+                    stringResource(kind.nameRes()),
+                ),
                 style = MaterialTheme.typography.headlineSmall,
             )
             Text(stringResource(R.string.formation_target, target.x, target.y))
@@ -77,7 +86,13 @@ fun FormationSheet(
                 val owned = state.troops.getValue(id)
                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text(troopNameById(context, id))
-                    Text("${ShortNumber.format(picked[id] ?: 0L)} / ${ShortNumber.format(owned)}")
+                    Text(
+                        stringResource(
+                            R.string.formation_owned_of,
+                            ShortNumber.format(picked[id] ?: 0L),
+                            ShortNumber.format(owned),
+                        ),
+                    )
                 }
                 Slider(
                     value = counts[id] ?: 0f,
@@ -101,10 +116,10 @@ fun FormationSheet(
             HorizontalDivider()
             Text(stringResource(R.string.formation_heroes, maxHeroes), style = MaterialTheme.typography.titleSmall)
             state.heroes.forEach { h ->
-                val name = heroNameRes(h.heroId)?.let { stringResource(it) } ?: h.heroId
+                val name = stringResource(heroNameRes(h.heroId) ?: R.string.hero_unknown_name)
                 val isBusy = h.heroId in busy
                 val on = h.heroId in heroes
-                val label = if (isBusy) name + " (" + stringResource(R.string.formation_hero_busy) + ")" else name
+                val label = if (isBusy) stringResource(R.string.formation_hero_busy_label, name) else name
                 if (on) {
                     Button(onClick = { heroes.remove(h.heroId) }) { Text(label) }
                 } else {
@@ -115,6 +130,7 @@ fun FormationSheet(
                 }
             }
             HorizontalDivider()
+            if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
             Text(
                 stringResource(R.string.formation_total, ShortNumber.format(total), ShortNumber.format(cap)),
                 color = if (total > cap) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
@@ -129,7 +145,7 @@ fun FormationSheet(
             }
             Button(
                 onClick = { onSend(picked, heroes.toList()) },
-                enabled = total > 0,
+                enabled = total in 1..cap && slotFree && !sending,
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.formation_send)) }
         }

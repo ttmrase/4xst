@@ -34,6 +34,7 @@ import com.ttmrase.crownfall.ui.nameRes
 fun MarchListSheet(
     state: GameState,
     data: GameData,
+    error: String?,
     onRecall: (Long) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -44,15 +45,20 @@ fun MarchListSheet(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(stringResource(R.string.march_list_title), style = MaterialTheme.typography.headlineSmall)
+            if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
             if (state.marches.isEmpty()) Text(stringResource(R.string.march_list_empty))
             state.marches.forEach { m ->
                 HorizontalDivider()
                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        stringResource(m.kind.nameRes()) + " — " + stringResource(m.phase.nameRes()),
+                        stringResource(
+                            R.string.march_list_row,
+                            stringResource(m.kind.nameRes()),
+                            stringResource(m.phase.nameRes()),
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    Text("(${m.target.x}, ${m.target.y})")
+                    Text(stringResource(R.string.march_coords, m.target.x, m.target.y))
                 }
                 LinearProgressIndicator(
                     progress = { MarchViews.progress(m, state.nowEpochSec) },

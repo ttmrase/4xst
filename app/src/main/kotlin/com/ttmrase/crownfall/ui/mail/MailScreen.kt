@@ -27,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -73,10 +74,11 @@ fun MailScreen(
     var openId by rememberSaveable { mutableStateOf<Long?>(null) }
     val s = state ?: return
     val context = LocalContext.current
+    val timeFormat = remember { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT) }
 
     LaunchedEffect(openId) {
         val id = openId ?: return@LaunchedEffect
-        session.dispatch { Actions.markMailRead(it, id) }
+        if (state?.mails?.any { it.id == id && !it.read } == true) session.dispatch { Actions.markMailRead(it, id) }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -87,7 +89,7 @@ fun MailScreen(
                 Tab(
                     selected = tab == index,
                     onClick = { tab = index },
-                    text = { Text(if (unread > 0) "$name ($unread)" else name) },
+                    text = { Text(if (unread > 0) stringResource(R.string.mail_tab_unread, name, unread) else name) },
                 )
             }
         }
@@ -114,7 +116,7 @@ fun MailScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = if (mail.read) FontWeight.Normal else FontWeight.Bold,
                         )
-                        Text(formatTime(mail.epochSec), style = MaterialTheme.typography.labelMedium)
+                        Text(formatTime(timeFormat, mail.epochSec), style = MaterialTheme.typography.labelMedium)
                     }
                     HorizontalDivider()
                 }
@@ -131,7 +133,7 @@ fun MailScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(mailTitle(context, open), style = MaterialTheme.typography.headlineSmall)
-                Text(formatTime(open.epochSec), style = MaterialTheme.typography.labelMedium)
+                Text(formatTime(timeFormat, open.epochSec), style = MaterialTheme.typography.labelMedium)
                 HorizontalDivider()
                 open.battle?.let { BattleBody(it, data) }
                 open.scout?.let { ScoutBody(it) }
@@ -148,8 +150,10 @@ private fun tabName(kind: MailKind): Int =
         else -> R.string.mail_tab_system
     }
 
-private fun formatTime(epochSec: Long): String =
-    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(epochSec * MILLIS))
+private fun formatTime(
+    format: DateFormat,
+    epochSec: Long,
+): String = format.format(Date(epochSec * MILLIS))
 
 private fun battleTarget(
     context: Context,
@@ -234,10 +238,17 @@ private fun BattleBody(
     )
     if (b.allyTroops.isNotEmpty()) {
         Text(
-            stringResource(R.string.report_allies) + ": " +
+            stringResource(
+                R.string.report_allies_line,
+                stringResource(R.string.report_allies),
                 b.allyTroops.entries.joinToString {
-                    troopNameById(context, it.key) + " ×" + ShortNumber.format(it.value)
+                    context.getString(
+                        R.string.troop_count_line,
+                        troopNameById(context, it.key),
+                        ShortNumber.format(it.value),
+                    )
                 },
+            ),
         )
     }
     if (b.loot != Resources.ZERO || b.lootItems.isNotEmpty()) {
@@ -246,7 +257,7 @@ private fun BattleBody(
             style = MaterialTheme.typography.titleSmall,
         )
         ResourceType.entries.filter { b.loot[it] > 0 }.forEach {
-            Text(stringResource(it.nameRes()) + " +" + ShortNumber.format(b.loot[it]))
+            Text(stringResource(R.string.resource_plus, stringResource(it.nameRes()), ShortNumber.format(b.loot[it])))
         }
         b.lootItems.forEach { (id, n) ->
             val def = data.items[id]
@@ -309,8 +320,11 @@ private fun ScoutBody(r: ScoutReport) {
     Text(stringResource(R.string.scout_error, r.errorPct))
     r.nodeType?.let {
         Text(
-            stringResource(it.nameRes()) + " — " +
+            stringResource(
+                R.string.scout_node_line,
+                stringResource(it.nameRes()),
                 stringResource(R.string.scout_node, ShortNumber.format(r.nodeRemaining)),
+            ),
         )
     }
     if (r.power > 0) Text(stringResource(R.string.scout_power, ShortNumber.format(r.power)))

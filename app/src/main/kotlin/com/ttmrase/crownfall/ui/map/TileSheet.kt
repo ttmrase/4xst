@@ -60,7 +60,7 @@ fun TileSheet(
                             StructureType.PLAYER_CASTLE -> stringResource(R.string.tile_player_castle)
                             StructureType.ALLY_CASTLE ->
                                 stringResource(
-                                    if (structure.tag.startsWith("persona_slot_")) {
+                                    if (structure.isPersona) {
                                         R.string.tile_ally_persona
                                     } else {
                                         R.string.tile_ally_castle
@@ -74,7 +74,12 @@ fun TileSheet(
                 }
             Text(title, style = MaterialTheme.typography.headlineSmall)
             Text(
-                "(${tile.x}, ${tile.y})  " + (info?.terrain?.let { stringResource(it.nameRes()) } ?: ""),
+                stringResource(
+                    R.string.tile_coords,
+                    tile.x,
+                    tile.y,
+                    info?.terrain?.let { stringResource(it.nameRes()) } ?: "",
+                ),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
@@ -87,7 +92,11 @@ fun TileSheet(
             if (structure != null && structure.power > 0) {
                 Text(stringResource(R.string.tile_power, ShortNumber.format(structure.power)))
             }
-            val busy = state.marches.any { it.phase == MarchPhase.WORKING && it.target == tile }
+            val busy =
+                state.marches.any {
+                    it.kind == MarchKind.GATHER && it.target == tile &&
+                        (it.phase == MarchPhase.WORKING || it.phase == MarchPhase.OUTBOUND)
+                }
             if (node != null && busy) Text(stringResource(R.string.tile_busy_gathering))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (node != null && !busy) {

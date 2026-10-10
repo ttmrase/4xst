@@ -454,4 +454,15 @@
     <string name="scout_range">%1$s ～ %2$s</string>
     <string name="scout_node">残量 %1$s</string>
     <string name="scout_power">目安戦力 %1$s</string>
+    <string name="formation_title_kind">%1$s — %2$s</string>
+    <string name="formation_owned_of">%1$s / %2$s</string>
+    <string name="formation_hero_busy_label">%1$s（出撃中）</string>
+    <string name="march_list_row">%1$s — %2$s</string>
+    <string name="march_coords">(%1$d, %2$d)</string>
+    <string name="tile_coords">(%1$d, %2$d)  %3$s</string>
+    <string name="mail_tab_unread">%1$s (%2$d)</string>
+    <string name="report_allies_line">%1$s：%2$s</string>
+    <string name="troop_count_line">%1$s ×%2$s</string>
+    <string name="resource_plus">%1$s +%2$s</string>
+    <string name="scout_node_line">%1$s — %2$s</string>
 </resources>
