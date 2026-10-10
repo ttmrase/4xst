@@ -352,10 +352,11 @@ fun troopNameById(
     context: Context,
     troopId: String,
 ): String {
-    val tier = troopId.substringAfterLast("_t", "").toIntOrNull()
+    val tier: Int? = troopId.substringAfterLast("_t", "").toIntOrNull()
     val type = TroopType.entries.firstOrNull { troopId.startsWith(it.name.lowercase() + "_") }
     return if (tier != null && type != null) {
-        context.getString(R.string.troop_name, context.getString(type.nameRes()), tier)
+        val tierNumber: Int = tier
+        context.getString(R.string.troop_name, context.getString(type.nameRes()), tierNumber)
     } else {
         troopId
     }
