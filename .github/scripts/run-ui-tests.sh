@@ -13,11 +13,35 @@ adb logcat -c || true
 # テストの開始・終了を logcat で追う（固まったとき「どのテストか」を result.txt に出すため）
 adb logcat -v time -s TestRunner:I > "$out/logs/testrunner.txt" 2>&1 &
 logcat_pid=$!
-# 1 テスト 4 分で打ち切る（AndroidJUnitRunner の timeout_msec）。全体も 22 分で打ち切る
-timeout 22m ./gradlew :app:connectedDebugAndroidTest -PwithAndroid=true \
+# gradle はバックグラウンドで動かし、20 分で見切る（pipe で tee に繋ぐと、固まったときに timeout が効かず job の上限まで待つ）
+./gradlew :app:connectedDebugAndroidTest -PwithAndroid=true \
   -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
-  -Pandroid.testInstrumentationRunnerArguments.timeout_msec=240000 2>&1 | tee "$out/logs/gradle.log"
-status=${PIPESTATUS[0]}
+  > "$out/logs/gradle.log" 2>&1 &
+gradle_pid=$!
+tail -n +1 -f "$out/logs/gradle.log" &
+tail_pid=$!
+deadline=$((SECONDS + 1200))
+hung=0
+while kill -0 "$gradle_pid" 2>/dev/null; do
+  if [[ $SECONDS -ge $deadline ]]; then
+    hung=1
+    echo "::error::androidTest did not finish in 20 minutes: capturing the screen and the app stack, then stopping"
+    adb exec-out screencap -p > "$out/screenshots/HANG_screen.png" || true
+    adb root >/dev/null 2>&1 || true
+    pid="$(adb shell pidof com.ttmrase.crownfall | tr -d '\r')"
+    [[ -n "$pid" ]] && adb shell kill -3 "$pid" || true
+    sleep 3
+    adb pull /data/anr "$out/logs/anr" >/dev/null 2>&1 || true
+    ./gradlew --stop >/dev/null 2>&1 || true
+    kill "$gradle_pid" 2>/dev/null || true
+    break
+  fi
+  sleep 5
+done
+wait "$gradle_pid"
+status=$?
+[[ $hung -eq 1 ]] && status=124
+kill "$tail_pid" 2>/dev/null || true
 kill "$logcat_pid" 2>/dev/null || true
 
 # 結果の要約（コンパイルエラー、失敗したテスト）。ジョブのサマリと qa-screenshots の summary に出す
