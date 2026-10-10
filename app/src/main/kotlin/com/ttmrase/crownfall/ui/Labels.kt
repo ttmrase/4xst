@@ -301,6 +301,7 @@ fun eventMessage(
         is GameEvent.BoostExpired,
         is GameEvent.HeroSummoned,
         is GameEvent.HelpGiven,
+        is GameEvent.RaidStageReached,
         is GameEvent.Donated,
         is GameEvent.RallyJoined,
         is GameEvent.ChatPosted,

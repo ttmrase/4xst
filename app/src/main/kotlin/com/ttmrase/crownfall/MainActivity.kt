@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,6 +10,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.data.Startup
 import com.ttmrase.crownfall.navigation.CrownfallNavHost
+import com.ttmrase.crownfall.notify.NoticePoster
 import com.ttmrase.crownfall.notify.NotificationPermissionEffect
 import com.ttmrase.crownfall.ui.theme.CrownfallTheme
 
@@ -20,14 +22,31 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        routeFrom(intent)
         enableEdgeToEdge()
         setContent {
             CrownfallTheme {
                 val startup by container.repository.startup.collectAsStateWithLifecycle()
                 NotificationPermissionEffect((startup as? Startup.Ready)?.session)
-                CrownfallNavHost(container.repository, container.ai, container.chat, container.session)
+                CrownfallNavHost(
+                    container.repository,
+                    container.ai,
+                    container.chat,
+                    container.session,
+                    container.pendingRoute,
+                )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        routeFrom(intent)
+    }
+
+    private fun routeFrom(intent: Intent?) {
+        intent?.getStringExtra(NoticePoster.EXTRA_ROUTE)?.let { container.pendingRoute.value = it }
     }
 
     override fun onStart() {

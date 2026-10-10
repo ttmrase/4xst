@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /** 手動 DI のコンテナ。Hilt/Koin は使わない（docs/02 §8）。 */
 class AppContainer(context: Context) {
@@ -39,6 +40,9 @@ class AppContainer(context: Context) {
 
     /** 通知のスケジュール。背景に入るときに登録し、前景に戻るときに取り消す。 */
     val notices = NoticeScheduler(context, NotificationPrefs(context))
+
+    /** 通知のタップで開く画面（ルート）。NavHost が受け取って開き、null に戻す。 */
+    val pendingRoute = MutableStateFlow<String?>(null)
 
     /** オファー誘導のフック。M6 で実装に差し替える。 */
     val offerHooks: OfferHooks = NoOpOfferHooks

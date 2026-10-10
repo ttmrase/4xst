@@ -1,10 +1,10 @@
 [versions]
-kotlin = "2.1.21"
+kotlin = "2.4.0"
 agp = "8.9.3"
 kotlinx-serialization = "1.8.1"
 kotlinx-coroutines = "1.10.2"
 junit = "5.13.4"
-kover = "0.9.1"
+kover = "0.9.11"
 ktlint-gradle = "12.3.0"
 # compileSdk 35 で checkAarMetadata を通る版に固定（最新版は compileSdk 36 を要求するものがある）
 compose-bom = "2025.05.01"

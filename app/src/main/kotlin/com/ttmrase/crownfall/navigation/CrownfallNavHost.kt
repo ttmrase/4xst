@@ -19,6 +19,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,6 +39,7 @@ import androidx.navigation.navArgument
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.ai.AiService
 import com.ttmrase.crownfall.chat.ChatCoordinator
+import com.ttmrase.crownfall.core.model.BattleKind
 import com.ttmrase.crownfall.core.quest.QuestLogic
 import com.ttmrase.crownfall.core.shop.OfferEngine
 import com.ttmrase.crownfall.core.sim.Actions
@@ -71,6 +73,7 @@ import com.ttmrase.crownfall.ui.shop.FakeBillingSheet
 import com.ttmrase.crownfall.ui.shop.OfferPresenter
 import com.ttmrase.crownfall.ui.shop.ShopScreen
 import com.ttmrase.crownfall.ui.title.TitleScreen
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -85,6 +88,7 @@ fun CrownfallNavHost(
     ai: AiService,
     chat: ChatCoordinator,
     sessionCoordinator: SessionCoordinator,
+    pendingRoute: MutableStateFlow<String?>,
 ) {
     val navController = rememberNavController()
     val startup by repository.startup.collectAsStateWithLifecycle()
@@ -129,6 +133,51 @@ fun CrownfallNavHost(
             val message = eventMessage(context, event) ?: return@collect
             launch { snackbarHostState.showReplacing(message) }
         }
+    }
+
+    // 通知のタップで開く画面（準備ができていて、タイトルでなければ開く）
+    val route by pendingRoute.collectAsStateWithLifecycle()
+    LaunchedEffect(route, ready != null, destination?.route) {
+        val target = route
+        if (target != null && ready != null && destination != null && destination.route != Screen.Title.route) {
+            pendingRoute.value = null
+            if (Screen.entries.any { it.route == target }) {
+                navController.navigate(target) { launchSingleTop = true }
+            }
+        }
+    }
+
+    // 不在中の襲撃（未読の結果メール）は起動時に最前面で知らせる
+    val raidMailFlow =
+        remember(readySession) {
+            readySession?.state
+                ?.map { s ->
+                    s?.mails?.filter { !it.read && it.battle?.kind == BattleKind.RAID }?.maxOfOrNull { it.id }
+                }
+                ?.distinctUntilChanged() ?: flowOf(null)
+        }
+    val raidMail by raidMailFlow.collectAsStateWithLifecycle(null)
+    var raidAlertSeen by rememberSaveable { mutableLongStateOf(0L) }
+    val alertId = raidMail
+    if (alertId != null && alertId > raidAlertSeen && destination?.route == Screen.City.route) {
+        val mails = ready?.session?.state?.value?.mails.orEmpty()
+        val defended = mails.firstOrNull { it.id == alertId }?.battle?.attackerWon == false
+        AlertDialog(
+            onDismissRequest = { raidAlertSeen = alertId },
+            title = { Text(stringResource(R.string.raid_alert_title)) },
+            text = {
+                Text(stringResource(if (defended) R.string.raid_alert_defended else R.string.raid_alert_defeated))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    raidAlertSeen = alertId
+                    navController.navigate(Screen.Mail.route) { launchSingleTop = true }
+                }) { Text(stringResource(R.string.raid_alert_open)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { raidAlertSeen = alertId }) { Text(stringResource(R.string.common_close)) }
+            },
+        )
     }
 
     BackHandler(enabled = exitStage == 0 && destination?.route == Screen.City.route && ready != null) {
@@ -184,9 +233,7 @@ fun CrownfallNavHost(
             Column(Modifier.padding(padding)) {
                 (startup as? Startup.Ready)?.let {
                     if (destination?.route != Screen.Title.route) {
-                        RaidBanner(
-                            it.session,
-                        )
+                        RaidBanner(it.session, it.data)
                     }
                 }
                 NavHost(

@@ -1,84 +1,74 @@
 package com.ttmrase.crownfall.notify
 
 import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
+import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import com.ttmrase.crownfall.MainActivity
-import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.OfferFrequency
-import com.ttmrase.crownfall.core.model.ResourceType
-import com.ttmrase.crownfall.core.notify.NoticeChannel
+import com.ttmrase.crownfall.core.notify.NoticeCategory
 import com.ttmrase.crownfall.core.notify.NoticeType
 import com.ttmrase.crownfall.core.notify.NotificationPlanner
+import com.ttmrase.crownfall.core.notify.NotificationPolicy
 import com.ttmrase.crownfall.core.notify.PlannedNotice
-import com.ttmrase.crownfall.ui.nameRes
 import java.util.concurrent.TimeUnit
 
 /**
- * 通知のスケジュール（T7.3）。背景に入る（onStop）ときに確定している未来の時刻だけを WorkManager に登録し、
- * 前景に戻る（onStart）ときに全部取り消す。背景でシミュレーションは回さないので、未来の AI の発言は通知しない。
+ * 通知の配送（T9.2b）。onStop のときに :core の先読みで計画を作り、強度・おやすみ時間・上限で選別して予約する。
+ * 時刻の精度が要るもの（襲撃の各段階・オファーの終了）は AlarmManager の exact alarm（許可が無ければ inexact）、
+ * それ以外は WorkManager。計画は SharedPreferences にも保存し、端末の再起動後に BootReceiver が再予約する。
+ * 前景に戻る（onStart）ときはすべて取り消す。
  */
 class NoticeScheduler(context: Context, private val prefs: NotificationPrefs) {
     private val app = context.applicationContext
 
-    /** [state] の時点で確定している通知を登録する（以前の登録は消す）。 */
+    /** [state] の時点の計画を予約する（以前の予約は消す）。 */
     fun schedule(
         state: GameState,
         data: GameData,
     ) {
-        val wm = WorkManager.getInstance(app)
-        wm.cancelAllWorkByTag(TAG)
+        cancelAll(clearNotifications = false)
         if (!canPost(app)) return
         val low = state.shop.settings.frequency == OfferFrequency.LOW
-        val nowMs = System.currentTimeMillis()
-        NotificationPlanner.plan(state, data)
-            .filter { prefs.enabled(it.channel, low) }
-            .forEach { n ->
-                val delay = n.epochSec * MILLIS - nowMs
-                if (delay <= 0) return@forEach
-                val request =
-                    OneTimeWorkRequestBuilder<NoticeWorker>()
-                        .setInitialDelay(delay, TimeUnit.MILLISECONDS)
-                        .setInputData(
-                            Data.Builder()
-                                .putString(KEY_TYPE, n.type.name)
-                                .putInt(KEY_COUNT, n.count)
-                                .putInt(KEY_PARAM, n.param)
-                                .build(),
-                        )
-                        .addTag(TAG)
-                        .build()
-                wm.enqueue(request)
-            }
+        val settings = prefs.toCore(state.settings.utcOffsetSec, low)
+        val plan = NotificationPolicy.apply(NotificationPlanner.lookahead(state, data), settings, data.notifyRules)
+        savePlan(plan)
+        arm(app, plan, System.currentTimeMillis())
     }
 
-    /** 前景に戻ったので、登録済みの通知をすべて取り消す。 */
-    fun cancelAll() {
+    /** 前景に戻ったので、予約をすべて取り消す（表示中の通知も消す）。 */
+    fun cancelAll(clearNotifications: Boolean = true) {
+        cancelArmed(app, loadPlan())
         WorkManager.getInstance(app).cancelAllWorkByTag(TAG)
-        NotificationManagerCompat.from(app).cancelAll()
+        savePlan(emptyList())
+        if (clearNotifications) androidx.core.app.NotificationManagerCompat.from(app).cancelAll()
     }
+
+    private fun savePlan(plan: List<PlannedNotice>) = savePlan(app, plan)
+
+    private fun loadPlan(): List<PlannedNotice> = loadPlan(app)
 
     companion object {
         const val TAG = "crownfall-notice"
         const val KEY_TYPE = "type"
         const val KEY_COUNT = "count"
         const val KEY_PARAM = "param"
+        private const val STORE = "notice_plan"
+        private const val PLAN = "plan"
         private const val MILLIS = 1000L
+        private const val SEP = "|"
+        private val OFFER_ENDINGS = setOf(NoticeType.OFFER_EXPIRING, NoticeType.OFFER_LAST_CALL)
 
         /** 通知を出せるか（Android 13 以上は権限が要る）。 */
         fun canPost(context: Context): Boolean =
@@ -86,113 +76,117 @@ class NoticeScheduler(context: Context, private val prefs: NotificationPrefs) {
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
                 PackageManager.PERMISSION_GRANTED
 
-        fun channelId(channel: NoticeChannel) = "crownfall_" + channel.name.lowercase()
+        /** exact alarm を使えるか（Android 12 以上は許可が要る。13 以上は USE_EXACT_ALARM で自動）。 */
+        fun canScheduleExact(context: Context): Boolean =
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                context.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true
 
-        /** 通知チャンネルを作る（何度呼んでもよい）。 */
-        fun ensureChannels(context: Context) {
-            val nm = context.getSystemService(NotificationManager::class.java) ?: return
-            NoticeChannel.entries.forEach { c ->
-                val name = context.getString(channelNameRes(c))
-                val importance =
-                    if (c == NoticeChannel.RAID) {
-                        NotificationManager.IMPORTANCE_HIGH
-                    } else {
-                        NotificationManager.IMPORTANCE_DEFAULT
+        /** 時刻の精度が要る通知か。 */
+        internal fun isPrecise(type: NoticeType): Boolean =
+            type.category == NoticeCategory.RAID || type in OFFER_ENDINGS
+
+        /** 計画のうち未来のものを予約する（再起動後の復元にも使う）。 */
+        fun arm(
+            context: Context,
+            plan: List<PlannedNotice>,
+            nowMs: Long,
+        ) {
+            val am = context.getSystemService(AlarmManager::class.java)
+            val wm = WorkManager.getInstance(context)
+            val exact = canScheduleExact(context)
+            for (n in plan) {
+                val atMs = n.epochSec * MILLIS
+                if (atMs <= nowMs) continue
+                if (isPrecise(n.type) && am != null) {
+                    val pi = alarmIntent(context, n, PendingIntent.FLAG_UPDATE_CURRENT) ?: continue
+                    try {
+                        if (exact) {
+                            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMs, pi)
+                        } else {
+                            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMs, pi)
+                        }
+                    } catch (e: SecurityException) {
+                        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMs, pi)
                     }
-                nm.createNotificationChannel(NotificationChannel(channelId(c), name, importance))
+                } else {
+                    val request =
+                        OneTimeWorkRequestBuilder<NoticeWorker>()
+                            .setInitialDelay(atMs - nowMs, TimeUnit.MILLISECONDS)
+                            .setInputData(
+                                Data.Builder()
+                                    .putString(KEY_TYPE, n.type.name)
+                                    .putInt(KEY_COUNT, n.count)
+                                    .putInt(KEY_PARAM, n.param)
+                                    .build(),
+                            )
+                            .addTag(TAG)
+                            .build()
+                    wm.enqueue(request)
+                }
             }
         }
 
-        fun channelNameRes(c: NoticeChannel): Int =
-            when (c) {
-                NoticeChannel.TIMER -> R.string.notify_channel_timer
-                NoticeChannel.OFFER -> R.string.notify_channel_offer
-                NoticeChannel.ALLIANCE -> R.string.notify_channel_alliance
-                NoticeChannel.RAID -> R.string.notify_channel_raid
+        private fun cancelArmed(
+            context: Context,
+            plan: List<PlannedNotice>,
+        ) {
+            val am = context.getSystemService(AlarmManager::class.java) ?: return
+            for (n in plan) {
+                if (!isPrecise(n.type)) continue
+                alarmIntent(context, n, PendingIntent.FLAG_NO_CREATE)?.let {
+                    am.cancel(it)
+                    it.cancel()
+                }
             }
+        }
+
+        private fun alarmIntent(
+            context: Context,
+            n: PlannedNotice,
+            flag: Int,
+        ): PendingIntent? {
+            val intent =
+                Intent(context, NoticeReceiver::class.java)
+                    .setAction("com.ttmrase.crownfall.NOTICE.${n.epochSec}.${n.type.name}.${n.param}")
+                    .putExtra(KEY_TYPE, n.type.name)
+                    .putExtra(KEY_COUNT, n.count)
+                    .putExtra(KEY_PARAM, n.param)
+            return PendingIntent.getBroadcast(context, 0, intent, flag or PendingIntent.FLAG_IMMUTABLE)
+        }
+
+        internal fun savePlan(
+            context: Context,
+            plan: List<PlannedNotice>,
+        ) {
+            val text =
+                plan.joinToString("\n") { n -> listOf(n.epochSec, n.type.name, n.count, n.param).joinToString(SEP) }
+            context.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit { putString(PLAN, text) }
+        }
+
+        internal fun loadPlan(context: Context): List<PlannedNotice> {
+            val text = context.getSharedPreferences(STORE, Context.MODE_PRIVATE).getString(PLAN, "").orEmpty()
+            return text.lineSequence().mapNotNull { line ->
+                val f = line.split(SEP)
+                val type = NoticeType.entries.firstOrNull { it.name == f.getOrNull(1) } ?: return@mapNotNull null
+                val at = f.getOrNull(0)?.toLongOrNull() ?: return@mapNotNull null
+                val count = f.getOrNull(2)?.toIntOrNull() ?: 1
+                PlannedNotice(at, type, type.channel, count, f.getOrNull(3)?.toIntOrNull() ?: 0)
+            }.toList()
+        }
+
+        /** 通知チャンネルを作る。 */
+        fun ensureChannels(context: Context) = NoticePoster.ensureChannels(context)
     }
 }
 
-/** 予定の時刻に通知を 1 件出す。 */
+/** 予定の時刻に通知を 1 件出す（WorkManager 経由）。 */
 class NoticeWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
     override fun doWork(): Result {
-        val type =
-            NoticeType.entries.firstOrNull { it.name == inputData.getString(NoticeScheduler.KEY_TYPE) }
-                ?: return Result.success()
+        val type = NoticeType.entries.firstOrNull { it.name == inputData.getString(NoticeScheduler.KEY_TYPE) }
+            ?: return Result.success()
         val count = inputData.getInt(NoticeScheduler.KEY_COUNT, 1)
         val param = inputData.getInt(NoticeScheduler.KEY_PARAM, 0)
-        if (!NoticeScheduler.canPost(applicationContext)) return Result.success()
-        NoticeScheduler.ensureChannels(applicationContext)
-        val notice = PlannedNotice(0, type, channelOf(type), count, param)
-        post(applicationContext, notice)
+        NoticePoster.post(applicationContext, PlannedNotice(0, type, type.channel, count, param))
         return Result.success()
     }
-
-    private fun channelOf(type: NoticeType): NoticeChannel =
-        when (type) {
-            NoticeType.OFFER_EXPIRING -> NoticeChannel.OFFER
-            NoticeType.RAID_WARNING, NoticeType.RAID_ARRIVAL -> NoticeChannel.RAID
-            NoticeType.RALLY_DEADLINE, NoticeType.REQUEST_EXPIRING -> NoticeChannel.ALLIANCE
-            else -> NoticeChannel.TIMER
-        }
-
-    private fun post(
-        context: Context,
-        n: PlannedNotice,
-    ) {
-        val open =
-            PendingIntent.getActivity(
-                context,
-                0,
-                Intent(context, MainActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-            )
-        val resource = ResourceType.entries.getOrNull(n.param)?.let { context.getString(it.nameRes()) }
-        val text = noticeText(context, n, resource)
-        val built =
-            NotificationCompat.Builder(context, NoticeScheduler.channelId(n.channel))
-                .setSmallIcon(R.drawable.ic_stat_crown)
-                .setContentTitle(context.getString(R.string.app_name))
-                .setContentText(text)
-                .setContentIntent(open)
-                .setAutoCancel(true)
-                .build()
-        // 権限は doWork の入口で確認済み
-        try {
-            @Suppress("MissingPermission")
-            NotificationManagerCompat.from(context).notify(n.type.ordinal * ID_STRIDE + n.param, built)
-        } catch (e: SecurityException) {
-            // 権限が途中で取り消された。何もしない
-        }
-    }
-
-    private companion object {
-        const val ID_STRIDE = 100
-    }
-}
-
-/** 通知の文面。2 件以上まとまっているときは件数を添える。 */
-internal fun noticeText(
-    context: Context,
-    n: PlannedNotice,
-    resource: String?,
-): String {
-    val res =
-        when (n.type) {
-            NoticeType.BUILD_DONE -> R.string.notify_build_done
-            NoticeType.RESEARCH_DONE -> R.string.notify_research_done
-            NoticeType.TRAIN_DONE -> R.string.notify_train_done
-            NoticeType.HEAL_DONE -> R.string.notify_heal_done
-            NoticeType.MARCH_RETURN -> R.string.notify_march_return
-            NoticeType.STORAGE_FULL -> R.string.notify_storage_full
-            NoticeType.OFFER_EXPIRING -> R.string.notify_offer_expiring
-            NoticeType.RAID_WARNING -> R.string.notify_raid_warning
-            NoticeType.RAID_ARRIVAL -> R.string.notify_raid_arrival
-            NoticeType.RALLY_DEADLINE -> R.string.notify_rally_deadline
-            NoticeType.REQUEST_EXPIRING -> R.string.notify_request_expiring
-        }
-    val base =
-        if (n.type == NoticeType.STORAGE_FULL) context.getString(res, resource.orEmpty()) else context.getString(res)
-    return if (n.count > 1) base + context.getString(R.string.notify_count_suffix, n.count) else base
 }
