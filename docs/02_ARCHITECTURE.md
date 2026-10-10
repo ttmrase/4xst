@@ -311,3 +311,5 @@ jobs:
 - ガチャのフェイクアウト（昇格演出、惜しい演出）の割合は heroes.json の presentation に置き、Summoner の結果だけから決定論的に分岐する。確率表示と天井は変えない。
 - 検証: CI の `ui` ジョブ（エミュレータ API 34、x86_64）で androidTest とスクリーンショット（artifact `ui-screenshots` / `ui-logs`）を取る。状態は debug 専用の `DebugStateSeeder`（src/debug）で用意する。x86_64 は debug の abiFilters にだけ追加し、release は arm64-v8a のみのまま。
 - アセットはすべて自作（docs/ASSETS.md）。APK の増加は 20MB 程度までを目安にし、超える場合は Director に相談する。
+- 領地の拡大（M10 REVIEW で決定）: ルール（01）は変えない。霧と森で覆うのは、建物の前提条件のために今は建設できない区画だけにし、「城 Lv n で開放」の札（n は前提条件から計算）を立てる。城壁の線は区画のフットプリントを横切らない。
+- スクリーンショットの受け渡し: コンテナから Actions の artifact に届かないので、ui ワークフローが縮小した画像を専用ブランチ `qa-screenshots`（`runs/<run_number>-<sha>/`）に通常のコミットで追記する（force push はしない）。統合ブランチには画像を置かない。

@@ -14,11 +14,15 @@ Crownfall の画像・フォント・効果音の出所とライセンスを記�
 
 | 生成スクリプト | 出力 | 内容 |
 | --- | --- | --- |
-| （T10.2 の DONE で追記） | | |
+| tools/artgen/iso.py | （共通ライブラリ） | アイソメトリックの図形・色・VectorDrawable の書き出し |
+| tools/artgen/gen_buildings.py | app/src/main/res/drawable/bld_<type>_t<1..5>.xml（18 種 × 5 = 90） | 建物。段階ごとに屋根・旗・塔・装飾・材質（木 → 石 → 大理石 + 金）が増える |
+| tools/artgen/gen_decor.py | res/drawable/deco_*.xml（38）、ui/territory/SpriteIds.kt（生成） | 木・岩・家・街灯・井戸・噴水・看板・城壁 / 塔 / 門 × 5 段階・工事現場 |
+| tools/artgen/preview.py | （開発用。Pillow があるときだけ。成果物ではない） | 見本の PNG（Director のレビューに使用） |
 
 ## フォント
 - Compose の Downloadable Fonts（`androidx.compose.ui:ui-text-google-fonts`、Google Fonts のプロバイダ）を使う。ライセンスは SIL Open Font License 1.1（OFL）。
-- 候補: 見出しは Cinzel、本文は Noto Serif JP / Noto Sans JP。端末で取得できなければ既定のフォントにフォールバックする。
+- 採用（M10）: Noto Serif JP（見出しと本文の一部）、Cinzel（欧文の見出し）。取得できなければ端末の serif。
+- `res/values/font_certs.xml` は、フォントプロバイダの証明書（AOSP のサンプルと同じ公開値）。UI には表示しない。端末で取得できなければ既定のフォントにフォールバックする。
 - APK にフォントファイルは含めない。
 
 ## 効果音
@@ -27,4 +31,4 @@ Crownfall の画像・フォント・効果音の出所とライセンスを記�
 
 | 生成スクリプト | 出力 | 内容 |
 | --- | --- | --- |
-| （T10.2 の DONE で追記） | | |
+| tools/sfxgen/gen_sfx.py | res/raw/sfx_{button,coin,fanfare,charge,flip,rare,ssr,alarm,vip,chest}.wav（計 636KB） | 標準ライブラリの wave で合成 |
