@@ -178,10 +178,11 @@ internal fun LazyListScope.passTab(
                     color = MaterialTheme.colorScheme.error,
                 )
                 gf.milestones.forEach { m ->
-                    val lv = m[0].toInt()
+                    val lv = m.getOrNull(0)?.toInt() ?: return@forEach
+                    val gems = m.getOrNull(1) ?: 0L
                     val claimed = lv in s.shop.growthFundClaimed
                     Text(
-                        stringResource(if (claimed) R.string.fund_row_claimed else R.string.fund_row, lv, m[1]),
+                        stringResource(if (claimed) R.string.fund_row_claimed else R.string.fund_row, lv, gems),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }

@@ -28,12 +28,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.model.Offer
@@ -73,10 +78,14 @@ fun OfferPresenter(
     val scope = rememberCoroutineScope()
     val s = state ?: return
 
-    LaunchedEffect(session) {
-        while (true) {
-            delay(REFRESH_MS)
-            session.dispatch { Actions.refreshOffers(it, data) }
+    // 前景（STARTED）の間だけ期限切れを片付ける。背景では dispatch（進行と保存）を走らせない。
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(session, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                delay(REFRESH_MS)
+                session.dispatch { Actions.refreshOffers(it, data) }
+            }
         }
     }
 
@@ -209,7 +218,14 @@ private fun OfferPopup(
                     onClick = onClose,
                     enabled = closeVisible,
                     modifier = Modifier.align(Alignment.TopEnd).alpha(closeAlpha),
-                ) { Text("×", color = MaterialTheme.colorScheme.surface) }
+                ) {
+                    val closeLabel = stringResource(R.string.common_close)
+                    Text(
+                        "×",
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.semantics { contentDescription = closeLabel },
+                    )
+                }
             }
         }
     }

@@ -20,7 +20,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -49,7 +48,6 @@ import com.ttmrase.crownfall.core.shop.ProductView
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
-import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -77,7 +75,7 @@ fun FakeBillingSheet(
     productId: String,
     session: GameSession,
     data: GameData,
-    snackbarHostState: SnackbarHostState,
+    notify: (String) -> Unit,
     onClose: () -> Unit,
 ) {
     val state by session.state.collectAsStateWithLifecycle()
@@ -96,9 +94,7 @@ fun FakeBillingSheet(
 
     if (view == null) {
         LaunchedEffect(Unit) {
-            snackbarHostState.showReplacing(
-                failureMessage(context, com.ttmrase.crownfall.core.sim.ActionFailure.OfferUnavailable),
-            )
+            notify(failureMessage(context, com.ttmrase.crownfall.core.sim.ActionFailure.OfferUnavailable))
             onClose()
         }
         return
@@ -135,7 +131,7 @@ fun FakeBillingSheet(
                 stage = Stage.Done
             }
             is ActionResult.Failure -> {
-                snackbarHostState.showReplacing(failureMessage(context, r.reason))
+                notify(failureMessage(context, r.reason))
                 onClose()
             }
         }

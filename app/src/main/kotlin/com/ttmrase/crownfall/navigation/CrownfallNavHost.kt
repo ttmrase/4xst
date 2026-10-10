@@ -112,8 +112,11 @@ fun CrownfallNavHost(
         if (r != null) {
             uiScope.launch {
                 r.session.dispatch { Actions.exitOffer(it, r.data) }
-                val pending = r.session.state.value?.let { OfferEngine.next(it) }
-                exitStage = if (pending != null) 1 else 2
+                val waiting =
+                    r.session.state.value?.let { st ->
+                        OfferEngine.active(st).any { it.trigger == "exitIntent" && !it.dismissed }
+                    } == true
+                exitStage = if (waiting) 1 else 2
             }
         }
     }
@@ -277,11 +280,20 @@ fun CrownfallNavHost(
             data = ready.data,
             coordinator = sessionCoordinator,
             busy = billingId != null,
-            onBuy = { billingId = it },
+            onBuy = {
+                billingId = it
+                // 退出オファーを買いに行ったら、タイトルへの確認は出さず城内に残る
+                if (exitStage == 1) exitStage = 0
+            },
             onIdle = { if (exitStage == 1) exitStage = 2 },
         )
         billingId?.let { id ->
-            FakeBillingSheet(id, ready.session, ready.data, snackbarHostState) { billingId = null }
+            FakeBillingSheet(
+                id,
+                ready.session,
+                ready.data,
+                notify = { message -> uiScope.launch { snackbarHostState.showReplacing(message) } },
+            ) { billingId = null }
         }
         if (exitStage == 2) {
             AlertDialog(
