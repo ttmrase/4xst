@@ -182,6 +182,8 @@ private fun SettingsForm(
             },
             modifier = Modifier.fillMaxWidth(),
         ) { Text(stringResource(R.string.settings_save)) }
+        HorizontalDivider()
+        NotificationSettingsSection(session)
         if (session != null) {
             HorizontalDivider()
             ShopSettingsSection(session)

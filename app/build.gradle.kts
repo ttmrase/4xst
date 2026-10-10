@@ -15,8 +15,8 @@ android {
         applicationId = "com.ttmrase.crownfall"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 7
+        versionName = "0.7.0"
     }
 
     buildFeatures {
@@ -57,6 +57,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.core.splashscreen)
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)

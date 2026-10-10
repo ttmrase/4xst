@@ -7,6 +7,8 @@ import com.ttmrase.crownfall.ai.AiService
 import com.ttmrase.crownfall.chat.ChatCoordinator
 import com.ttmrase.crownfall.data.GameRepository
 import com.ttmrase.crownfall.data.SessionCoordinator
+import com.ttmrase.crownfall.notify.NoticeScheduler
+import com.ttmrase.crownfall.notify.NotificationPrefs
 import com.ttmrase.crownfall.offers.NoOpOfferHooks
 import com.ttmrase.crownfall.offers.OfferHooks
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -35,6 +37,9 @@ class AppContainer(context: Context) {
     /** チャットの文面づくりと 1 行ずつの表示。前景の間だけ動く。 */
     val chat = ChatCoordinator(repository, ai, appScope)
 
+    /** 通知のスケジュール。背景に入るときに登録し、前景に戻るときに取り消す。 */
+    val notices = NoticeScheduler(context, NotificationPrefs(context))
+
     /** オファー誘導のフック。M6 で実装に差し替える。 */
     val offerHooks: OfferHooks = NoOpOfferHooks
 }
@@ -47,5 +52,6 @@ class CrownfallApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        NoticeScheduler.ensureChannels(this)
     }
 }
