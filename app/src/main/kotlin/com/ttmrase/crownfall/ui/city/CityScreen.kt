@@ -281,10 +281,10 @@ private fun StatusBar(
                     AnimatedNumber(state.gems, style = MaterialTheme.typography.titleSmall)
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier.fillMaxWidth()) {
                 ResourceType.entries.forEach { type ->
                     val full = cap > 0 && state.resources[type] >= cap
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(stringResource(type.nameRes()), style = MaterialTheme.typography.labelSmall)
                         AnimatedNumber(state.resources[type], color = MaterialTheme.colorScheme.onSurface)
                         // 満杯は数字を明るいままにして、下線を赤にする（暗い背景で赤文字は読めない）
