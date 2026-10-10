@@ -21,7 +21,7 @@ android {
 
     // 署名: debug は固定の keystore（app/debug.keystore。debug 鍵は秘密ではない）。CI の実行ごとに鍵が変わると、
     // 上書きインストールが「アプリはインストールされていません」で失敗するため。
-    // release は環境変数（RELEASE_KEYSTORE_PATH（または RELEASE_KEYSTORE_FILE）/ RELEASE_STORE_PASSWORD / RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD）が
+    // release は環境変数（RELEASE_KEYSTORE_PATH、RELEASE_STORE_PASSWORD、RELEASE_KEY_ALIAS、RELEASE_KEY_PASSWORD）が
     // 揃っているときだけその鍵を使い、無ければ固定の debug 鍵にフォールバックする。鍵とパスワードはリポジトリに置かない。
     signingConfigs {
         getByName("debug") {
@@ -31,7 +31,8 @@ android {
             keyPassword = "android"
         }
         create("release") {
-            val keystore = (System.getenv("RELEASE_KEYSTORE_PATH") ?: System.getenv("RELEASE_KEYSTORE_FILE"))?.takeIf { it.isNotBlank() }?.let { file(it) }
+            val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH") ?: System.getenv("RELEASE_KEYSTORE_FILE")
+            val keystore = keystorePath?.takeIf { it.isNotBlank() }?.let { file(it) }
             val storePass = System.getenv("RELEASE_STORE_PASSWORD")
             val alias = System.getenv("RELEASE_KEY_ALIAS")
             val keyPass = System.getenv("RELEASE_KEY_PASSWORD")
