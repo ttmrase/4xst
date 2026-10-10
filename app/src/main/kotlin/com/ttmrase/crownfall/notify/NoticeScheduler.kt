@@ -182,8 +182,8 @@ class NoticeScheduler(context: Context, private val prefs: NotificationPrefs) {
 /** 予定の時刻に通知を 1 件出す（WorkManager 経由）。 */
 class NoticeWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
     override fun doWork(): Result {
-        val type = NoticeType.entries.firstOrNull { it.name == inputData.getString(NoticeScheduler.KEY_TYPE) }
-            ?: return Result.success()
+        val name = inputData.getString(NoticeScheduler.KEY_TYPE)
+        val type = NoticeType.entries.firstOrNull { it.name == name } ?: return Result.success()
         val count = inputData.getInt(NoticeScheduler.KEY_COUNT, 1)
         val param = inputData.getInt(NoticeScheduler.KEY_PARAM, 0)
         NoticePoster.post(applicationContext, PlannedNotice(0, type, type.channel, count, param))

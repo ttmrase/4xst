@@ -206,7 +206,7 @@ object NoticePoster {
             NoticeType.DAILY_LEFT -> R.string.notify_daily_left
             NoticeType.LOGIN_BONUS -> R.string.notify_login_bonus
             NoticeType.FREE_WHEEL -> R.string.notify_free_wheel
-            NoticeType.COMEBACK -> R.string.notify_comeback
+            NoticeType.COMEBACK -> R.string.notify_comeback_0
             NoticeType.SUMMARY -> R.string.notify_summary
         }
 }
