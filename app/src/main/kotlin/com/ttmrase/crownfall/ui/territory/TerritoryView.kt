@@ -223,10 +223,10 @@ fun TerritoryView(
 
     var viewW by remember { mutableFloatStateOf(0f) }
     var viewH by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(viewW) {
-        if (viewW > 0f && !cam.ready) {
+    LaunchedEffect(viewW, viewH) {
+        if (viewW > 0f && viewH > 0f && !cam.ready) {
             cam.ready = true
-            cam.set(CameraMath.initial(viewW, 0f, PlotLayout.wy(PlotLayout.MID, PlotLayout.MID) + CAMERA_DROP))
+            cam.set(CameraMath.initial(viewW, viewH, PlotLayout.INITIAL_CENTER_X, PlotLayout.INITIAL_CENTER_Y))
         }
     }
     val painter = remember { TerritoryPainter() }
@@ -254,8 +254,7 @@ fun TerritoryView(
                                     pan.x,
                                     pan.y,
                                     zoom,
-                                    limitHalf =
-                                        PlotLayout.WALL_HALF[currentBandState.intValue - 1] + CameraMath.PAN_MARGIN,
+                                    limitHalf = PlotLayout.WALL_HALF[currentBandState.intValue - 1],
                                 ),
                             )
                         }
@@ -372,7 +371,6 @@ private fun slotDescription(
     }
 }
 
-private const val CAMERA_DROP = 14f
 private const val TICK_MS = 1000
 
 /** 画面の幅がこの幅のワールド範囲より狭く映るほど拡大したら、全区画に Lv の札を出す。 */

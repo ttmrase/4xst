@@ -31,6 +31,11 @@ internal object PlotLayout {
      */
     val WALL_HALF = floatArrayOf(16f, 20f, 24f, 28f, 32f)
 
+    /** 初期カメラが狙う領地の見た目の中心（ワールド座標。区画の外接矩形の中心から、建物の高さぶん上へ）。 */
+    const val INITIAL_CENTER_X = 0f
+    const val VISUAL_LIFT = 12f
+    const val INITIAL_CENTER_Y = (MID + MID) * V - VISUAL_LIFT
+
     /** 区画の足元の外接矩形の半幅（[MID] から）。 */
     const val PLOTS_HALF = 14.5f
 
@@ -279,6 +284,29 @@ internal class TerritoryScene(
                             else -> EntKind.STATUE to SpriteIds.STATUE
                         }
                     ents.add(Ent(entKind, x, y, sprite, introBand = intro, seed = rng.next()))
+                }
+            }
+
+            // 空き区画の広場（建物のない区画は、手前の市場街と広場にする。帯が上がると屋敷・噴水・像が増える）
+            val used = slotCells.map { it.second }.toSet()
+            val free =
+                (-2..3).flatMap { i -> (-2..3).map { j -> i to j } }
+                    .filter { it !in used }
+                    .sortedWith(compareBy({ it.first + it.second }, { it.first }))
+            val corner = free.lastOrNull()
+            free.forEachIndexed { k, cell ->
+                val (gx, gy) = PlotLayout.centerOf(cell)
+                if (cell == corner) {
+                    ents.add(Ent(EntKind.STALL, gx, gy, SpriteIds.STALL, goneBand = 2, seed = rng.next()))
+                    ents.add(Ent(EntKind.DECOR, gx, gy, SpriteIds.FOUNTAIN, introBand = 2))
+                    ents.add(Ent(EntKind.STATUE, gx - 2.6f, gy, SpriteIds.STATUE, introBand = 4, seed = rng.next()))
+                    ents.add(Ent(EntKind.STATUE, gx, gy - 2.6f, SpriteIds.STATUE, introBand = 4, seed = rng.next()))
+                } else if (k % 2 == 0) {
+                    ents.add(Ent(EntKind.STALL, gx, gy, SpriteIds.STALL, goneBand = 3, seed = rng.next()))
+                    ents.add(Ent(EntKind.MANOR, gx, gy, SpriteIds.MANOR, introBand = 3, seed = rng.next()))
+                } else {
+                    val house = houseSprites[k % houseSprites.size]
+                    ents.add(Ent(EntKind.HOUSE, gx, gy, house, seed = rng.next()))
                 }
             }
 

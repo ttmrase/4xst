@@ -18,18 +18,26 @@ internal object CameraMath {
     /** 初期表示の幅。 */
     const val INITIAL_SPAN = 640f
 
-    /** 領地の端（現在の城壁）から、画面の中心がはみ出してよい余白（グリッド単位）。 */
-    const val PAN_MARGIN = 3f
+    /** 領地の外接矩形（現在の城壁）から、画面の端がはみ出してよい余白（ワールド単位。森が少し見える程度）。 */
+    const val EDGE_MARGIN = 28f
+
+    /** 画面の上端から HUD が覆う割合。初期カメラはこれを除いた可視領域の中央に領地を置く。 */
+    const val HUD_FRACTION = 0.15f
 
     fun minScale(viewW: Float): Float = viewW / ZOOM_OUT_SPAN
 
     fun maxScale(viewW: Float): Float = viewW / ZOOM_IN_SPAN
 
+    /** 領地の中心 ([centerX], [centerY]) が、HUD を除いた可視領域の中央に来る初期カメラ。 */
     fun initial(
         viewW: Float,
+        viewH: Float,
         centerX: Float,
         centerY: Float,
-    ): CamState = CamState(centerX, centerY, (viewW / INITIAL_SPAN).coerceIn(minScale(viewW), maxScale(viewW)))
+    ): CamState {
+        val sc = (viewW / INITIAL_SPAN).coerceIn(minScale(viewW), maxScale(viewW))
+        return CamState(centerX, centerY - viewH * HUD_FRACTION / 2f / sc, sc)
+    }
 
     /**
      * ピンチ [zoom] とパン [panX] [panY]（画面 px）を、重心 ([focusX], [focusY]) を保ったまま適用する。
@@ -44,7 +52,7 @@ internal object CameraMath {
         panX: Float,
         panY: Float,
         zoom: Float,
-        limitHalf: Float = PlotLayout.WALL_HALF.last() + PAN_MARGIN,
+        limitHalf: Float = PlotLayout.WALL_HALF.last(),
     ): CamState {
         if (viewW <= 0f || viewH <= 0f || cam.sc <= 0f) return cam
         val old = cam.sc
@@ -56,22 +64,42 @@ internal object CameraMath {
         return clampToTerritory(
             CamState(wx - dx / target - panX / target, wy - dy / target - panY / target, target),
             limitHalf,
+            viewW,
+            viewH,
         )
     }
 
     /**
-     * 画面の中心を、領地（[PlotLayout.MID] を中心とする一辺 2 x [limitHalf] の正方形）の内側に収める。
-     * 城下町の外の森だけが映る場所へはパンできない。
+     * 画面に映る範囲が、領地（[PlotLayout.MID] を中心とする一辺 2 x [limitHalf] の正方形＝城壁と区画と城下町の外接矩形）に
+     * [EDGE_MARGIN] を足した範囲からはみ出さないよう、中心を収める。領地が画面より小さい軸では中心に置く。
+     * 森と川ばかりが映る場所へはパンできない。
      */
     fun clampToTerritory(
         cam: CamState,
         limitHalf: Float,
+        viewW: Float,
+        viewH: Float,
     ): CamState {
-        val u = cam.cx / PlotLayout.U
-        val v = cam.cy / PlotLayout.V
         val mid = PlotLayout.MID
-        val gx = ((u + v) / 2f).coerceIn(mid - limitHalf, mid + limitHalf)
-        val gy = ((v - u) / 2f).coerceIn(mid - limitHalf, mid + limitHalf)
-        return cam.copy(cx = PlotLayout.wx(gx, gy), cy = PlotLayout.wy(gx, gy))
+        val halfW = viewW / (2f * cam.sc)
+        val halfH = viewH / (2f * cam.sc)
+        val minX = PlotLayout.wx(mid - limitHalf, mid + limitHalf) - EDGE_MARGIN
+        val maxX = PlotLayout.wx(mid + limitHalf, mid - limitHalf) + EDGE_MARGIN
+        val minY = PlotLayout.wy(mid - limitHalf, mid - limitHalf) - EDGE_MARGIN
+        val maxY = PlotLayout.wy(mid + limitHalf, mid + limitHalf) + EDGE_MARGIN
+        // 領地が画面より小さい軸では、建物の高さと HUD ぶんだけずらして、初期カメラと同じ位置に置く（最初の操作で跳ばない）
+        val restY = (minY + maxY) / 2f - PlotLayout.VISUAL_LIFT - viewH * HUD_FRACTION / 2f / cam.sc
+        return cam.copy(
+            cx = fit(cam.cx, minX, maxX, halfW, (minX + maxX) / 2f),
+            cy = fit(cam.cy, minY, maxY, halfH, restY),
+        )
     }
+
+    private fun fit(
+        v: Float,
+        lo: Float,
+        hi: Float,
+        half: Float,
+        rest: Float,
+    ): Float = if (hi - lo <= 2f * half) rest else v.coerceIn(lo + half, hi - half)
 }
