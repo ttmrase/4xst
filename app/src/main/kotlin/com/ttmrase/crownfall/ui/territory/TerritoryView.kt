@@ -1,6 +1,6 @@
 package com.ttmrase.crownfall.ui.territory
 
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -195,7 +195,7 @@ fun TerritoryView(
     val tick by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(TICK_MS, easing = LinearEasing), RepeatMode.Restart),
+        animationSpec = infiniteRepeatable(tween(TICK_MS, easing = TickEasing), RepeatMode.Restart),
         label = "tick",
     )
     LaunchedEffect(Unit) {
@@ -356,6 +356,10 @@ private fun slotDescription(
 
 private const val CAMERA_DROP = 14f
 private const val TICK_MS = 1000
+private const val TICK_STEPS = 24
+
+/** 値が階段状に変わるので、再描画は毎秒 [TICK_STEPS] 回だけ（画面のリフレッシュレートまで回さない）。 */
+private val TickEasing = Easing { f -> (f * TICK_STEPS).toInt() / TICK_STEPS.toFloat() }
 private const val NANOS_PER_MS = 1_000_000L
 
 private fun nowMs(): Long = System.nanoTime() / NANOS_PER_MS
