@@ -114,6 +114,14 @@ jobs:
           echo "== $out certificate =="
           "$apksigner" verify --print-certs "dist/$out" | grep -E 'SHA-256|Signer #1 certificate DN'
           "$apksigner" verify "dist/$out"
+          sha() { "$apksigner" verify --print-certs "$1" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1; }
+          d="$(sha app/build/outputs/apk/debug/app-debug.apk)"
+          r="$(sha "dist/$out")"
+          echo "::notice title=APK signing certificates::debug=$d / $out=$r"
+          # app/debug.keystore の公開証明書（固定）。変わると上書きインストールが失敗する。
+          expected_debug=83bab479344f752e592c4e6d5d1454743ca9cd16cec5cde278afb74e535396b0
+          if [[ "$d" != "$expected_debug" ]]; then echo "::error::debug certificate changed: $d"; exit 1; fi
+          if [[ "$SIGNED" != "release" && "$r" != "$d" ]]; then echo "::error::debug-signed release APK does not use the debug key"; exit 1; fi
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
