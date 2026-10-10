@@ -37,4 +37,9 @@ data class March(
     val woundedBack: Map<String, Long> = emptyMap(),
     val heroExp: Long = 0,
     val mailId: Long = 0,
+    /** AI 主催ラリーに参加した行軍のとき、そのラリーの ID（0 はプレイヤー主催 / 単独）。 */
+    val hostId: Long = 0,
+    val hostPersona: String = "",
+    /** AI 主催ラリーの援軍（参加時に確定する）。 */
+    val allyTroops: Map<String, Long> = emptyMap(),
 )

@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall.core.march
 
+import com.ttmrase.crownfall.core.alliance.AllianceHooks
 import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.buff.BuffKey
 import com.ttmrase.crownfall.core.combat.Armies
@@ -151,7 +152,8 @@ internal object MarchSim {
         events: MutableList<GameEvent>,
     ): GameState {
         val report = Scouting.report(s, m.target, data) ?: return gone(s, m, "march_target_gone", events)
-        return home(MailBox.scout(s, m.phaseEndEpochSec, report, events), m)
+        val scouted = AllianceHooks.onScouted(MailBox.scout(s, m.phaseEndEpochSec, report, events), m.target, data)
+        return home(scouted, m)
     }
 
     private fun capLoot(
@@ -180,7 +182,12 @@ internal object MarchSim {
                 ?.takeIf { it.type == StructureType.BARBARIAN_FORT }
         val level = (if (isFort) fort?.level else barb?.level) ?: return gone(s0, m, "march_target_gone", events)
         val defender = if (isFort) Armies.fort(level, data) else Armies.barbarian(level, data)
-        val allies = if (isFort) Armies.rallyAllies(level, data) else emptyMap()
+        val allies =
+            when {
+                m.hostId != 0L -> m.allyTroops
+                isFort -> Armies.rallyAllies(level, data)
+                else -> emptyMap()
+            }
         val out = CombatResolver.resolve(Armies.player(s0, m.troops, m.heroIds, data, allies), defender, data)
 
         // 同盟の仮の援軍は同じ兵種に混ざって戦うので、自軍の損耗は兵数比で按分する
@@ -241,6 +248,7 @@ internal object MarchSim {
             )
         val mailId = s.nextMailId
         s = MailBox.battle(s, at, report, events)
+        if (m.hostId != 0L) s = AllianceHooks.onRallyResult(s, m.hostPersona, m.hostId, out.attackerWon, data)
         val after =
             m.copy(
                 troops = remaining,

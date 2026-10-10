@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall.core.march
 
+import com.ttmrase.crownfall.core.alliance.AllianceHooks
 import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.buff.BuffKey
 import com.ttmrase.crownfall.core.combat.Armies
@@ -127,6 +128,7 @@ object Raids {
         val mailId = s.nextMailId
         s = MailBox.battle(s, at, report, events)
         events.add(if (out.attackerWon) GameEvent.PlayerDefeated(mailId) else GameEvent.PlayerDefendedRaid(mailId))
+        s = AllianceHooks.onRaid(s, playerWon = !out.attackerWon, data = data)
         val rng = SeededRandom(s.map.rngState)
         val gap = rules.minIntervalSec + rng.nextInt((rules.maxIntervalSec - rules.minIntervalSec + 1).toInt())
         s = s.copy(map = s.map.copy(rngState = rng.state, nextRaidEpochSec = satAdd(at, gap), raidWarned = false))

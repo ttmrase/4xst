@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall.core.buff
 
+import com.ttmrase.crownfall.core.alliance.AllianceTech
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.model.BoostKind
 import com.ttmrase.crownfall.core.model.GameState
@@ -82,6 +83,7 @@ object BuffAggregator {
             val l = node.level(minOf(level, node.maxLevel))
             add(l.effectKey, l.effectBp)
         }
+        for ((key, bp) in AllianceTech.buffs(state, data)) add(key, bp)
         return BuffSet(sum)
     }
 

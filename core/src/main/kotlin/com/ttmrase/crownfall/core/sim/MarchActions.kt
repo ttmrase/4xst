@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall.core.sim
 
+import com.ttmrase.crownfall.core.alliance.AiRallies
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.map.MapQueries
 import com.ttmrase.crownfall.core.map.MapRefresher
@@ -11,6 +12,7 @@ import com.ttmrase.crownfall.core.march.MarchKind
 import com.ttmrase.crownfall.core.march.MarchPhase
 import com.ttmrase.crownfall.core.march.Marching
 import com.ttmrase.crownfall.core.march.Scouting
+import com.ttmrase.crownfall.core.model.AiRally
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Resources
@@ -25,6 +27,7 @@ internal object MarchActions {
         troops: Map<String, Long>,
         heroIds: List<String>,
         data: GameData,
+        host: AiRally? = null,
     ): ActionResult {
         val rules = data.mapRules
         if (!Marching.world(state, data).inBounds(target.x, target.y)) return fail(ActionFailure.InvalidTarget)
@@ -43,7 +46,7 @@ internal object MarchActions {
 
         val travel = Marching.travelSec(state, kind, sent, heroIds, target, data)
         val now = state.nowEpochSec
-        val waiting = kind == MarchKind.RALLY
+        val waiting = kind == MarchKind.RALLY && host == null
         val end = satAdd(now, if (waiting) rules.march.rallyWaitSec else travel)
         val march =
             March(
@@ -57,6 +60,9 @@ internal object MarchActions {
                 phaseEndEpochSec = end,
                 travelSec = travel,
                 capacity = Marching.capacity(state, sent, heroIds, data),
+                hostId = host?.id ?: 0,
+                hostPersona = host?.host.orEmpty(),
+                allyTroops = host?.let { AiRallies.allyTroops(state, it, data) }.orEmpty(),
             )
         val left = state.troops.mapValues { (id, n) -> n - (sent[id] ?: 0L) }.filterValues { it > 0 }
         return ActionResult.Success(

@@ -50,7 +50,8 @@
   {"weight": 10, "item": "speedup_general_60m", "count": 1},
   {"weight": 5, "gems": 20}
  ],
- "rally": {"hosts": ["marcus", "kaede"], "extraParticipants": 2, "troopsPerCastleLv": 40, "maxFortLevel": 5, "castleLvPerFortLevel": 6},
+ "rally": {"hosts": ["marcus", "kaede"], "extraParticipants": 2, "troopsPerCastleLv": 40, "maxFortLevel": 5, "castleLvPerFortLevel": 6,
+  "allyMix": {"infantry": 40, "cavalry": 30, "archer": 30}},
  "quizzes": [
   {"id": "q_storage", "correct": 0},
   {"id": "q_hospital", "correct": 1},

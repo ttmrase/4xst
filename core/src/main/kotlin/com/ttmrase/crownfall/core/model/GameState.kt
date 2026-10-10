@@ -80,6 +80,16 @@ sealed interface GameEvent {
     /** 同盟メンバー [persona] がタイマー [jobId] にヘルプしてくれた（[reducedSec] 秒短縮）。 */
     data class HelpReceived(val persona: String, val jobId: Long, val reducedSec: Long) : GameEvent
 
+    /** ギフト箱 [giftId]（贈り主 [from]）を開けて報酬を受け取った。 */
+    data class GiftOpened(
+        val giftId: Long,
+        val from: String,
+        val resources: Resources,
+        val item: String?,
+        val count: Int,
+        val gems: Long,
+    ) : GameEvent
+
     /** NPC の襲撃が [arrivalEpochSec] に到着する（予告）。 */
     data class RaidIncoming(val arrivalEpochSec: Long) : GameEvent
 

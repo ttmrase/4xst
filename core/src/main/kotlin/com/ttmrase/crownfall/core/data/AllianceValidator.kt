@@ -131,6 +131,15 @@ internal object AllianceValidator {
             fail("alliance_rules.json: rally hosts must be persona ids")
         }
         if (r.quizzes.isEmpty()) fail("alliance_rules.json: quizzes is empty")
+        val mix = r.rally.allyMix
+        if (mix.values.sum() != PERCENT_MAX ||
+            mix.keys.any {
+                    k ->
+                TroopType.entries.none { it.name.lowercase() == k }
+            }
+        ) {
+            fail("alliance_rules.json: rally.allyMix must sum to 100 over troop types")
+        }
         if (r.help.dailyLimit <= 0 || r.help.reductionPct !in 1..PERCENT_MAX || r.help.favorEveryHelps <= 0) {
             fail(
                 "alliance_rules.json: help invalid",

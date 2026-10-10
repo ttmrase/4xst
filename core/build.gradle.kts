@@ -53,6 +53,8 @@ kover {
                     "com.ttmrase.crownfall.core.map",
                     "com.ttmrase.crownfall.core.march",
                     "com.ttmrase.crownfall.core.combat",
+                    "com.ttmrase.crownfall.core.alliance",
+                    "com.ttmrase.crownfall.core.chat",
                 )
             }
         }

@@ -167,6 +167,7 @@ data class AiRallyRules(
     val troopsPerCastleLv: Long,
     val maxFortLevel: Int,
     val castleLvPerFortLevel: Int,
+    val allyMix: Map<String, Int>,
 )
 
 @Serializable

@@ -1,7 +1,9 @@
 package com.ttmrase.crownfall.core.sim
 
+import com.ttmrase.crownfall.core.alliance.DonationKind
 import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.buff.BuffKey
+import com.ttmrase.crownfall.core.chat.SpokenText
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.ResearchPrereq
 import com.ttmrase.crownfall.core.economy.CostCheck
@@ -63,6 +65,45 @@ sealed interface ActionFailure {
     data object NodeNotFound : ActionFailure
 
     data object AlreadyResearching : ActionFailure
+
+    /** このタイマーはすでにヘルプを求めている。 */
+    data object HelpAlreadyRequested : ActionFailure
+
+    /** ヘルプできる要請が無い。 */
+    data object NothingToHelp : ActionFailure
+
+    /** 1 日の上限に達した。 */
+    data object DailyLimit : ActionFailure
+
+    /** 要請が見つからない（期限切れを含む）。 */
+    data object RequestNotFound : ActionFailure
+
+    /** 同盟テックが見つからない。 */
+    data object TechNotFound : ActionFailure
+
+    /** 同盟ショップの品が見つからない。 */
+    data object ShopItemNotFound : ActionFailure
+
+    /** 同盟ポイントが足りない。 */
+    data class NotEnoughAlliancePoints(val missing: Long) : ActionFailure
+
+    /** ギフト箱が見つからない（期限切れを含む）。 */
+    data object GiftNotFound : ActionFailure
+
+    /** ラリーが見つからない（期限切れを含む）。 */
+    data object RallyNotFound : ActionFailure
+
+    /** チャットのきっかけが見つからない。 */
+    data object ChatNotFound : ActionFailure
+
+    /** クイズが見つからない。 */
+    data object QuizNotFound : ActionFailure
+
+    /** クイズにはすでに答えた。 */
+    data object QuizAlreadyAnswered : ActionFailure
+
+    /** そのチャンネルには書き込めない。 */
+    data object ChannelNotWritable : ActionFailure
 
     /** 行軍の枠が埋まっている。 */
     data object NoMarchSlot : ActionFailure
@@ -508,6 +549,92 @@ object Actions {
         state: GameState,
         mailId: Long,
     ): ActionResult = ActionResult.Success(MailBox.markRead(state, mailId))
+
+    /** 端末の UTC オフセット（秒）を設定する（活動時間帯の判定に使う）。 */
+    fun setUtcOffset(
+        state: GameState,
+        sec: Int,
+    ): ActionResult = AllianceActions.setUtcOffset(state, sec)
+
+    /** タイマー [jobId] にヘルプを求める（同盟メンバーがヘルプしてくれる）。 */
+    fun requestHelp(
+        state: GameState,
+        jobId: Long,
+    ): ActionResult = AllianceActions.requestHelp(state, jobId)
+
+    /** 同盟ヘルプ一覧の全件にヘルプする（1 日の上限あり）。 */
+    fun helpAll(
+        state: GameState,
+        data: GameData,
+    ): ActionResult = AllianceActions.helpAll(state, data)
+
+    /** 資源の要請 [requestId] に応える（Trading Post の Lv で手数料が下がる）。 */
+    fun fulfillRequest(
+        state: GameState,
+        requestId: Long,
+        data: GameData,
+    ): ActionResult = AllianceActions.fulfillRequest(state, requestId, data)
+
+    /** 同盟テック [techId] に寄付する。 */
+    fun donate(
+        state: GameState,
+        techId: String,
+        kind: DonationKind,
+        data: GameData,
+    ): ActionResult = AllianceActions.donate(state, techId, kind, data)
+
+    /** 同盟ショップで [shopId] を買う。 */
+    fun buyAllianceShop(
+        state: GameState,
+        shopId: String,
+        data: GameData,
+    ): ActionResult = AllianceActions.buyShop(state, shopId, data)
+
+    /** ギフト箱 [giftId] を開ける。 */
+    fun openGift(
+        state: GameState,
+        giftId: Long,
+        data: GameData,
+    ): ActionResult = AllianceActions.openGift(state, giftId, data)
+
+    /** AI 主催のラリー [rallyId] に参加する。 */
+    fun joinRally(
+        state: GameState,
+        rallyId: Long,
+        troops: Map<String, Long>,
+        heroIds: List<String>,
+        data: GameData,
+    ): ActionResult = AllianceActions.joinRally(state, rallyId, troops, heroIds, data)
+
+    /** プレイヤーの自由入力を [channel]（alliance / dm_<persona>）に書き込む。 */
+    fun submitFreeText(
+        state: GameState,
+        text: String,
+        channel: String,
+        data: GameData,
+    ): ActionResult = AllianceActions.submitFreeText(state, text, channel, data)
+
+    /** 文面待ちのチャット [pendingId] に [lines] を書き戻す（キューから外す）。 */
+    fun appendChat(
+        state: GameState,
+        pendingId: Long,
+        lines: List<SpokenText>,
+        data: GameData,
+    ): ActionResult = AllianceActions.appendChat(state, pendingId, lines, data)
+
+    /** ぽんずのクイズ（メッセージ [messageId]）に [option] 番で答える。 */
+    fun answerQuiz(
+        state: GameState,
+        messageId: Long,
+        option: Int,
+        data: GameData,
+    ): ActionResult = AllianceActions.answerQuiz(state, messageId, option, data)
+
+    /** チャンネルを既読にする。 */
+    fun markChannelRead(
+        state: GameState,
+        channel: String,
+    ): ActionResult = AllianceActions.markChannelRead(state, channel)
 
     /** すべてのメールを既読にする。 */
     fun markAllMailRead(state: GameState): ActionResult = ActionResult.Success(MailBox.markAllRead(state))

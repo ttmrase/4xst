@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall.core.sim
 
+import com.ttmrase.crownfall.core.alliance.AllianceHooks
 import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.buff.BuffSet
 import com.ttmrase.crownfall.core.data.GameData
@@ -119,6 +120,7 @@ object Simulation {
             var slots = s.slots
             var research = s.research
             var troops = s.troops
+            val castleUps = ArrayList<Int>()
             for (job in due) {
                 val slotId = job.slotId
                 val level = job.targetLevel
@@ -128,6 +130,7 @@ object Simulation {
                             slots = slots.map { if (it.slotId == slotId) it.copy(level = level) else it }
                             val type = slots.first { it.slotId == slotId }.type
                             events.add(GameEvent.BuildingLevelUp(slotId, type, level))
+                            if (type == BuildingType.CASTLE) castleUps.add(level)
                         }
                     TimerKind.RESEARCH ->
                         if (job.researchId != null && level != null) {
@@ -154,6 +157,7 @@ object Simulation {
                     timers = s.timers.filter { it.id !in dueIds },
                 )
             s = syncStorageFlags(s, data)
+            for (lv in castleUps) s = AllianceHooks.onCastleUp(s, lv, data)
         }
         return WorldSim.settle(s, data, events)
     }
