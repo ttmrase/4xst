@@ -161,6 +161,11 @@ class GameDataLoaderTest {
             "out of range",
         )
         assertLoadFails(
+            "rules.json",
+            rulesJson(newGame = """{"resources": {}, "items": {"speedup_typo_5m": 1}}"""),
+            "unknown item id speedup_typo_5m",
+        )
+        assertLoadFails(
             "items.json",
             """{"items":[{"id":"a","category":"build","seconds":1},{"id":"a","category":"build","seconds":2}]}""",
             "duplicate",

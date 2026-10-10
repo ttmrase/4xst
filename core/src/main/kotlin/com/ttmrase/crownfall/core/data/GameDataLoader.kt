@@ -71,10 +71,11 @@ object GameDataLoader {
         val items = decode<ItemsFile>(jsonByName, ITEMS)
         val speedup = decode<SpeedupFile>(jsonByName, SPEEDUP)
         val defs = buildBuildings(buildings)
+        val itemDefs = buildItems(items)
         return GameData(
             buildings = defs,
-            rules = buildRules(rules, defs),
-            items = buildItems(items),
+            rules = buildRules(rules, defs, itemDefs),
+            items = itemDefs,
             speedupTiers = buildTiers(speedup),
         )
     }
@@ -146,6 +147,7 @@ object GameDataLoader {
     private fun buildRules(
         dto: RulesDto,
         defs: Map<BuildingType, BuildingDef>,
+        items: Map<String, ItemDef>,
     ): Rules {
         if (dto.offlineCapSec < 0) fail("rules.json: offlineCapSec must be >= 0")
         if (dto.catchUpChunkSec < 1) fail("rules.json: catchUpChunkSec must be >= 1")
@@ -166,6 +168,7 @@ object GameDataLoader {
             }
         }
         if (ng.items.values.any { it < 0 }) fail("rules.json: newGame.items has negative count")
+        ng.items.keys.firstOrNull { it !in items }?.let { fail("rules.json: newGame.items has unknown item id $it") }
         return Rules(
             offlineCapSec = dto.offlineCapSec,
             catchUpChunkSec = dto.catchUpChunkSec,
