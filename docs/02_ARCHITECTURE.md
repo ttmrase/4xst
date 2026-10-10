@@ -196,4 +196,22 @@ jobs:
 - メールは `GameState.mails`（上限 200 件）。種類は BATTLE / SCOUT / SYSTEM（RECEIPT / ALLIANCE は予約）。
 - ラリーは M4 ではプレイヤーが主催し、援軍は仮のもの。AI が主催するラリーへの参加は M5 で追加する。
 - kover の対象に map / march / combat を追加する。
+- M4 で確定した実装上の判断:
+  - 補充は「不足があり、予定時刻を過ぎている」ときだけ境界にする（満杯なら境界にしない）。
+  - 行軍中の兵は troops から外す（維持費と戦力に含めない）。
+  - 襲撃のレポートは attacker = NPC として保存する。
+  - 行軍枠と兵数の上限は map_rules.json の march に置く。
+  - 英雄 2 人のアクティブスキル（ラウンド限定の効果）は乗算で重なる（バフの加算規則とは別枠）。
+  - 行軍の戦利品と採集分は報酬として扱い、cap を適用しない（M4 REVIEW）。
+  - ラリーは敗北時も参加報酬を出す。
+  - MapGenerator のキャッシュはスレッド安全にする。
+
+## 11. 同盟・AI チャットの設計（M5 で Director が決定）
+- **決定論の境界**: `:core` はチャットのきっかけ（ChatEvent）までを決定論的に生成し、`alliance.pendingChat`（上限 50、あふれたら Ambient から捨てる）に積む。文面（LLM または Scripted）は `:app` の ChatCoordinator が非同期に作り、`Actions.appendChat` で書き戻す。tick は LLM を呼ばない。
+- **AllianceScheduler** は毎分 0 秒のグリッドで評価する（tick の境界）。乱数は状態を持たないハッシュ（`mix(allianceSeed xor minuteIndex)`）で引くので、R3 は自明に成り立つ。
+- 活動時間帯は `settings.utcOffsetSec`（`:app` が端末の TZ から設定する）で現地時刻にして判定する。
+- 同盟テックは BuffAggregator の出所として加算する。personas.json の並び順を、マップの persona_slot に対応させる。
+- **AI プロバイダ**: 既定の順は Gemini → Scripted（ユーザー確定）。タイムアウト 8 秒。429・5xx・ネットワーク失敗なら次へ。予算（毎時 20 / 日 200）を超えたら Scripted。壊れた JSON は 1 行の発話として扱う。
+- **セキュリティ**: API キーは Android Keystore の AES/GCM で暗号化し、DataStore に保存する。ログやプロンプトに出さない。平文 HTTP はプライベート IP・localhost・*.local だけを AiRouter が許可する（network_security_config では IP の範囲を指定できないため、アプリ側の検査で守る）。
+- kover の対象: `:core` の alliance と chat。`:ai` の router と providers。
 
