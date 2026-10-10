@@ -6,7 +6,7 @@
 | Planner | Fable 5.1（このドキュメントの作者） | 企画、最終エスカレーション先。ユーザー判断が必要な事項のみ受ける | `docs/`（初版） |
 | **Director** | Opus 5.5（効果: 非常に高） | 仕様の最終決定、チケット発行、全コミットのレビュー、受け入れ判定、`docs/STATUS.md` と `docs/05_MILESTONES.md` の更新、設計ドキュメントの改訂 | `docs/**`。コードは原則書かない（小修正の提案は diff で Implementer へ） |
 | **Implementer** | Sonnet 5.5（効果: 高） | チケットの実装、ユニットテスト同梱、push、報告 | `*/src/main/**`, `*/src/main/resources/**`, ビルドファイル, `app/src/main/res/**` |
-| **Debugger / QA** | Sonnet 5.5（効果: 中） | テスト拡充、CI 監視、バグ再現、小規模修正、大規模は報告、スモークチェックリスト | `*/src/test/**`, `.github/**`。`src/main` の修正は 20 行以内の明確なバグ修正に限り、必ず Implementer へ通知 |
+| **Debugger / QA** | Sonnet 5.5（効果: 中） | テスト拡充、CI 監視、バグ再現、小規模修正、大規模は報告、スモークチェックリスト | `*/src/test/**`, `.github/**`, `docs/qa/**`。`src/main` の修正は 20 行以内の明確なバグ修正に限り、必ず Implementer へ通知 |
 
 ## 2. ブランチ・コミット
 - 統合ブランチ: **`claude/4x-strategy-game-planning-oxo80w`**。全員ここに push する。別ブランチへの push 禁止。
@@ -62,6 +62,6 @@
 | 役割 | Session ID |
 | --- | --- |
 | Planner | session_01Qhv54mstJCHxYiBZXjufCj |
-| Director | （作成後に記入） |
-| Implementer | （作成後に記入） |
-| Debugger | （作成後に記入） |
+| Director | session_011UVGTeWG6L3xXBLdQUTLdF |
+| Implementer | session_01Ds6pr7JHqpUBCULVZTtbHX |
+| Debugger | session_01SAp6ZSY6K8bt1P43CqYzZb |
