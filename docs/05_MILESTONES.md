@@ -103,7 +103,7 @@ DoD: キー無しで完全動作。キー有りは Debugger が設定画面経�
 | T8.3 | 最終ドキュメント同期（docs と実装の差分解消） |
 | T8.4 | 性能パス: 毎秒の state 更新による全画面の再構図を、部分的な購読で減らす（Director が追加） |
 
-## M9 拡張（ユーザー承認 2026-10-10）— 実装済み・Director Approve（HEAD 7d5ed68、CI run 90。要修正と QA の待ち。設計は 02 §16）
+## M9 拡張（ユーザー承認 2026-10-10）— ✅ 完了 2026-10-10（HEAD 7d5ed68 と修正 ec6bcc3、CI run 93。QA は QaNotifyTest。実機の検証は SMOKE_CHECKLIST 第 11 章。設計は 02 §16）
 | ID | 内容 |
 | --- | --- |
 | T9.1 | オンデバイス LLM（LiteRT-LM が第一候補、tasks-genai がフォールバック）。モデルの読み込み（ファイル選択・URL ダウンロード）、端末要件の表示、AiRouter の順は gemini → onDevice → openai_compat → Scripted |

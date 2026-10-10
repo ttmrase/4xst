@@ -1,6 +1,6 @@
 # STATUS（Director が更新）
 
-- 現在のマイルストーン: **M9 拡張**（発行済み。T9.1 オンデバイス LLM、T9.2 うるさい通知・警報）。M0〜M8 は ✅ 完了（1.0.0）
+- 現在のマイルストーン: **M0〜M9 すべて完了**。次の指示待ち（実機のスモークの結果次第）
 - 統合ブランチ: `claude/4x-strategy-game-planning-oxo80w`
 - 最終更新: 2026-10-10 Director
 
@@ -8,6 +8,7 @@
 | マイルストーン | 完了 | 根拠 |
 | --- | --- | --- |
 | M0 基盤 | 2026-10-10 | HEAD 00f5f9b、CI run 38028345848（jvm と apk が緑、crownfall-debug-apk あり）、Debugger QA-OK、Director Approve |
+| M9 拡張（オンデバイス LLM・うるさい通知） | 2026-10-10 | 7d5ed68 + 修正 ec6bcc3、CI run 93 が緑（LiteRT-LM 0.18.0、Kotlin 2.4.0、APK は debug 36.5MB / release 32.5MB）、Debugger QA-OK（先読みと実際の catch-up の一致、通知の選別、襲撃の段階の R3、48h 先読み 28ms）、Director Approve |
 | M8 QA・リリース | 2026-10-10 | f3261e6、CI run 78 が緑（debug と release（debugsigned）の APK、証明書の照合、billing の検査）、Debugger QA-OK（スモークチェックリスト、M1〜M7 のセーブ互換、ベンチ）、docs の同期（T8.3）、Director Approve |
 | M7 クエスト・イベント・通知・仕上げ | 2026-10-10 | 495aa3e + 修正 39e268f / 99f573c / ad01a44、Debugger QA-OK（週末・日付をまたぐ catch-up の一致、逆転パック後の 1 位）、Director Approve。後追い 2 件は依頼済み |
 | M6 ショップ・擬似課金 | 2026-10-10 | 13a1b86 + 修正 60f5b54、CI run 38043634212 が緑（billing の検査を含む）、Debugger QA-OK（購入の原子性、頻度の性質テスト、ブランド名の検査 check-no-payment-brands.sh を CI に追加、2aa10b1）、Director Approve |
@@ -22,8 +23,8 @@
 | --- | --- | --- | --- |
 | README の細部修正（台帳の項目、頻度の表記、LAN の許可範囲）、Gemini モデルのヒント文言 | Implementer | ✅ 完了 | 403b52a |
 | 実機でのスモークチェック（docs/qa/SMOKE_CHECKLIST.md） | ユーザー | 未実施 | - |
-| T9.1（オンデバイス LLM）・T9.2a（:core の通知計画）・T9.2b（:app の配送と演出） | Implementer | Director Approve・要修正 6 件（タイムアウト、転送の例外、再開の無限失敗、BOOT の二重予約、不正なモデル、先読みの対象）待ち | 6857b81〜7d5ed68 |
-| M9 の QA・SMOKE_CHECKLIST への M9 の章の追加・CI での APK サイズの出力 | Debugger | 依頼済み | - |
+| T9.1・T9.2a・T9.2b + 修正 | Implementer | ✅ 完了 | 6857b81〜7d5ed68, ec6bcc3 |
+| M9 の QA・SMOKE_CHECKLIST 第 11 章・CI での APK サイズの出力 | Debugger | ✅ 完了（:core の QA-OK。実機の項目は未実施） | ec79280, c96fb0e ほか |
 
 ## 直近の決定事項
 - 技術構成: Kotlin / Compose。`:core` `:ai` は JVM、`:app` は CI でのみビルド（02 §0）

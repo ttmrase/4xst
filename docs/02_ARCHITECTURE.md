@@ -288,5 +288,11 @@ jobs:
   - abiFilters は arm64-v8a のみで、APK は debug 約 36.5MB / release 約 32.5MB。
   - litertlm に生成のキャンセル API が無いので、生成中の新しい要求は即座に失敗させ（fail-fast）、タイムアウト時は呼び出し側だけ先に戻る（M9 REVIEW）。
   - 襲撃の段階（notification_rules.json）: 偵察された 12h 前 / Watchtower Lv6、進軍中 4h 前 / Lv4、1 時間前 / Lv2、15 分前 / Lv1、開始と結果 / Lv0。
-  - 強度ごとの 1 時間あたりの上限: LOW 2、STANDARD 6、MASS 12（襲撃は対象外）。先読みは 48h（ゲーム内のイベントはオフライン上限の範囲内だけ）。
+  - 強度ごとの 1 時間あたりの上限: LOW 2、STANDARD 6、MASS 12（襲撃は対象外）。先読みは 48h（ゲーム内のイベントはオフライン上限の範囲内だけ）。  - M9 REVIEW で確定した点:
+    - 生成は専用の executor で行い、呼び出し側は CompletableDeferred を待つ（タイムアウトで先に戻る）。
+    - 読み込み中のモデルのキーを保存し、起動時にそれが残っていれば失敗扱いにする（ネイティブのクラッシュで毎回落ちるのを防ぐ）。
+    - WorkManager は enqueueUniqueWork（REPLACE）で予約し、再起動後に二重にならないようにする。
+    - ダウンロードの再開は、.part と一緒にダウンロード元の URL を保存し、URL が違えば最初から取り直す。
+    - kotlinx-serialization を 1.10.0 に上げた。
+    - 先読みの対象に「兵の待機」と「オファーの復活」を追加した。
 
