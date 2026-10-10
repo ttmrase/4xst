@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -104,6 +105,7 @@ fun OfferCard(
     soldOut: Boolean = false,
     offOverride: Int? = null,
     oneTime: Boolean = false,
+    extraRibbons: List<String> = emptyList(),
     foil: Boolean = true,
 ) {
     val off = offOverride ?: offPercent(priceYen, listValueYen)
@@ -140,6 +142,7 @@ fun OfferCard(
                 if (off > 0) Ribbon(stringResource(R.string.offer_off, off))
                 if (oneTime) Ribbon(stringResource(R.string.offer_one_time))
                 stockLeft?.let { Ribbon(stringResource(R.string.offer_stock_ribbon, it)) }
+                extraRibbons.forEach { Ribbon(it) }
             }
             if (off > 0) {
                 RollingPrice(listYen = listValueYen, dealYen = priceYen)
@@ -152,7 +155,7 @@ fun OfferCard(
             PressButton(
                 onClick = onBuy,
                 enabled = !soldOut,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                colors = ButtonDefaults.buttonColors(containerColor = BuyRed, contentColor = Color.White),
                 modifier = Modifier.fillMaxWidth().height(52.dp).pulsing(!soldOut),
             ) {
                 Text(

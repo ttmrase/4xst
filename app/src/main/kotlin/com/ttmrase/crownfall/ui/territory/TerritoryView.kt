@@ -20,6 +20,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -139,6 +140,7 @@ fun TerritoryView(
     onTileClick: (BuildingSlot) -> Unit,
     modifier: Modifier = Modifier,
     locks: Map<Int, Prereq> = emptyMap(),
+    upgradable: Set<Int> = emptySet(),
     events: SharedFlow<GameEvent>? = null,
     live: StateFlow<GameState?>? = null,
 ) {
@@ -155,6 +157,7 @@ fun TerritoryView(
         .collectAsState(initial = state.timers)
     val currentClick by rememberUpdatedState(onTileClick)
     val currentSlots by rememberUpdatedState(slots)
+    val currentBandState = remember { mutableIntStateOf(1) }
 
     val layoutKey = slots.map { it.slotId to it.type }
     val cells = remember(layoutKey) { PlotLayout.cellsFor(slots) }
@@ -170,11 +173,15 @@ fun TerritoryView(
     slots.forEach { levels[it.slotId] = it.level }
     jobs.fill(null)
     timers.forEach { if (it.kind == TimerKind.BUILD) it.slotId?.let { id -> if (id < slotCount) jobs[id] = it } }
+    val upgradeFlags = remember(slotCount) { BooleanArray(slotCount) }
+    upgradeFlags.fill(false)
+    upgradable.forEach { if (it in 0 until slotCount) upgradeFlags[it] = true }
     val lockLabels = remember(slotCount) { arrayOfNulls<String>(slotCount) }
     lockLabels.fill(null)
     locks.forEach { (id, info) -> if (id < slotCount) lockLabels[id] = lockText(context, info) }
     val castleLevel = slots.firstOrNull { it.type == BuildingType.CASTLE }?.level ?: 1
     val band = PlotLayout.bandOfCastle(castleLevel)
+    currentBandState.intValue = band
 
     val anim = remember { BandAnim(band) }
     val popAt = remember(slotCount) { LongArray(slotCount) { -ANIM_DONE_MS } }
@@ -247,6 +254,8 @@ fun TerritoryView(
                                     pan.x,
                                     pan.y,
                                     zoom,
+                                    limitHalf =
+                                        PlotLayout.WALL_HALF[currentBandState.intValue - 1] + CameraMath.PAN_MARGIN,
                                 ),
                             )
                         }
@@ -290,7 +299,16 @@ fun TerritoryView(
             )
             painter.drawGround()
             painter.drawEntities(levels, jobs, typeBySlot, popAt, bounceAt, tutorialSlotId, signLabels, lockLabels)
-            painter.drawBadges(frontToBack, levels, jobs, levelLabels, lockLabels, emptyMark) { lv ->
+            painter.drawBadges(
+                frontToBack,
+                levels,
+                jobs,
+                levelLabels,
+                lockLabels,
+                emptyMark,
+                upgradeFlags,
+                sc * BADGE_SPAN >= size.width,
+            ) { lv ->
                 res.getString(R.string.tile_level, lv)
             }
         }
@@ -356,6 +374,9 @@ private fun slotDescription(
 
 private const val CAMERA_DROP = 14f
 private const val TICK_MS = 1000
+
+/** 画面の幅がこの幅のワールド範囲より狭く映るほど拡大したら、全区画に Lv の札を出す。 */
+private const val BADGE_SPAN = 420f
 private const val TICK_STEPS = 24
 
 /** 値が階段状に変わるので、再描画は毎秒 [TICK_STEPS] 回だけ（画面のリフレッシュレートまで回さない）。 */
@@ -890,23 +911,56 @@ private class TerritoryPainter {
         levelLabels: HashMap<Int, String>,
         locks: Array<String?>,
         emptyMark: String,
+        upgradable: BooleanArray,
+        showLevels: Boolean,
         levelText: (Int) -> String,
     ) {
         for (ent in order) {
             val px = sx(ent.gx, ent.gy)
-            val py = sy(ent.gx, ent.gy) + 24f * sc
+            val py = sy(ent.gx, ent.gy) + 12f * sc
             if (isOffScreen(px, py)) continue
             val level = levels[ent.slotId]
             val job = jobs[ent.slotId]
             val lock = locks[ent.slotId]
-            val label =
-                when {
-                    lock != null -> lock
-                    job != null -> timerLabel((job.endEpochSec - nowSec).coerceAtLeast(0))
-                    level <= 0 -> emptyMark
-                    else -> levelLabels.getOrPut(level) { levelText(level) }
-                }
-            drawPill(label, px, py, active = job != null, empty = level <= 0 && job == null)
+            when {
+                lock != null -> drawPill(lock, px, py, active = false, empty = true)
+                job != null ->
+                    drawPill(
+                        timerLabel((job.endEpochSec - nowSec).coerceAtLeast(0)),
+                        px,
+                        py,
+                        active = true,
+                        empty = false,
+                    )
+                // 初期ズームでは Lv の札を出さず、拡大したときだけ（建物の絵を隠さない）
+                showLevels ->
+                    drawPill(
+                        if (level <= 0) emptyMark else levelLabels.getOrPut(level) { levelText(level) },
+                        px,
+                        py,
+                        active = false,
+                        empty = level <= 0,
+                    )
+                upgradable[ent.slotId] -> drawUpgradeMark(ent)
+            }
+        }
+    }
+
+    /** 今すぐアップグレードできる区画の、小さな金の印（上下にゆっくり揺れる）。 */
+    private fun drawUpgradeMark(ent: Ent) {
+        val x = sx(ent.gx, ent.gy)
+        val bob = sin(seconds * 4f + ent.seed * 6f) * 2f * sc
+        val y = sy(ent.gx, ent.gy) - 66f * sc + bob
+        val r = 6f * scope.density
+        with(scope) {
+            drawCircle(GOLD, radius = r, center = Offset(x, y))
+            val tri = arrowPath
+            tri.rewind()
+            tri.moveTo(x, y - r * 0.55f)
+            tri.lineTo(x - r * 0.5f, y + r * 0.35f)
+            tri.lineTo(x + r * 0.5f, y + r * 0.35f)
+            tri.close()
+            drawPath(tri, Color.White)
         }
     }
 
@@ -953,8 +1007,8 @@ private class TerritoryPainter {
         empty: Boolean,
     ) {
         val layout = texts.layout(label, PILL_STYLE)
-        val padX = 7f * scope.density
-        val padY = 3f * scope.density
+        val padX = 4f * scope.density
+        val padY = 1.5f * scope.density
         val w = layout.size.width + padX * 2f
         val h = layout.size.height + padY * 2f
         val left = cx - w / 2f
@@ -1008,7 +1062,7 @@ private class TerritoryPainter {
         val RIVER = Color(0xFF3E7FC4)
         val RIVER_BANK = Color(0xFFC9B88A)
         val FOG = Color(0xFF0F1A33)
-        val PILL_STYLE = TextStyle(fontFamily = CrownFonts.Numeric, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+        val PILL_STYLE = TextStyle(fontFamily = CrownFonts.Numeric, fontWeight = FontWeight.Bold, fontSize = 9.sp)
         val SIGN_STYLE = TextStyle(fontFamily = CrownFonts.Display, fontWeight = FontWeight.Bold, fontSize = 11.sp)
     }
 }

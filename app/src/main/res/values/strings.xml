@@ -641,6 +641,8 @@
     <string name="offer_one_time">1回限り！</string>
     <string name="offer_stock_ribbon">残り %1$d 個</string>
     <string name="offer_remaining_label">残り</string>
+    <string name="ribbon_first_double">初回 2 倍！</string>
+    <string name="ribbon_gem_bonus">おまけ +%1$d</string>
     <string name="offer_sold_out">売り切れ</string>
     <string name="offer_revived">復活！%1$s</string>
     <string name="billing_title">お支払い</string>

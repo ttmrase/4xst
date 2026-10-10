@@ -262,6 +262,11 @@ private fun androidx.compose.foundation.lazy.LazyListScope.gems(
             listValueYen = g.priceYen,
             badge = badgeFor(g.sku),
             extraGems = if (first) g.gems else 0,
+            extraRibbons =
+                buildList {
+                    if (first) add(stringResource(R.string.ribbon_first_double))
+                    if (g.bonus > 0) add(stringResource(R.string.ribbon_gem_bonus, g.bonus))
+                },
             onBuy = { onBuy(g.sku) },
         )
     }

@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -66,8 +67,10 @@ private const val SECONDS_PER_HOUR = 3600
 private const val DIGIT_PAIR = 100
 
 internal val FoilGold = Color(0xFFFFD86B)
+
+/** 購入ボタンの赤（テーマの error は暗色テーマでは淡いピンクなので、白い文字が読める赤を使う）。 */
+internal val BuyRed = Color(0xFFD7263D)
 internal val FoilDark = Color(0xFF9C6B00)
-private val RibbonRed = Color(0xFFD7263D)
 
 /** 金箔の縁取り。光沢が斜めに流れ続ける（購入カードの「特別感」）。 */
 fun Modifier.goldFoil(): Modifier =
@@ -79,7 +82,8 @@ fun Modifier.goldFoil(): Modifier =
             animationSpec = infiniteRepeatable(tween(FOIL_MS, easing = LinearEasing), RepeatMode.Restart),
             label = "foilShift",
         )
-        drawBehind {
+        drawWithContent {
+            drawContent()
             val w = size.width
             val h = size.height
             val brush =
@@ -114,7 +118,7 @@ fun Modifier.shaking(): Modifier =
 fun Ribbon(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = RibbonRed,
+    color: Color = BuyRed,
     shake: Boolean = true,
 ) {
     Text(
@@ -162,7 +166,7 @@ fun RollingPrice(
             fontFamily = CrownFonts.Numeric,
             fontWeight = FontWeight.Black,
             fontSize = 30.sp,
-            color = RibbonRed,
+            color = BuyRed,
         )
     }
 }
@@ -183,10 +187,10 @@ fun FlipCountdown(
     ) {
         if (h > 0) {
             FlipPair(h % DIGIT_PAIR)
-            Text(":", color = RibbonRed, fontWeight = FontWeight.Black)
+            Text(":", color = BuyRed, fontWeight = FontWeight.Black)
         }
         FlipPair(m)
-        Text(":", color = RibbonRed, fontWeight = FontWeight.Black)
+        Text(":", color = BuyRed, fontWeight = FontWeight.Black)
         FlipPair(s)
     }
 }

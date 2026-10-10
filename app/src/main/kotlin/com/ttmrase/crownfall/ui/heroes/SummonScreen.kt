@@ -5,10 +5,12 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -21,6 +23,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
@@ -265,7 +268,7 @@ fun SummonScreen(
 }
 
 @Composable
-private fun SummonSetup(
+private fun ColumnScope.SummonSetup(
     s: GameState,
     kindIndex: Int,
     onKind: (Int) -> Unit,
@@ -288,8 +291,8 @@ private fun SummonSetup(
         )
     }
     Column(
-        modifier = Modifier.fillMaxWidth().padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(stringResource(R.string.summon_title), style = MaterialTheme.typography.titleLarge)
         val until = Summoner.untilPity(s, data, kind)
@@ -299,6 +302,15 @@ private fun SummonSetup(
         } else {
             Text(stringResource(R.string.summon_pity_none), style = MaterialTheme.typography.titleSmall)
         }
+    }
+    // 待機中も、召喚陣を中央に大きく出す（ボタンの下が空白にならない）
+    Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
+        SummonCircle(tint = if (kind == SummonKind.PREMIUM) rarityColor(HeroRarity.SSR) else rarityColor(HeroRarity.R))
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Text(stringResource(R.string.summon_tickets, tickets), style = MaterialTheme.typography.labelMedium)
         if (!tavernBuilt) {
             Text(stringResource(R.string.summon_tavern_locked), color = MaterialTheme.colorScheme.error)
@@ -315,6 +327,7 @@ private fun SummonSetup(
                 cost = costText(s, kind, Actions.TEN_ROLL, data),
                 enabled = tavernBuilt,
                 modifier = Modifier.weight(1f),
+                emphasized = true,
             ) { onSummon(Actions.TEN_ROLL) }
         }
     }
@@ -371,9 +384,29 @@ private fun SummonButton(
     cost: String,
     enabled: Boolean,
     modifier: Modifier,
+    emphasized: Boolean = false,
     onClick: () -> Unit,
 ) {
-    PressButton(onClick = onClick, enabled = enabled, modifier = modifier) {
+    PressButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier =
+            if (emphasized) {
+                modifier.border(
+                    2.dp,
+                    rarityColor(HeroRarity.SSR),
+                    ButtonDefaults.shape,
+                )
+            } else {
+                modifier
+            },
+        colors =
+            if (emphasized) {
+                ButtonDefaults.buttonColors(containerColor = Color(0xFFD7263D), contentColor = Color.White)
+            } else {
+                ButtonDefaults.buttonColors()
+            },
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(label, style = MaterialTheme.typography.titleSmall)
             Text(cost, style = MaterialTheme.typography.labelSmall)
@@ -469,6 +502,7 @@ private fun SummonResults(
                     cost = costText(state, ritual.kind, Actions.TEN_ROLL, data),
                     enabled = true,
                     modifier = Modifier.weight(1f),
+                    emphasized = true,
                     onClick = onTen,
                 )
             }

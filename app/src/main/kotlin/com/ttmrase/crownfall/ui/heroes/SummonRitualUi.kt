@@ -291,3 +291,72 @@ internal fun SsrReveal(
         }
     }
 }
+
+/**
+ * 召喚の待機画面の中央に出す召喚陣。ゆっくり回る二重の輪とルーン、中央のオーブが明滅する。
+ * [tint] はタブ（通常 / プレミアム）に合わせた色。
+ */
+@Composable
+internal fun SummonCircle(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "circle")
+    val spin by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = TAU,
+        animationSpec = infiniteRepeatable(tween(24_000, easing = LinearEasing), RepeatMode.Restart),
+        label = "spin",
+    )
+    val pulse by transition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1600), RepeatMode.Reverse),
+        label = "pulse",
+    )
+    Canvas(modifier = modifier.fillMaxSize()) {
+        val c = Offset(size.width / 2f, size.height / 2f)
+        val r = min(size.width, size.height) * 0.46f
+        // 床の淡い光
+        drawCircle(
+            Brush.radialGradient(listOf(tint.copy(alpha = 0.25f * pulse), Color.Transparent), c, r * 1.3f),
+            r * 1.3f,
+            c,
+        )
+        val ring = Stroke(width = r * 0.025f)
+        drawCircle(tint.copy(alpha = 0.9f), r, c, style = ring)
+        drawCircle(tint.copy(alpha = 0.6f), r * 0.86f, c, style = Stroke(width = r * 0.012f))
+        // 外周のルーン（回る）
+        for (i in 0 until 24) {
+            val a = i * TAU / 24 + spin
+            val len = if (i % 2 == 0) 0.07f else 0.04f
+            drawLine(
+                tint.copy(alpha = 0.85f),
+                c + Offset(cos(a) * r * 0.9f, sin(a) * r * 0.9f),
+                c + Offset(cos(a) * r * (0.9f - len), sin(a) * r * (0.9f - len)),
+                strokeWidth = r * 0.014f,
+            )
+        }
+        // 逆回りの六芒星
+        for (k in 0 until 2) {
+            val base = if (k == 0) -spin * 1.5f else -spin * 1.5f + TAU / 6f
+            for (i in 0 until 3) {
+                val a0 = base + i * TAU / 3
+                val a1 = base + (i + 1) * TAU / 3
+                drawLine(
+                    tint.copy(alpha = 0.75f),
+                    c + Offset(cos(a0) * r * 0.7f, sin(a0) * r * 0.7f),
+                    c + Offset(cos(a1) * r * 0.7f, sin(a1) * r * 0.7f),
+                    strokeWidth = r * 0.012f,
+                )
+            }
+        }
+        drawCircle(tint.copy(alpha = 0.5f), r * 0.42f, c, style = Stroke(width = r * 0.01f))
+        // 中央のオーブ
+        drawCircle(
+            Brush.radialGradient(listOf(Color.White, tint, tint.copy(alpha = 0f)), c, r * 0.4f * pulse),
+            r * 0.4f * pulse,
+            c,
+        )
+    }
+}

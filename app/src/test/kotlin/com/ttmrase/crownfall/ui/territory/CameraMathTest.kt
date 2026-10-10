@@ -31,11 +31,23 @@ class CameraMathTest {
     }
 
     @Test
-    fun panIsClampedToTheMapEdges() {
+    fun theViewCentreNeverLeavesTheTerritoryWhateverTheDirectionOfThePan() {
+        val half = 20f
         val cam = CameraMath.initial(w, 0f, 60f)
-        val far = CameraMath.transform(cam, w, h, 540f, 800f, panX = -1e7f, panY = -1e7f, zoom = 1f)
-        assertEquals(CameraMath.PAN_X, far.cx, 1e-3f)
-        assertEquals(CameraMath.PAN_Y_MAX, far.cy, 1e-3f)
+        for ((px, py) in listOf(-1e7f to -1e7f, 1e7f to 1e7f, -1e7f to 1e7f, 1e7f to -1e7f, 0f to 1e7f, 1e7f to 0f)) {
+            val out = CameraMath.transform(cam, w, h, 540f, 800f, px, py, 1f, limitHalf = half)
+            val gx = (out.cx / PlotLayout.U + out.cy / PlotLayout.V) / 2f
+            val gy = (out.cy / PlotLayout.V - out.cx / PlotLayout.U) / 2f
+            assertTrue("gx=$gx", gx in PlotLayout.MID - half - 1e-3f..PlotLayout.MID + half + 1e-3f)
+            assertTrue("gy=$gy", gy in PlotLayout.MID - half - 1e-3f..PlotLayout.MID + half + 1e-3f)
+        }
+    }
+
+    @Test
+    fun aCentreInsideTheTerritoryIsLeftAlone() {
+        val c =
+            CamState(PlotLayout.wx(PlotLayout.MID, PlotLayout.MID), PlotLayout.wy(PlotLayout.MID, PlotLayout.MID), 1.2f)
+        assertEquals(c, CameraMath.clampToTerritory(c, 20f))
     }
 
     @Test

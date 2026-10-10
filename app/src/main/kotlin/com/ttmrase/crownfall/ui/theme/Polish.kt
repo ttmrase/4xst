@@ -13,6 +13,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -85,11 +86,13 @@ fun PressButton(
 @Composable
 fun GoldPanel(
     modifier: Modifier = Modifier,
+    alpha: Float = 1f,
     content: @Composable () -> Unit,
 ) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = alpha)),
         border = BorderStroke(1.5.dp, GoldBrush),
     ) { content() }
 }
