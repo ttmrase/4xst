@@ -42,7 +42,9 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
+      # ubuntu-latest には Android SDK が同梱（ANDROID_HOME）。setup-android は `sdkmanager tools` で失敗したため使わない。
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - uses: gradle/actions/setup-gradle@v4
       - name: Build debug APK, lint and ktlint
         run: ./gradlew :app:assembleDebug :app:lintDebug :app:ktlintCheck -PwithAndroid=true
