@@ -22,12 +22,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -165,9 +165,11 @@ fun VipCinematicHost(
         if (s != null && celebrated < 0) session.dispatch { Actions.markVipCelebrated(it, level) }
     }
     // 保存の反映は 5 秒サンプリングの state より早いので、閉じた Lv はここでも覚えておく
-    var dismissedLv by rememberSaveable { mutableIntStateOf(-1) }
+    var dismissedLv by remember(session) { mutableIntStateOf(-1) }
     val show = s != null && celebrated >= 0 && level > maxOf(celebrated, dismissedLv) && !hold
     LaunchedEffect(show) { onActive(show) }
+    // 画面から外れたときに「表示中」を残さない（オファーが止まったままにならない）
+    DisposableEffect(Unit) { onDispose { onActive(false) } }
     if (!show) return
     VipCinematic(
         lv = level,

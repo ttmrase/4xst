@@ -54,6 +54,14 @@ object SpriteIds {
 
     val HOUSE_C: Int = R.drawable.deco_house_c
 
+    val STALL: Int = R.drawable.deco_stall
+
+    val FIELD: Int = R.drawable.deco_field
+
+    val MANOR: Int = R.drawable.deco_manor
+
+    val STATUE: Int = R.drawable.deco_statue
+
     val SITE: Int = R.drawable.deco_site
 
     private val WALL_X =

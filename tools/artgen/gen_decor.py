@@ -145,6 +145,57 @@ def house(sc, kind):
         sc.box(0.3, -0.55, 0.65, -0.2, h, h + 8, "#8C8A82")
 
 
+def stall(sc):
+    """市場の露店: 縞の天幕と商品。"""
+    sc.ellipse(*Q(0.1, 0.1, 0), 14, 6, "#000000", None, 0, 0.22, 14)
+    sc.box(-0.8, -0.4, 0.8, 0.4, 0, 6, "#8C6A3C")
+    for k, c in enumerate(["#D9453D", "#E8C547", "#6BAE45", "#D9453D", "#4F8FD0"]):
+        x = -0.7 + k * 0.3
+        sc.box(x, -0.25, x + 0.22, 0.25, 6, 8.2, c)
+    for (x, y) in [(-0.9, -0.5), (0.9, -0.5), (-0.9, 0.5), (0.9, 0.5)]:
+        sc.line([Q(x, y, 0), Q(x, y, 17)], "#5A4630", 1.2)
+    for k in range(6):
+        a = -0.9 + k * 0.3
+        c = "#E8E2D2" if k % 2 else "#C8453D"
+        sc.poly([Q(a, 0.6, 17), Q(a + 0.3, 0.6, 17), Q(a + 0.3, -0.6, 20), Q(a, -0.6, 20)], c, shade(c, 0.6), 0.4)
+
+
+def field(sc):
+    """畑: 畝のある土の平面（作物が育つ）。"""
+    sc.pad(-1.0, -1.0, 1.0, 1.0, "#7A5A32", "#5E4426")
+    for k in range(4):
+        a = -0.82 + k * 0.45
+        sc.pad(a, -0.85, a + 0.26, 0.85, "#8FC450", "#5E9A36")
+    for k in range(4):
+        a = -0.82 + k * 0.45
+        sc.line([Q(a + 0.13, -0.85, 1), Q(a + 0.13, 0.85, 1)], "#B8E27A", 0.6, 0.8)
+
+
+def manor(sc):
+    """屋敷: 二階建てで、屋根は青、金の飾りがつく（外側の帯ほど豪華な街並み）。"""
+    sc.ellipse(*Q(0.1, 0.1, 0), 17, 7, "#000000", None, 0, 0.22, 14)
+    x0, y0, x1, y1 = -1.0, -0.8, 1.0, 0.8
+    sc.box(x0, y0, x1, y1, 0, 4, "#9C9A92")
+    sc.box(x0, y0, x1, y1, 4, 24, "#D8CBA8")
+    for z in (9, 17):
+        sc.win_left(-0.5, z, 0.3, 4.5, y1, "#2B2230", "#F0CF7A", "#7B5A3A")
+        sc.win_left(0.5, z, 0.3, 4.5, y1, "#2B2230", "#F0CF7A", "#7B5A3A")
+        sc.win_right(0.0, z, 0.4, 4.5, x1, "#2B2230", "#F0CF7A", "#7B5A3A")
+    sc.door_left(0.0, 0.5, 8, y1, "#3A2A1E")
+    sc.gable(x0, y0, x1, y1, 24, 10, "#46588A", axis="x", over=0.25)
+    sc.flag(0.0, 0.0, 34, 9, "#E8C547")
+
+
+def statue(sc):
+    """広場の像: 大理石の台座と金の像。"""
+    sc.ellipse(*Q(0, 0, 0), 12, 5, "#000000", None, 0, 0.22, 12)
+    sc.box(-0.6, -0.6, 0.6, 0.6, 0, 8, "#E5DFCE")
+    sc.box(-0.4, -0.4, 0.4, 0.4, 8, 10, "#CFC8B4")
+    sc.cylinder(0.0, 0.0, 0.2, 10, 24, "#E8C547")
+    sc.ellipse(*Q(0, 0, 27), 3.2, 3.2, "#F2D668", "#9C7A1E", 0.5, 1.0, 12)
+    sc.line([Q(-0.5, 0, 20), Q(0.5, 0, 24)], "#E8C547", 1.4)
+
+
 def wall_x(sc, tier):
     """城壁の部品（x 方向に 2 単位）。"""
     m = gen_buildings.MAT[tier]
@@ -224,6 +275,10 @@ DECOR = [
     ("house_a", lambda sc: house(sc, 0)),
     ("house_b", lambda sc: house(sc, 1)),
     ("house_c", lambda sc: house(sc, 2)),
+    ("stall", stall),
+    ("field", field),
+    ("manor", manor),
+    ("statue", statue),
 ]
 
 

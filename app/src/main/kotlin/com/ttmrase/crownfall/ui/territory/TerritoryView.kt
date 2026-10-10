@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -62,6 +64,11 @@ import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.max
@@ -131,6 +138,7 @@ fun TerritoryView(
     modifier: Modifier = Modifier,
     locks: Map<Int, Prereq> = emptyMap(),
     events: SharedFlow<GameEvent>? = null,
+    live: StateFlow<GameState?>? = null,
 ) {
     val context = LocalContext.current
     val cache = remember { SpriteCache.shared(context) }
@@ -138,27 +146,33 @@ fun TerritoryView(
     val texts = remember(measurer) { TextCache(measurer) }
     val cam = remember { TerritoryCamera() }
     val frame = remember { mutableLongStateOf(0L) }
-    val currentState by rememberUpdatedState(state)
+    // 区画とタイマーは生の状態から取る（5 秒サンプリングの state だと、完成のポップが古い絵の上で出る）。
+    // 区画の並びとジョブの集合が変わったときだけ再構図される。
+    val slots by remember(live) { (live?.map { it?.slots } ?: flowOf(null)).filterNotNull().distinctUntilChanged() }
+        .collectAsState(initial = state.slots)
+    val timers by remember(live) { (live?.map { it?.timers } ?: flowOf(null)).filterNotNull().distinctUntilChanged() }
+        .collectAsState(initial = state.timers)
     val currentClick by rememberUpdatedState(onTileClick)
+    val currentSlots by rememberUpdatedState(slots)
 
-    val layoutKey = state.slots.map { it.slotId to it.type }
-    val cells = remember(layoutKey) { PlotLayout.cellsFor(state.slots) }
+    val layoutKey = slots.map { it.slotId to it.type }
+    val cells = remember(layoutKey) { PlotLayout.cellsFor(slots) }
     val scene = remember(layoutKey) { TerritoryScene.build(cells) }
     val frontToBack = remember(scene) { scene.buildingEnts.sortedBy { it.depth } }
-    val slotCount = (state.slots.maxOfOrNull { it.slotId } ?: -1) + 1
+    val slotCount = (slots.maxOfOrNull { it.slotId } ?: -1) + 1
     val typeBySlot =
         remember(layoutKey) {
-            arrayOfNulls<BuildingType>(slotCount).also { a -> state.slots.forEach { a[it.slotId] = it.type } }
+            arrayOfNulls<BuildingType>(slotCount).also { a -> slots.forEach { a[it.slotId] = it.type } }
         }
     val levels = remember(slotCount) { IntArray(slotCount) }
     val jobs = remember(slotCount) { arrayOfNulls<TimerJob>(slotCount) }
-    state.slots.forEach { levels[it.slotId] = it.level }
+    slots.forEach { levels[it.slotId] = it.level }
     jobs.fill(null)
-    state.timers.forEach { if (it.kind == TimerKind.BUILD) it.slotId?.let { id -> if (id < slotCount) jobs[id] = it } }
+    timers.forEach { if (it.kind == TimerKind.BUILD) it.slotId?.let { id -> if (id < slotCount) jobs[id] = it } }
     val lockLabels = remember(slotCount) { arrayOfNulls<String>(slotCount) }
     lockLabels.fill(null)
     locks.forEach { (id, info) -> if (id < slotCount) lockLabels[id] = lockText(context, info) }
-    val castleLevel = state.slots.firstOrNull { it.type == BuildingType.CASTLE }?.level ?: 1
+    val castleLevel = slots.firstOrNull { it.type == BuildingType.CASTLE }?.level ?: 1
     val band = PlotLayout.bandOfCastle(castleLevel)
 
     val anim = remember { BandAnim(band) }
@@ -248,7 +262,7 @@ fun TerritoryView(
                                     if (inside && (best == null || e.depth > best.depth)) best = e
                                 }
                                 best?.let { hit ->
-                                    val slot = currentState.slots.firstOrNull { it.slotId == hit.slotId }
+                                    val slot = currentSlots.firstOrNull { it.slotId == hit.slotId }
                                     if (slot != null) {
                                         bounceAt[slot.slotId] = frame.longValue
                                         currentClick(slot)
@@ -276,8 +290,19 @@ fun TerritoryView(
             }
         }
         // 画面の読み上げ・操作用: 区画ごとの透明なノード（ポインタ入力は受けず、タップは Canvas が処理する）
+        val onScreen by remember(scene) {
+            derivedStateOf {
+                val sc = cam.sc
+                scene.buildingEnts.filter { e ->
+                    val x = viewW / 2f + (PlotLayout.wx(e.gx, e.gy) - cam.cx) * sc
+                    val y = viewH / 2f + (PlotLayout.wy(e.gx, e.gy) - cam.cy) * sc
+                    x in 0f..viewW && y in 0f..viewH
+                }.map { it.slotId }.toSet()
+            }
+        }
         for (ent in scene.buildingEnts) {
-            val slot = state.slots.firstOrNull { it.slotId == ent.slotId } ?: continue
+            if (ent.slotId !in onScreen) continue
+            val slot = slots.firstOrNull { it.slotId == ent.slotId } ?: continue
             val desc = slotDescription(context, slot, lockLabels.getOrNull(slot.slotId))
             Box(
                 modifier =
@@ -522,7 +547,11 @@ private class TerritoryPainter {
                     val label = signLabels.getOrNull(ent.band).orEmpty()
                     if (label.isNotEmpty()) drawSignText(ent, label, a)
                 }
-                else -> drawSprite(ent.sprite, ent.gx, ent.gy, a, scale = 0.88f + 0.12f * a)
+                else -> {
+                    drawSprite(ent.sprite, ent.gx, ent.gy, a, scale = 0.88f + 0.12f * a)
+                    // 帯が上がって街並みが建つ・消えるとき、足元に土埃を立てる
+                    if (a < 1f && isTown(ent.kind)) drawDust(ent, a)
+                }
             }
         }
         while (vi < nv) {
@@ -548,6 +577,29 @@ private class TerritoryPainter {
         }
         with(scope) {
             drawPath(diamond, FOG.copy(alpha = 0.55f))
+        }
+    }
+
+    private fun isTown(kind: EntKind): Boolean =
+        kind == EntKind.HOUSE || kind == EntKind.STALL || kind == EntKind.FIELD ||
+            kind == EntKind.MANOR || kind == EntKind.STATUE
+
+    private fun drawDust(
+        ent: Ent,
+        a: Float,
+    ) {
+        val x = sx(ent.gx, ent.gy)
+        val y = sy(ent.gx, ent.gy)
+        val fade = 1f - a
+        with(scope) {
+            for (k in 0 until 3) {
+                val dx = (k - 1) * 9f * sc
+                drawCircle(
+                    DUST.copy(alpha = 0.55f * fade),
+                    radius = (4f + 8f * a) * sc,
+                    center = Offset(x + dx, y + 2f * sc - 6f * a * sc),
+                )
+            }
         }
     }
 
@@ -622,7 +674,7 @@ private class TerritoryPainter {
             path.lineTo(sx(ent.gx - 2.3f, ent.gy), sy(ent.gx - 2.3f, ent.gy))
             path.close()
             drawPath(path, GOLD.copy(alpha = 0.25f + 0.35f * pulse))
-            drawPath(path, GOLD, style = Stroke(width = 3f * density))
+            drawPath(path, GOLD, style = ringStrokeFor(density))
             val cx = sx(ent.gx, ent.gy)
             val cy = sy(ent.gx, ent.gy) - (115f + 8f * pulse) * sc
             val arrow = arrowPath
@@ -692,7 +744,7 @@ private class TerritoryPainter {
                 GOLD.copy(alpha = 0.9f * (1f - p)),
                 radius = (24f + 80f * p) * sc,
                 center = Offset(cx, cy),
-                style = Stroke(width = 2.5f * density),
+                style = burstStrokeFor(density),
             )
             for (k in 0 until 10) {
                 val ang = k * 0.628f + ent.seed
@@ -850,6 +902,27 @@ private class TerritoryPainter {
         return labelCache.getOrPut(remainSec) { DurationFormat.clock(remainSec) }
     }
 
+    private var ringStroke = Stroke(1f)
+    private var ringDensity = 0f
+    private var burstStroke = Stroke(1f)
+    private var burstDensity = 0f
+
+    private fun ringStrokeFor(density: Float): Stroke {
+        if (density != ringDensity) {
+            ringDensity = density
+            ringStroke = Stroke(width = 3f * density)
+        }
+        return ringStroke
+    }
+
+    private fun burstStrokeFor(density: Float): Stroke {
+        if (density != burstDensity) {
+            burstDensity = density
+            burstStroke = Stroke(width = 2.5f * density)
+        }
+        return burstStroke
+    }
+
     private fun pillStrokeFor(density: Float): Stroke {
         if (density != pillDensity) {
             pillDensity = density
@@ -902,6 +975,7 @@ private class TerritoryPainter {
 
     private companion object {
         const val OFF = 130f
+        val DUST = Color(0xFFE8DCC0)
         const val MS_PER_SEC = 1000f
         const val MAX_LABELS = 400
         val CORNERS = floatArrayOf(-2f, -2f, 2f, -2f, -2f, 2f, 2f, 2f)

@@ -184,7 +184,8 @@ fun SummonScreen(
                 val reason = r.reason
                 if (reason is ActionFailure.NotEnoughGems) hooks.onGemShortage(reason.missing)
                 if (reason is ActionFailure.NotEnoughResources) hooks.onResourceShortage(reason.missing)
-                snackbarHostState.showReplacing(failureMessage(context, reason))
+                // スナックバーが消えるまで待たない（待つと inFlight が戻らず、約 4 秒召喚できなくなる）
+                scope.launch { snackbarHostState.showReplacing(failureMessage(context, reason)) }
             }
         }
     }

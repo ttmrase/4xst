@@ -105,7 +105,7 @@ internal object PlotLayout {
 }
 
 /** 描く対象の種類。 */
-internal enum class EntKind { TREE, DECOR, HOUSE, WALL, TOWER, GATE, LAMP, SIGN, BUILDING }
+internal enum class EntKind { TREE, DECOR, HOUSE, STALL, FIELD, MANOR, STATUE, WALL, TOWER, GATE, LAMP, SIGN, BUILDING }
 
 /**
  * 1 つの描画対象。[gx] [gy] はスプライトの原点（建物は区画の足元の中心）。
@@ -151,6 +151,7 @@ internal class TerritoryScene(
         private const val TREE_STEP = 2.4f
         private const val TREE_RANGE = 22
         private const val RIVER_X = 45f
+        private const val TOWN_STEP = 2.5f
 
         fun build(slotCells: List<Triple<Int, Pair<Int, Int>, BuildingType>>): TerritoryScene {
             val rng = Lcg(20_261_010L)
@@ -244,20 +245,40 @@ internal class TerritoryScene(
                 }
             }
 
-            // 小さな家（外側の帯ほど増える。区画の外・通りの外）
+            // 城下町（壁の内側のリングが帯ごとに広がり、外側ほど家・市場・畑・屋敷・像が増えて豪華になる）
+            val townKinds =
+                arrayOf(
+                    // 帯 2: 家・露店・畑
+                    floatArrayOf(0.50f, 0.75f, 1.00f, 1.00f, 1.00f),
+                    // 帯 3: 家・露店・畑・屋敷
+                    floatArrayOf(0.50f, 0.70f, 0.82f, 1.00f, 1.00f),
+                    // 帯 4: 家・露店・畑・屋敷・像
+                    floatArrayOf(0.34f, 0.48f, 0.58f, 0.96f, 1.00f),
+                    // 帯 5: 家・露店・畑・屋敷・像
+                    floatArrayOf(0.22f, 0.32f, 0.36f, 0.86f, 1.00f),
+                )
             val houseSprites = intArrayOf(SpriteIds.HOUSE_A, SpriteIds.HOUSE_B, SpriteIds.HOUSE_C)
-            for (a in -11..11) {
-                for (b in -11..11) {
-                    val x = c + a * 3.3f
-                    val y = c + b * 3.3f
-                    val intro = bandInside(x, y, -2.2f)
-                    if (intro in 3..PlotLayout.BANDS &&
-                        !onPlot(x, y, 1.6f) && !nearStreet(x, 1.7f) && !nearStreet(y, 1.7f) &&
-                        rng.next() < 0.62f
-                    ) {
-                        val s = houseSprites[(rng.next() * 3).toInt().coerceIn(0, 2)]
-                        ents.add(Ent(EntKind.HOUSE, x, y, s, introBand = intro, seed = rng.next()))
-                    }
+            for (a in -15..15) {
+                for (b in -15..15) {
+                    val x = c + a * TOWN_STEP + (rng.next() - 0.5f) * 0.8f
+                    val y = c + b * TOWN_STEP + (rng.next() - 0.5f) * 0.8f
+                    val intro = bandInside(x, y, -2.0f)
+                    if (intro !in 2..PlotLayout.BANDS) continue
+                    if (onPlot(x, y, 1.7f) || nearStreet(x, 1.8f) || nearStreet(y, 1.8f)) continue
+                    if (rng.next() > 0.30f + 0.06f * intro) continue
+                    val cum = townKinds[intro - 2]
+                    val k = rng.next()
+                    val kind = cum.indexOfFirst { k <= it }
+                    val house = houseSprites[(rng.next() * 3).toInt().coerceIn(0, 2)]
+                    val (entKind, sprite) =
+                        when (kind) {
+                            0 -> EntKind.HOUSE to house
+                            1 -> EntKind.STALL to SpriteIds.STALL
+                            2 -> EntKind.FIELD to SpriteIds.FIELD
+                            3 -> EntKind.MANOR to SpriteIds.MANOR
+                            else -> EntKind.STATUE to SpriteIds.STATUE
+                        }
+                    ents.add(Ent(entKind, x, y, sprite, introBand = intro, seed = rng.next()))
                 }
             }
 
@@ -295,6 +316,24 @@ internal class TerritoryScene(
                 ents.add(Ent(EntKind.TOWER, hi, lo, SpriteIds.wallTower(band), band, band + 1))
                 ents.add(Ent(EntKind.TOWER, lo, hi, SpriteIds.wallTower(band), band, band + 1))
                 ents.add(Ent(EntKind.GATE, hi, hi, SpriteIds.gate(band), band, band + 1))
+                // 外側の帯ほど塔が増える（帯 3 以上は各辺の中央、帯 5 は四分点にも）
+                if (band >= 3) {
+                    val mid = (lo + hi) / 2f
+                    ents.add(Ent(EntKind.TOWER, mid, lo, SpriteIds.wallTower(band), band, band + 1))
+                    ents.add(Ent(EntKind.TOWER, lo, mid, SpriteIds.wallTower(band), band, band + 1))
+                    ents.add(Ent(EntKind.TOWER, hi, mid, SpriteIds.wallTower(band), band, band + 1))
+                    ents.add(Ent(EntKind.TOWER, mid, hi, SpriteIds.wallTower(band), band, band + 1))
+                }
+                if (band >= 5) {
+                    val q1 = lo + (hi - lo) / 4f
+                    val q3 = lo + (hi - lo) * 3f / 4f
+                    for (q in floatArrayOf(q1, q3)) {
+                        ents.add(Ent(EntKind.TOWER, q, lo, SpriteIds.wallTower(band), band, band + 1))
+                        ents.add(Ent(EntKind.TOWER, lo, q, SpriteIds.wallTower(band), band, band + 1))
+                        ents.add(Ent(EntKind.TOWER, hi, q, SpriteIds.wallTower(band), band, band + 1))
+                        ents.add(Ent(EntKind.TOWER, q, hi, SpriteIds.wallTower(band), band, band + 1))
+                    }
+                }
                 // 「Lv n で拡張」の立て札（次の帯がある間、前の角の外側）
                 if (band < PlotLayout.BANDS) {
                     ents.add(Ent(EntKind.SIGN, hi + 3.2f, hi - 0.5f, SpriteIds.SIGNPOST, band, band + 1, band = band))

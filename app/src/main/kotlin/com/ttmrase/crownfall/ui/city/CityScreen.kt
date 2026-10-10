@@ -153,6 +153,7 @@ fun CityScreen(
                 clock = LocalClock.current,
                 locks = locks,
                 events = session.events,
+                live = session.state,
                 tutorialSlotId = tutorialTargetSlotId(s),
                 onTileClick = { slot ->
                     sheetSlotId = slot.slotId
