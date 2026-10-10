@@ -17,7 +17,8 @@
 
 ## 直近の決定事項
 - 技術構成: Kotlin / Compose。`:core` `:ai` は JVM、`:app` は CI でのみビルド（02 §0）
-- 仮題: Crownfall: Rise of Realms（パッケージ `com.ttmrase.crownfall`）
+- **ゲーム名: Crownfall（ユーザー確定 2026-10-10。サブタイトル無し。パッケージ `com.ttmrase.crownfall`、アプリ表示名 `Crownfall`）**
+- **AI 既定プロバイダ: Gemini（ユーザー確定 2026-10-10）**。AiRouter の既定順は Gemini → Scripted。他プロバイダは設定で追加
 - `:app` の include 判定: `-PwithAndroid=true/false` を環境変数より優先する。プロパティが無いときは ANDROID_HOME か ANDROID_SDK_ROOT が実在するかで判定。CI の jvm ジョブは `false` を明示する
 - JVM ターゲットは 17 に統一し、toolchain による JDK 自動取得は使わない
 - KGP と AGP の読み込み: まずは各モジュールで plugin を適用する形にする。それで CI が通らない場合に限り、ルートで withAndroid のときだけ AGP を classpath に載せる構成を事前承認済み（採用したら 02 §0 を改訂する）
@@ -26,8 +27,7 @@
 - M0 に限り、Implementer が `.github/**` と README を作成してよい（06 §8）
 
 ## ユーザー確認待ち（Planner 経由）
-- ゲーム名の確定（仮題で進行中）
-- AI 既定プロバイダ（Gemini 無料枠を推奨案として進行中）
+- なし（ゲーム名・AI 既定プロバイダは確定済み）
 
 ## 既知の問題
 - なし

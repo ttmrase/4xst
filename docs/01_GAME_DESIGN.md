@@ -1,4 +1,4 @@
-# 01 ゲームデザイン — Crownfall: Rise of Realms（仮題）
+# 01 ゲームデザイン — Crownfall
 
 ## 1. コンセプト
 「どこかで見たことがある」量産型モバイル 4X（Rise of Kingdoms / Lords Mobile 系）の手触りを、1 人用・オフライン前提・擬似課金で再現する。

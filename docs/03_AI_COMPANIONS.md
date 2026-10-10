@@ -58,7 +58,7 @@
 ## 5. プロバイダと無料枠
 | Provider | 無料枠（執筆時点・要確認） | 設定項目 | 備考 |
 | --- | --- | --- | --- |
-| Gemini API（Google AI Studio で発行） | 無料 tier（RPM/RPD 制限あり） | API キー、モデル名（既定候補 `gemini-2.5-flash-lite` → 実装時に最新の無料対象モデルを確認し設定化） | **既定の推奨**。コンテナから疎通確認済 |
+| Gemini API（Google AI Studio で発行） | 無料 tier（RPM/RPD 制限あり） | API キー、モデル名（既定候補 `gemini-2.5-flash-lite` → 実装時に最新の無料対象モデルを確認し設定化） | **既定プロバイダ（ユーザー確定）**。設定画面の初期選択は Gemini。コンテナから疎通確認済 |
 | OpenAI 互換（Groq） | 無料 tier | base URL、API キー、モデル名 | llama 系。コンテナからは疎通不可だが端末からは可 |
 | OpenAI 互換（OpenRouter free モデル） | 無料モデル枠 | 同上 | |
 | OpenAI 互換（Ollama / LM Studio） | 完全無料 | LAN の base URL（例 `http://192.168.x.x:11434/v1`）、モデル名 | 自宅 PC で動かす場合。cleartext 許可は該当ホストのみ（`network_security_config`） |

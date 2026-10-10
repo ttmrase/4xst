@@ -1,4 +1,4 @@
-# Crownfall: Rise of Realms（仮題）
+# Crownfall
 
 Android 向けの「量産型 4X ストラテジー」風ゲーム。**個人利用専用**。
 
