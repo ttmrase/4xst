@@ -125,7 +125,7 @@ fun CityScreen(
                 data = data,
                 onTileClick = { slot ->
                     sheetSlotId = slot.slotId
-                    if (s.tutorialStep == TUTORIAL_TAP_TILE_STEP) advanceTutorial(TUTORIAL_TAP_TILE_STEP)
+                    if (slot.slotId == tutorialTargetSlotId(s)) advanceTutorial(TUTORIAL_TAP_TILE_STEP)
                 },
             )
         }
@@ -205,6 +205,14 @@ fun CityScreen(
         OfflineSummaryDialog(summary = it, state = s, onDismiss = session::consumeOfflineSummary)
     }
 }
+
+/** チュートリアル step0 で指す未建設の Farm スロット。該当しなければ null。 */
+private fun tutorialTargetSlotId(state: GameState): Int? =
+    if (state.tutorialStep == TUTORIAL_TAP_TILE_STEP) {
+        state.slots.firstOrNull { it.type.producedResource == ResourceType.FOOD && it.level == 0 }?.slotId
+    } else {
+        null
+    }
 
 private const val TUTORIAL_TAP_TILE_STEP = 0
 private const val TUTORIAL_PRESS_BUILD_STEP = 1
@@ -363,12 +371,7 @@ private fun BuildingGrid(
             section to state.slots.filter { UiQueries.sectionOf(it.type) == section }
         }
     val jobBySlot = state.timers.filter { it.kind == TimerKind.BUILD }.associateBy { it.slotId }
-    val tutorialTarget =
-        if (state.tutorialStep == TUTORIAL_TAP_TILE_STEP) {
-            state.slots.firstOrNull { it.type.producedResource == ResourceType.FOOD && it.level == 0 }?.slotId
-        } else {
-            null
-        }
+    val tutorialTarget = tutorialTargetSlotId(state)
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         contentPadding = PaddingValues(8.dp),
