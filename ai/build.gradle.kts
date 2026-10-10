@@ -1,3 +1,4 @@
+import kotlinx.kover.gradle.plugin.dsl.GroupingEntityType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -24,7 +25,10 @@ dependencies {
     api(project(":core"))
     api(libs.kotlinx.serialization.json)
     api(libs.kotlinx.coroutines.core)
+    api(libs.okhttp)
 
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.kotlin.test.junit5)
@@ -33,4 +37,24 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+// M5: router / providers はパッケージごとに行カバレッジ 80% 以上（`./gradlew :ai:koverVerify`）
+kover {
+    reports {
+        filters {
+            includes {
+                packages(
+                    "com.ttmrase.crownfall.ai.router",
+                    "com.ttmrase.crownfall.ai.providers",
+                )
+            }
+        }
+        verify {
+            rule("coverage-gated packages line coverage per package") {
+                groupBy = GroupingEntityType.PACKAGE
+                minBound(80)
+            }
+        }
+    }
 }

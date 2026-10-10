@@ -21,6 +21,8 @@ data class ChatRequest(
     val seed: Long,
     val recent: List<String> = emptyList(),
     val vars: ChatVars,
+    /** 全ペルソナ ID（LLM が使ってよい発話者）。空なら [speakers] だけ。 */
+    val knownSpeakers: Set<String> = emptySet(),
 ) {
     companion object {
         const val DEFAULT_MAX_TOKENS = 300
@@ -44,6 +46,9 @@ sealed interface AiResult {
 interface AiProvider {
     /** 設定・ログで使う ID（`gemini`、`openai_compat`、`scripted` など）。 */
     val id: String
+
+    /** 使える状態か（API キー未入力などは false。ルーターは数えずに飛ばす）。 */
+    fun isConfigured(): Boolean = true
 
     /** [request] に対する発話を返す。例外ではなく [AiResult.Failure] で失敗を表す。 */
     suspend fun complete(request: ChatRequest): AiResult
