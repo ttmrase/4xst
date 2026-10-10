@@ -653,4 +653,30 @@ class MarchTest {
         assertTrue(legacy.map.nodes.isNotEmpty())
         assertTrue(legacy.map.seed != 0L)
     }
+
+    @Test
+    fun marchViewsInterpolatePositionAndProgress() {
+        val s = base()
+        val node = nearestNode(s)
+        val started = send(s, MarchKind.GATHER, TileRef(node.x, node.y), mapOf("infantry_t1" to 100L)).ok()
+        val m = started.marches.single()
+        val c = rules.center
+        assertEquals(0f, MarchViews.progress(m, m.phaseStartEpochSec))
+        assertEquals(1f, MarchViews.progress(m, m.phaseEndEpochSec + 10))
+        assertEquals(c.x.toFloat() to c.y.toFloat(), MarchViews.position(m, m.phaseStartEpochSec, data))
+        val mid = (m.phaseStartEpochSec + m.phaseEndEpochSec) / 2
+        val (x, y) = MarchViews.position(m, mid, data)
+        assertTrue(x in minOf(c.x, node.x).toFloat()..maxOf(c.x, node.x).toFloat())
+        assertTrue(y in minOf(c.y, node.y).toFloat()..maxOf(c.y, node.y).toFloat())
+        assertEquals(m.phaseEndEpochSec - mid, MarchViews.remainingSec(m, mid))
+        assertEquals(0L, MarchViews.remainingSec(m, m.phaseEndEpochSec + 5))
+        assertEquals(
+            node.x.toFloat() to node.y.toFloat(),
+            MarchViews.position(m.copy(phase = MarchPhase.WORKING), mid, data),
+        )
+        assertEquals(c.x.toFloat() to c.y.toFloat(), MarchViews.position(m.copy(phase = MarchPhase.WAITING), mid, data))
+        val back = MarchViews.position(m.copy(phase = MarchPhase.RETURNING), m.phaseEndEpochSec, data)
+        assertEquals(c.x.toFloat() to c.y.toFloat(), back)
+        assertEquals(1f, MarchViews.progress(m.copy(phaseEndEpochSec = m.phaseStartEpochSec), 5))
+    }
 }

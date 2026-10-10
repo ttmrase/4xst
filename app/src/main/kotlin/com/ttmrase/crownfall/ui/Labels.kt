@@ -10,6 +10,9 @@ import com.ttmrase.crownfall.core.data.ItemKind
 import com.ttmrase.crownfall.core.data.SpeedupCategory
 import com.ttmrase.crownfall.core.data.TroopDef
 import com.ttmrase.crownfall.core.data.TroopType
+import com.ttmrase.crownfall.core.map.Terrain
+import com.ttmrase.crownfall.core.march.MarchKind
+import com.ttmrase.crownfall.core.march.MarchPhase
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.HeroRarity
@@ -234,6 +237,12 @@ fun failureMessage(
         ActionFailure.HeroNotOwned -> context.getString(R.string.hero_not_owned)
         ActionFailure.MaxStar -> context.getString(R.string.failure_max_level)
         is ActionFailure.NotEnoughShards -> context.getString(R.string.failure_not_enough_resources)
+        ActionFailure.NoMarchSlot -> context.getString(R.string.failure_no_march_slot)
+        ActionFailure.OverCapacity -> context.getString(R.string.failure_over_capacity)
+        ActionFailure.HeroBusy -> context.getString(R.string.failure_hero_busy)
+        ActionFailure.InvalidTarget -> context.getString(R.string.failure_invalid_target)
+        ActionFailure.NoTroops -> context.getString(R.string.failure_no_troops)
+        ActionFailure.MarchNotFound -> context.getString(R.string.failure_march_not_found)
     }
 
 /** イベントの通知文言（量産型翻訳調）。表示しないイベントは null。 */
@@ -256,10 +265,42 @@ fun eventMessage(
         is GameEvent.ResearchCompleted ->
             context.getString(R.string.event_research_done, researchNodeName(context, event.nodeId), event.level)
         GameEvent.FoodDepleted -> context.getString(R.string.event_food_depleted)
+        is GameEvent.MailReceived -> context.getString(R.string.event_mail)
+        is GameEvent.MarchReturned -> context.getString(R.string.event_march_returned)
+        is GameEvent.RaidIncoming -> context.getString(R.string.event_raid_incoming)
+        is GameEvent.PlayerDefendedRaid -> context.getString(R.string.event_raid_defended)
+        is GameEvent.PlayerDefeated -> context.getString(R.string.event_raid_defeated)
         is GameEvent.TimerCompleted,
         is GameEvent.BoostExpired,
         is GameEvent.HeroSummoned,
         -> null
+    }
+
+@StringRes
+fun MarchKind.nameRes(): Int =
+    when (this) {
+        MarchKind.GATHER -> R.string.march_kind_gather
+        MarchKind.ATTACK -> R.string.march_kind_attack
+        MarchKind.SCOUT -> R.string.march_kind_scout
+        MarchKind.RALLY -> R.string.march_kind_rally
+    }
+
+@StringRes
+fun MarchPhase.nameRes(): Int =
+    when (this) {
+        MarchPhase.OUTBOUND -> R.string.march_phase_outbound
+        MarchPhase.WORKING -> R.string.march_phase_working
+        MarchPhase.WAITING -> R.string.march_phase_waiting
+        MarchPhase.RETURNING -> R.string.march_phase_returning
+    }
+
+@StringRes
+fun Terrain.nameRes(): Int =
+    when (this) {
+        Terrain.PLAIN -> R.string.terrain_plain
+        Terrain.FOREST -> R.string.terrain_forest
+        Terrain.MOUNTAIN -> R.string.terrain_mountain
+        Terrain.WATER -> R.string.terrain_water
     }
 
 /** 兵種 ID（例 `infantry_t2`）から表示名を作る。未知の ID はそのまま返す。 */
