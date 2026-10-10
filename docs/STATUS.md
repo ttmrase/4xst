@@ -1,8 +1,8 @@
 # STATUS（Director が更新）
 
-- 現在のマイルストーン: **M10 見た目と演出の大幅強化**（T10.1 から）。M0〜M9 と 1.0.1 ホットフィックスは ✅ 完了
+- 現在のマイルストーン: **M10 見た目と演出の大幅強化**（T10.1〜T10.7 は Approve、残りは T10.8）。M0〜M9 と 1.0.1 ホットフィックスは ✅ 完了
 - 統合ブランチ: `claude/4x-strategy-game-planning-oxo80w`
-- 最終更新: 2026-10-10 Director（M10 の画像レビュー 2 回目）
+- 最終更新: 2026-10-10 Director（M10 T10.1〜T10.7 Approve）
 
 ## 完了
 | マイルストーン | 完了 | 根拠 |
@@ -24,8 +24,9 @@
 | --- | --- | --- | --- |
 | README の細部修正（台帳の項目、頻度の表記、LAN の許可範囲）、Gemini モデルのヒント文言 | Implementer | ✅ 完了 | 403b52a |
 | 実機でのスモークチェック | ユーザー | ✅ 実施済み（S1 × 2 と見た目への不満） | - |
-| M10 T10.1〜T10.7（見た目と演出） | Implementer | 画像レビュー 2 回目（runs/25）: R1・V2・V5・V6 は OK。残りは H1（HUD の崩れ。8c03b15 で修正済み、画像で確認待ち）、C1（初期カメラの構図と壁の内側の空き地）、C2（パンの境界）。ui は 11 本中 6 本が緑（残りはテスト側の起動待ちを Debugger が修正中）。T10.8 は ui が全部緑になってから | d31c18a〜8c03b15 |
-| M10 の QA: ui ワークフロー（ui.yml、継続ジョブ）、スクリーンショットの qa-screenshots ブランチ、回帰テスト 3 本、SMOKE 第 12 章 | Debugger | 進行中 | d31c18a, 540fa8f |
+| M10 T10.1〜T10.7（見た目と演出） | Implementer | ✅ Approve（f17ff11、android run 156 と ui run 34 が緑、画像は qa-screenshots runs/34-f17ff11 の 37 枚） | d31c18a〜f17ff11 |
+| M10 T10.8（性能・サイズ・versionName 1.1.0 / versionCode 110・小さな仕上げ） | Implementer | 発行済み | - |
+| M10 の QA: ui ワークフロー（androidTest 11 本が緑、run 34。2 回連続で緑なら required 化）、qa-screenshots、SMOKE 第 12 章、T10.8 の QA | Debugger | 進行中 | d31c18a〜f9d3d61 |
 | 1.0.1 ホットフィックスと回帰テスト | Implementer / Debugger | ✅ 完了 | e85e283〜4986231 |
 | T9.1・T9.2a・T9.2b + 修正 | Implementer | ✅ 完了 | 6857b81〜7d5ed68, ec6bcc3 |
 | M9 の QA・SMOKE_CHECKLIST 第 11 章・CI での APK サイズの出力 | Debugger | ✅ 完了（:core の QA-OK。実機の項目は未実施） | ec79280, c96fb0e ほか |
