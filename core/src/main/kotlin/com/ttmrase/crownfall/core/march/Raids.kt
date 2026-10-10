@@ -1,16 +1,20 @@
 package com.ttmrase.crownfall.core.march
 
 import com.ttmrase.crownfall.core.alliance.AllianceHooks
+import com.ttmrase.crownfall.core.alliance.AllianceLogic
 import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.buff.BuffKey
+import com.ttmrase.crownfall.core.chat.ChatEvent
 import com.ttmrase.crownfall.core.combat.Armies
 import com.ttmrase.crownfall.core.combat.CombatResolver
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.data.RaidStageRule
 import com.ttmrase.crownfall.core.model.BattleKind
 import com.ttmrase.crownfall.core.model.BattleReport
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
+import com.ttmrase.crownfall.core.model.RaidStage
 import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.model.mulDiv
@@ -51,7 +55,48 @@ object Raids {
         val warn = warnSec(state, data)
         if (!state.map.raidWarned && warn > 0 && raid - warn > state.nowEpochSec) next = raid - warn
         if (raid > state.nowEpochSec) next = minOf(next, raid)
+        nextStageTime(state, data)?.let { next = minOf(next, it) }
         return next
+    }
+
+    /** まだ出していない次の段階の時刻（RESULT は襲撃の解決で出すので含めない）。 */
+    private fun nextStageTime(
+        state: GameState,
+        data: GameData,
+    ): Long? {
+        val stages = data.notifyRules.raid.stages
+        val rule = stages.getOrNull(state.map.raidStageDone) ?: return null
+        if (rule.stage == RaidStage.RESULT.name) return null
+        val at = state.map.nextRaidEpochSec - rule.offsetSec
+        return at.takeIf { it > state.nowEpochSec }
+    }
+
+    /**
+     * 時刻が来た段階を出す。まとめて複数の段階が来ていた（旧セーブの途中など）ときは最後の 1 つだけ出す。
+     * 物見の塔の Lv が足りない段階は見えないので出さない。
+     */
+    private fun emitStages(
+        state: GameState,
+        data: GameData,
+        events: MutableList<GameEvent>,
+    ): GameState {
+        val stages = data.notifyRules.raid.stages
+        val raid = state.map.nextRaidEpochSec
+        var done = state.map.raidStageDone
+        var last: RaidStageRule? = null
+        while (done < stages.size) {
+            val rule = stages[done]
+            if (rule.stage == RaidStage.RESULT.name || raid - rule.offsetSec > state.nowEpochSec) break
+            last = rule
+            done++
+        }
+        var s = if (done == state.map.raidStageDone) state else state.copy(map = state.map.copy(raidStageDone = done))
+        if (last != null && Marching.levelOf(state, BuildingType.WATCHTOWER) >= last.minWatchtowerLv) {
+            val stage = RaidStage.valueOf(last.stage)
+            events.add(GameEvent.RaidStageReached(stage, raid))
+            s = AllianceLogic.enqueueReactive(s, ChatEvent.RaidStage(stage), listOf("kaede", "gen"), data)
+        }
+        return s
     }
 
     internal fun settle(
@@ -65,8 +110,10 @@ object Raids {
             s = s.copy(map = s.map.copy(nextRaidEpochSec = first, raidWarned = false))
         }
         while (s.map.nextRaidEpochSec != Long.MAX_VALUE && s.nowEpochSec >= s.map.nextRaidEpochSec) {
+            s = emitStages(s, data, events)
             s = resolve(s, data, events)
         }
+        s = emitStages(s, data, events)
         val warn = warnSec(s, data)
         if (!s.map.raidWarned && warn > 0 && s.nowEpochSec >= s.map.nextRaidEpochSec - warn) {
             events.add(GameEvent.RaidIncoming(s.map.nextRaidEpochSec))
@@ -128,10 +175,20 @@ object Raids {
         val mailId = s.nextMailId
         s = MailBox.battle(s, at, report, events)
         events.add(if (out.attackerWon) GameEvent.PlayerDefeated(mailId) else GameEvent.PlayerDefendedRaid(mailId))
+        events.add(GameEvent.RaidStageReached(RaidStage.RESULT, at, defended = !out.attackerWon))
         s = AllianceHooks.onRaid(s, playerWon = !out.attackerWon, data = data)
         val rng = SeededRandom(s.map.rngState)
         val gap = rules.minIntervalSec + rng.nextInt((rules.maxIntervalSec - rules.minIntervalSec + 1).toInt())
-        s = s.copy(map = s.map.copy(rngState = rng.state, nextRaidEpochSec = satAdd(at, gap), raidWarned = false))
+        s =
+            s.copy(
+                map =
+                    s.map.copy(
+                        rngState = rng.state,
+                        nextRaidEpochSec = satAdd(at, gap),
+                        raidWarned = false,
+                        raidStageDone = 0,
+                    ),
+            )
         return com.ttmrase.crownfall.core.sim.Simulation.syncStorageFlags(s, data)
     }
 }

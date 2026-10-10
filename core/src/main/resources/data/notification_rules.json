@@ -1,0 +1,24 @@
+{
+ "raid": {
+  "stages": [
+   {"stage": "SCOUTED", "offsetSec": 43200, "minWatchtowerLv": 6},
+   {"stage": "MARCHING", "offsetSec": 14400, "minWatchtowerLv": 4},
+   {"stage": "T_MINUS_1H", "offsetSec": 3600, "minWatchtowerLv": 2},
+   {"stage": "T_MINUS_15M", "offsetSec": 900, "minWatchtowerLv": 1},
+   {"stage": "STARTED", "offsetSec": 0, "minWatchtowerLv": 0},
+   {"stage": "RESULT", "offsetSec": 0, "minWatchtowerLv": 0}
+  ]
+ },
+ "intensity": {
+  "LOW": {"hourlyCap": 2, "categories": ["RAID", "TIMER"]},
+  "STANDARD": {"hourlyCap": 6, "categories": ["RAID", "TIMER", "ALLIANCE", "OFFER", "EVENT"]},
+  "MASS": {"hourlyCap": 12, "categories": ["RAID", "TIMER", "ALLIANCE", "OFFER", "EVENT", "ENGAGEMENT", "COMEBACK"]}
+ },
+ "lookaheadHorizonSec": 172800,
+ "offerLeadSec": [3600, 600],
+ "eventEndingLeadSec": 21600,
+ "comebackDelaysSec": [14400, 86400, 259200, 604800],
+ "dailyReminderLocalMinute": 1200,
+ "loginBonusLocalMinute": 540,
+ "freeWheelLocalMinute": 600
+}

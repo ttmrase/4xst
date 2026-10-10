@@ -201,6 +201,7 @@ data class GameData(
     val vip: VipFile,
     val quests: QuestsFile,
     val events: EventsFile,
+    val notifyRules: NotificationRules,
 ) {
     /** 建物種 [type] の定義。 */
     fun building(type: BuildingType): BuildingDef = buildings.getValue(type)

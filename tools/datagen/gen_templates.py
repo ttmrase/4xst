@@ -2,10 +2,10 @@
 """templates.json を tpl/part_*.py から組み立てる。実行: python3 tools/datagen/gen_templates.py"""
 import json, pathlib, re, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent / "tpl"))
-import part_a, part_b, part_c, part_d, part_e
+import part_a, part_b, part_c, part_d, part_e, part_f
 
 templates = {}
-for part in (part_a, part_b, part_c, part_d, part_e):
+for part in (part_a, part_b, part_c, part_d, part_e, part_f):
     templates.update(part.T)
 
 quizzes = {

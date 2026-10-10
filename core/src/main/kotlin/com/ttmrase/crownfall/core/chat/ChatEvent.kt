@@ -143,6 +143,13 @@ sealed interface ChatEvent {
         override val key get() = ChatKeys.VIP_UP
     }
 
+    /** 襲撃の段階（偵察された〜開始。結果は player_defended / player_defeated で扱う）。 */
+    @Serializable
+    @SerialName("raid_stage")
+    data class RaidStage(val stage: com.ttmrase.crownfall.core.model.RaidStage) : ChatEvent {
+        override val key get() = ChatKeys.raidStage(stage)
+    }
+
     @Serializable
     @SerialName("yuki_return")
     data class YukiReturn(val helpCount: Int) : ChatEvent {
@@ -177,6 +184,22 @@ object ChatKeys {
     const val YUKI_RETURN = "yuki_return"
     const val YUKI_RETURN_NONE = "yuki_return_none"
     const val VIP_UP = "vip_up"
+    const val RAID_SCOUTED = "raid_scouted"
+    const val RAID_MARCHING = "raid_marching"
+    const val RAID_1H = "raid_1h"
+    const val RAID_15M = "raid_15m"
+    const val RAID_STARTED = "raid_started"
+
+    /** 襲撃の段階 [stage] のテンプレキー（RESULT は専用のキーを持たないので開始と同じ）。 */
+    fun raidStage(stage: com.ttmrase.crownfall.core.model.RaidStage): String =
+        when (stage) {
+            com.ttmrase.crownfall.core.model.RaidStage.SCOUTED -> RAID_SCOUTED
+            com.ttmrase.crownfall.core.model.RaidStage.MARCHING -> RAID_MARCHING
+            com.ttmrase.crownfall.core.model.RaidStage.T_MINUS_1H -> RAID_1H
+            com.ttmrase.crownfall.core.model.RaidStage.T_MINUS_15M -> RAID_15M
+            com.ttmrase.crownfall.core.model.RaidStage.STARTED, com.ttmrase.crownfall.core.model.RaidStage.RESULT ->
+                RAID_STARTED
+        }
 
     /** 自由入力の分類（キーは `player_free_text.<分類>`）。 */
     val FREE_TEXT_CATEGORIES = listOf("resource", "battle", "research", "chat", "thanks", "question")
@@ -188,6 +211,7 @@ object ChatKeys {
             PLAYER_DEFEATED, PLAYER_DEFENDED, NPC_NEEDS_HELP, NPC_ASKS_SCOUT, NPC_PURCHASED, NPC_CALLS_RALLY,
             NPC_THANKS, NPC_THANKS_SCOUT, AMBIENT, WORLD_AMBIENT, DAILY_GREETING, EVENT_RANKING,
             FAVOR_MILESTONE, PONZU_QUIZ, QUIZ_RIGHT, QUIZ_WRONG, YUKI_RETURN, YUKI_RETURN_NONE, VIP_UP,
+            RAID_SCOUTED, RAID_MARCHING, RAID_1H, RAID_15M, RAID_STARTED,
         ) + FREE_TEXT_CATEGORIES.map { "$PLAYER_FREE_TEXT.$it" }
 
     /** 同盟チャンネル。 */

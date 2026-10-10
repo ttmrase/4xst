@@ -88,6 +88,8 @@ data class MapState(
     val nextRefreshEpochSec: Long = 0,
     val nextRaidEpochSec: Long = 0,
     val raidWarned: Boolean = false,
+    /** いまの襲撃で出し終えた段階の数（RaidStage の順）。襲撃が終わると 0 に戻る。 */
+    val raidStageDone: Int = 0,
 )
 
 /** 1 タイルの内容（UI・行軍の対象判定用）。 */

@@ -19,6 +19,7 @@ object ClasspathDataSource {
             GameDataLoader.SHOP_RULES,
             GameDataLoader.VIP,
             GameDataLoader.QUESTS,
+            GameDataLoader.NOTIFICATION_RULES,
             GameDataLoader.EVENTS,
         )
 

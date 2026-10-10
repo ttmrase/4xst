@@ -96,6 +96,13 @@ sealed interface GameEvent {
     /** NPC の襲撃が [arrivalEpochSec] に到着する（予告）。 */
     data class RaidIncoming(val arrivalEpochSec: Long) : GameEvent
 
+    /** 襲撃の段階に入った（見えない段階は出さない）。[defended] は RESULT のときだけ意味を持つ。 */
+    data class RaidStageReached(
+        val stage: RaidStage,
+        val raidAt: Long,
+        val defended: Boolean = false,
+    ) : GameEvent
+
     /** 襲撃を撃退した。 */
     data class PlayerDefendedRaid(val mailId: Long) : GameEvent
 

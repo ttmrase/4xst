@@ -11,23 +11,43 @@ import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.shop.OfferEngine
 import com.ttmrase.crownfall.core.sim.Simulation
 
-/** 通知の種類。 */
-enum class NoticeType {
-    BUILD_DONE,
-    RESEARCH_DONE,
-    TRAIN_DONE,
-    HEAL_DONE,
-    MARCH_RETURN,
-    STORAGE_FULL,
-    OFFER_EXPIRING,
-    RAID_WARNING,
-    RAID_ARRIVAL,
-    RALLY_DEADLINE,
-    REQUEST_EXPIRING,
-}
+/** 通知のカテゴリ（強度とユーザー設定で ON/OFF を決める単位）。 */
+enum class NoticeCategory { RAID, TIMER, ALLIANCE, OFFER, EVENT, ENGAGEMENT, COMEBACK, SUMMARY }
 
-/** 通知チャンネル（設定でチャンネルごとに ON/OFF）。 */
-enum class NoticeChannel { TIMER, OFFER, ALLIANCE, RAID }
+/** 通知チャンネル（Android の通知チャンネルに対応）。 */
+enum class NoticeChannel { TIMER, OFFER, ALLIANCE, RAID, NOTICE }
+
+/** 通知の種類。[category] は強度の判定に、[channel] は配送に使う。 */
+enum class NoticeType(val category: NoticeCategory, val channel: NoticeChannel) {
+    BUILD_DONE(NoticeCategory.TIMER, NoticeChannel.TIMER),
+    RESEARCH_DONE(NoticeCategory.TIMER, NoticeChannel.TIMER),
+    TRAIN_DONE(NoticeCategory.TIMER, NoticeChannel.TIMER),
+    HEAL_DONE(NoticeCategory.TIMER, NoticeChannel.TIMER),
+    MARCH_RETURN(NoticeCategory.TIMER, NoticeChannel.TIMER),
+    STORAGE_FULL(NoticeCategory.TIMER, NoticeChannel.TIMER),
+    OFFER_EXPIRING(NoticeCategory.OFFER, NoticeChannel.OFFER),
+    OFFER_LAST_CALL(NoticeCategory.OFFER, NoticeChannel.OFFER),
+    RAID_WARNING(NoticeCategory.RAID, NoticeChannel.RAID),
+    RAID_ARRIVAL(NoticeCategory.RAID, NoticeChannel.RAID),
+    RAID_SCOUTED(NoticeCategory.RAID, NoticeChannel.RAID),
+    RAID_MARCHING(NoticeCategory.RAID, NoticeChannel.RAID),
+    RAID_1H(NoticeCategory.RAID, NoticeChannel.RAID),
+    RAID_15M(NoticeCategory.RAID, NoticeChannel.RAID),
+    RAID_STARTED(NoticeCategory.RAID, NoticeChannel.RAID),
+    RAID_DEFENDED(NoticeCategory.RAID, NoticeChannel.RAID),
+    RAID_DEFEATED(NoticeCategory.RAID, NoticeChannel.RAID),
+    RALLY_DEADLINE(NoticeCategory.ALLIANCE, NoticeChannel.ALLIANCE),
+    REQUEST_EXPIRING(NoticeCategory.ALLIANCE, NoticeChannel.ALLIANCE),
+    ALLIANCE_HELP(NoticeCategory.ALLIANCE, NoticeChannel.ALLIANCE),
+    ALLIANCE_DM(NoticeCategory.ALLIANCE, NoticeChannel.ALLIANCE),
+    EVENT_ENDING(NoticeCategory.EVENT, NoticeChannel.NOTICE),
+    EVENT_DROPPED(NoticeCategory.EVENT, NoticeChannel.NOTICE),
+    DAILY_LEFT(NoticeCategory.ENGAGEMENT, NoticeChannel.NOTICE),
+    LOGIN_BONUS(NoticeCategory.ENGAGEMENT, NoticeChannel.NOTICE),
+    FREE_WHEEL(NoticeCategory.ENGAGEMENT, NoticeChannel.NOTICE),
+    COMEBACK(NoticeCategory.COMEBACK, NoticeChannel.NOTICE),
+    SUMMARY(NoticeCategory.SUMMARY, NoticeChannel.NOTICE),
+}
 
 /**
  * 予定された通知 1 件。[epochSec] に出す。[count] は同じ時刻・同じ種類をまとめた件数、
@@ -48,6 +68,14 @@ data class PlannedNotice(
  */
 object NotificationPlanner {
     private const val HOUR = 3600L
+
+    /** 先読み（[Lookahead]）。[horizonSec] 先までの通知を、オフライン上限を超えない範囲で予測して列挙する。 */
+    fun lookahead(
+        state: GameState,
+        data: GameData,
+        horizonSec: Long = data.notifyRules.lookaheadHorizonSec,
+    ): List<PlannedNotice> = Lookahead.run(state, data, horizonSec)
+
     private const val OFFER_LEAD_SEC = HOUR
     private const val RALLY_LEAD_SEC = 300L
     private const val REQUEST_LEAD_SEC = 600L
