@@ -46,6 +46,7 @@ import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.ui.alliance.unreadIn
 import com.ttmrase.crownfall.ui.channelName
+import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.speakerName
@@ -67,7 +68,7 @@ fun ChatScreen(
     typing: StateFlow<Map<String, String>>,
     snackbarHostState: SnackbarHostState,
 ) {
-    val state by session.state.collectAsStateWithLifecycle()
+    val state by session.collectCalmState()
     val typingNow by typing.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current

@@ -159,8 +159,12 @@ class NoticeWorker(context: Context, params: WorkerParameters) : Worker(context,
                 .setAutoCancel(true)
                 .build()
         // 権限は doWork の入口で確認済み
-        @Suppress("MissingPermission")
-        NotificationManagerCompat.from(context).notify(n.type.ordinal * ID_STRIDE + n.param, built)
+        try {
+            @Suppress("MissingPermission")
+            NotificationManagerCompat.from(context).notify(n.type.ordinal * ID_STRIDE + n.param, built)
+        } catch (e: SecurityException) {
+            // 権限が途中で取り消された。何もしない
+        }
     }
 
     private companion object {

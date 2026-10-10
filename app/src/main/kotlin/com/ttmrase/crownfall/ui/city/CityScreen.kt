@@ -64,6 +64,8 @@ import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.navigation.Screen
 import com.ttmrase.crownfall.offers.OfferHooks
+import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.common.remainingUntil
 import com.ttmrase.crownfall.ui.event.eventNameRes
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.nameRes
@@ -80,7 +82,7 @@ private fun EventBanner(
     onClick: () -> Unit,
 ) {
     val def = WeeklyEvents.current(s, data)
-    val remaining = WeeklyEvents.endEpochSec(s) - s.nowEpochSec
+    val remaining = remainingUntil(WeeklyEvents.endEpochSec(s), s.nowEpochSec)
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.End,
@@ -108,7 +110,7 @@ fun CityScreen(
     onNavigate: (Screen) -> Unit,
     onOpenBarracks: (Int) -> Unit,
 ) {
-    val state by session.state.collectAsStateWithLifecycle()
+    val state by session.collectCalmState()
     val summary by session.offlineSummary.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -136,10 +138,10 @@ fun CityScreen(
     val secondBuilderLocked = s.secondBuilderUntilEpochSec <= s.nowEpochSec
 
     Column(modifier = Modifier.fillMaxSize()) {
-        StatusBar(s, data)
+        StatusBar(session, data)
         EventBanner(s, data) { onNavigate(Screen.Event) }
         TimerBar(
-            state = s,
+            session = session,
             data = data,
             highlight = s.tutorialStep == TUTORIAL_SPEEDUP_STEP,
             onTimerClick = { speedupJobId = it.id },
@@ -150,6 +152,7 @@ fun CityScreen(
         Box(modifier = Modifier.weight(1f)) {
             BuildingGrid(
                 state = s,
+                session = session,
                 data = data,
                 onTileClick = { slot ->
                     sheetSlotId = slot.slotId
@@ -270,9 +273,11 @@ private const val TUTORIAL_SPEEDUP_STEP = 2
 
 @Composable
 private fun StatusBar(
-    state: GameState,
+    session: GameSession,
     data: GameData,
 ) {
+    val live by session.state.collectAsStateWithLifecycle()
+    val state = live ?: return
     val cap = Simulation.storageCap(state, data)
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
@@ -311,7 +316,7 @@ private fun StatusBar(
 
 @Composable
 private fun TimerBar(
-    state: GameState,
+    session: GameSession,
     data: GameData,
     highlight: Boolean,
     onTimerClick: (TimerJob) -> Unit,
@@ -320,6 +325,8 @@ private fun TimerBar(
     onOpenBarracks: (Int) -> Unit,
 ) {
     val context = LocalContext.current
+    val live by session.state.collectAsStateWithLifecycle()
+    val state = live ?: return
     val builds = state.timers.filter { it.kind == TimerKind.BUILD }.sortedBy { it.endEpochSec }
     val capacity = Simulation.buildQueueCapacity(state, data)
     val firstJob = builds.getOrNull(0)
@@ -336,7 +343,7 @@ private fun TimerBar(
                 label = stringResource(R.string.timers_build1),
                 job = firstJob,
                 jobName = buildJobName(context, state, firstJob),
-                state = state,
+                session = session,
                 highlight = highlight && firstJob != null,
                 modifier = Modifier.weight(1f),
             ) { firstJob?.let(onTimerClick) ?: Unit }
@@ -344,7 +351,7 @@ private fun TimerBar(
                 label = stringResource(R.string.timers_build2),
                 job = secondJob,
                 jobName = buildJobName(context, state, secondJob),
-                state = state,
+                session = session,
                 modifier = Modifier.weight(1f),
                 locked = secondLocked,
             ) { if (secondLocked) onLockedClick() else secondJob?.let(onTimerClick) ?: Unit }
@@ -352,14 +359,14 @@ private fun TimerBar(
                 label = stringResource(R.string.timers_research),
                 job = research,
                 jobName = research?.researchId?.let { researchNodeName(context, it) },
-                state = state,
+                session = session,
                 modifier = Modifier.weight(1f),
             ) { research?.let(onTimerClick) ?: onIdleClick(Screen.Research) }
             TimerCell(
                 label = stringResource(R.string.timers_heal),
                 job = heal,
                 jobName = if (heal != null) stringResource(R.string.timer_heal_job) else null,
-                state = state,
+                session = session,
                 modifier = Modifier.weight(1f),
             ) { heal?.let(onTimerClick) ?: Unit }
         }
@@ -371,7 +378,7 @@ private fun TimerBar(
                     label = stringResource(R.string.timers_train_slot, stringResource(type.nameRes())),
                     job = job,
                     jobName = job?.troopId?.let { troopNameById(context, it) },
-                    state = state,
+                    session = session,
                     modifier = Modifier.weight(1f),
                     dim = (slot?.level ?: 0) == 0,
                 ) { job?.let(onTimerClick) ?: onOpenBarracks(index) }
@@ -389,12 +396,27 @@ private fun buildJobName(
     return context.getString(type.nameRes())
 }
 
+/** タイマー 1 本の進捗バーと残り時間。毎秒ここだけが再構図される。 */
+@Composable
+private fun JobTicker(
+    session: GameSession,
+    job: TimerJob,
+    barModifier: Modifier,
+    textStyle: androidx.compose.ui.text.TextStyle,
+    textAlign: TextAlign? = null,
+) {
+    val live by session.state.collectAsStateWithLifecycle()
+    val state = live ?: return
+    LinearProgressIndicator(progress = { UiQueries.progress(state, job) }, modifier = barModifier)
+    Text(DurationFormat.clock(UiQueries.remainingSec(state, job)), style = textStyle, textAlign = textAlign)
+}
+
 @Composable
 private fun TimerCell(
     label: String,
     job: TimerJob?,
     jobName: String?,
-    state: GameState,
+    session: GameSession,
     modifier: Modifier = Modifier,
     highlight: Boolean = false,
     locked: Boolean = false,
@@ -422,13 +444,11 @@ private fun TimerCell(
                         if (jobName != null) {
                             Text(jobName, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                         }
-                        LinearProgressIndicator(
-                            progress = { UiQueries.progress(state, job) },
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                        )
-                        Text(
-                            DurationFormat.clock(UiQueries.remainingSec(state, job)),
-                            style = MaterialTheme.typography.labelMedium,
+                        JobTicker(
+                            session = session,
+                            job = job,
+                            barModifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                            textStyle = MaterialTheme.typography.labelMedium,
                             textAlign = TextAlign.Center,
                         )
                     }
@@ -441,6 +461,7 @@ private fun TimerCell(
 @Composable
 private fun BuildingGrid(
     state: GameState,
+    session: GameSession,
     data: GameData,
     onTileClick: (BuildingSlot) -> Unit,
 ) {
@@ -470,7 +491,7 @@ private fun BuildingGrid(
                 BuildingTile(
                     slot = slot,
                     job = jobBySlot[slot.slotId],
-                    state = state,
+                    session = session,
                     highlight = slot.slotId == tutorialTarget,
                     onClick = { onTileClick(slot) },
                 )
@@ -483,7 +504,7 @@ private fun BuildingGrid(
 private fun BuildingTile(
     slot: BuildingSlot,
     job: TimerJob?,
-    state: GameState,
+    session: GameSession,
     highlight: Boolean,
     onClick: () -> Unit,
 ) {
@@ -517,13 +538,11 @@ private fun BuildingTile(
                     color = if (slot.level == 0) Color.Gray else MaterialTheme.colorScheme.primary,
                 )
                 if (job != null) {
-                    LinearProgressIndicator(
-                        progress = { UiQueries.progress(state, job) },
-                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-                    )
-                    Text(
-                        DurationFormat.clock(UiQueries.remainingSec(state, job)),
-                        style = MaterialTheme.typography.labelSmall,
+                    JobTicker(
+                        session = session,
+                        job = job,
+                        barModifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                        textStyle = MaterialTheme.typography.labelSmall,
                     )
                 }
             }

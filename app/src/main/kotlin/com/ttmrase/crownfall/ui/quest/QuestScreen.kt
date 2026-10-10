@@ -33,7 +33,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.QuestCond
@@ -46,6 +45,7 @@ import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
+import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.nameRes
@@ -67,7 +67,7 @@ fun QuestScreen(
     data: GameData,
     snackbarHostState: SnackbarHostState,
 ) {
-    val state by session.state.collectAsStateWithLifecycle()
+    val state by session.collectCalmState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -164,7 +164,7 @@ private fun LazyListScope.dailyTab(
 ) {
     val q = QuestLogic.view(s)
     val points = QuestLogic.dailyPoints(s, data)
-    val max = data.quests.chests.maxOf { it.points }
+    val max = (data.quests.chests.maxOfOrNull { it.points } ?: 1).coerceAtLeast(1)
     item {
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp)) {

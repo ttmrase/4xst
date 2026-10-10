@@ -40,7 +40,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.HeroDef
@@ -53,6 +52,7 @@ import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.navigation.Screen
+import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.heroDescRes
@@ -71,7 +71,7 @@ fun HeroesScreen(
     snackbarHostState: SnackbarHostState,
     onNavigate: (Screen) -> Unit,
 ) {
-    val state by session.state.collectAsStateWithLifecycle()
+    val state by session.collectCalmState()
     val context = LocalContext.current
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     val s = state ?: return

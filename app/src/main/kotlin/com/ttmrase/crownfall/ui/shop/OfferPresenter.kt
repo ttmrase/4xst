@@ -47,6 +47,8 @@ import com.ttmrase.crownfall.core.shop.OfferEngine
 import com.ttmrase.crownfall.core.shop.ProductIds
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.data.SessionCoordinator
+import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.common.remainingUntil
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -72,7 +74,7 @@ fun OfferPresenter(
     onBuy: (String) -> Unit,
     onIdle: () -> Unit,
 ) {
-    val state by session.state.collectAsStateWithLifecycle()
+    val state by session.collectCalmState()
     val chain by coordinator.loginChain.collectAsStateWithLifecycle()
     var step by remember { mutableIntStateOf(STEP_NONE) }
     val scope = rememberCoroutineScope()
@@ -202,7 +204,7 @@ private fun OfferPopup(
                         priceYen = offer.priceYen,
                         listValueYen = offer.listValueYen,
                         badge = offer.badge,
-                        remainingSec = (offer.expiresEpochSec - nowEpochSec).coerceAtLeast(0),
+                        remainingSec = remainingUntil(offer.expiresEpochSec, nowEpochSec),
                         stockLeft = null,
                         onBuy = onBuy,
                     )

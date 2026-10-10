@@ -67,6 +67,7 @@ class GameSession(
     private val _state = MutableStateFlow<GameState?>(null)
     private val _events = MutableSharedFlow<GameEvent>(replay = 0, extraBufferCapacity = EVENT_BUFFER)
     private val _offlineSummary = MutableStateFlow<OfflineSummary?>(null)
+    private val _revision = MutableStateFlow(0L)
 
     private var seed = 0L
     private var dirty = false
@@ -76,6 +77,9 @@ class GameSession(
 
     /** 現在の状態（未ロード・新規開始前は null）。 */
     val state: StateFlow<GameState?> = _state.asStateFlow()
+
+    /** 時間経過ではなく、操作・ロード・新規開始で状態が変わるたびに増える番号（UI が即時に反映するための目印）。 */
+    val revision: StateFlow<Long> = _revision.asStateFlow()
 
     /** ゲームイベント（replay なし）。 */
     val events: SharedFlow<GameEvent> = _events.asSharedFlow()
@@ -120,6 +124,7 @@ class GameSession(
                 is DecodeResult.Success -> {
                     seed = decoded.save.seed
                     _state.value = HeroBootstrap.ensureStarter(decoded.save.state)
+                    _revision.value++
                     dirty = true
                     advanceLocked()
                     if (recovered) LoadResult.RecoveredFromBackup else LoadResult.Loaded
@@ -138,6 +143,7 @@ class GameSession(
             val state = NewGame.create(data, clock.nowEpochSec(), seed, playerName, starterHeroId)
             this.seed = seed
             _state.value = state
+            _revision.value++
             _offlineSummary.value = null
             dirty = true
             saveLocked()
@@ -152,6 +158,7 @@ class GameSession(
             val result = action(current)
             if (result is ActionResult.Success) {
                 _state.value = Tracking.apply(result.state, result.events, data)
+                _revision.value++
                 result.events.forEach { _events.tryEmit(it) }
                 dirty = true
                 maybeSaveLocked()

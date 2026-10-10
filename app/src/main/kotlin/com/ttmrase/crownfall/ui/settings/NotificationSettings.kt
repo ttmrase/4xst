@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.model.OfferFrequency
@@ -35,13 +37,16 @@ fun NotificationSettingsSection(session: GameSession?) {
     val prefs = remember { NotificationPrefs(context) }
     val state = session?.state?.collectAsStateWithLifecycle()?.value
     val low = state?.shop?.settings?.frequency == OfferFrequency.LOW
-    val values = remember { mutableStateOf(NoticeChannel.entries.associateWith { prefs.enabled(it, low) }) }
+    val values = remember(low) { mutableStateOf(NoticeChannel.entries.associateWith { prefs.enabled(it, low) }) }
     var current by values
+    // システム設定から戻ったときに権限の状態を取り直す
+    var canPost by remember { mutableStateOf(NoticeScheduler.canPost(context)) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { canPost = NoticeScheduler.canPost(context) }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(stringResource(R.string.settings_notify_title), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.settings_notify_hint), style = MaterialTheme.typography.bodySmall)
-        if (!NoticeScheduler.canPost(context)) {
+        if (!canPost) {
             Text(stringResource(R.string.settings_notify_denied), color = MaterialTheme.colorScheme.error)
             OutlinedButton(onClick = {
                 context.startActivity(

@@ -38,7 +38,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.map.MapGenerator
@@ -55,6 +54,8 @@ import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
+import com.ttmrase.crownfall.ui.common.LocalClock
+import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.failureMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -93,7 +94,7 @@ fun MapScreen(
     snackbarHostState: SnackbarHostState,
     onOpenMail: () -> Unit,
 ) {
-    val state by session.state.collectAsStateWithLifecycle()
+    val state by session.collectCalmState()
     val s = state ?: return
     val seed = s.map.seed
     val world by produceState<WorldMap?>(initialValue = null, key1 = seed) {
@@ -123,6 +124,8 @@ private fun MapContent(
     var scale by rememberSaveable { mutableFloatStateOf(1f) }
     var offX by rememberSaveable { mutableFloatStateOf(Float.NaN) }
     var offY by rememberSaveable { mutableFloatStateOf(Float.NaN) }
+    // 行軍の位置は描画フェーズで時計を読む（再構図せず、再描画だけ）
+    val clock = LocalClock.current
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     var selected by remember { mutableStateOf<TileRef?>(null) }
     var formation by remember { mutableStateOf<Pair<MarchKind, TileRef>?>(null) }
@@ -169,7 +172,11 @@ private fun MapContent(
                     .transformable(transformState)
                     .pointerInput(Unit) { detectTapGestures { onTap(it) } },
         ) {
-            if (!offX.isNaN() && !offY.isNaN()) drawWorld(world, s, data, basePx * scale, offX, offY, selected)
+            if (!offX.isNaN() && !offY.isNaN()) {
+                drawWorld(world, s, data, basePx * scale, offX, offY, selected) {
+                    clock?.value ?: s.nowEpochSec
+                }
+            }
         }
         Row(
             modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
@@ -280,7 +287,9 @@ private fun DrawScope.drawWorld(
     offX: Float,
     offY: Float,
     selected: TileRef?,
+    nowEpochSec: () -> Long,
 ) {
+    val now = nowEpochSec()
     val x0 = floor(-offX / tile).toInt().coerceAtLeast(0)
     val y0 = floor(-offY / tile).toInt().coerceAtLeast(0)
     val x1 = ceil((size.width - offX) / tile).toInt().coerceAtMost(world.size - 1)
@@ -356,7 +365,7 @@ private fun DrawScope.drawWorld(
             Offset(px(m.target.x + HALF), py(m.target.y + HALF)),
             strokeWidth = 3f,
         )
-        val (mx, my) = MarchViews.position(m, s.nowEpochSec, data)
+        val (mx, my) = MarchViews.position(m, now, data)
         val c = Offset(px(mx + HALF), py(my + HALF))
         drawCircle(Color.White, tile * MARCH_RADIUS + 2f, c)
         drawCircle(color, tile * MARCH_RADIUS, c)

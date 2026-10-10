@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -30,7 +31,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.PackContents
@@ -44,6 +44,8 @@ import com.ttmrase.crownfall.core.shop.ShopLogic
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
+import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.common.remainingUntil
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import kotlinx.coroutines.launch
@@ -80,13 +82,19 @@ fun ShopScreen(
     snackbarHostState: SnackbarHostState,
     onBuy: (String) -> Unit,
 ) {
-    val state by session.state.collectAsStateWithLifecycle()
+    val state by session.collectCalmState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val s = state ?: return
     // デイリー「ショップを開く」用。画面を開くたびに 1 回だけ数える
-    LaunchedEffect(Unit) { session.dispatch { Actions.recordShopOpened(it) } }
+    var recorded by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(recorded) {
+        if (!recorded) {
+            recorded = true
+            session.dispatch { Actions.recordShopOpened(it) }
+        }
+    }
 
     fun act(block: (GameState) -> ActionResult) {
         scope.launch {
@@ -151,7 +159,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.recommended(
             priceYen = o.priceYen,
             listValueYen = o.listValueYen,
             badge = o.badge,
-            remainingSec = (o.expiresEpochSec - s.nowEpochSec).coerceAtLeast(0),
+            remainingSec = remainingUntil(o.expiresEpochSec, s.nowEpochSec),
             stockLeft = data.offers.pack(o.sku)?.let { stockLeft(s, o.sku, it.dailyStock) },
             onBuy = { onBuy(ProductIds.offer(o.id)) },
         )
@@ -285,7 +293,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.deals(
             priceYen = c.priceYen,
             listValueYen = c.listValueYen,
             badge = c.pack.badge,
-            remainingSec = (midnight - s.nowEpochSec).coerceAtLeast(0),
+            remainingSec = remainingUntil(midnight, s.nowEpochSec),
             stockLeft = if (c.soldOut) 0 else 1,
             soldOut = c.soldOut,
             offOverride = c.offPct,

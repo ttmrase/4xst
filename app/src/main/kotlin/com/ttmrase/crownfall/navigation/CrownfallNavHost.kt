@@ -15,6 +15,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -37,7 +38,6 @@ import androidx.navigation.navArgument
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.ai.AiService
 import com.ttmrase.crownfall.chat.ChatCoordinator
-import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.quest.QuestLogic
 import com.ttmrase.crownfall.core.shop.OfferEngine
 import com.ttmrase.crownfall.core.sim.Actions
@@ -52,7 +52,10 @@ import com.ttmrase.crownfall.ui.alliance.unreadTotal
 import com.ttmrase.crownfall.ui.barracks.BarracksScreen
 import com.ttmrase.crownfall.ui.chat.ChatScreen
 import com.ttmrase.crownfall.ui.city.CityScreen
+import com.ttmrase.crownfall.ui.common.LocalClock
 import com.ttmrase.crownfall.ui.common.RaidBanner
+import com.ttmrase.crownfall.ui.common.calmStateFlow
+import com.ttmrase.crownfall.ui.common.collectClock
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.event.EventScreen
 import com.ttmrase.crownfall.ui.eventMessage
@@ -68,10 +71,14 @@ import com.ttmrase.crownfall.ui.shop.FakeBillingSheet
 import com.ttmrase.crownfall.ui.shop.OfferPresenter
 import com.ttmrase.crownfall.ui.shop.ShopScreen
 import com.ttmrase.crownfall.ui.title.TitleScreen
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /** 単一 Activity 用の NavHost と下部ナビ（Title では非表示）。 */
+private const val CLAIM_PERIOD_MS = 30_000L
+
 @Composable
 fun CrownfallNavHost(
     repository: GameRepository,
@@ -86,8 +93,6 @@ fun CrownfallNavHost(
     val destination = backStackEntry?.destination
     val context = LocalContext.current
     val readySession = (startup as? Startup.Ready)?.session
-    val noState = remember { MutableStateFlow<GameState?>(null) }
-    val gameState by (readySession?.state ?: noState).collectAsStateWithLifecycle()
     val uiScope = rememberCoroutineScope()
     val ready = startup as? Startup.Ready
     val hooks: OfferHooks =
@@ -97,18 +102,26 @@ fun CrownfallNavHost(
     var billingId by rememberSaveable { mutableStateOf<String?>(null) }
     // 退出前オファーの流れ: 0 = なし、1 = 「待って！」を出している、2 = 閉じ終えたのでタイトルへ戻る確認
     var exitStage by rememberSaveable { mutableIntStateOf(0) }
-    val unread =
-        remember(gameState?.alliance?.history, gameState?.alliance?.chatRead) {
-            gameState?.alliance?.let { unreadTotal(it.history, it.chatRead) } ?: 0
+    // 毎秒変わる状態を NavHost で読まない。必要な値だけを取り出し、変わったときだけ再構図する。
+    val unreadFlow =
+        remember(readySession) {
+            readySession?.state
+                ?.map { s -> s?.alliance?.let { unreadTotal(it.history, it.chatRead) } ?: 0 }
+                ?.distinctUntilChanged() ?: flowOf(0)
         }
+    val unread by unreadFlow.collectAsStateWithLifecycle(0)
 
     // クエストの未受け取り数。戦力の計算を伴うので 30 秒に 1 回だけ数え直す
-    val snapshot = gameState
-    val bucket = (snapshot?.nowEpochSec ?: 0L) / 30
-    val claimable =
-        remember(ready?.session, snapshot?.quest, snapshot?.slots, snapshot?.heroes, bucket) {
-            if (ready != null && snapshot != null) QuestLogic.claimableCount(snapshot, ready.data) else 0
+    val claimFlow =
+        remember(ready?.session) {
+            ready?.let { r ->
+                r.session.calmStateFlow(CLAIM_PERIOD_MS)
+                    .map { s -> if (s != null) QuestLogic.claimableCount(s, r.data) else 0 }
+                    .distinctUntilChanged()
+            } ?: flowOf(0)
         }
+    val claimable by claimFlow.collectAsStateWithLifecycle(0)
+    val clock = readySession?.collectClock()
 
     // 全画面共通のトースト（ヘルプ受領・ギフト・行軍の帰還など）。
     LaunchedEffect(readySession) {
@@ -132,170 +145,182 @@ fun CrownfallNavHost(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            if (destination != null && destination.route != Screen.Title.route) {
-                NavigationBar {
-                    BottomDestination.entries.forEach { item ->
-                        NavigationBarItem(
-                            selected = destination.hierarchy.any { it.route == item.screen.route },
-                            onClick = {
-                                navController.navigate(item.screen.route) {
-                                    popUpTo(Screen.City.route) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = {
-                                val isAlliance = item == BottomDestination.Alliance
-                                val isCity = item == BottomDestination.City
-                                val count =
-                                    when {
-                                        isAlliance -> unread
-                                        isCity -> claimable
-                                        else -> 0
+    CompositionLocalProvider(LocalClock provides clock) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            bottomBar = {
+                if (destination != null && destination.route != Screen.Title.route) {
+                    NavigationBar {
+                        BottomDestination.entries.forEach { item ->
+                            NavigationBarItem(
+                                selected = destination.hierarchy.any { it.route == item.screen.route },
+                                onClick = {
+                                    navController.navigate(item.screen.route) {
+                                        popUpTo(Screen.City.route) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                BadgedBox(badge = { if (count > 0) Badge { Text(count.toString()) } }) {
-                                    Icon(item.icon, contentDescription = null)
-                                }
-                            },
-                            label = { Text(stringResource(item.labelRes)) },
-                        )
-                    }
-                }
-            }
-        },
-    ) { padding ->
-        Column(Modifier.padding(padding)) {
-            (startup as? Startup.Ready)?.let { if (destination?.route != Screen.Title.route) RaidBanner(it.session) }
-            NavHost(
-                navController = navController,
-                startDestination = Screen.Title.route,
-                modifier = Modifier.weight(1f),
-            ) {
-                composable(Screen.Title.route) {
-                    TitleScreen(
-                        repository = repository,
-                        onEnterGame = {
-                            navController.navigate(Screen.City.route) {
-                                popUpTo(Screen.Title.route) { inclusive = true }
-                            }
-                        },
-                    )
-                }
-                composable(Screen.City.route) {
-                    val ready = startup as? Startup.Ready
-                    if (ready != null) {
-                        CityScreen(
-                            session = ready.session,
-                            data = ready.data,
-                            hooks = hooks,
-                            snackbarHostState = snackbarHostState,
-                            onNavigate = { navController.navigate(it.route) },
-                            onOpenBarracks = { tab -> navController.navigate("${Screen.Barracks.route}?tab=$tab") },
-                        )
-                    }
-                }
-                composable(
-                    route = "${Screen.Barracks.route}?tab={tab}",
-                    arguments =
-                        listOf(
-                            navArgument("tab") {
-                                type = NavType.IntType
-                                defaultValue = 0
-                            },
-                        ),
-                ) { entry ->
-                    val ready = startup as? Startup.Ready
-                    if (ready != null) {
-                        BarracksScreen(
-                            ready.session,
-                            ready.data,
-                            hooks,
-                            snackbarHostState,
-                            entry.arguments?.getInt("tab") ?: 0,
-                        )
-                    }
-                }
-                composable(Screen.Research.route) {
-                    val ready = startup as? Startup.Ready
-                    if (ready != null) ResearchScreen(ready.session, ready.data, hooks, snackbarHostState)
-                }
-                composable(Screen.Heroes.route) {
-                    val ready = startup as? Startup.Ready
-                    if (ready != null) {
-                        HeroesScreen(ready.session, ready.data, snackbarHostState) { navController.navigate(it.route) }
-                    }
-                }
-                composable(Screen.Summon.route) {
-                    val ready = startup as? Startup.Ready
-                    if (ready != null) SummonScreen(ready.session, ready.data, hooks, snackbarHostState)
-                }
-                composable(Screen.WorldMap.route) {
-                    val ready = startup as? Startup.Ready
-                    if (ready != null) {
-                        MapScreen(
-                            ready.session,
-                            ready.data,
-                            snackbarHostState,
-                        ) { navController.navigate(Screen.Mail.route) }
-                    }
-                }
-                composable(Screen.Mail.route) {
-                    val ready = startup as? Startup.Ready
-                    if (ready != null) MailScreen(ready.session, ready.data)
-                }
-                composable(Screen.Alliance.route) {
-                    val ready = startup as? Startup.Ready
-                    if (ready != null) {
-                        AllianceScreen(ready.session, ready.data, snackbarHostState) {
-                            navController.navigate(Screen.Chat.route)
+                                },
+                                icon = {
+                                    val isAlliance = item == BottomDestination.Alliance
+                                    val isCity = item == BottomDestination.City
+                                    val count =
+                                        when {
+                                            isAlliance -> unread
+                                            isCity -> claimable
+                                            else -> 0
+                                        }
+                                    BadgedBox(badge = { if (count > 0) Badge { Text(count.toString()) } }) {
+                                        Icon(item.icon, contentDescription = null)
+                                    }
+                                },
+                                label = { Text(stringResource(item.labelRes)) },
+                            )
                         }
                     }
                 }
-                composable(Screen.Chat.route) {
-                    val ready = startup as? Startup.Ready
-                    if (ready != null) ChatScreen(ready.session, ready.data, chat.typing, snackbarHostState)
-                }
-                composable(Screen.Shop.route) {
-                    val r = startup as? Startup.Ready
-                    if (r != null) ShopScreen(r.session, r.data, snackbarHostState) { billingId = it }
-                }
-                composable(Screen.Quests.route) {
-                    val r = startup as? Startup.Ready
-                    if (r != null) QuestScreen(r.session, r.data, snackbarHostState)
-                }
-                composable(Screen.Event.route) {
-                    val r = startup as? Startup.Ready
-                    if (r != null) EventScreen(r.session, r.data)
-                }
-                composable(Screen.Settings.route) {
-                    val r = startup as? Startup.Ready
-                    SettingsScreen(ai, r?.session, snackbarHostState)
-                }
-                val implemented =
-                    setOf(
-                        Screen.Title,
-                        Screen.City,
-                        Screen.Barracks,
-                        Screen.Research,
-                        Screen.Heroes,
-                        Screen.Summon,
-                        Screen.WorldMap,
-                        Screen.Mail,
-                        Screen.Alliance,
-                        Screen.Chat,
-                        Screen.Settings,
-                        Screen.Shop,
-                        Screen.Quests,
-                        Screen.Event,
-                    )
-                Screen.entries
-                    .filter { it !in implemented }
-                    .forEach { screen ->
-                        composable(screen.route) { StubScreen(screen) }
+            },
+        ) { padding ->
+            Column(Modifier.padding(padding)) {
+                (startup as? Startup.Ready)?.let {
+                    if (destination?.route != Screen.Title.route) {
+                        RaidBanner(
+                            it.session,
+                        )
                     }
+                }
+                NavHost(
+                    navController = navController,
+                    startDestination = Screen.Title.route,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    composable(Screen.Title.route) {
+                        TitleScreen(
+                            repository = repository,
+                            onEnterGame = {
+                                navController.navigate(Screen.City.route) {
+                                    popUpTo(Screen.Title.route) { inclusive = true }
+                                }
+                            },
+                        )
+                    }
+                    composable(Screen.City.route) {
+                        val ready = startup as? Startup.Ready
+                        if (ready != null) {
+                            CityScreen(
+                                session = ready.session,
+                                data = ready.data,
+                                hooks = hooks,
+                                snackbarHostState = snackbarHostState,
+                                onNavigate = { navController.navigate(it.route) },
+                                onOpenBarracks = { tab -> navController.navigate("${Screen.Barracks.route}?tab=$tab") },
+                            )
+                        }
+                    }
+                    composable(
+                        route = "${Screen.Barracks.route}?tab={tab}",
+                        arguments =
+                            listOf(
+                                navArgument("tab") {
+                                    type = NavType.IntType
+                                    defaultValue = 0
+                                },
+                            ),
+                    ) { entry ->
+                        val ready = startup as? Startup.Ready
+                        if (ready != null) {
+                            BarracksScreen(
+                                ready.session,
+                                ready.data,
+                                hooks,
+                                snackbarHostState,
+                                entry.arguments?.getInt("tab") ?: 0,
+                            )
+                        }
+                    }
+                    composable(Screen.Research.route) {
+                        val ready = startup as? Startup.Ready
+                        if (ready != null) ResearchScreen(ready.session, ready.data, hooks, snackbarHostState)
+                    }
+                    composable(Screen.Heroes.route) {
+                        val ready = startup as? Startup.Ready
+                        if (ready != null) {
+                            HeroesScreen(
+                                ready.session,
+                                ready.data,
+                                snackbarHostState,
+                            ) { navController.navigate(it.route) }
+                        }
+                    }
+                    composable(Screen.Summon.route) {
+                        val ready = startup as? Startup.Ready
+                        if (ready != null) SummonScreen(ready.session, ready.data, hooks, snackbarHostState)
+                    }
+                    composable(Screen.WorldMap.route) {
+                        val ready = startup as? Startup.Ready
+                        if (ready != null) {
+                            MapScreen(
+                                ready.session,
+                                ready.data,
+                                snackbarHostState,
+                            ) { navController.navigate(Screen.Mail.route) }
+                        }
+                    }
+                    composable(Screen.Mail.route) {
+                        val ready = startup as? Startup.Ready
+                        if (ready != null) MailScreen(ready.session, ready.data)
+                    }
+                    composable(Screen.Alliance.route) {
+                        val ready = startup as? Startup.Ready
+                        if (ready != null) {
+                            AllianceScreen(ready.session, ready.data, snackbarHostState) {
+                                navController.navigate(Screen.Chat.route)
+                            }
+                        }
+                    }
+                    composable(Screen.Chat.route) {
+                        val ready = startup as? Startup.Ready
+                        if (ready != null) ChatScreen(ready.session, ready.data, chat.typing, snackbarHostState)
+                    }
+                    composable(Screen.Shop.route) {
+                        val r = startup as? Startup.Ready
+                        if (r != null) ShopScreen(r.session, r.data, snackbarHostState) { billingId = it }
+                    }
+                    composable(Screen.Quests.route) {
+                        val r = startup as? Startup.Ready
+                        if (r != null) QuestScreen(r.session, r.data, snackbarHostState)
+                    }
+                    composable(Screen.Event.route) {
+                        val r = startup as? Startup.Ready
+                        if (r != null) EventScreen(r.session, r.data)
+                    }
+                    composable(Screen.Settings.route) {
+                        val r = startup as? Startup.Ready
+                        SettingsScreen(ai, r?.session, snackbarHostState)
+                    }
+                    val implemented =
+                        setOf(
+                            Screen.Title,
+                            Screen.City,
+                            Screen.Barracks,
+                            Screen.Research,
+                            Screen.Heroes,
+                            Screen.Summon,
+                            Screen.WorldMap,
+                            Screen.Mail,
+                            Screen.Alliance,
+                            Screen.Chat,
+                            Screen.Settings,
+                            Screen.Shop,
+                            Screen.Quests,
+                            Screen.Event,
+                        )
+                    Screen.entries
+                        .filter { it !in implemented }
+                        .forEach { screen ->
+                            composable(screen.route) { StubScreen(screen) }
+                        }
+                }
             }
         }
     }

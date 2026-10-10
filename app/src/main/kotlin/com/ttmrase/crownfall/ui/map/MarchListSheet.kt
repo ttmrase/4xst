@@ -26,6 +26,7 @@ import com.ttmrase.crownfall.core.march.MarchViews
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
+import com.ttmrase.crownfall.ui.common.LocalClock
 import com.ttmrase.crownfall.ui.nameRes
 
 /** 行軍中の部隊の一覧（段階・残り時間・呼び戻し）。 */
@@ -39,6 +40,7 @@ fun MarchListSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val now = LocalClock.current?.value ?: state.nowEpochSec
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -61,14 +63,14 @@ fun MarchListSheet(
                     Text(stringResource(R.string.march_coords, m.target.x, m.target.y))
                 }
                 LinearProgressIndicator(
-                    progress = { MarchViews.progress(m, state.nowEpochSec) },
+                    progress = { MarchViews.progress(m, now) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         stringResource(
                             R.string.march_remaining,
-                            DurationFormat.clock(MarchViews.remainingSec(m, state.nowEpochSec)),
+                            DurationFormat.clock(MarchViews.remainingSec(m, now)),
                         ),
                     )
                     Text(stringResource(R.string.march_troops, ShortNumber.format(m.troops.values.sum())))

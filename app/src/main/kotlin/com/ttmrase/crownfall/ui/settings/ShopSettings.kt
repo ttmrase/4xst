@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.OfferFrequency
@@ -32,6 +31,7 @@ import com.ttmrase.crownfall.core.model.ShopSettings
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.FakeLedger
 import com.ttmrase.crownfall.core.sim.Actions
+import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.namedString
 import com.ttmrase.crownfall.ui.shop.formatYen
 import kotlinx.coroutines.launch
@@ -39,7 +39,7 @@ import kotlinx.coroutines.launch
 /** 設定のショップ部分（T6.5）: オファー頻度、擬似決済の演出、レシートの表記、課金履歴（擬似・既定は非表示）。 */
 @Composable
 fun ShopSettingsSection(session: GameSession) {
-    val state by session.state.collectAsStateWithLifecycle()
+    val state by session.collectCalmState()
     val scope = rememberCoroutineScope()
     var confirmLedger by rememberSaveable { mutableStateOf(false) }
     var showLedger by rememberSaveable { mutableStateOf(false) }

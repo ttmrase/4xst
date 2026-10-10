@@ -36,7 +36,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.alliance.AllianceTech
 import com.ttmrase.crownfall.core.alliance.DonationKind
@@ -56,6 +55,8 @@ import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
+import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.common.remainingUntil
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.itemName
@@ -89,7 +90,7 @@ fun AllianceScreen(
     snackbarHostState: SnackbarHostState,
     onOpenChat: () -> Unit,
 ) {
-    val state by session.state.collectAsStateWithLifecycle()
+    val state by session.collectCalmState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -395,7 +396,7 @@ private fun RequestsTab(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     val who = personaName(context, r.persona)
-                    val left = DurationFormat.clock((r.expiresEpochSec - s.nowEpochSec).coerceAtLeast(0))
+                    val left = DurationFormat.clock(remainingUntil(r.expiresEpochSec, s.nowEpochSec))
                     if (r.kind == RequestKind.RESOURCE) {
                         val res = r.resource
                         val name = if (res != null) stringResource(res.nameRes()) else ""
@@ -452,7 +453,7 @@ private fun RallyCard(
             Text(
                 stringResource(
                     R.string.alliance_rally_left,
-                    DurationFormat.clock((r.joinDeadlineEpochSec - s.nowEpochSec).coerceAtLeast(0)),
+                    DurationFormat.clock(remainingUntil(r.joinDeadlineEpochSec, s.nowEpochSec)),
                     r.participants.size,
                 ),
                 style = MaterialTheme.typography.bodySmall,
@@ -599,7 +600,7 @@ private fun GiftsTab(
                         Text(
                             stringResource(
                                 R.string.alliance_gift_left,
-                                DurationFormat.clock((g.expiresEpochSec - s.nowEpochSec).coerceAtLeast(0)),
+                                DurationFormat.clock(remainingUntil(g.expiresEpochSec, s.nowEpochSec)),
                             ),
                             style = MaterialTheme.typography.bodySmall,
                         )

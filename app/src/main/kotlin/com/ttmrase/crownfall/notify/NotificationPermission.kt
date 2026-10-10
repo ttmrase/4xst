@@ -12,6 +12,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.sim.Actions
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 /**
  * チュートリアルが終わったあとに、通知の権限を一度だけ尋ねる（Android 13 以上）。
@@ -23,8 +25,8 @@ fun NotificationPermissionEffect(session: GameSession?) {
     val context = LocalContext.current
     val prefs = remember { NotificationPrefs(context) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
-    val state by session.state.collectAsStateWithLifecycle()
-    val step = state?.tutorialStep ?: 0
+    val stepFlow = remember(session) { session.state.map { it?.tutorialStep ?: 0 }.distinctUntilChanged() }
+    val step by stepFlow.collectAsStateWithLifecycle(0)
     LaunchedEffect(step) {
         if (step >= Actions.TUTORIAL_DONE && !prefs.permissionAsked && !NoticeScheduler.canPost(context)) {
             prefs.permissionAsked = true

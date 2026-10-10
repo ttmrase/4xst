@@ -15,11 +15,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.EventDef
 import com.ttmrase.crownfall.core.data.GameData
@@ -27,6 +27,8 @@ import com.ttmrase.crownfall.core.event.WeeklyEvents
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
+import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.common.remainingUntil
 import com.ttmrase.crownfall.ui.shop.ContentsLines
 
 fun eventNameRes(def: EventDef): Int =
@@ -49,14 +51,20 @@ fun EventScreen(
     session: GameSession,
     data: GameData,
 ) {
-    val state by session.state.collectAsStateWithLifecycle()
+    val state by session.collectCalmState()
     val s = state ?: return
     val def = WeeklyEvents.current(s, data)
-    val remaining = WeeklyEvents.endEpochSec(s) - s.nowEpochSec
-    val rows = WeeklyEvents.standings(s, data)
-    val rank = rows.indexOfFirst { it.isPlayer } + 1
-    val gap = WeeklyEvents.gapToFirst(s, data)
+    val end = WeeklyEvents.endEpochSec(s)
+    // 順位表とスコアは 1 回だけ計算する（戦力の計算を伴う）。順位の差は表から導く
     val self = WeeklyEvents.selfScore(s, data)
+    val rows =
+        remember(s.event, s.heroes, s.slots, s.research, s.nowEpochSec / SCORE_PERIOD_SEC) {
+            WeeklyEvents.standings(s, data)
+        }
+    val mine = rows.firstOrNull { it.isPlayer }
+    val rank = rows.indexOfFirst { it.isPlayer } + 1
+    val top = rows.firstOrNull { !it.isPlayer }?.score ?: 0L
+    val gap = maxOf(0L, top - (mine?.score ?: 0L))
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -68,9 +76,9 @@ fun EventScreen(
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(eventNameRes(def)), style = MaterialTheme.typography.titleLarge)
                     Text(stringResource(eventHowRes(def)), style = MaterialTheme.typography.bodyMedium)
-                    Text(stringResource(R.string.event_remaining, DurationFormat.clock(remaining)))
+                    RemainingLine(end, s.nowEpochSec)
                     Text(
-                        stringResource(R.string.event_my_score, ShortNumber.format(WeeklyEvents.totalScore(s, data))),
+                        stringResource(R.string.event_my_score, ShortNumber.format((self + s.event.bonusScore))),
                         fontWeight = FontWeight.Bold,
                     )
                     if (self < data.events.participation.minScore) {
@@ -113,6 +121,16 @@ fun EventScreen(
 }
 
 private const val TOP_ROWS = 10
+private const val SCORE_PERIOD_SEC = 30L
+
+/** 残り時間。毎秒変わるのでここだけ再構図する。 */
+@Composable
+private fun RemainingLine(
+    end: Long,
+    fallbackNow: Long,
+) {
+    Text(stringResource(R.string.event_remaining, DurationFormat.clock(remainingUntil(end, fallbackNow))))
+}
 
 @Composable
 private fun StandingLine(
