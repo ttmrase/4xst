@@ -3,7 +3,8 @@
 # コンテナからは Actions の artifact に届かないので、Director / Debugger は git fetch origin qa-screenshots で画像を見る。
 # runs/<run_number>-<short_sha>/ に、幅 540px の JPEG（1 run 3MB 以下）と summary.txt を置く。統合ブランチには画像を入れない。
 set -uo pipefail
-src="${SCREENSHOT_DIR:-ui-out/screenshots}"
+src="$(realpath -m "${SCREENSHOT_DIR:-ui-out/screenshots}")"
+result_file="$(realpath -m "${RESULT_FILE:-ui-out/result.txt}")"
 run="${RUN_NUMBER:?}"
 sha="${SHA:?}"
 short="${sha:0:7}"
@@ -21,6 +22,9 @@ work="$(mktemp -d)"
 mkdir -p "$work/shots"
 for f in "${files[@]}"; do cp "$f" "$work/shots/"; done
 if [[ ${#files[@]} -gt 0 ]]; then
+  if ! command -v convert >/dev/null 2>&1; then
+    sudo apt-get install -y -qq imagemagick >/dev/null 2>&1 || sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick >/dev/null 2>&1 || true
+  fi
   quality=72
   while :; do
     rm -f "$work"/shots/*.jpg
@@ -58,9 +62,9 @@ push_once() {
     echo "images: $(find "$dest" -name "*.jpg" | wc -l)"
     echo "bytes: $(find "$dest" -name "*.jpg" -exec cat {} + | wc -c)"
     echo "actions: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-}"
-    if [[ -f "${RESULT_FILE:-ui-out/result.txt}" ]]; then
+    if [[ -f "$result_file" ]]; then
       echo "--- result ---"
-      cat "${RESULT_FILE:-ui-out/result.txt}"
+      cat "$result_file"
     fi
   } > "$dest/summary.txt"
   # 古い run を畳む（直近 keep_runs 件だけ残す）
