@@ -4,6 +4,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.OkHttpClient
 import okhttp3.Response
 import java.io.IOException
 import kotlin.coroutines.resume
@@ -19,7 +20,10 @@ object UrlPolicy {
     private const val OCTETS = 4
     private const val B172_MIN = 16
     private const val B172_MAX = 31
-    private val IPV4 = Regex("^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$")
+
+    // 先頭 0 付き（010.0.0.1 など）は実装により八進数として解釈され、別のアドレスになり得るので許可しない
+    private const val OCTET = "(0|[1-9]\\d{0,2})"
+    private val IPV4 = Regex("^$OCTET\\.$OCTET\\.$OCTET\\.$OCTET$")
 
     /** [url] を使ってよいか。使えるなら null、拒否なら理由を返す。 */
     fun reject(url: String): String? {
@@ -38,6 +42,15 @@ object UrlPolicy {
         return o[0] == 10 || o[0] == 127 || (o[0] == 192 && o[1] == 168) || (o[0] == 172 && o[1] in B172_MIN..B172_MAX)
     }
 }
+
+/**
+ * 呼び出し用のクライアント。リダイレクトは追従しない（[UrlPolicy] の検査は最初の URL だけで、`x-goog-api-key` のような
+ * 独自ヘッダーはリダイレクト先にもそのまま送られてしまうため）。API の応答に 3xx は不要。
+ */
+internal fun OkHttpClient.noRedirects(): OkHttpClient =
+    newBuilder().followRedirects(
+        false,
+    ).followSslRedirects(false).build()
 
 /** HTTP 応答（ステータスと本文）。 */
 internal class HttpText(val code: Int, val body: String) {

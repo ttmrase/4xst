@@ -22,7 +22,7 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
       - name: Test, lint and coverage (:core, :ai)
-        run: ./gradlew :core:test :ai:test ktlintCheck koverXmlReport :core:koverVerify -PwithAndroid=false
+        run: ./gradlew :core:test :ai:test ktlintCheck koverXmlReport :core:koverVerify :ai:koverVerify -PwithAndroid=false
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4

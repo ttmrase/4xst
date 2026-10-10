@@ -43,7 +43,7 @@ class OpenAiCompatProvider(
         val builder = Request.Builder().url(url).post(body(request).toRequestBody(JSON))
         apiKey()?.takeIf { it.isNotBlank() }?.let { builder.header("Authorization", "Bearer $it") }
         return try {
-            val res = client.newCall(builder.build()).awaitText()
+            val res = client.noRedirects().newCall(builder.build()).awaitText()
             when {
                 res.code == HTTP_TOO_MANY -> AiResult.Failure("http_429", true)
                 res.code >= HTTP_SERVER_ERROR -> AiResult.Failure("http_${res.code}", true)

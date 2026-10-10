@@ -42,7 +42,7 @@ class GeminiProvider(
             Request.Builder().url(url).header("x-goog-api-key", key)
                 .post(body(request).toRequestBody(JSON)).build()
         return try {
-            val res = client.newCall(http).awaitText()
+            val res = client.noRedirects().newCall(http).awaitText()
             when {
                 res.code == HTTP_TOO_MANY -> AiResult.Failure("http_429", true)
                 res.code >= HTTP_SERVER_ERROR -> AiResult.Failure("http_${res.code}", true)
