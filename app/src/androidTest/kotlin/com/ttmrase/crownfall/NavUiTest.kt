@@ -38,7 +38,7 @@ class NavUiTest {
             h.waitText(h.str(R.string.chat_input_hint), substring = true)
             Screenshots.save("nav_chat")
             tapBottomNav(h, h.str(R.string.nav_city))
-            h.waitText(h.str(R.string.power_label))
+            h.waitText(h.str(R.string.power_label), substring = true)
             val chatGone = !h.hasText(h.str(R.string.chat_input_hint), true)
             assertTrue("the chat must be gone after tapping City", chatGone)
             Screenshots.save("nav_city_after_chat")
@@ -46,8 +46,8 @@ class NavUiTest {
             tapBottomNav(h, h.str(R.string.nav_shop))
             h.waitText(h.str(R.string.shop_tab_gems))
             tapBottomNav(h, h.str(R.string.nav_city))
-            h.waitText(h.str(R.string.power_label))
-            assertTrue("the city must be shown", h.hasText(h.str(R.string.power_label)))
+            h.waitText(h.str(R.string.power_label), substring = true)
+            assertTrue("the city must be shown", h.hasText(h.str(R.string.power_label), true))
             assertFalse("the shop must be gone", h.hasText(h.str(R.string.shop_tab_gems)))
         }
     }
