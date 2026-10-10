@@ -50,9 +50,16 @@ class Shape:
         self.pts, self.fill, self.stroke, self.sw, self.alpha, self.closed = pts, fill, stroke, sw, alpha, closed
 
 
+def set_anchor(cx, cy):
+    """スプライトの原点（足元の中心）を viewport 内のどこに置くか。"""
+    global CX, CY
+    CX, CY = float(cx), float(cy)
+
+
 class Scene:
-    def __init__(self):
+    def __init__(self, w=W_VP, h=H_VP):
         self.shapes = []
+        self.w, self.h = w, h
 
     # ---- 基本図形 -------------------------------------------------------------
     def poly(self, pts, fill, stroke=None, sw=0.6, alpha=1.0):
@@ -200,7 +207,7 @@ class Scene:
         out.append("<!-- tools/artgen で生成（手で編集しない）: %s -->" % name)
         out.append(
             '<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="%ddp" android:height="%ddp" '
-            'android:viewportWidth="%d" android:viewportHeight="%d">' % (W_VP, H_VP, W_VP, H_VP)
+            'android:viewportWidth="%d" android:viewportHeight="%d">' % (self.w, self.h, self.w, self.h)
         )
         for s in self.shapes:
             d = _path_data(s.pts, s.closed)

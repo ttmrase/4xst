@@ -57,6 +57,7 @@
     <string name="section_resource">資源</string>
     <string name="section_military">軍事</string>
     <string name="section_other">その他</string>
+    <string name="territory_expand_sign">城 Lv%1$d で領地が広がる</string>
     <string name="tile_build">建設</string>
     <string name="tile_level">Lv %1$d</string>
     <string name="timers_build1">建設 1</string>

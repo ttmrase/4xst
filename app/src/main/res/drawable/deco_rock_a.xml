@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tools/artgen で生成（手で編集しない）: decor rock_a -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="96dp" android:viewportWidth="64" android:viewportHeight="96">
+  <path android:fillColor="#000000" android:fillAlpha="0.22" android:pathData="M43.0,80.0L41.5,82.2L37.5,83.9L32.0,84.5L26.5,83.9L22.5,82.2L21.0,80.0L22.5,77.8L26.5,76.1L32.0,75.5L37.5,76.1L41.5,77.8Z" />
+  <path android:fillColor="#757572" android:strokeColor="#454543" android:strokeWidth="0.50" android:strokeLineJoin="round" android:pathData="M23.0,80.0L26.0,72.0L33.0,69.0L40.0,74.0L42.0,81.0L34.0,84.0L27.0,83.0Z" />
+  <path android:fillColor="#9C9C98" android:pathData="M26.0,72.0L33.0,69.0L40.0,74.0L34.0,77.0L28.0,77.0Z" />
+</vector>

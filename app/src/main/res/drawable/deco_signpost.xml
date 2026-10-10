@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tools/artgen で生成（手で編集しない）: decor signpost -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="96dp" android:viewportWidth="64" android:viewportHeight="96">
+  <path android:fillColor="#000000" android:fillAlpha="0.22" android:pathData="M39.0,80.0L37.7,81.8L34.2,82.9L29.8,82.9L26.3,81.8L25.0,80.0L26.3,78.2L29.8,77.1L34.2,77.1L37.7,78.2Z" />
+  <path android:strokeColor="#5A4630" android:strokeWidth="2.20" android:strokeLineJoin="round" android:pathData="M32.0,80.0L32.0,46.0" />
+  <path android:fillColor="#9C7A4A" android:strokeColor="#4A3622" android:strokeWidth="0.80" android:strokeLineJoin="round" android:pathData="M10.0,38.0L54.0,38.0L54.0,54.0L10.0,54.0Z" />
+  <path android:strokeColor="#B8935A" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M12.0,41.0L52.0,41.0" />
+</vector>

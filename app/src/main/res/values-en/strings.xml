@@ -57,6 +57,7 @@
     <string name="section_resource">Resources</string>
     <string name="section_military">Military</string>
     <string name="section_other">Other</string>
+    <string name="territory_expand_sign">Territory grows at Castle Lv%1$d</string>
     <string name="tile_build">Build</string>
     <string name="tile_level">Lv %1$d</string>
     <string name="timers_build1">Build 1</string>

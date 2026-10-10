@@ -1,20 +1,14 @@
 package com.ttmrase.crownfall.ui.city
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
@@ -35,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -46,14 +39,12 @@ import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.TroopType
 import com.ttmrase.crownfall.core.economy.PowerCalculator
 import com.ttmrase.crownfall.core.event.WeeklyEvents
-import com.ttmrase.crownfall.core.model.BuildingSlot
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.quest.QuestLogic
-import com.ttmrase.crownfall.core.session.BuildingSection
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.session.UiQueries
 import com.ttmrase.crownfall.core.sim.ActionFailure
@@ -64,12 +55,14 @@ import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.navigation.Screen
 import com.ttmrase.crownfall.offers.OfferHooks
+import com.ttmrase.crownfall.ui.common.LocalClock
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.remainingUntil
 import com.ttmrase.crownfall.ui.event.eventNameRes
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.researchNodeName
+import com.ttmrase.crownfall.ui.territory.TerritoryView
 import com.ttmrase.crownfall.ui.titleRes
 import com.ttmrase.crownfall.ui.troopNameById
 import kotlinx.coroutines.launch
@@ -150,10 +143,10 @@ fun CityScreen(
             onOpenBarracks = onOpenBarracks,
         )
         Box(modifier = Modifier.weight(1f)) {
-            BuildingGrid(
+            TerritoryView(
                 state = s,
-                session = session,
-                data = data,
+                clock = LocalClock.current,
+                tutorialSlotId = tutorialTargetSlotId(s),
                 onTileClick = { slot ->
                     sheetSlotId = slot.slotId
                     if (slot.slotId == tutorialTargetSlotId(s)) advanceTutorial(TUTORIAL_TAP_TILE_STEP)
@@ -452,98 +445,6 @@ private fun TimerCell(
                             textAlign = TextAlign.Center,
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BuildingGrid(
-    state: GameState,
-    session: GameSession,
-    data: GameData,
-    onTileClick: (BuildingSlot) -> Unit,
-) {
-    val grouped =
-        BuildingSection.entries.map { section ->
-            section to state.slots.filter { UiQueries.sectionOf(it.type) == section }
-        }
-    val jobBySlot = state.timers.filter { it.kind == TimerKind.BUILD }.associateBy { it.slotId }
-    val tutorialTarget = tutorialTargetSlotId(state)
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        contentPadding = PaddingValues(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        grouped.forEach { (section, slots) ->
-            item(key = "header_${section.name}", span = { GridItemSpan(maxLineSpan) }) {
-                Text(
-                    stringResource(section.titleRes()),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-            items(slots, key = { it.slotId }) { slot ->
-                BuildingTile(
-                    slot = slot,
-                    job = jobBySlot[slot.slotId],
-                    session = session,
-                    highlight = slot.slotId == tutorialTarget,
-                    onClick = { onTileClick(slot) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BuildingTile(
-    slot: BuildingSlot,
-    job: TimerJob?,
-    session: GameSession,
-    highlight: Boolean,
-    onClick: () -> Unit,
-) {
-    val dim = slot.level == 0 && job == null
-    TutorialHighlight(active = highlight) {
-        Card(
-            modifier = Modifier.fillMaxWidth().alpha(if (dim) 0.55f else 1f).clickable(onClick = onClick),
-            shape = RoundedCornerShape(12.dp),
-            border = if (job != null) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                BuildingIcon(slot.type)
-                Text(
-                    stringResource(slot.type.nameRes()),
-                    style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1,
-                )
-                Text(
-                    if (slot.level == 0) {
-                        stringResource(
-                            R.string.tile_build,
-                        )
-                    } else {
-                        stringResource(R.string.tile_level, slot.level)
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (slot.level == 0) Color.Gray else MaterialTheme.colorScheme.primary,
-                )
-                if (job != null) {
-                    JobTicker(
-                        session = session,
-                        job = job,
-                        barModifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-                        textStyle = MaterialTheme.typography.labelSmall,
-                    )
                 }
             }
         }

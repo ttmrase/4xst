@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tools/artgen で生成（手で編集しない）: decor bush -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="96dp" android:viewportWidth="64" android:viewportHeight="96">
+  <path android:fillColor="#000000" android:fillAlpha="0.20" android:pathData="M40.0,80.0L38.9,81.8L36.0,83.0L32.0,83.5L28.0,83.0L25.1,81.8L24.0,80.0L25.1,78.2L28.0,77.0L32.0,76.5L36.0,77.0L38.9,78.2Z" />
+  <path android:fillColor="#3D7833" android:strokeColor="#274D21" android:strokeWidth="0.50" android:strokeLineJoin="round" android:pathData="M36.6,75.3L36.1,77.0L34.8,78.5L32.9,79.5L30.6,79.8L28.3,79.5L26.4,78.5L25.1,77.0L24.6,75.3L25.1,73.6L26.4,72.1L28.3,71.1L30.6,70.8L32.9,71.1L34.8,72.1L36.1,73.6Z" />
+  <path android:fillColor="#4E9A42" android:pathData="M34.8,74.5L34.4,75.9L33.4,77.0L31.8,77.8L29.9,78.1L28.0,77.8L26.4,77.0L25.3,75.9L25.0,74.5L25.3,73.1L26.4,71.9L28.0,71.2L29.9,70.9L31.8,71.2L33.4,71.9L34.4,73.1Z" />
+  <path android:fillColor="#4A883D" android:strokeColor="#305727" android:strokeWidth="0.50" android:strokeLineJoin="round" android:pathData="M39.4,76.4L38.9,78.3L37.6,79.9L35.7,81.0L33.4,81.4L31.1,81.0L29.2,79.9L27.9,78.3L27.4,76.4L27.9,74.5L29.2,72.9L31.1,71.8L33.4,71.4L35.7,71.8L37.6,72.9L38.9,74.5Z" />
+  <path android:fillColor="#5FAE4E" android:pathData="M37.6,75.5L37.2,77.0L36.2,78.3L34.6,79.2L32.7,79.5L30.8,79.2L29.2,78.3L28.1,77.0L27.8,75.5L28.1,74.0L29.2,72.7L30.8,71.8L32.7,71.5L34.6,71.8L36.2,72.7L37.2,74.0Z" />
+  <path android:fillColor="#8CC580" android:fillAlpha="0.90" android:pathData="M34.1,74.4L33.8,75.2L32.9,75.8L31.7,76.0L30.5,75.8L29.6,75.2L29.3,74.4L29.6,73.6L30.5,73.0L31.7,72.8L32.9,73.0L33.8,73.6Z" />
+</vector>

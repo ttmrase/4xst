@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tools/artgen で生成（手で編集しない）: decor tree_oak_c -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="96dp" android:viewportWidth="64" android:viewportHeight="96">
+  <path android:fillColor="#000000" android:fillAlpha="0.22" android:pathData="M44.3,81.4L43.1,83.8L39.7,85.8L34.7,86.9L29.3,86.9L24.3,85.8L20.9,83.8L19.7,81.4L20.9,79.0L24.3,77.0L29.3,75.9L34.7,75.9L39.7,77.0L43.1,79.0Z" />
+  <path android:fillColor="#422E1B" android:strokeColor="#2B1D11" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M35.4,80.0L32.0,81.7L32.0,63.8L35.4,62.1Z" />
+  <path android:fillColor="#5F4126" android:strokeColor="#2B1D11" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M28.6,80.0L32.0,81.7L32.0,63.8L28.6,62.1Z" />
+  <path android:fillColor="#775D47" android:strokeColor="#2B1D11" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M32.0,60.4L35.4,62.1L32.0,63.8L28.6,62.1Z" />
+  <path android:fillColor="#2D6329" android:strokeColor="#1D401A" android:strokeWidth="0.50" android:strokeLineJoin="round" android:pathData="M45.4,55.4L44.4,60.1L41.5,64.1L37.1,66.7L32.0,67.7L26.9,66.7L22.5,64.1L19.6,60.1L18.6,55.4L19.6,50.6L22.5,46.6L26.9,44.0L32.0,43.0L37.1,44.0L41.5,46.6L44.4,50.6Z" />
+  <path android:fillColor="#3A7F35" android:pathData="M41.4,53.1L40.6,56.9L38.2,60.1L34.6,62.2L30.4,63.0L26.2,62.2L22.6,60.1L20.2,56.9L19.4,53.1L20.2,49.4L22.6,46.2L26.2,44.0L30.4,43.3L34.6,44.0L38.2,46.2L40.6,49.4Z" />
+  <path android:fillColor="#71A36E" android:fillAlpha="0.90" android:pathData="M33.6,50.4L32.9,52.4L30.9,53.8L28.2,54.4L25.5,53.8L23.6,52.4L22.9,50.4L23.6,48.5L25.5,47.0L28.2,46.5L30.9,47.0L32.9,48.5Z" />
+  <path android:fillColor="#316C2D" android:strokeColor="#20451D" android:strokeWidth="0.50" android:strokeLineJoin="round" android:pathData="M39.7,46.1L38.8,49.9L36.4,53.2L32.8,55.4L28.5,56.1L24.2,55.4L20.6,53.2L18.2,49.9L17.3,46.1L18.2,42.2L20.6,38.9L24.2,36.7L28.5,36.0L32.8,36.7L36.4,38.9L38.8,42.2Z" />
+  <path android:fillColor="#3F8A3A" android:pathData="M36.3,44.2L35.6,47.3L33.7,49.9L30.7,51.7L27.2,52.3L23.6,51.7L20.7,49.9L18.7,47.3L18.0,44.2L18.7,41.1L20.7,38.5L23.6,36.8L27.2,36.2L30.7,36.8L33.7,38.5L35.6,41.1Z" />
+  <path android:fillColor="#75AB71" android:fillAlpha="0.90" android:pathData="M29.8,42.0L29.2,43.6L27.6,44.8L25.4,45.2L23.1,44.8L21.5,43.6L20.9,42.0L21.5,40.4L23.1,39.2L25.4,38.8L27.6,39.2L29.2,40.4Z" />
+  <path android:fillColor="#437740" android:strokeColor="#2B4C29" android:strokeWidth="0.50" android:strokeLineJoin="round" android:pathData="M44.5,40.7L43.8,43.9L41.8,46.7L38.9,48.5L35.5,49.1L32.1,48.5L29.2,46.7L27.2,43.9L26.5,40.7L27.2,37.5L29.2,34.8L32.1,33.0L35.5,32.3L38.9,33.0L41.8,34.8L43.8,37.5Z" />
+  <path android:fillColor="#569852" android:pathData="M41.8,39.2L41.2,41.8L39.6,44.0L37.2,45.4L34.4,45.9L31.6,45.4L29.2,44.0L27.6,41.8L27.1,39.2L27.6,36.6L29.2,34.5L31.6,33.0L34.4,32.5L37.2,33.0L39.6,34.5L41.2,36.6Z" />
+  <path android:fillColor="#85B582" android:fillAlpha="0.90" android:pathData="M36.6,37.4L36.1,38.7L34.8,39.7L33.0,40.1L31.2,39.7L29.9,38.7L29.4,37.4L29.9,36.0L31.2,35.0L33.0,34.7L34.8,35.0L36.1,36.0Z" />
+</vector>

@@ -8,6 +8,7 @@ import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.shop.OfferEngine
 import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.sim.ActionResult
+import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.data.Startup
 import kotlinx.coroutines.flow.first
 
@@ -21,6 +22,12 @@ object DebugStateSeeder {
     enum class Preset {
         /** 城 Lv12、他の建物も育っていて、資源とジェムが十分ある。 */
         RICH_CASTLE,
+
+        /** 城 Lv24・ほかの建物も Lv24（見た目の最上段階。領地は最大まで広がる）。 */
+        LATE_GAME,
+
+        /** RICH_CASTLE + 農場の建設中（足場・槌・土埃の見た目）。 */
+        BUILDING_NOW,
 
         /** RICH_CASTLE + 本日限定オファー（ログインのパック）が出ている。 */
         OFFER_READY,
@@ -59,6 +66,8 @@ object DebugStateSeeder {
         val rich = rich(state, data)
         return when (preset) {
             Preset.RICH_CASTLE -> rich
+            Preset.LATE_GAME -> late(rich, data)
+            Preset.BUILDING_NOW -> building(rich, data)
             Preset.OFFER_READY -> withLoginOffer(rich, data)
             Preset.RAID_IN_15_MIN -> raidSoon(rich, data)
             Preset.VIP_NEAR -> vipNear(rich, data)
@@ -82,6 +91,25 @@ object DebugStateSeeder {
             resources = Resources(RICH, RICH, RICH, RICH),
             gems = RICH_GEMS,
         )
+    }
+
+    private fun late(
+        state: GameState,
+        data: GameData,
+    ): GameState =
+        state.copy(
+            slots = state.slots.map { it.copy(level = LATE_LEVEL.coerceAtMost(data.building(it.type).maxLevel)) },
+        )
+
+    private fun building(
+        state: GameState,
+        data: GameData,
+    ): GameState {
+        val farm = state.slots.first { it.type == BuildingType.FARM }
+        return when (val r = Actions.startUpgrade(state, farm.slotId, data)) {
+            is ActionResult.Success -> r.state
+            is ActionResult.Failure -> state
+        }
     }
 
     private fun withLoginOffer(
@@ -124,6 +152,7 @@ object DebugStateSeeder {
     }
 
     private const val CASTLE_LEVEL = 12
+    private const val LATE_LEVEL = 24
     private const val TOWER_LEVEL = 8
     private const val RICH = 5_000_000L
     private const val RICH_GEMS = 100_000L

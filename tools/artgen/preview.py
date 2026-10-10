@@ -4,13 +4,13 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from PIL import Image, ImageDraw
-import iso, gen_buildings
+import iso, gen_buildings, gen_decor
 
 SS = 3
 
 
 def render(scene, bg="#5E8C45"):
-    im = Image.new("RGB", (iso.W_VP * SS, iso.H_VP * SS), bg)
+    im = Image.new("RGB", (scene.w * SS, scene.h * SS), bg)
     base = ImageDraw.Draw(im, "RGBA")
     for sh in scene.shapes:
         pts = [(x * SS, y * SS) for x, y in sh.pts]
@@ -27,10 +27,29 @@ def render(scene, bg="#5E8C45"):
             seq = pts + ([pts[0]] if sh.closed else [])
             d.line(seq, fill=(r, g, b, a if sh.fill is None else 255), width=max(1, int(sh.sw * SS)), joint="curve")
             im.paste(ov, (0, 0), ov)
-    return im.resize((iso.W_VP * 2, iso.H_VP * 2), Image.LANCZOS)
+    return im.resize((scene.w * 2, scene.h * 2), Image.LANCZOS)
+
+
+def decor_sheet(out):
+    items = [(n, gen_decor.build_decor(n)) for n, _ in gen_decor.DECOR]
+    for kind in ("x", "y", "tower", "gate"):
+        for t in (1, 3, 5):
+            items.append(("wall_%s_%d" % (kind, t), gen_decor.build_wall(kind, t)))
+    items.append(("site", gen_decor.build_site()))
+    cols = 8
+    cw, ch = 128 * 2, 160 * 2
+    rows = (len(items) + cols - 1) // cols
+    sheet = Image.new("RGB", (cols * cw, rows * ch), "#444444")
+    for k, (name, sc) in enumerate(items):
+        im = render(sc)
+        sheet.paste(im, ((k % cols) * cw + (cw - im.size[0]) // 2, (k // cols) * ch + (ch - im.size[1]) // 2))
+    sheet.save(out)
+    print("wrote", out, sheet.size)
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "decor":
+        return decor_sheet(sys.argv[2] if len(sys.argv) > 2 else "/tmp/decor.png")
     out = sys.argv[1] if len(sys.argv) > 1 else "/tmp/preview.png"
     only = sys.argv[2].split(",") if len(sys.argv) > 2 else None
     names = [n for n in gen_buildings.TYPES if (only is None or n in only)]

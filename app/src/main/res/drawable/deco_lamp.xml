@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tools/artgen で生成（手で編集しない）: decor lamp -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="96dp" android:viewportWidth="64" android:viewportHeight="96">
+  <path android:fillColor="#000000" android:fillAlpha="0.20" android:pathData="M37.0,80.0L36.0,81.3L33.5,82.1L30.5,82.1L28.0,81.3L27.0,80.0L28.0,78.7L30.5,77.9L33.5,77.9L36.0,78.7Z" />
+  <path android:strokeColor="#3A3A40" android:strokeWidth="1.60" android:strokeLineJoin="round" android:pathData="M32.0,80.0L32.0,58.0" />
+  <path android:fillColor="#FFD36B" android:fillAlpha="0.28" android:pathData="M41.0,56.0L39.8,59.0L36.5,61.2L32.0,62.0L27.5,61.2L24.2,59.0L23.0,56.0L24.2,53.0L27.5,50.8L32.0,50.0L36.5,50.8L39.8,53.0Z" />
+  <path android:fillColor="#FFE7A0" android:strokeColor="#3A3A40" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M29.0,58.0L35.0,58.0L34.5,52.0L29.5,52.0Z" />
+  <path android:fillColor="#3A3A40" android:pathData="M28.5,52.0L35.5,52.0L32.0,48.0Z" />
+</vector>
