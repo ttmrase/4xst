@@ -148,19 +148,7 @@ fun OfferCard(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            remainingSec?.let {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        stringResource(R.string.offer_remaining_label),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                    FlipCountdown(it)
-                }
-            }
+            expiresEpochSec?.let { Countdown(it, nowEpochSec) }
             PressButton(
                 onClick = onBuy,
                 enabled = !soldOut,
