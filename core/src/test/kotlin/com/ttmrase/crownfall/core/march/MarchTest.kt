@@ -721,4 +721,58 @@ class MarchTest {
             extraBoundaries = extra,
         )
     }
+
+    @Test
+    fun lootAndGatheredResourcesMayExceedTheStorageCap() {
+        val s0 = base()
+        val cap = com.ttmrase.crownfall.core.sim.Simulation.storageCap(s0, data)
+        val full = s0.copy(resources = Resources(cap, cap, cap, cap))
+        val node = nearestNode(full)
+        val started = send(full, MarchKind.GATHER, TileRef(node.x, node.y), mapOf("infantry_t1" to 100L)).ok()
+        val done = until(started)
+        val gained = minOf(2000L, node.remaining)
+        assertTrue(done.resources[node.type] >= cap + gained, "resource ${done.resources[node.type]} cap=$cap")
+    }
+
+    @Test
+    fun aLostRallyStillPaysTheParticipationReward() {
+        val s = base()
+        val f = fort(s, 5)
+        val started = send(s, MarchKind.RALLY, TileRef(f.x, f.y), mapOf("infantry_t2" to 2000L)).ok()
+        val wait = tick(started, rules.march.rallyWaitSec).state
+        val before = wait.resources
+        val fought = tick(wait, wait.marches.single().travelSec).state
+        val rep = fought.mails.single().battle!!
+        assertFalse(rep.attackerWon)
+        val bonus = rules.rally.participationResourcesPerLevel * 5L
+        assertEquals(bonus, rep.loot) // 積載量 2000×40 に収まる
+        assertTrue(fought.resources.food >= before.food + bonus.food) // 全滅でもその場で受け取る
+    }
+
+    @Test
+    fun recallingDuringTheGatherOfADepletedNodeRecreatesIt() {
+        val s = base()
+        val node = nearestNode(s).let { n -> n }
+        val small =
+            s.copy(
+                map = s.map.copy(nodes = s.map.nodes.map { if (it == node) it.copy(remaining = 500) else it }),
+            )
+        val started = send(small, MarchKind.GATHER, TileRef(node.x, node.y), mapOf("infantry_t1" to 100L)).ok()
+        val arrived = tick(started, started.marches.single().travelSec).state
+        assertTrue(arrived.map.nodes.none { it.x == node.x && it.y == node.y }) // 予約で枯れて消えた
+        val w = arrived.marches.single()
+        val half = tick(arrived, (w.phaseEndEpochSec - w.phaseStartEpochSec) / 2).state
+        val recalled = Actions.recallMarch(half, 1, data).ok()
+        val back = recalled.map.nodes.single { it.x == node.x && it.y == node.y }
+        assertEquals(node.type, back.type)
+        assertTrue(back.remaining in 1..499)
+    }
+
+    @Test
+    fun personaStructuresAreIdentifiedByAFunctionNotAStringPrefix() {
+        val w = Marching.world(base(), data)
+        assertEquals(8, w.structures.count { it.isPersona })
+        assertTrue(w.structures.none { it.isPersona && it.type != StructureType.ALLY_CASTLE })
+        assertEquals(9000L, rules.combat.shieldCapBp)
+    }
 }

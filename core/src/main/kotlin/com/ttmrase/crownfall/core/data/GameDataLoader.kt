@@ -392,7 +392,8 @@ object GameDataLoader {
         if (mr.baseSlots < 1 || mr.castleLevelPerSlot < 1 || mr.troopCapBase < 1 || mr.maxHeroes < 0) {
             fail("$where: march slots / troop cap must be positive")
         }
-        if (m.combat.maxRounds < 1 || m.combat.woundedPct !in 0..100 || m.combat.defenseK <= 0) {
+        val c = m.combat
+        if (c.maxRounds < 1 || c.woundedPct !in 0..100 || c.defenseK <= 0 || c.shieldCapBp !in 0..9999) {
             fail(
                 "$where: combat rules are invalid",
             )

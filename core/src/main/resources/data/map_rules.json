@@ -75,7 +75,8 @@
   "defenseK": 100,
   "wallAbsorbBp": 5000,
   "woundedPct": 70,
-  "activeSkillRound": 3
+  "activeSkillRound": 3,
+  "shieldCapBp": 9000
  },
  "raid": {
   "troopsBase": 200,

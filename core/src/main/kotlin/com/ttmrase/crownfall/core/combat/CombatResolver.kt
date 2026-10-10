@@ -131,7 +131,7 @@ object CombatResolver {
     ): Long {
         if (round != rules.activeSkillRound) return 0
         val sum = side.army.heroes.filter { it.effectKey == "shield_bp" }.sumOf { it.valueBp }
-        return minOf(sum, 9000L)
+        return minOf(sum, rules.shieldCapBp)
     }
 
     /** [attacker] が [defender] を攻撃した結果。 */

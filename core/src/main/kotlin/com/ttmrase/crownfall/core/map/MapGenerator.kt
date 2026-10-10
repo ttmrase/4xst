@@ -58,7 +58,7 @@ object MapGenerator {
         for (i in 0 until rules.allies.personaSlots + rules.allies.fillers) {
             val (x, y) = pickInRing(rules.allies.minRadius, rules.allies.maxRadius)
             val isPersona = i < rules.allies.personaSlots
-            val tag = if (isPersona) "persona_slot_$i" else "filler_${i - rules.allies.personaSlots}"
+            val tag = if (isPersona) "${Structure.PERSONA_PREFIX}$i" else "filler_${i - rules.allies.personaSlots}"
             place(Structure(StructureType.ALLY_CASTLE, x, y, tag = tag))
         }
         for (k in rules.kingdoms) {
@@ -81,7 +81,7 @@ object MapGenerator {
     fun cached(
         seed: Long,
         rules: MapRules,
-    ): WorldMap = cache.getOrPut(seed to rules.hashCode()) { generate(seed, rules) }
+    ): WorldMap = synchronized(cache) { cache.getOrPut(seed to rules.hashCode()) { generate(seed, rules) } }
 
     private fun rollTerrain(
         rng: SeededRandom,

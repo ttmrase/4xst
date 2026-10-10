@@ -200,6 +200,11 @@ internal object MarchSim {
         var loot = Resources.ZERO
         var items: Map<String, Int> = emptyMap()
         var exp = 0L
+        if (isFort && !out.attackerWon) {
+            // ラリーは負けても（全滅しても）参加報酬が出る。上限は出撃した部隊の積載量
+            val bonus = rules.rally.participationResourcesPerLevel * level.toLong()
+            loot = capLoot(bonus, Marching.capacity(s, m.troops, m.heroIds, data))
+        }
         if (out.attackerWon) {
             val rng = SeededRandom(s.rngState)
             val (res, drops) = Armies.loot(level, if (isFort) rules.loot.fortMultiplier else 1L, data, rng)
@@ -271,11 +276,8 @@ internal object MarchSim {
                         },
                 )
         }
-        val cap = Simulation.storageCap(s, data)
-        var res = s.resources
-        for (t in ResourceType.entries) {
-            if (m.loot[t] > 0) res = res.with(t, maxOf(res[t], minOf(cap, satAdd(res[t], m.loot[t]))))
-        }
+        // 報酬は倉庫上限を超えて受け取れる（上限で止まるのは生産だけ。docs/02 §7）
+        val res = s.resources + m.loot
         val items = HashMap(s.items)
         for ((id, n) in m.lootItems) items[id] = (items[id] ?: 0) + n
         val heroes =

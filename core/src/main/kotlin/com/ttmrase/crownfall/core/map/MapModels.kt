@@ -24,7 +24,15 @@ data class Structure(
     val level: Int = 0,
     val tag: String = "",
     val power: Long = 0,
-)
+) {
+    /** 同盟の AI ペルソナ枠の城か。 */
+    val isPersona: Boolean get() = type == StructureType.ALLY_CASTLE && tag.startsWith(PERSONA_PREFIX)
+
+    companion object {
+        /** ペルソナ枠のタグ接頭辞（`persona_slot_N`）。 */
+        const val PERSONA_PREFIX = "persona_slot_"
+    }
+}
 
 /** 静的な世界（地形と固定拠点）。seed から毎回再生成でき、セーブには含めない。 */
 class WorldMap(

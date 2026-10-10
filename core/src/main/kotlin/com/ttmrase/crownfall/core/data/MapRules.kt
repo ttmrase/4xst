@@ -109,6 +109,7 @@ data class CombatRules(
     val wallAbsorbBp: Long,
     val woundedPct: Long,
     val activeSkillRound: Int,
+    val shieldCapBp: Long,
 )
 
 /** NPC 襲撃。 */

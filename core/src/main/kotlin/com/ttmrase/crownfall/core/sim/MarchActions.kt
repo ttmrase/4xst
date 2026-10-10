@@ -1,6 +1,9 @@
 package com.ttmrase.crownfall.core.sim
 
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.map.MapQueries
+import com.ttmrase.crownfall.core.map.MapRefresher
+import com.ttmrase.crownfall.core.map.ResourceNode
 import com.ttmrase.crownfall.core.map.StructureType
 import com.ttmrase.crownfall.core.map.TileRef
 import com.ttmrase.crownfall.core.march.March
@@ -108,9 +111,24 @@ internal object MarchActions {
                 val total = maxOf(1L, m.phaseEndEpochSec - m.phaseStartEpochSec)
                 val got = m.workAmount * minOf(elapsed, total) / total
                 val back = m.workAmount - got
+                val exists = state.map.nodes.any { it.x == m.target.x && it.y == m.target.y }
                 val nodes =
-                    state.map.nodes.map {
-                        if (it.x == m.target.x && it.y == m.target.y) it.copy(remaining = it.remaining + back) else it
+                    if (exists) {
+                        state.map.nodes.map {
+                            if (it.x == m.target.x && it.y == m.target.y) {
+                                it.copy(
+                                    remaining = it.remaining + back,
+                                )
+                            } else {
+                                it
+                            }
+                        }
+                    } else if (m.workType != null && back > 0) {
+                        // 予約で枯れて消えたノードは、返す分で作り直す（Lv は距離帯の下限）
+                        val level = MapRefresher.band(data.mapRules.nodes.bands, distanceFromCastle(m, data)).minLevel
+                        state.map.nodes + ResourceNode(m.target.x, m.target.y, m.workType, level, back)
+                    } else {
+                        state.map.nodes
                     }
                 val loot = m.workType?.let { Resources.ZERO.with(it, got) } ?: Resources.ZERO
                 val returning =
@@ -124,6 +142,11 @@ internal object MarchActions {
             }
         }
     }
+
+    private fun distanceFromCastle(
+        m: March,
+        data: GameData,
+    ): Int = MapQueries.distance(m.target.x, m.target.y, data.mapRules.center.x, data.mapRules.center.y)
 
     private fun replace(
         s: GameState,
