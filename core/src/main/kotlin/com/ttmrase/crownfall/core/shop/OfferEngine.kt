@@ -346,15 +346,35 @@ object OfferEngine {
         return s
     }
 
-    /** オファーを閉じる（期限までは棚に残る）。 */
+    /**
+     * 自動で全画面に出してよいオファー（なければ null）。閉じた直後から [FrequencyRules.popupGapSec] の間は出さない。
+     * 「戻る」で閉じられていたら、セッションが変わるまで出さない。棚とバッジは [active] / [next] で別に出る。
+     */
+    fun nextPopup(
+        state: GameState,
+        data: GameData,
+    ): Offer? {
+        val shop = state.shop
+        if (shop.popupsStopped) return null
+        if (state.nowEpochSec - shop.lastPopupClosedEpochSec < data.shopRules.frequency.popupGapSec) return null
+        return next(state)
+    }
+
+    /**
+     * オファーを閉じる（期限までは棚に残る）。[byBack] は「戻る」で閉じたとき。閉じた時刻を覚え、
+     * 「戻る」ならこのセッションの残りの自動ポップアップを止める。
+     */
     fun dismiss(
         state: GameState,
         offerId: Long,
+        byBack: Boolean = false,
     ): GameState =
         state.copy(
             shop =
                 state.shop.copy(
                     offerQueue = state.shop.offerQueue.map { if (it.id == offerId) it.copy(dismissed = true) else it },
+                    lastPopupClosedEpochSec = state.nowEpochSec,
+                    popupsStopped = state.shop.popupsStopped || byBack,
                 ),
         )
 
@@ -364,7 +384,8 @@ object OfferEngine {
         data: GameData,
     ): GameState {
         val s0 = ShopLogic.rollDay(state)
-        val s1: GameState = s0.copy(shop = s0.shop.copy(sessionOffers = 0))
+        val s1: GameState =
+            s0.copy(shop = s0.shop.copy(sessionOffers = 0, popupsStopped = false, lastPopupClosedEpochSec = 0))
         val s2 = refresh(s1, data)
         val day = ShopLogic.localDay(s2)
         if (s2.shop.loginPopupDay == day) return s2

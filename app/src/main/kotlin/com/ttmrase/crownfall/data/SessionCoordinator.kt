@@ -40,7 +40,8 @@ class SessionCoordinator(
             val before = session.state.value?.shop?.loginPopupDay
             session.dispatch { Actions.beginSession(it, ready.data) }
             val after = session.state.value
-            if (after != null && after.shop.loginPopupDay != before && OfferEngine.next(after) != null) {
+            val popup = after?.let { OfferEngine.nextPopup(it, ready.data) }
+            if (after != null && after.shop.loginPopupDay != before && popup != null) {
                 _loginChain.value = true
             }
         }

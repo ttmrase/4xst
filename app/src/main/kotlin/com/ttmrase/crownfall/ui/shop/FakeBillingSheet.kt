@@ -63,6 +63,7 @@ private const val FAST_MAX_MS = 1000L
 private const val SLOW_ONE_IN = 10
 private const val ERROR_PERCENT = 2
 private const val COUNT_UP_MS = 1200
+private const val PROCESSING_GUARD_MS = 9_000L
 
 /**
  * 擬似決済シート（04 §5）。汎用デザインで、ブランド・ロゴ・実在の注文番号形式は使わない。通信は一切しない。
@@ -100,7 +101,16 @@ fun FakeBillingSheet(
         return
     }
 
-    BackHandler(enabled = stage == Stage.Processing) { /* 処理中は戻れない */ }
+    BackHandler(enabled = stage == Stage.Processing) { /* 処理中（最長 6 秒）だけは戻れない */ }
+
+    // 万一、処理中のまま進まなくなっても閉じられなくならないようにする
+    LaunchedEffect(stage) {
+        if (stage != Stage.Processing) return@LaunchedEffect
+        delay(PROCESSING_GUARD_MS)
+        if (stage == Stage.Processing) {
+            if (dispatched) onClose() else stage = Stage.Error
+        }
+    }
 
     LaunchedEffect(stage) {
         if (stage != Stage.Processing) return@LaunchedEffect

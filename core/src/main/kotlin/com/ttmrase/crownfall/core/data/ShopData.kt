@@ -90,6 +90,8 @@ data class FrequencyRules(
     val chainMax: Int,
     val queueCap: Int,
     val reviveDurationSec: Long,
+    /** オファーのポップアップを閉じてから、次のポップアップを自動で出すまでの最短秒数。 */
+    val popupGapSec: Long,
 )
 
 @Serializable

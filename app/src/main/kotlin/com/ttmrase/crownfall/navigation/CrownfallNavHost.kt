@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -187,9 +188,10 @@ fun CrownfallNavHost(
         if (r != null) {
             uiScope.launch {
                 r.session.dispatch { Actions.exitOffer(it, r.data) }
+                // 自動で出せるオファーがあるときだけ「待って！」を待つ（間隔内・停止中は待たずに確認へ進む）
                 val waiting =
                     r.session.state.value?.let { st ->
-                        OfferEngine.active(st).any { it.trigger == "exitIntent" && !it.dismissed }
+                        OfferEngine.nextPopup(st, r.data) != null
                     } == true
                 exitStage = if (waiting) 1 else 2
             }
@@ -205,13 +207,7 @@ fun CrownfallNavHost(
                         BottomDestination.entries.forEach { item ->
                             NavigationBarItem(
                                 selected = destination.hierarchy.any { it.route == item.screen.route },
-                                onClick = {
-                                    navController.navigate(item.screen.route) {
-                                        popUpTo(Screen.City.route) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
+                                onClick = { navController.openTab(item.screen.route) },
                                 icon = {
                                     val isAlliance = item == BottomDestination.Alliance
                                     val isCity = item == BottomDestination.City
@@ -416,5 +412,22 @@ fun CrownfallNavHost(
                 },
             )
         }
+    }
+}
+
+/**
+ * 下部ナビのタブへ移る。城内は常にスタックの底（City）まで戻る。他のタブは、すでにスタックにあればそこまで戻り
+ * （子画面からタブのルートへ）、無ければ City の上に積む。saveState / restoreState は使わない（子画面を含む
+ * スタックが復元されて城内に戻れなくなるため）。戻るを繰り返すと「子画面 → タブのルート → 城内 → 退出の確認」になる。
+ */
+internal fun NavController.openTab(route: String) {
+    if (popBackStack(route, inclusive = false)) return
+    navigate(route) {
+        if (route == Screen.City.route) {
+            popUpTo(graph.id) { inclusive = false }
+        } else {
+            popUpTo(Screen.City.route) { inclusive = false }
+        }
+        launchSingleTop = true
     }
 }

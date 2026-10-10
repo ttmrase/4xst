@@ -706,11 +706,12 @@ object Actions {
         data: GameData,
     ): ActionResult = ShopActions.refreshOffers(state, data)
 
-    /** オファー [offerId] を閉じる（期限までは棚に残る）。 */
+    /** オファー [offerId] を閉じる（期限までは棚に残る）。[byBack] は「戻る」で閉じたとき（自動ポップアップを止める）。 */
     fun dismissOffer(
         state: GameState,
         offerId: Long,
-    ): ActionResult = ShopActions.dismissOffer(state, offerId)
+        byBack: Boolean = false,
+    ): ActionResult = ShopActions.dismissOffer(state, offerId, byBack)
 
     /** 資源不足のタップ。不足ちょうどのパックを積む。 */
     fun offerForShortage(

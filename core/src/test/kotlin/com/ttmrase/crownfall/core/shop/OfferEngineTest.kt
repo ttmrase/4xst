@@ -429,4 +429,57 @@ class OfferEngineTest {
             )
         SplitInvariance.assertInvariant(s, 2000, data, java.util.Random(3), randomCases = 40)
     }
+
+    // ───── ポップアップの間隔と「戻る」（S1 ホットフィックス）─────
+
+    private fun twoOffers(): GameState {
+        val s0 = base()
+        val events =
+            listOf(GameEvent.BuildingLevelUp(castleSlot, BuildingType.CASTLE, 3), GameEvent.PlayerDefeated(1))
+        val a = ShopHooks.onEvents(s0, events, data)
+        val queued = OfferEngine.active(a)
+        assertTrue(queued.size >= 2, "need two offers, got ${queued.map { it.sku }}")
+        return a
+    }
+
+    @Test
+    fun nextPopupWaitsForTheGapAfterAClose() {
+        val s0 = twoOffers()
+        val first = OfferEngine.nextPopup(s0, data)
+        assertNotNull(first)
+        val closed = OfferEngine.dismiss(s0, first.id)
+        val gap = data.shopRules.frequency.popupGapSec
+        assertNull(OfferEngine.nextPopup(closed, data), "second popup must wait")
+        assertNull(OfferEngine.nextPopup(closed.copy(nowEpochSec = closed.nowEpochSec + gap - 1), data))
+        assertNotNull(OfferEngine.nextPopup(closed.copy(nowEpochSec = closed.nowEpochSec + gap), data))
+        // 棚とバッジ用の next / active には残る
+        assertNotNull(OfferEngine.next(closed))
+    }
+
+    @Test
+    fun closingWithBackStopsTheAutoPopupsUntilTheNextSession() {
+        val s0 = twoOffers()
+        val first = checkNotNull(OfferEngine.nextPopup(s0, data))
+        val back = OfferEngine.dismiss(s0, first.id, byBack = true)
+        val later = back.copy(nowEpochSec = back.nowEpochSec + 10 * data.shopRules.frequency.popupGapSec)
+        assertNull(OfferEngine.nextPopup(later, data))
+        assertNotNull(OfferEngine.next(later))
+        // × で閉じた場合は間隔だけ
+        val x = OfferEngine.dismiss(s0, first.id)
+        val laterX = x.copy(nowEpochSec = x.nowEpochSec + data.shopRules.frequency.popupGapSec)
+        assertNotNull(OfferEngine.nextPopup(laterX, data))
+        // 新しいセッションでまた出せる
+        val fresh = OfferEngine.beginSession(later, data)
+        assertFalse(fresh.shop.popupsStopped)
+        assertNotNull(OfferEngine.nextPopup(fresh, data))
+    }
+
+    @Test
+    fun dismissOfferActionPassesTheBackFlag() {
+        val s0 = twoOffers()
+        val id = checkNotNull(OfferEngine.next(s0)).id
+        val r = Actions.dismissOffer(s0, id, byBack = true).ok()
+        assertTrue(r.shop.popupsStopped)
+        assertEquals(s0.nowEpochSec, r.shop.lastPopupClosedEpochSec)
+    }
 }

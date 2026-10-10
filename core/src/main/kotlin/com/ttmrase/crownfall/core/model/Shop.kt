@@ -81,6 +81,10 @@ data class ShopState(
     val lastShownEpochSec: Map<String, Long> = emptyMap(),
     /** 現在のセッションでキューに積んだ数（頻度の上限判定用）。 */
     val sessionOffers: Int = 0,
+    /** 直近にオファーのポップアップを閉じた時刻（次の自動ポップアップまでの間隔の起点）。 */
+    val lastPopupClosedEpochSec: Long = 0,
+    /** 「戻る」で閉じられたので、このセッションの残りの自動ポップアップを止める（棚とバッジには残る）。 */
+    val popupsStopped: Boolean = false,
     /** 連鎖の現在の段（直近の購入が連鎖パックならその tier、それ以外は 0）。 */
     val chainRun: Int = 0,
     val nextOfferId: Long = 1,

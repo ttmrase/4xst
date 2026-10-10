@@ -49,7 +49,8 @@ internal object ShopActions {
     fun dismissOffer(
         state: GameState,
         offerId: Long,
-    ): ActionResult = ok(OfferEngine.dismiss(state, offerId))
+        byBack: Boolean = false,
+    ): ActionResult = ok(OfferEngine.dismiss(state, offerId, byBack))
 
     fun offerForShortage(
         state: GameState,

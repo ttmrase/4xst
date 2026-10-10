@@ -61,7 +61,8 @@ private const val STEP_GIFT = 2
 
 /**
  * 全画面のオファー表示（T6.4）。キューの先頭（閉じていない・期限内）を全画面ポップで出す。
- * 閉じる「×」は小さく薄く、2 秒遅れて出る（04 §4 の確認優位 UI）。購入は [onBuy]（決済シート）へ。
+ * 閉じる「×」は小さく薄く、2 秒遅れて出る（04 §4 の確認優位 UI）。「戻る」はいつでも閉じられ、閉じたあとは
+ * 一定時間は次を出さず、「戻る」で閉じたらそのセッションの自動ポップアップを止める。購入は [onBuy]（決済シート）へ。
  * 1 日の最初のログインでは、本日限定 → イベント告知 → 同盟ギフトの 3 連ポップを出す。
  * [busy] が true（決済シートが開いている）の間は出さない。
  */
@@ -91,11 +92,16 @@ fun OfferPresenter(
         }
     }
 
-    val offer = OfferEngine.next(s)
+    // 閉じた直後（間隔内）や「戻る」で止めたあとは自動では出さない。棚とバッジには残る
+    val offer = OfferEngine.nextPopup(s, data)
+    val stopped = s.shop.popupsStopped
     // 閉じた直後に残りが無くなったら、ログインの連鎖の続きや退出の確認へ進める
-    LaunchedEffect(offer == null, chain, busy) {
+    LaunchedEffect(offer == null, chain, busy, stopped) {
         if (offer == null && !busy) {
-            if (chain && step == STEP_NONE) step = STEP_ANNOUNCE
+            if (chain && step == STEP_NONE) {
+                // 「戻る」で閉じたあとは、ログインの連鎖ごと終える
+                if (stopped) coordinator.consumeLoginChain() else step = STEP_ANNOUNCE
+            }
             onIdle()
         }
     }
@@ -107,12 +113,17 @@ fun OfferPresenter(
             nowEpochSec = s.nowEpochSec,
             onBuy = { onBuy(ProductIds.offer(offer.id)) },
             onClose = { scope.launch { session.dispatch { Actions.dismissOffer(it, offer.id) } } },
+            onBack = { scope.launch { session.dispatch { Actions.dismissOffer(it, offer.id, byBack = true) } } },
         )
     } else if (!busy) {
         when (step) {
             STEP_ANNOUNCE ->
                 AlertDialog(
-                    onDismissRequest = {},
+                    onDismissRequest = {
+                        // 戻る・外のタップで連鎖ごと終える
+                        step = STEP_NONE
+                        coordinator.consumeLoginChain()
+                    },
                     title = { Text(stringResource(R.string.login_event_title)) },
                     text = { Text(stringResource(R.string.login_event_body)) },
                     confirmButton = {
@@ -130,7 +141,10 @@ fun OfferPresenter(
                 )
             STEP_GIFT ->
                 AlertDialog(
-                    onDismissRequest = {},
+                    onDismissRequest = {
+                        step = STEP_NONE
+                        coordinator.consumeLoginChain()
+                    },
                     title = { Text(stringResource(R.string.login_gift_title)) },
                     text = { Text(stringResource(R.string.login_gift_body, s.alliance.gifts.size)) },
                     confirmButton = {
@@ -164,6 +178,7 @@ private fun OfferPopup(
     nowEpochSec: Long,
     onBuy: () -> Unit,
     onClose: () -> Unit,
+    onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     var closeVisible by remember(offer.id) { mutableStateOf(false) }
@@ -172,11 +187,12 @@ private fun OfferPopup(
         closeVisible = true
     }
     val closeAlpha by animateFloatAsState(if (closeVisible) CLOSE_ALPHA else 0f, tween(400), label = "closeAlpha")
+    // 「戻る」はいつでも効く。閉じるのが遅く出る「×」と、外のタップで閉じない作りだけが量産型の演出
     Dialog(
-        onDismissRequest = {},
+        onDismissRequest = onBack,
         properties =
             DialogProperties(
-                dismissOnBackPress = false,
+                dismissOnBackPress = true,
                 dismissOnClickOutside = false,
                 usePlatformDefaultWidth = false,
             ),

@@ -72,7 +72,9 @@ internal object ShopValidator {
         val o = data.offers
         if (r.yenPerVipPoint <= 0 || r.ledgerCap <= 0) fail("shop_rules.json: yenPerVipPoint/ledgerCap")
         val f = r.frequency
-        if (f.sessionCapLow <= 0 || f.sessionCapStandard < f.sessionCapLow || f.chainMax <= 0 || f.queueCap <= 0) {
+        if (f.sessionCapLow <= 0 || f.sessionCapStandard < f.sessionCapLow || f.chainMax <= 0 || f.queueCap <= 0 ||
+            f.popupGapSec < 0
+        ) {
             fail("shop_rules.json: frequency")
         }
         if (r.login.pointsByStreak.isEmpty() || r.login.pointsByStreak.any { it <= 0 }) fail("shop_rules.json: login")
