@@ -481,5 +481,7 @@ class OfferEngineTest {
         val r = Actions.dismissOffer(s0, id, byBack = true).ok()
         assertTrue(r.shop.popupsStopped)
         assertEquals(s0.nowEpochSec, r.shop.lastPopupClosedEpochSec)
+        // 存在しない id では何も変わらない
+        assertEquals(s0.shop, Actions.dismissOffer(s0, -1, byBack = true).ok().shop)
     }
 }

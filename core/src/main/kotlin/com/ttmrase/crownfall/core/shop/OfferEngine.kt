@@ -369,6 +369,17 @@ object OfferEngine {
         offerId: Long,
         byBack: Boolean = false,
     ): GameState =
+        if (state.shop.offerQueue.none { it.id == offerId }) {
+            state
+        } else {
+            closeOffer(state, offerId, byBack)
+        }
+
+    private fun closeOffer(
+        state: GameState,
+        offerId: Long,
+        byBack: Boolean,
+    ): GameState =
         state.copy(
             shop =
                 state.shop.copy(

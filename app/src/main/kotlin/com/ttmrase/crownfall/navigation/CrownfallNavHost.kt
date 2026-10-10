@@ -179,9 +179,13 @@ fun CrownfallNavHost(
         )
     }
 
-    BackHandler(enabled = exitStage == 0 && destination?.route == Screen.City.route && ready != null) {
+    // 「待って！」の待ち（1）のまま何も出ていないときも、戻るは必ず効く（確認へ進む）。オファーが出ている間は
+    // ダイアログが先に戻るを受けるので、ここに届くのは出ていないときだけ。
+    BackHandler(enabled = exitStage != 2 && destination?.route == Screen.City.route && ready != null) {
         val r = ready
-        if (r != null) {
+        if (exitStage == 1) {
+            exitStage = 2
+        } else if (r != null) {
             uiScope.launch {
                 r.session.dispatch { Actions.exitOffer(it, r.data) }
                 // 自動で出せるオファーがあるときだけ「待って！」を待つ（間隔内・停止中は待たずに確認へ進む）
