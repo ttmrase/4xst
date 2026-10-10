@@ -17,6 +17,7 @@ import com.ttmrase.crownfall.core.util.Mix
 import com.ttmrase.crownfall.core.util.SystemClock
 import com.ttmrase.crownfall.data.GameRepository
 import com.ttmrase.crownfall.data.Startup
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
