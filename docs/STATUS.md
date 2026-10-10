@@ -26,7 +26,7 @@
 | T5.1〜T5.6 + 修正 | Implementer | ✅ 完了 | 12f38e7〜9a427d9, 71c9f8f |
 | T6.1〜T6.5 + 修正 | Implementer | ✅ 完了 | 10ed532, d966afb, 13a1b86, 60f5b54 |
 | T7.1〜T7.4 | Implementer | Director Approve・QA 待ち | 3e1076b, e174cae, 495aa3e |
-| M7 要修正 3 件（逆転パックの追従の固定、毎秒の重い再計算、通知設定の同期） | Implementer | 依頼済み | - |
+| M7 要修正 4 件（逆転パックの追従の固定、毎秒の重い再計算、通知設定の同期、Tracking を tick の内側へ移す） | Implementer | 依頼済み | - |
 | T8.2（release ビルド、署名の安定化、README）・T8.4（性能パス） | Implementer | 発行済み | - |
 | T8.1（スモークチェックリスト、ベンチ、セーブ互換の fixture）・CI のリリース対応 | Debugger | 発行済み | - |
 | T8.3（docs の最終同期） | Director | M8 の完了後 | - |
