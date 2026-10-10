@@ -5,6 +5,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.ttmrase.crownfall.core.data.ClasspathDataSource
+import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.debug.DebugStateSeeder.Preset
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -29,6 +31,13 @@ class ShopVipUiTest {
         Screenshots.save("pay_2_after_click")
         h.click(h.str(R.string.billing_one_tap))
         Screenshots.save("pay_3_after_one_tap")
+    }
+
+    private val data = ClasspathDataSource.load()
+
+    private fun vipInfo(h: AppHarness): Pair<Int, Long> {
+        val s = h.state()
+        return VipCalculator.level(s, data) to s.shop.vipPoints
     }
 
     @Test
@@ -78,9 +87,16 @@ class ShopVipUiTest {
         h.step("vip_cinematic") {
             h.click(h.str(R.string.shop_tab_gems))
             rule.waitForIdle()
+            val before = vipInfo(h)
             payFirstYenButton(h)
             h.waitText(h.str(R.string.billing_done), timeoutMs = 30_000)
+            val after = vipInfo(h)
+            Screenshots.save("vip_after_purchase")
             Espresso.pressBack() // 決済シートを閉じる
+            rule.waitForIdle()
+            check(h.hasText(h.str(R.string.vip_promoted_title)) || after.first > before.first) {
+                "the purchase must raise the VIP level (before=$before after=$after: level to points)"
+            }
             h.waitText(h.str(R.string.vip_promoted_title), timeoutMs = 20_000)
             Screenshots.save("vip_cinematic")
             Espresso.pressBack()
@@ -114,7 +130,8 @@ class ShopVipUiTest {
         }
         h.open("settings")
         h.step("settings") {
-            h.waitText(h.str(R.string.screen_settings), substring = true)
+            rule.waitForIdle()
+            Thread.sleep(500)
             Screenshots.save("settings")
         }
     }

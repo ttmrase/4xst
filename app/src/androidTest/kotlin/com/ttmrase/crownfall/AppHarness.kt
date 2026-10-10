@@ -36,9 +36,18 @@ class AppHarness(private val rule: ComposeTestRule) {
     fun hasText(
         text: String,
         substring: Boolean = false,
-    ) = rule.onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()
+    ) = noHierarchyIsFalse { rule.onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty() }
 
-    fun hasDescription(text: String) = rule.onAllNodesWithContentDescription(text).fetchSemanticsNodes().isNotEmpty()
+    fun hasDescription(text: String) =
+        noHierarchyIsFalse { rule.onAllNodesWithContentDescription(text).fetchSemanticsNodes().isNotEmpty() }
+
+    /** Activity が起動する前（Compose の階層がまだ無い）は例外ではなく「まだ無い」として待たせる。 */
+    private fun noHierarchyIsFalse(block: () -> Boolean): Boolean =
+        try {
+            block()
+        } catch (_: IllegalStateException) {
+            false
+        }
 
     fun waitText(
         text: String,

@@ -72,10 +72,11 @@ class SummonUiTest {
             repeat(4) { rule.onRoot().performTouchInput { click(onceCenter) } }
             rule.mainClock.advanceTimeBy(300)
             assertEquals("taps during the ritual must not summon again", afterFirst, gold(h))
-            rule.mainClock.autoAdvance = true
 
-            // 演出が終わるまでスキップし、結果の画面へ
+            // 演出をスキップして結果の画面へ（時計を止めたまま戻る: 先に進めると演出が終わって、戻るが画面を閉じてしまう）
             Espresso.pressBack()
+            rule.mainClock.advanceTimeBy(300)
+            rule.mainClock.autoAdvance = true
             rule.waitForIdle()
             h.waitText(h.str(R.string.summon_again), substring = true)
             Screenshots.save("summon_results")
@@ -110,8 +111,9 @@ class SummonUiTest {
                 rule.mainClock.advanceTimeBy(ms)
                 Screenshots.save("summon_ten_stage_${i + 1}")
             }
-            rule.mainClock.autoAdvance = true
             Espresso.pressBack()
+            rule.mainClock.advanceTimeBy(300)
+            rule.mainClock.autoAdvance = true
             rule.waitForIdle()
             h.waitText(h.str(R.string.summon_again), substring = true)
             Screenshots.save("summon_ten_results")
