@@ -6,6 +6,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.googlefonts.GoogleFont
 import com.ttmrase.crownfall.R
+import androidx.compose.ui.text.googlefonts.Font as GoogleFontEntry
 
 /**
  * 見出しと数字のフォント（docs/ASSETS.md）。Google Fonts のダウンロード方式（SIL OFL 1.1、APK には同梱しない）。
@@ -24,7 +25,7 @@ object CrownFonts {
     private fun google(
         name: String,
         weight: FontWeight,
-    ) = Font(GoogleFont(name), provider, weight)
+    ) = GoogleFontEntry(GoogleFont(name), provider, weight)
 
     private fun fallback(weight: FontWeight) = Font(DeviceFontFamilyName("serif"), weight)
 

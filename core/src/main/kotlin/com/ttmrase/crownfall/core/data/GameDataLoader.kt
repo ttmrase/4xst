@@ -118,7 +118,11 @@ private class HeroRulesDto(
     val maxSkillLevel: Int,
     val power: HeroPowerDto,
     val summon: SummonsDto,
+    val presentation: PresentationDto = PresentationDto(),
 )
+
+@Serializable
+private class PresentationDto(val promotionPct: Int = 0, val nearMissPct: Int = 0)
 
 @Serializable
 private class HeroPowerDto(val rarityBase: Map<HeroRarity, Long>, val perLevel: Long, val perSkillLevel: Long)
@@ -631,6 +635,10 @@ object GameDataLoader {
             }
             return SummonTable(t.gold, t.goldTen, t.gems, t.gemsTen, t.ticketItem, t.rates, t.tenGuarantee, t.pityAt)
         }
+        val pres = r.presentation
+        if (pres.promotionPct !in 0..100 || pres.nearMissPct !in 0..100) {
+            fail("heroes.json: presentation percentages must be within 0..100")
+        }
         val rules =
             HeroRules(
                 expToNext = r.expToNext,
@@ -643,6 +651,7 @@ object GameDataLoader {
                 powerPerSkillLevel = r.power.perSkillLevel,
                 normal = table("normal", r.summon.normal),
                 premium = table("premium", r.summon.premium),
+                presentation = SummonPresentation(pres.promotionPct, pres.nearMissPct),
             )
         return heroes to rules
     }

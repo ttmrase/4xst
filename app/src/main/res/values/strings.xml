@@ -323,6 +323,14 @@
     <string name="summon_dup">欠片 +%1$d</string>
     <string name="summon_ssr">SSR 確定！！</string>
     <string name="summon_sr">SR 以上 確定！</string>
+    <string name="summon_ten_deal">10 連（お得）</string>
+    <string name="summon_again">もう一度！</string>
+    <string name="summon_skip">スキップ</string>
+    <string name="summon_summoning">召喚中…</string>
+    <string name="summon_close">閉じる</string>
+    <string name="summon_ssr_banner">SSR 降臨！</string>
+    <string name="summon_tap_continue">タップで続ける</string>
+    <string name="summon_pity_big">あと %1$d 回で SSR 確定</string>
     <string name="summon_back">❓</string>
     <string name="timers_train_slot">訓練 %1$s</string>
     <string name="timers_heal">治療</string>

@@ -1,8 +1,10 @@
 package com.ttmrase.crownfall.ui.heroes
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,20 +14,26 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +43,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -43,7 +54,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.hero.RitualPlan
 import com.ttmrase.crownfall.core.hero.SummonKind
+import com.ttmrase.crownfall.core.hero.SummonRitual
 import com.ttmrase.crownfall.core.hero.Summoner
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameEvent
@@ -57,14 +70,33 @@ import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.offers.OfferHooks
+import com.ttmrase.crownfall.ui.common.Sfx
+import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.heroNameRes
 import com.ttmrase.crownfall.ui.rarityColor
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** 召喚画面（T3.5）。通常/プレミアム × 単発/10 連、天井表示、カード反転の簡易演出。 */
+private const val FLIP_AFTER_MS = 450L
+private const val SINGLE_CARD_DP = 190
+private const val CARD_ASPECT = 0.7f
+private const val GRID_COLUMNS = 5
+
+/** 進行中の召喚演出。[result] は確定済みで、演出は [plan] に従って見せるだけ。 */
+private class Ritual(
+    val result: SummonResult,
+    val plan: RitualPlan,
+    val times: Int,
+    val kind: SummonKind,
+)
+
+/**
+ * 召喚画面（T3.5 / T10.5）。通常/プレミアム × 単発/10 連。召喚するとフルスクリーンの儀式演出 →
+ * カードめくり → 結果（天井メーター・もう一度！/10 連）。戻るは演出スキップ → 結果 → 閉じる、の順に必ず進む。
+ */
 @Composable
 fun SummonScreen(
     session: GameSession,
@@ -76,8 +108,10 @@ fun SummonScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var kindIndex by rememberSaveable { mutableIntStateOf(1) }
-    var result by remember { mutableStateOf<SummonResult?>(null) }
+    var ritual by remember { mutableStateOf<Ritual?>(null) }
+    var animating by remember { mutableStateOf(false) }
     var flipped by remember { mutableStateOf(setOf<Int>()) }
+    var reveal by remember { mutableStateOf<SummonEntry?>(null) }
     val s = state ?: return
 
     val kind = if (kindIndex == 0) SummonKind.NORMAL else SummonKind.PREMIUM
@@ -85,12 +119,20 @@ fun SummonScreen(
     val tickets = s.items[table.ticketItem] ?: 0
     val tavernBuilt = s.slots.any { it.type == BuildingType.TAVERN && it.level >= 1 }
 
-    fun summon(times: Int) {
+    fun summon(
+        times: Int,
+        useKind: SummonKind = kind,
+    ) {
         scope.launch {
-            when (val r = session.dispatch { Actions.summon(it, kind, times, data) }) {
+            when (val r = session.dispatch { Actions.summon(it, useKind, times, data) }) {
                 is ActionResult.Success -> {
-                    result = r.events.filterIsInstance<GameEvent.HeroSummoned>().firstOrNull()?.result
-                    flipped = emptySet()
+                    val res = r.events.filterIsInstance<GameEvent.HeroSummoned>().firstOrNull()?.result
+                    if (res != null) {
+                        ritual = Ritual(res, SummonRitual.plan(res, data.heroRules.presentation), times, useKind)
+                        flipped = emptySet()
+                        reveal = null
+                        animating = true
+                    }
                 }
                 is ActionResult.Failure -> {
                     val reason = r.reason
@@ -102,62 +144,142 @@ fun SummonScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = kindIndex) {
-            Tab(
-                selected = kindIndex == 0,
-                onClick = { kindIndex = 0 },
-                text = { Text(stringResource(R.string.summon_normal)) },
-            )
-            Tab(
-                selected = kindIndex == 1,
-                onClick = { kindIndex = 1 },
-                text = { Text(stringResource(R.string.summon_premium)) },
+    fun flip(indices: Set<Int>) {
+        val r = ritual ?: return
+        val fresh = indices - flipped
+        if (fresh.isEmpty()) return
+        flipped = flipped + fresh
+        val best = fresh.map { r.result.results[it] }.maxByOrNull { it.rarity }
+        if (best != null && best.rarity == HeroRarity.SSR) {
+            reveal = best
+        } else {
+            Sfx.play(context, if (best != null && best.rarity == HeroRarity.SR) SfxId.RARE else SfxId.FLIP)
+        }
+    }
+
+    BackHandler(enabled = ritual != null) {
+        when {
+            reveal != null -> reveal = null
+            animating -> animating = false
+            else -> ritual = null
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            SummonSetup(
+                s = s,
+                kindIndex = kindIndex,
+                onKind = { kindIndex = it },
+                data = data,
+                kind = kind,
+                tickets = tickets,
+                tavernBuilt = tavernBuilt,
+                onSummon = { summon(it) },
             )
         }
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(stringResource(R.string.summon_title), style = MaterialTheme.typography.titleLarge)
-            val until = Summoner.untilPity(s, data, kind)
-            Text(
-                if (until != null) {
-                    stringResource(
-                        R.string.summon_pity,
-                        until,
-                    )
+        val current = ritual
+        if (current != null) {
+            Box(modifier = Modifier.fillMaxSize().background(RitualBackground)) {
+                if (animating) {
+                    RitualAnimation(plan = current.plan, onDone = { animating = false })
                 } else {
-                    stringResource(R.string.summon_pity_none)
-                },
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(stringResource(R.string.summon_tickets, tickets), style = MaterialTheme.typography.labelMedium)
-            if (!tavernBuilt) {
-                Text(stringResource(R.string.summon_tavern_locked), color = MaterialTheme.colorScheme.error)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                SummonButton(
-                    label = stringResource(R.string.summon_once),
-                    cost = costText(s, kind, 1, data),
-                    enabled = tavernBuilt,
-                    modifier = Modifier.weight(1f),
-                ) { summon(1) }
-                SummonButton(
-                    label = stringResource(R.string.summon_ten),
-                    cost = costText(s, kind, Actions.TEN_ROLL, data),
-                    enabled = tavernBuilt,
-                    modifier = Modifier.weight(1f),
-                ) { summon(Actions.TEN_ROLL) }
+                    SummonResults(
+                        ritual = current,
+                        flipped = flipped,
+                        data = data,
+                        state = s,
+                        onFlip = { flip(setOf(it)) },
+                        onFlipAll = { flip(current.result.results.indices.toSet()) },
+                        onAgain = { summon(current.times, current.kind) },
+                        onTen = { summon(Actions.TEN_ROLL, current.kind) },
+                        onClose = { ritual = null },
+                    )
+                }
             }
         }
-        val res = result
-        if (res != null) {
-            SummonResultView(res = res, flipped = flipped, onFlip = { flipped = flipped + it }, onFlipAll = {
-                flipped = res.results.indices.toSet()
-            })
+        val shown = reveal
+        if (shown != null) SsrReveal(entry = shown, onDismiss = { reveal = null })
+    }
+}
+
+@Composable
+private fun SummonSetup(
+    s: GameState,
+    kindIndex: Int,
+    onKind: (Int) -> Unit,
+    data: GameData,
+    kind: SummonKind,
+    tickets: Int,
+    tavernBuilt: Boolean,
+    onSummon: (Int) -> Unit,
+) {
+    TabRow(selectedTabIndex = kindIndex) {
+        Tab(
+            selected = kindIndex == 0,
+            onClick = { onKind(0) },
+            text = { Text(stringResource(R.string.summon_normal)) },
+        )
+        Tab(
+            selected = kindIndex == 1,
+            onClick = { onKind(1) },
+            text = { Text(stringResource(R.string.summon_premium)) },
+        )
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(stringResource(R.string.summon_title), style = MaterialTheme.typography.titleLarge)
+        val until = Summoner.untilPity(s, data, kind)
+        val pityAt = Summoner.table(data, kind).pityAt
+        if (until != null) {
+            PityMeter(remaining = until, pityAt = pityAt)
+        } else {
+            Text(stringResource(R.string.summon_pity_none), style = MaterialTheme.typography.titleSmall)
         }
+        Text(stringResource(R.string.summon_tickets, tickets), style = MaterialTheme.typography.labelMedium)
+        if (!tavernBuilt) {
+            Text(stringResource(R.string.summon_tavern_locked), color = MaterialTheme.colorScheme.error)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            SummonButton(
+                label = stringResource(R.string.summon_once),
+                cost = costText(s, kind, 1, data),
+                enabled = tavernBuilt,
+                modifier = Modifier.weight(1f),
+            ) { onSummon(1) }
+            SummonButton(
+                label = stringResource(R.string.summon_ten_deal),
+                cost = costText(s, kind, Actions.TEN_ROLL, data),
+                enabled = tavernBuilt,
+                modifier = Modifier.weight(1f),
+            ) { onSummon(Actions.TEN_ROLL) }
+        }
+    }
+}
+
+/** 大きな天井メーター。[remaining] 回で SSR 確定。 */
+@Composable
+private fun PityMeter(
+    remaining: Int,
+    pityAt: Int,
+    modifier: Modifier = Modifier,
+    onDark: Boolean = false,
+) {
+    val progress = if (pityAt > 0) ((pityAt - remaining).toFloat() / pityAt).coerceIn(0f, 1f) else 0f
+    val textColor = if (onDark) Color.White else MaterialTheme.colorScheme.primary
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            stringResource(R.string.summon_pity_big, remaining),
+            color = textColor,
+            style = MaterialTheme.typography.titleMedium,
+        )
+        LinearProgressIndicator(
+            progress = { progress },
+            color = rarityColor(HeroRarity.SSR),
+            modifier = Modifier.fillMaxWidth().height(12.dp),
+        )
     }
 }
 
@@ -199,50 +321,99 @@ private fun SummonButton(
 }
 
 @Composable
-private fun SummonResultView(
-    res: SummonResult,
+private fun SummonResults(
+    ritual: Ritual,
     flipped: Set<Int>,
+    data: GameData,
+    state: GameState,
     onFlip: (Int) -> Unit,
     onFlipAll: () -> Unit,
+    onAgain: () -> Unit,
+    onTen: () -> Unit,
+    onClose: () -> Unit,
 ) {
-    val hasSsr = res.results.any { it.rarity == HeroRarity.SSR }
-    val hasSr = res.results.any { it.rarity == HeroRarity.SR }
+    val res = ritual.result
+    val single = res.results.size == 1
+    LaunchedEffect(ritual) {
+        if (single) {
+            delay(FLIP_AFTER_MS)
+            onFlip(0)
+        }
+    }
+    val table = Summoner.table(data, ritual.kind)
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        when {
-            hasSsr ->
+        Text(
+            when (ritual.plan.top) {
+                HeroRarity.SSR -> stringResource(R.string.summon_ssr)
+                HeroRarity.SR -> stringResource(R.string.summon_sr)
+                else -> stringResource(R.string.summon_title)
+            },
+            color = rarityColor(ritual.plan.top),
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (!single) {
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    stringResource(R.string.summon_ssr),
-                    color = rarityColor(HeroRarity.SSR),
-                    style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
+                    stringResource(R.string.summon_tap_to_flip),
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.align(Alignment.CenterVertically),
                 )
-            hasSr && res.results.size >= Actions.TEN_ROLL ->
-                Text(
-                    stringResource(R.string.summon_sr),
-                    color = rarityColor(HeroRarity.SR),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-        }
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.summon_tap_to_flip), style = MaterialTheme.typography.labelMedium)
-            OutlinedButton(onClick = onFlipAll) { Text(stringResource(R.string.summon_flip_all)) }
-        }
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(if (res.results.size > 1) 5 else 1),
-            contentPadding = PaddingValues(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            itemsIndexed(res.results) { index, entry ->
-                SummonCard(entry = entry, flipped = index in flipped, onClick = { onFlip(index) })
+                OutlinedButton(onClick = onFlipAll) {
+                    Text(stringResource(R.string.summon_flip_all), color = Color.White)
+                }
             }
+        }
+        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            if (single) {
+                SummonCard(
+                    entry = res.results[0],
+                    flipped = 0 in flipped,
+                    onClick = { onFlip(0) },
+                    modifier = Modifier.width(SINGLE_CARD_DP.dp),
+                )
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(GRID_COLUMNS),
+                    contentPadding = PaddingValues(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    itemsIndexed(res.results) { index, entry ->
+                        SummonCard(entry = entry, flipped = index in flipped, onClick = { onFlip(index) })
+                    }
+                }
+            }
+        }
+        if (table.pityAt > 0) {
+            PityMeter(remaining = table.pityAt - res.pityAfter, pityAt = table.pityAt, onDark = true)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            SummonButton(
+                label = stringResource(R.string.summon_again),
+                cost = costText(state, ritual.kind, ritual.times, data),
+                enabled = true,
+                modifier = Modifier.weight(1f),
+                onClick = onAgain,
+            )
+            if (ritual.times != Actions.TEN_ROLL) {
+                SummonButton(
+                    label = stringResource(R.string.summon_ten_deal),
+                    cost = costText(state, ritual.kind, Actions.TEN_ROLL, data),
+                    enabled = true,
+                    modifier = Modifier.weight(1f),
+                    onClick = onTen,
+                )
+            }
+        }
+        TextButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+            Text(stringResource(R.string.summon_close), color = Color.White)
         }
     }
 }
@@ -252,6 +423,7 @@ private fun SummonCard(
     entry: SummonEntry,
     flipped: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val rotation by animateFloatAsState(
         targetValue = if (flipped) 180f else 0f,
@@ -260,31 +432,36 @@ private fun SummonCard(
     )
     val density = LocalDensity.current.density
     val front = rotation > 90f
+    val frame = rarityColor(entry.rarity)
+    val glow = front && entry.rarity >= HeroRarity.SR
     Card(
         modifier =
-            Modifier
+            modifier
                 .fillMaxWidth()
-                .aspectRatio(0.7f)
+                .aspectRatio(CARD_ASPECT)
                 .graphicsLayer {
                     rotationY = if (front) rotation - 180f else rotation
                     cameraDistance = 12f * density
                 }
+                .drawBehind {
+                    if (glow) {
+                        drawRect(Brush.radialGradient(listOf(frame.copy(alpha = 0.55f), Color.Transparent)))
+                    }
+                }
                 .clickable(onClick = onClick),
         shape = RoundedCornerShape(10.dp),
-        border = if (front) BorderStroke(2.dp, rarityColor(entry.rarity)) else null,
+        colors = CardDefaults.cardColors(containerColor = if (front) Color(0xFF1A2236) else Color(0xFF28324D)),
+        border = if (front) BorderStroke(if (entry.rarity >= HeroRarity.SR) 3.dp else 2.dp, frame) else null,
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(4.dp), contentAlignment = Alignment.Center) {
             if (!front) {
                 Text(stringResource(R.string.summon_back), style = MaterialTheme.typography.headlineMedium)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        entry.rarity.name,
-                        color = rarityColor(entry.rarity),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
+                    Text(entry.rarity.name, color = frame, style = MaterialTheme.typography.titleSmall)
                     Text(
                         heroNameRes(entry.heroId)?.let { stringResource(it) } ?: entry.heroId,
+                        color = Color.White,
                         style = MaterialTheme.typography.labelSmall,
                         textAlign = TextAlign.Center,
                     )
@@ -297,6 +474,7 @@ private fun SummonCard(
                     } else {
                         Text(
                             stringResource(R.string.summon_dup, entry.shards),
+                            color = Color.White,
                             style = MaterialTheme.typography.labelSmall,
                         )
                     }

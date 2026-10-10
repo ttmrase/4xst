@@ -153,6 +153,12 @@ data class SummonTable(
     val pityAt: Int,
 )
 
+/** 召喚演出のフェイク比率（%）。確率・天井には一切影響しない（結果が決まった後の見せ方のみ）。 */
+data class SummonPresentation(
+    val promotionPct: Int,
+    val nearMissPct: Int,
+)
+
 /** 英雄育成の共通ルール。 */
 data class HeroRules(
     val expToNext: List<Long>,
@@ -165,6 +171,7 @@ data class HeroRules(
     val powerPerSkillLevel: Long,
     val normal: SummonTable,
     val premium: SummonTable,
+    val presentation: SummonPresentation = SummonPresentation(0, 0),
 ) {
     /** 最大レベル。 */
     val maxLevel: Int get() = expToNext.size + 1
