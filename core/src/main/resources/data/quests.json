@@ -1,0 +1,1738 @@
+{
+ "chapters": [
+  {
+   "id": "ch1",
+   "tasks": [
+    {
+     "id": "ch1_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 2
+     }
+    },
+    {
+     "id": "ch1_2",
+     "cond": {
+      "type": "building",
+      "building": "farm",
+      "lv": 2
+     }
+    },
+    {
+     "id": "ch1_3",
+     "cond": {
+      "type": "building",
+      "building": "sawmill",
+      "lv": 2
+     }
+    }
+   ],
+   "reward": {
+    "gems": 13,
+    "resources": {
+     "food": 1000,
+     "wood": 1000,
+     "stone": 500,
+     "gold": 500
+    },
+    "items": {
+     "speedup_general_5m": 2
+    }
+   }
+  },
+  {
+   "id": "ch2",
+   "tasks": [
+    {
+     "id": "ch2_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 3
+     }
+    },
+    {
+     "id": "ch2_2",
+     "cond": {
+      "type": "building",
+      "building": "barracks",
+      "lv": 1
+     }
+    },
+    {
+     "id": "ch2_3",
+     "cond": {
+      "type": "building",
+      "building": "warehouse",
+      "lv": 2
+     }
+    }
+   ],
+   "reward": {
+    "gems": 16,
+    "resources": {
+     "food": 2000,
+     "wood": 2000,
+     "stone": 1000,
+     "gold": 1000
+    },
+    "items": {
+     "speedup_general_5m": 2
+    }
+   }
+  },
+  {
+   "id": "ch3",
+   "tasks": [
+    {
+     "id": "ch3_1",
+     "cond": {
+      "type": "building",
+      "building": "farm",
+      "lv": 3
+     }
+    },
+    {
+     "id": "ch3_2",
+     "cond": {
+      "type": "building",
+      "building": "quarry",
+      "lv": 3
+     }
+    },
+    {
+     "id": "ch3_3",
+     "cond": {
+      "type": "building",
+      "building": "gold_mine",
+      "lv": 2
+     }
+    },
+    {
+     "id": "ch3_4",
+     "cond": {
+      "type": "counter",
+      "key": "trainTroops",
+      "target": 20
+     }
+    }
+   ],
+   "reward": {
+    "gems": 19,
+    "resources": {
+     "food": 3000,
+     "wood": 3000,
+     "stone": 1500,
+     "gold": 1500
+    },
+    "items": {
+     "speedup_general_5m": 2
+    }
+   }
+  },
+  {
+   "id": "ch4",
+   "tasks": [
+    {
+     "id": "ch4_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 4
+     }
+    },
+    {
+     "id": "ch4_2",
+     "cond": {
+      "type": "building",
+      "building": "academy",
+      "lv": 1
+     }
+    },
+    {
+     "id": "ch4_3",
+     "cond": {
+      "type": "research",
+      "total": 1
+     }
+    }
+   ],
+   "reward": {
+    "gems": 22,
+    "resources": {
+     "food": 4000,
+     "wood": 4000,
+     "stone": 2000,
+     "gold": 2000
+    },
+    "items": {
+     "speedup_general_5m": 3
+    }
+   }
+  },
+  {
+   "id": "ch5",
+   "tasks": [
+    {
+     "id": "ch5_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 5
+     }
+    },
+    {
+     "id": "ch5_2",
+     "cond": {
+      "type": "building",
+      "building": "hospital",
+      "lv": 2
+     }
+    },
+    {
+     "id": "ch5_3",
+     "cond": {
+      "type": "power",
+      "value": 5000
+     }
+    },
+    {
+     "id": "ch5_4",
+     "cond": {
+      "type": "counter",
+      "key": "hunt",
+      "target": 3
+     }
+    }
+   ],
+   "reward": {
+    "gems": 25,
+    "resources": {
+     "food": 5000,
+     "wood": 5000,
+     "stone": 2500,
+     "gold": 2500
+    },
+    "items": {
+     "speedup_general_15m": 3,
+     "summon_ticket_normal": 1
+    }
+   }
+  },
+  {
+   "id": "ch6",
+   "tasks": [
+    {
+     "id": "ch6_1",
+     "cond": {
+      "type": "building",
+      "building": "barracks",
+      "lv": 4
+     }
+    },
+    {
+     "id": "ch6_2",
+     "cond": {
+      "type": "building",
+      "building": "wall",
+      "lv": 4
+     }
+    },
+    {
+     "id": "ch6_3",
+     "cond": {
+      "type": "building",
+      "building": "watchtower",
+      "lv": 3
+     }
+    },
+    {
+     "id": "ch6_4",
+     "cond": {
+      "type": "counter",
+      "key": "trainTroops",
+      "target": 100
+     }
+    }
+   ],
+   "reward": {
+    "gems": 28,
+    "resources": {
+     "food": 6000,
+     "wood": 6000,
+     "stone": 3000,
+     "gold": 3000
+    },
+    "items": {
+     "speedup_general_15m": 3
+    }
+   }
+  },
+  {
+   "id": "ch7",
+   "tasks": [
+    {
+     "id": "ch7_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 6
+     }
+    },
+    {
+     "id": "ch7_2",
+     "cond": {
+      "type": "building",
+      "building": "trading_post",
+      "lv": 3
+     }
+    },
+    {
+     "id": "ch7_3",
+     "cond": {
+      "type": "research",
+      "total": 4
+     }
+    },
+    {
+     "id": "ch7_4",
+     "cond": {
+      "type": "heroes",
+      "count": 2
+     }
+    }
+   ],
+   "reward": {
+    "gems": 31,
+    "resources": {
+     "food": 7000,
+     "wood": 7000,
+     "stone": 3500,
+     "gold": 3500
+    },
+    "items": {
+     "speedup_general_15m": 3
+    }
+   }
+  },
+  {
+   "id": "ch8",
+   "tasks": [
+    {
+     "id": "ch8_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 7
+     }
+    },
+    {
+     "id": "ch8_2",
+     "cond": {
+      "type": "building",
+      "building": "alliance_center",
+      "lv": 3
+     }
+    },
+    {
+     "id": "ch8_3",
+     "cond": {
+      "type": "building",
+      "building": "tavern",
+      "lv": 3
+     }
+    },
+    {
+     "id": "ch8_4",
+     "cond": {
+      "type": "counter",
+      "key": "gather",
+      "target": 5
+     }
+    }
+   ],
+   "reward": {
+    "gems": 34,
+    "resources": {
+     "food": 8000,
+     "wood": 8000,
+     "stone": 4000,
+     "gold": 4000
+    },
+    "items": {
+     "speedup_general_15m": 4
+    }
+   }
+  },
+  {
+   "id": "ch9",
+   "tasks": [
+    {
+     "id": "ch9_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 8
+     }
+    },
+    {
+     "id": "ch9_2",
+     "cond": {
+      "type": "power",
+      "value": 15000
+     }
+    },
+    {
+     "id": "ch9_3",
+     "cond": {
+      "type": "counter",
+      "key": "hunt",
+      "target": 10
+     }
+    },
+    {
+     "id": "ch9_4",
+     "cond": {
+      "type": "research",
+      "total": 8
+     }
+    }
+   ],
+   "reward": {
+    "gems": 37,
+    "resources": {
+     "food": 9000,
+     "wood": 9000,
+     "stone": 4500,
+     "gold": 4500
+    },
+    "items": {
+     "speedup_general_15m": 4
+    }
+   }
+  },
+  {
+   "id": "ch10",
+   "tasks": [
+    {
+     "id": "ch10_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 9
+     }
+    },
+    {
+     "id": "ch10_2",
+     "cond": {
+      "type": "building",
+      "building": "warehouse",
+      "lv": 8
+     }
+    },
+    {
+     "id": "ch10_3",
+     "cond": {
+      "type": "building",
+      "building": "hospital",
+      "lv": 6
+     }
+    },
+    {
+     "id": "ch10_4",
+     "cond": {
+      "type": "counter",
+      "key": "donate",
+      "target": 5
+     }
+    }
+   ],
+   "reward": {
+    "gems": 40,
+    "resources": {
+     "food": 10000,
+     "wood": 10000,
+     "stone": 5000,
+     "gold": 5000
+    },
+    "items": {
+     "speedup_general_60m": 4,
+     "summon_ticket_normal": 1
+    }
+   }
+  },
+  {
+   "id": "ch11",
+   "tasks": [
+    {
+     "id": "ch11_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 10
+     }
+    },
+    {
+     "id": "ch11_2",
+     "cond": {
+      "type": "building",
+      "building": "barracks",
+      "lv": 8
+     }
+    },
+    {
+     "id": "ch11_3",
+     "cond": {
+      "type": "building",
+      "building": "academy",
+      "lv": 8
+     }
+    },
+    {
+     "id": "ch11_4",
+     "cond": {
+      "type": "power",
+      "value": 40000
+     }
+    }
+   ],
+   "reward": {
+    "gems": 43,
+    "resources": {
+     "food": 11000,
+     "wood": 11000,
+     "stone": 5500,
+     "gold": 5500
+    },
+    "items": {
+     "speedup_general_60m": 4
+    }
+   }
+  },
+  {
+   "id": "ch12",
+   "tasks": [
+    {
+     "id": "ch12_1",
+     "cond": {
+      "type": "building",
+      "building": "farm",
+      "lv": 10
+     }
+    },
+    {
+     "id": "ch12_2",
+     "cond": {
+      "type": "building",
+      "building": "sawmill",
+      "lv": 10
+     }
+    },
+    {
+     "id": "ch12_3",
+     "cond": {
+      "type": "building",
+      "building": "quarry",
+      "lv": 10
+     }
+    },
+    {
+     "id": "ch12_4",
+     "cond": {
+      "type": "building",
+      "building": "gold_mine",
+      "lv": 10
+     }
+    }
+   ],
+   "reward": {
+    "gems": 46,
+    "resources": {
+     "food": 12000,
+     "wood": 12000,
+     "stone": 6000,
+     "gold": 6000
+    },
+    "items": {
+     "speedup_general_60m": 5
+    }
+   }
+  },
+  {
+   "id": "ch13",
+   "tasks": [
+    {
+     "id": "ch13_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 11
+     }
+    },
+    {
+     "id": "ch13_2",
+     "cond": {
+      "type": "research",
+      "total": 14
+     }
+    },
+    {
+     "id": "ch13_3",
+     "cond": {
+      "type": "counter",
+      "key": "trainTroops",
+      "target": 1000
+     }
+    },
+    {
+     "id": "ch13_4",
+     "cond": {
+      "type": "heroes",
+      "count": 4
+     }
+    }
+   ],
+   "reward": {
+    "gems": 49,
+    "resources": {
+     "food": 13000,
+     "wood": 13000,
+     "stone": 6500,
+     "gold": 6500
+    },
+    "items": {
+     "speedup_general_60m": 5
+    }
+   }
+  },
+  {
+   "id": "ch14",
+   "tasks": [
+    {
+     "id": "ch14_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 12
+     }
+    },
+    {
+     "id": "ch14_2",
+     "cond": {
+      "type": "building",
+      "building": "wall",
+      "lv": 12
+     }
+    },
+    {
+     "id": "ch14_3",
+     "cond": {
+      "type": "building",
+      "building": "watchtower",
+      "lv": 10
+     }
+    },
+    {
+     "id": "ch14_4",
+     "cond": {
+      "type": "counter",
+      "key": "hunt",
+      "target": 30
+     }
+    }
+   ],
+   "reward": {
+    "gems": 52,
+    "resources": {
+     "food": 14000,
+     "wood": 14000,
+     "stone": 7000,
+     "gold": 7000
+    },
+    "items": {
+     "speedup_general_60m": 5
+    }
+   }
+  },
+  {
+   "id": "ch15",
+   "tasks": [
+    {
+     "id": "ch15_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 13
+     }
+    },
+    {
+     "id": "ch15_2",
+     "cond": {
+      "type": "building",
+      "building": "builders_hut",
+      "lv": 10
+     }
+    },
+    {
+     "id": "ch15_3",
+     "cond": {
+      "type": "counter",
+      "key": "summon",
+      "target": 10
+     }
+    },
+    {
+     "id": "ch15_4",
+     "cond": {
+      "type": "power",
+      "value": 100000
+     }
+    }
+   ],
+   "reward": {
+    "gems": 55,
+    "resources": {
+     "food": 15000,
+     "wood": 15000,
+     "stone": 7500,
+     "gold": 7500
+    },
+    "items": {
+     "speedup_general_3h": 5,
+     "summon_ticket_normal": 1
+    }
+   }
+  },
+  {
+   "id": "ch16",
+   "tasks": [
+    {
+     "id": "ch16_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 14
+     }
+    },
+    {
+     "id": "ch16_2",
+     "cond": {
+      "type": "building",
+      "building": "hospital",
+      "lv": 12
+     }
+    },
+    {
+     "id": "ch16_3",
+     "cond": {
+      "type": "building",
+      "building": "trading_post",
+      "lv": 12
+     }
+    },
+    {
+     "id": "ch16_4",
+     "cond": {
+      "type": "research",
+      "total": 20
+     }
+    }
+   ],
+   "reward": {
+    "gems": 58,
+    "resources": {
+     "food": 16000,
+     "wood": 16000,
+     "stone": 8000,
+     "gold": 8000
+    },
+    "items": {
+     "speedup_general_3h": 6
+    }
+   }
+  },
+  {
+   "id": "ch17",
+   "tasks": [
+    {
+     "id": "ch17_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 15
+     }
+    },
+    {
+     "id": "ch17_2",
+     "cond": {
+      "type": "power",
+      "value": 250000
+     }
+    },
+    {
+     "id": "ch17_3",
+     "cond": {
+      "type": "counter",
+      "key": "rally",
+      "target": 5
+     }
+    },
+    {
+     "id": "ch17_4",
+     "cond": {
+      "type": "counter",
+      "key": "gather",
+      "target": 30
+     }
+    }
+   ],
+   "reward": {
+    "gems": 61,
+    "resources": {
+     "food": 17000,
+     "wood": 17000,
+     "stone": 8500,
+     "gold": 8500
+    },
+    "items": {
+     "speedup_general_3h": 6
+    }
+   }
+  },
+  {
+   "id": "ch18",
+   "tasks": [
+    {
+     "id": "ch18_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 16
+     }
+    },
+    {
+     "id": "ch18_2",
+     "cond": {
+      "type": "building",
+      "building": "barracks",
+      "lv": 15
+     }
+    },
+    {
+     "id": "ch18_3",
+     "cond": {
+      "type": "building",
+      "building": "academy",
+      "lv": 15
+     }
+    },
+    {
+     "id": "ch18_4",
+     "cond": {
+      "type": "heroes",
+      "count": 6
+     }
+    }
+   ],
+   "reward": {
+    "gems": 64,
+    "resources": {
+     "food": 18000,
+     "wood": 18000,
+     "stone": 9000,
+     "gold": 9000
+    },
+    "items": {
+     "speedup_general_3h": 6
+    }
+   }
+  },
+  {
+   "id": "ch19",
+   "tasks": [
+    {
+     "id": "ch19_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 17
+     }
+    },
+    {
+     "id": "ch19_2",
+     "cond": {
+      "type": "building",
+      "building": "alliance_center",
+      "lv": 15
+     }
+    },
+    {
+     "id": "ch19_3",
+     "cond": {
+      "type": "counter",
+      "key": "hunt",
+      "target": 100
+     }
+    },
+    {
+     "id": "ch19_4",
+     "cond": {
+      "type": "power",
+      "value": 600000
+     }
+    }
+   ],
+   "reward": {
+    "gems": 67,
+    "resources": {
+     "food": 19000,
+     "wood": 19000,
+     "stone": 9500,
+     "gold": 9500
+    },
+    "items": {
+     "speedup_general_3h": 6
+    }
+   }
+  },
+  {
+   "id": "ch20",
+   "tasks": [
+    {
+     "id": "ch20_1",
+     "cond": {
+      "type": "building",
+      "building": "castle",
+      "lv": 18
+     }
+    },
+    {
+     "id": "ch20_2",
+     "cond": {
+      "type": "building",
+      "building": "warehouse",
+      "lv": 18
+     }
+    },
+    {
+     "id": "ch20_3",
+     "cond": {
+      "type": "research",
+      "total": 28
+     }
+    },
+    {
+     "id": "ch20_4",
+     "cond": {
+      "type": "counter",
+      "key": "trainTroops",
+      "target": 10000
+     }
+    }
+   ],
+   "reward": {
+    "gems": 70,
+    "resources": {
+     "food": 20000,
+     "wood": 20000,
+     "stone": 10000,
+     "gold": 10000
+    },
+    "items": {
+     "speedup_general_3h": 7,
+     "summon_ticket_normal": 1
+    }
+   }
+  }
+ ],
+ "dailies": [
+  {
+   "id": "d_help",
+   "key": "help",
+   "target": 5,
+   "points": 10
+  },
+  {
+   "id": "d_gather",
+   "key": "gather",
+   "target": 1,
+   "points": 10
+  },
+  {
+   "id": "d_train",
+   "key": "train",
+   "target": 1,
+   "points": 10
+  },
+  {
+   "id": "d_research",
+   "key": "research",
+   "target": 1,
+   "points": 10
+  },
+  {
+   "id": "d_build",
+   "key": "build",
+   "target": 1,
+   "points": 10
+  },
+  {
+   "id": "d_hunt",
+   "key": "hunt",
+   "target": 1,
+   "points": 10
+  },
+  {
+   "id": "d_donate",
+   "key": "donate",
+   "target": 1,
+   "points": 10
+  },
+  {
+   "id": "d_summon",
+   "key": "summon",
+   "target": 1,
+   "points": 10
+  },
+  {
+   "id": "d_shop",
+   "key": "shop",
+   "target": 1,
+   "points": 10
+  },
+  {
+   "id": "d_chat",
+   "key": "chat",
+   "target": 1,
+   "points": 10
+  }
+ ],
+ "chests": [
+  {
+   "tier": 1,
+   "points": 20,
+   "reward": {
+    "gems": 5,
+    "resources": {
+     "food": 2000,
+     "wood": 2000,
+     "stone": 1000,
+     "gold": 1000
+    },
+    "items": {
+     "speedup_general_5m": 3
+    }
+   }
+  },
+  {
+   "tier": 2,
+   "points": 40,
+   "reward": {
+    "gems": 10,
+    "resources": {
+     "food": 4000,
+     "wood": 4000,
+     "stone": 2000,
+     "gold": 2000
+    },
+    "items": {
+     "speedup_general_15m": 3
+    }
+   }
+  },
+  {
+   "tier": 3,
+   "points": 60,
+   "reward": {
+    "gems": 15,
+    "resources": {
+     "food": 6000,
+     "wood": 6000,
+     "stone": 3000,
+     "gold": 3000
+    },
+    "items": {
+     "speedup_general_60m": 2
+    }
+   }
+  },
+  {
+   "tier": 4,
+   "points": 80,
+   "reward": {
+    "gems": 20,
+    "resources": {
+     "food": 8000,
+     "wood": 8000,
+     "stone": 4000,
+     "gold": 4000
+    },
+    "items": {
+     "speedup_general_60m": 3,
+     "hero_exp_1k": 2
+    }
+   }
+  },
+  {
+   "tier": 5,
+   "points": 100,
+   "reward": {
+    "gems": 30,
+    "resources": {
+     "food": 12000,
+     "wood": 12000,
+     "stone": 6000,
+     "gold": 6000
+    },
+    "items": {
+     "speedup_general_3h": 2,
+     "skill_book": 1
+    }
+   }
+  }
+ ],
+ "alliance": [
+  {
+   "id": "al_donate_1",
+   "cond": {
+    "type": "counter",
+    "key": "donate",
+    "target": 1
+   },
+   "reward": {
+    "gems": 10,
+    "resources": {
+     "food": 2000,
+     "wood": 2000,
+     "stone": 1000,
+     "gold": 1000
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "al_donate_10",
+   "cond": {
+    "type": "counter",
+    "key": "donate",
+    "target": 10
+   },
+   "reward": {
+    "gems": 30,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "speedup_general_60m": 2
+    }
+   }
+  },
+  {
+   "id": "al_donate_50",
+   "cond": {
+    "type": "counter",
+    "key": "donate",
+    "target": 50
+   },
+   "reward": {
+    "gems": 80,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "speedup_general_3h": 2
+    }
+   }
+  },
+  {
+   "id": "al_rally_1",
+   "cond": {
+    "type": "counter",
+    "key": "rally",
+    "target": 1
+   },
+   "reward": {
+    "gems": 15,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "speedup_general_15m": 3
+    }
+   }
+  },
+  {
+   "id": "al_rally_5",
+   "cond": {
+    "type": "counter",
+    "key": "rally",
+    "target": 5
+   },
+   "reward": {
+    "gems": 40,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "speedup_general_60m": 3
+    }
+   }
+  },
+  {
+   "id": "al_rally_20",
+   "cond": {
+    "type": "counter",
+    "key": "rally",
+    "target": 20
+   },
+   "reward": {
+    "gems": 120,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "summon_ticket_normal": 3
+    }
+   }
+  },
+  {
+   "id": "al_help_20",
+   "cond": {
+    "type": "counter",
+    "key": "help",
+    "target": 20
+   },
+   "reward": {
+    "gems": 20,
+    "resources": {
+     "food": 3000,
+     "wood": 3000,
+     "stone": 1500,
+     "gold": 1500
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "al_help_100",
+   "cond": {
+    "type": "counter",
+    "key": "help",
+    "target": 100
+   },
+   "reward": {
+    "gems": 60,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "speedup_general_3h": 1
+    }
+   }
+  }
+ ],
+ "achievements": [
+  {
+   "id": "ach_hunt_1",
+   "cond": {
+    "type": "counter",
+    "key": "hunt",
+    "target": 10
+   },
+   "reward": {
+    "gems": 10,
+    "resources": {
+     "food": 1000,
+     "wood": 1000,
+     "stone": 500,
+     "gold": 500
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_hunt_2",
+   "cond": {
+    "type": "counter",
+    "key": "hunt",
+    "target": 50
+   },
+   "reward": {
+    "gems": 20,
+    "resources": {
+     "food": 2000,
+     "wood": 2000,
+     "stone": 1000,
+     "gold": 1000
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_hunt_3",
+   "cond": {
+    "type": "counter",
+    "key": "hunt",
+    "target": 200
+   },
+   "reward": {
+    "gems": 30,
+    "resources": {
+     "food": 3000,
+     "wood": 3000,
+     "stone": 1500,
+     "gold": 1500
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_hunt_4",
+   "cond": {
+    "type": "counter",
+    "key": "hunt",
+    "target": 1000
+   },
+   "reward": {
+    "gems": 40,
+    "resources": {
+     "food": 4000,
+     "wood": 4000,
+     "stone": 2000,
+     "gold": 2000
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_gather_1",
+   "cond": {
+    "type": "counter",
+    "key": "gather",
+    "target": 10
+   },
+   "reward": {
+    "gems": 10,
+    "resources": {
+     "food": 1000,
+     "wood": 1000,
+     "stone": 500,
+     "gold": 500
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_gather_2",
+   "cond": {
+    "type": "counter",
+    "key": "gather",
+    "target": 50
+   },
+   "reward": {
+    "gems": 20,
+    "resources": {
+     "food": 2000,
+     "wood": 2000,
+     "stone": 1000,
+     "gold": 1000
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_gather_3",
+   "cond": {
+    "type": "counter",
+    "key": "gather",
+    "target": 200
+   },
+   "reward": {
+    "gems": 30,
+    "resources": {
+     "food": 3000,
+     "wood": 3000,
+     "stone": 1500,
+     "gold": 1500
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_gather_4",
+   "cond": {
+    "type": "counter",
+    "key": "gather",
+    "target": 1000
+   },
+   "reward": {
+    "gems": 40,
+    "resources": {
+     "food": 4000,
+     "wood": 4000,
+     "stone": 2000,
+     "gold": 2000
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_train_1",
+   "cond": {
+    "type": "counter",
+    "key": "trainTroops",
+    "target": 100
+   },
+   "reward": {
+    "gems": 10,
+    "resources": {
+     "food": 1000,
+     "wood": 1000,
+     "stone": 500,
+     "gold": 500
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_train_2",
+   "cond": {
+    "type": "counter",
+    "key": "trainTroops",
+    "target": 1000
+   },
+   "reward": {
+    "gems": 20,
+    "resources": {
+     "food": 2000,
+     "wood": 2000,
+     "stone": 1000,
+     "gold": 1000
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_train_3",
+   "cond": {
+    "type": "counter",
+    "key": "trainTroops",
+    "target": 10000
+   },
+   "reward": {
+    "gems": 30,
+    "resources": {
+     "food": 3000,
+     "wood": 3000,
+     "stone": 1500,
+     "gold": 1500
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_train_4",
+   "cond": {
+    "type": "counter",
+    "key": "trainTroops",
+    "target": 100000
+   },
+   "reward": {
+    "gems": 40,
+    "resources": {
+     "food": 4000,
+     "wood": 4000,
+     "stone": 2000,
+     "gold": 2000
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_summon_1",
+   "cond": {
+    "type": "counter",
+    "key": "summon",
+    "target": 10
+   },
+   "reward": {
+    "gems": 15,
+    "resources": {
+     "food": 1500,
+     "wood": 1500,
+     "stone": 750,
+     "gold": 750
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_summon_2",
+   "cond": {
+    "type": "counter",
+    "key": "summon",
+    "target": 50
+   },
+   "reward": {
+    "gems": 30,
+    "resources": {
+     "food": 3000,
+     "wood": 3000,
+     "stone": 1500,
+     "gold": 1500
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_summon_3",
+   "cond": {
+    "type": "counter",
+    "key": "summon",
+    "target": 100
+   },
+   "reward": {
+    "gems": 45,
+    "resources": {
+     "food": 4500,
+     "wood": 4500,
+     "stone": 2250,
+     "gold": 2250
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_summon_4",
+   "cond": {
+    "type": "counter",
+    "key": "summon",
+    "target": 500
+   },
+   "reward": {
+    "gems": 60,
+    "resources": {
+     "food": 6000,
+     "wood": 6000,
+     "stone": 3000,
+     "gold": 3000
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_build_1",
+   "cond": {
+    "type": "counter",
+    "key": "build",
+    "target": 10
+   },
+   "reward": {
+    "gems": 10,
+    "resources": {
+     "food": 1000,
+     "wood": 1000,
+     "stone": 500,
+     "gold": 500
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_build_2",
+   "cond": {
+    "type": "counter",
+    "key": "build",
+    "target": 50
+   },
+   "reward": {
+    "gems": 20,
+    "resources": {
+     "food": 2000,
+     "wood": 2000,
+     "stone": 1000,
+     "gold": 1000
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_build_3",
+   "cond": {
+    "type": "counter",
+    "key": "build",
+    "target": 150
+   },
+   "reward": {
+    "gems": 30,
+    "resources": {
+     "food": 3000,
+     "wood": 3000,
+     "stone": 1500,
+     "gold": 1500
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_build_4",
+   "cond": {
+    "type": "counter",
+    "key": "build",
+    "target": 400
+   },
+   "reward": {
+    "gems": 40,
+    "resources": {
+     "food": 4000,
+     "wood": 4000,
+     "stone": 2000,
+     "gold": 2000
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_castle_5",
+   "cond": {
+    "type": "building",
+    "building": "castle",
+    "lv": 5
+   },
+   "reward": {
+    "gems": 30,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_castle_10",
+   "cond": {
+    "type": "building",
+    "building": "castle",
+    "lv": 10
+   },
+   "reward": {
+    "gems": 80,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_castle_15",
+   "cond": {
+    "type": "building",
+    "building": "castle",
+    "lv": 15
+   },
+   "reward": {
+    "gems": 200,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_castle_20",
+   "cond": {
+    "type": "building",
+    "building": "castle",
+    "lv": 20
+   },
+   "reward": {
+    "gems": 500,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_power_1",
+   "cond": {
+    "type": "power",
+    "value": 10000
+   },
+   "reward": {
+    "gems": 30,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_power_2",
+   "cond": {
+    "type": "power",
+    "value": 100000
+   },
+   "reward": {
+    "gems": 100,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {}
+   }
+  },
+  {
+   "id": "ach_power_3",
+   "cond": {
+    "type": "power",
+    "value": 1000000
+   },
+   "reward": {
+    "gems": 300,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {}
+   }
+  }
+ ]
+}

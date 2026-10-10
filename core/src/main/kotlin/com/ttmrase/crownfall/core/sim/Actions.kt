@@ -126,6 +126,9 @@ sealed interface ActionFailure {
     /** 受け取れるものが無い。 */
     data object NothingToClaim : ActionFailure
 
+    /** クエストが見つからない。 */
+    data object QuestNotFound : ActionFailure
+
     /** 行軍の枠が埋まっている。 */
     data object NoMarchSlot : ActionFailure
 
@@ -772,6 +775,23 @@ object Actions {
         state: GameState,
         settings: ShopSettings,
     ): ActionResult = ShopActions.setShopSettings(state, settings)
+
+    /** クエスト [questId]（チャプター / デイリー項目 / 同盟 / 実績）の報酬を受け取る。 */
+    fun claimQuest(
+        state: GameState,
+        questId: String,
+        data: GameData,
+    ): ActionResult = QuestActions.claimQuest(state, questId, data)
+
+    /** デイリー宝箱の段 [tier] を受け取る。 */
+    fun claimDailyChest(
+        state: GameState,
+        tier: Int,
+        data: GameData,
+    ): ActionResult = QuestActions.claimDailyChest(state, tier, data)
+
+    /** ショップ画面を開いた（デイリーの進捗用）。 */
+    fun recordShopOpened(state: GameState): ActionResult = QuestActions.recordShopOpened(state)
 
     /** すべてのメールを既読にする。 */
     fun markAllMailRead(state: GameState): ActionResult = ActionResult.Success(MailBox.markAllRead(state))

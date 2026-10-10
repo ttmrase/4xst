@@ -786,4 +786,5 @@
     <string name="offer_name_piggy_open">Open Piggy Bank</string>
     <string name="offer_name_wheel_extra">Extra Wheel Spin</string>
     <string name="offer_name_shortage">Exact Shortage Pack</string>
+    <string name="failure_quest_not_found">This quest could not be found</string>
 </resources>

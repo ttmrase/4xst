@@ -12,6 +12,7 @@ import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.NewGame
 import com.ttmrase.crownfall.core.sim.OfflineCatchUp
 import com.ttmrase.crownfall.core.sim.OfflineSummary
+import com.ttmrase.crownfall.core.sim.Tracking
 import com.ttmrase.crownfall.core.util.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -150,7 +151,7 @@ class GameSession(
             val current = _state.value ?: return@withLock ActionResult.Failure(ActionFailure.InvalidArgument)
             val result = action(current)
             if (result is ActionResult.Success) {
-                _state.value = result.state
+                _state.value = Tracking.apply(result.state, result.events, data)
                 result.events.forEach { _events.tryEmit(it) }
                 dirty = true
                 maybeSaveLocked()
@@ -194,7 +195,7 @@ class GameSession(
         val now = clock.nowEpochSec()
         if (now <= s.nowEpochSec) return
         val result = OfflineCatchUp.run(s, now, data)
-        _state.value = result.state
+        _state.value = Tracking.apply(result.state, result.events, data)
         result.events.forEach { _events.tryEmit(it) }
         dirty = true
         if (result.summary.elapsedSec >= data.rules.offlineSummaryMinSec) {

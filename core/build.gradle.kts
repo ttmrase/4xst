@@ -56,6 +56,9 @@ kover {
                     "com.ttmrase.crownfall.core.alliance",
                     "com.ttmrase.crownfall.core.chat",
                     "com.ttmrase.crownfall.core.shop",
+                    "com.ttmrase.crownfall.core.quest",
+                    "com.ttmrase.crownfall.core.event",
+                    "com.ttmrase.crownfall.core.notify",
                 )
             }
         }

@@ -199,6 +199,8 @@ data class GameData(
     val offers: OffersFile,
     val shopRules: ShopRules,
     val vip: VipFile,
+    val quests: QuestsFile,
+    val events: EventsFile,
 ) {
     /** 建物種 [type] の定義。 */
     fun building(type: BuildingType): BuildingDef = buildings.getValue(type)

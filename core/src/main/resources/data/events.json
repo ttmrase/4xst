@@ -1,0 +1,175 @@
+{
+ "rotation": [
+  "hunt",
+  "gather",
+  "power"
+ ],
+ "events": [
+  {
+   "id": "hunt",
+   "kind": "HUNT",
+   "par": 30000,
+   "perLevel": 100,
+   "fortMultiplier": 2,
+   "lootPerPoint": 0
+  },
+  {
+   "id": "gather",
+   "kind": "GATHER",
+   "par": 40000,
+   "perLevel": 0,
+   "fortMultiplier": 1,
+   "lootPerPoint": 50
+  },
+  {
+   "id": "power",
+   "kind": "POWER",
+   "par": 50000,
+   "perLevel": 0,
+   "fortMultiplier": 1,
+   "lootPerPoint": 0
+  }
+ ],
+ "npcs": [
+  {
+   "name": "Aurelia",
+   "alliance": "Silver Hawks"
+  },
+  {
+   "name": "Borys",
+   "alliance": "Iron Wolves"
+  },
+  {
+   "name": "Cassian",
+   "alliance": "Dawn Legion"
+  },
+  {
+   "name": "Dagny",
+   "alliance": "Frost Vale"
+  },
+  {
+   "name": "Elric",
+   "alliance": "Ember Crown"
+  },
+  {
+   "name": "Freya",
+   "alliance": "Storm Reach"
+  },
+  {
+   "name": "Gideon",
+   "alliance": "Gold Lions"
+  },
+  {
+   "name": "Hana",
+   "alliance": "Jade Order"
+  },
+  {
+   "name": "Ivo",
+   "alliance": "Night Owls"
+  },
+  {
+   "name": "Jora",
+   "alliance": "Red Bastion"
+  }
+ ],
+ "leaders": {
+  "min": 1,
+  "max": 3,
+  "followMinPermille": 30,
+  "followMaxPermille": 120,
+  "parMinPermille": 850,
+  "parMaxPermille": 1000
+ },
+ "followers": {
+  "parMinPermille": 200,
+  "parMaxPermille": 800
+ },
+ "warnBeforeEndSec": 86400,
+ "bonusMarginPermille": 20,
+ "rewards": [
+  {
+   "from": 1,
+   "to": 1,
+   "reward": {
+    "gems": 300,
+    "resources": {
+     "food": 30000,
+     "wood": 30000,
+     "stone": 15000,
+     "gold": 15000
+    },
+    "items": {
+     "speedup_general_3h": 3,
+     "summon_ticket_premium": 1
+    }
+   }
+  },
+  {
+   "from": 2,
+   "to": 2,
+   "reward": {
+    "gems": 200,
+    "resources": {
+     "food": 20000,
+     "wood": 20000,
+     "stone": 10000,
+     "gold": 10000
+    },
+    "items": {
+     "speedup_general_3h": 2
+    }
+   }
+  },
+  {
+   "from": 3,
+   "to": 3,
+   "reward": {
+    "gems": 150,
+    "resources": {
+     "food": 15000,
+     "wood": 15000,
+     "stone": 7500,
+     "gold": 7500
+    },
+    "items": {
+     "speedup_general_60m": 3
+    }
+   }
+  },
+  {
+   "from": 4,
+   "to": 6,
+   "reward": {
+    "gems": 80,
+    "resources": {
+     "food": 8000,
+     "wood": 8000,
+     "stone": 4000,
+     "gold": 4000
+    },
+    "items": {
+     "speedup_general_60m": 2
+    }
+   }
+  },
+  {
+   "from": 7,
+   "to": 11,
+   "reward": {
+    "gems": 40,
+    "resources": {
+     "food": 4000,
+     "wood": 4000,
+     "stone": 2000,
+     "gold": 2000
+    },
+    "items": {
+     "speedup_general_15m": 3
+    }
+   }
+  }
+ ],
+ "participation": {
+  "minScore": 1
+ }
+}

@@ -18,6 +18,8 @@ object ClasspathDataSource {
             GameDataLoader.OFFERS,
             GameDataLoader.SHOP_RULES,
             GameDataLoader.VIP,
+            GameDataLoader.QUESTS,
+            GameDataLoader.EVENTS,
         )
 
     /** 全データファイルを「ファイル名 → 本文」で読む。 */

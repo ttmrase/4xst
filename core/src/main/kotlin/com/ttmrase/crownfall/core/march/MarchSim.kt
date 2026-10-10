@@ -213,6 +213,7 @@ internal object MarchSim {
             loot = capLoot(bonus, Marching.capacity(s, m.troops, m.heroIds, data))
         }
         if (out.attackerWon) {
+            events.add(GameEvent.HuntWon(isFort, level))
             val rng = SeededRandom(s.rngState)
             val (res, drops) = Armies.loot(level, if (isFort) rules.loot.fortMultiplier else 1L, data, rng)
             s = s.copy(rngState = rng.state)
@@ -295,6 +296,9 @@ internal object MarchSim {
             val t = ResourceType.entries.first { m.loot[it] > 0 }
             val params = mapOf("type" to t.ordinal.toLong(), "amount" to m.loot[t])
             s = MailBox.system(s, m.phaseEndEpochSec, "gather_done", params, events)
+        }
+        if (m.kind == MarchKind.GATHER) {
+            events.add(GameEvent.GatherCompleted(m.loot.food + m.loot.wood + m.loot.stone + m.loot.gold))
         }
         events.add(GameEvent.MarchReturned(m.id, m.kind))
         return Simulation.syncStorageFlags(s, data)

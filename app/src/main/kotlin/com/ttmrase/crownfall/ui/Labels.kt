@@ -258,6 +258,7 @@ fun failureMessage(
         ActionFailure.QuizAlreadyAnswered -> context.getString(R.string.failure_quiz_answered)
         ActionFailure.ChannelNotWritable -> context.getString(R.string.failure_channel_not_writable)
         ActionFailure.OfferUnavailable -> context.getString(R.string.failure_offer_unavailable)
+        ActionFailure.QuestNotFound -> context.getString(R.string.failure_quest_not_found)
         ActionFailure.SoldOut -> context.getString(R.string.failure_sold_out)
         ActionFailure.AlreadyOwned -> context.getString(R.string.failure_already_owned)
         ActionFailure.AlreadyClaimed -> context.getString(R.string.failure_already_claimed)
@@ -299,6 +300,13 @@ fun eventMessage(
         is GameEvent.TimerCompleted,
         is GameEvent.BoostExpired,
         is GameEvent.HeroSummoned,
+        is GameEvent.HelpGiven,
+        is GameEvent.Donated,
+        is GameEvent.RallyJoined,
+        is GameEvent.ChatPosted,
+        is GameEvent.ShopOpened,
+        is GameEvent.HuntWon,
+        is GameEvent.GatherCompleted,
         -> null
     }
 

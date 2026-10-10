@@ -786,4 +786,5 @@
     <string name="offer_name_piggy_open">ピギーバンク開封</string>
     <string name="offer_name_wheel_extra">ホイール追加 1 回</string>
     <string name="offer_name_shortage">不足分ちょうどパック</string>
+    <string name="failure_quest_not_found">この項目は見つかりません</string>
 </resources>

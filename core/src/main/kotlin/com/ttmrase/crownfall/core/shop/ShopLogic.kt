@@ -71,6 +71,9 @@ object ShopLogic {
             for ((id, n) in c.heroShards) shards[id] = minOf(MAX_ITEM.toLong(), (shards[id] ?: 0).toLong() + n).toInt()
             s = s.copy(heroShards = shards)
         }
+        if (c.eventPoints > 0 && s.event.weekId >= 0) {
+            s = s.copy(event = s.event.copy(bonusScore = satAdd(s.event.bonusScore, c.eventPoints)))
+        }
         if (c.secondBuilderDays > 0) {
             val base = maxOf(s.secondBuilderUntilEpochSec, s.nowEpochSec)
             s = s.copy(secondBuilderUntilEpochSec = satAdd(base, c.secondBuilderDays * SECONDS_PER_DAY))

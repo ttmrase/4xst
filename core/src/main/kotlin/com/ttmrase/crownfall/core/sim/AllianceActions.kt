@@ -97,6 +97,7 @@ internal object AllianceActions {
         val preferred = taken.filter { it.isPersona }.map { it.member }
         return ActionResult.Success(
             AllianceLogic.enqueueReactive(s, ChatEvent.PlayerHelped(taken.size), preferred, data),
+            listOf(GameEvent.HelpGiven(taken.size)),
         )
     }
 
@@ -187,7 +188,7 @@ internal object AllianceActions {
         s = AllianceLogic.addFavor(s, LEADER, rules.favor, data)
         s = AllianceLogic.logged(s, LogKind.DONATED, LEADER, unit, data)
         s = AllianceLogic.enqueueReactive(s, ChatEvent.PlayerDonated(unit, techId), listOf(LEADER, ANALYST), data)
-        return ActionResult.Success(Simulation.syncStorageFlags(s, data))
+        return ActionResult.Success(Simulation.syncStorageFlags(s, data), listOf(GameEvent.Donated(unit)))
     }
 
     fun buyShop(
@@ -258,7 +259,7 @@ internal object AllianceActions {
         if (result !is ActionResult.Success) return result
         val s = result.state
         val rest = s.alliance.copy(rallies = s.alliance.rallies.filter { it.id != rallyId })
-        return ActionResult.Success(s.copy(alliance = rest), result.events)
+        return ActionResult.Success(s.copy(alliance = rest), result.events + GameEvent.RallyJoined)
     }
 
     fun submitFreeText(
@@ -289,7 +290,7 @@ internal object AllianceActions {
                 )
             s = s.copy(alliance = queued)
         }
-        return ActionResult.Success(s)
+        return ActionResult.Success(s, listOf(GameEvent.ChatPosted))
     }
 
     private fun addMessage(

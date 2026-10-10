@@ -176,6 +176,8 @@ object GameDataLoader {
     const val OFFERS = "offers.json"
     const val SHOP_RULES = "shop_rules.json"
     const val VIP = "vip.json"
+    const val QUESTS = "quests.json"
+    const val EVENTS = "events.json"
 
     private const val STARTER_HERO_COUNT = 3
     private const val TROOP_TIERS = 4
@@ -204,6 +206,8 @@ object GameDataLoader {
         val offers = decode<OffersFile>(jsonByName, OFFERS)
         val shopRules = decode<ShopRules>(jsonByName, SHOP_RULES)
         val vip = decode<VipFile>(jsonByName, VIP)
+        val quests = decode<QuestsFile>(jsonByName, QUESTS)
+        val events = decode<EventsFile>(jsonByName, EVENTS)
         val defs = buildBuildings(buildings)
         val itemDefs = buildItems(items)
         val heroDefs = buildHeroes(heroesFile, itemDefs)
@@ -223,9 +227,12 @@ object GameDataLoader {
             offers = offers,
             shopRules = shopRules,
             vip = vip,
+            quests = quests,
+            events = events,
         ).also {
             AllianceValidator.validate(it)
             ShopValidator.validate(it)
+            QuestValidator.validate(it)
         }
     }
 

@@ -2,6 +2,7 @@ package com.ttmrase.crownfall.core.march
 
 import com.ttmrase.crownfall.core.alliance.AllianceScheduler
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.event.EventScheduler
 import com.ttmrase.crownfall.core.map.MapRefresher
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
@@ -22,7 +23,8 @@ object WorldSim {
         s = MarchSim.settle(s, data, events)
         s = refresh(s, data)
         s = Raids.settle(s, data, events)
-        return AllianceScheduler.settle(s, data, events)
+        s = AllianceScheduler.settle(s, data, events)
+        return EventScheduler.settle(s, data, events)
     }
 
     /** 次の境界（行軍の段階終了、補充、襲撃の予告 / 本番）。 */
@@ -30,7 +32,12 @@ object WorldSim {
         state: GameState,
         data: GameData,
     ): Long {
-        var next = minOf(Raids.nextBoundary(state, data), AllianceScheduler.nextGrid(state.nowEpochSec))
+        var next =
+            minOf(
+                Raids.nextBoundary(state, data),
+                AllianceScheduler.nextGrid(state.nowEpochSec),
+                EventScheduler.nextBoundary(state, data),
+            )
         for (m in state.marches) if (m.phaseEndEpochSec > state.nowEpochSec) next = minOf(next, m.phaseEndEpochSec)
         val r = state.map.nextRefreshEpochSec
         if (r > state.nowEpochSec && hasDeficit(state, data)) next = minOf(next, r)

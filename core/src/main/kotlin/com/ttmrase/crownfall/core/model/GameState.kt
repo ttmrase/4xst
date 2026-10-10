@@ -41,6 +41,8 @@ data class GameState(
     val alliance: AllianceState = AllianceState(),
     val settings: Settings = Settings(),
     val shop: ShopState = ShopState(),
+    val quest: QuestState = QuestState(),
+    val event: EventState = EventState(),
 )
 
 /** tick / アクションが出すイベント（UI・通知・チャットへの入力）。 */
@@ -109,6 +111,27 @@ sealed interface GameEvent {
         val orderA: Int,
         val orderB: Int,
     ) : GameEvent
+
+    /** プレイヤーが同盟メンバーのタイマー [count] 件にヘルプした。 */
+    data class HelpGiven(val count: Int) : GameEvent
+
+    /** 同盟テックに寄付した（[amount] は寄付した量）。 */
+    data class Donated(val amount: Long) : GameEvent
+
+    /** AI 主催のラリーに参加した。 */
+    data object RallyJoined : GameEvent
+
+    /** 同盟 / DM チャットに書き込んだ。 */
+    data object ChatPosted : GameEvent
+
+    /** ショップ画面を開いた。 */
+    data object ShopOpened : GameEvent
+
+    /** 野蛮人 / 砦との戦いに勝った（[fort] なら砦、[level] はその Lv）。 */
+    data class HuntWon(val fort: Boolean, val level: Int) : GameEvent
+
+    /** 採集隊が戻った（[loot] は持ち帰った資源の合計）。 */
+    data class GatherCompleted(val loot: Long) : GameEvent
 
     /** VIP が [lv] に上がった。 */
     data class VipLevelUp(val lv: Int) : GameEvent

@@ -12,12 +12,14 @@ data class PackContents(
     val items: Map<String, Int> = emptyMap(),
     val heroShards: Map<String, Int> = emptyMap(),
     val secondBuilderDays: Int = 0,
+    /** 週替わりイベントのボーナススコア（逆転パック。NPC の追従計算には入らない）。 */
+    val eventPoints: Long = 0,
 ) {
     /** 何も入っていないか。 */
     val isEmpty: Boolean
         get() =
             gems == 0L && resources == Resources.ZERO && items.isEmpty() && heroShards.isEmpty() &&
-                secondBuilderDays == 0
+                secondBuilderDays == 0 && eventPoints == 0L
 }
 
 /** パックのバッジ（04 §4）。 */
