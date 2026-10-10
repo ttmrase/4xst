@@ -19,6 +19,7 @@ import com.ttmrase.crownfall.core.sim.ActionFailure
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.sim.OfflineCatchUp
 import com.ttmrase.crownfall.core.sim.Simulation
+import com.ttmrase.crownfall.core.sim.SplitInvariance
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -678,5 +679,46 @@ class MarchTest {
         val back = MarchViews.position(m.copy(phase = MarchPhase.RETURNING), m.phaseEndEpochSec, data)
         assertEquals(c.x.toFloat() to c.y.toFloat(), back)
         assertEquals(1f, MarchViews.progress(m.copy(phaseEndEpochSec = m.phaseStartEpochSec), 5))
+    }
+
+    @Test
+    fun splitInvarianceAtEveryMarchRefreshAndRaidBoundary() {
+        var s =
+            TestSupport.withLevel(
+                TestSupport.withLevel(base(), BuildingType.WATCHTOWER, 5),
+                BuildingType.HOSPITAL,
+                5,
+            )
+        s = s.copy(map = s.map.copy(nextRaidEpochSec = s.nowEpochSec + 4_000))
+        val node = nearestNode(s)
+        val b = nearestBarb(s)
+        val f = fort(s)
+        s = send(s, MarchKind.GATHER, TileRef(node.x, node.y), mapOf("infantry_t1" to 300L)).ok()
+        s = send(s, MarchKind.ATTACK, TileRef(b.x, b.y), mapOf("infantry_t2" to 800L, "archer_t2" to 800L)).ok()
+        s = send(s, MarchKind.RALLY, TileRef(f.x, f.y), mapOf("infantry_t2" to 900L, "archer_t2" to 900L)).ok()
+        val whole = tick(s, 30_000)
+        // 各行軍の段階終了を実際に踏んだ時刻（完了イベントや状態変化の境界）を集める
+        val t0 = s.nowEpochSec
+        val extra = ArrayList<Long>()
+        var cur = s
+        var guard = 0
+        while (cur.nowEpochSec < t0 + 30_000 && guard++ < 200) {
+            val next =
+                (cur.marches.map { it.phaseEndEpochSec } + cur.map.nextRefreshEpochSec + cur.map.nextRaidEpochSec)
+                    .filter { it > cur.nowEpochSec && it <= t0 + 30_000 }
+                    .minOrNull() ?: break
+            extra += next - t0
+            cur = tick(cur, next - cur.nowEpochSec).state
+        }
+        assertTrue(extra.size >= 6, "boundaries visited: $extra")
+        assertTrue(whole.events.isNotEmpty())
+        SplitInvariance.assertInvariant(
+            s,
+            30_000,
+            data,
+            java.util.Random(99),
+            randomCases = 30,
+            extraBoundaries = extra,
+        )
     }
 }
