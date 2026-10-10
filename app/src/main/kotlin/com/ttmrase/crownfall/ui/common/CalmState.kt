@@ -36,6 +36,7 @@ fun GameSession.calmStateFlow(periodMs: Long = CALM_PERIOD_MS): Flow<GameState?>
     }
 
 /** [calmStateFlow] を Compose の State として購読する。 */
+@Suppress("StateFlowValueCalledInComposition")
 @Composable
 fun GameSession.collectCalmState(periodMs: Long = CALM_PERIOD_MS): State<GameState?> {
     val session = this
@@ -47,6 +48,7 @@ fun GameSession.collectCalmState(periodMs: Long = CALM_PERIOD_MS): State<GameSta
 val LocalClock = compositionLocalOf<State<Long>?> { null }
 
 /** NavHost で 1 度だけ作る時刻の State。 */
+@Suppress("StateFlowValueCalledInComposition")
 @Composable
 fun GameSession.collectClock(): State<Long> {
     val session = this
