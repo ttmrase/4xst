@@ -8,6 +8,7 @@ import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.HeroState
 import com.ttmrase.crownfall.core.model.ResourceType
+import com.ttmrase.crownfall.core.notify.NotificationPlanner
 import com.ttmrase.crownfall.core.ok
 import com.ttmrase.crownfall.core.save.SaveCodec
 import com.ttmrase.crownfall.core.save.SaveGame
@@ -128,5 +129,16 @@ class PerformanceBenchTest {
             encodeMs.min() < 500 && decodeMs.min() < 500,
             "encode ${encodeMs.min()} / decode ${decodeMs.min()} ms",
         )
+    }
+
+    @Test
+    fun lookaheadOf48HoursIsFast() {
+        val s = lateGame()
+        repeat(3) { NotificationPlanner.lookahead(s, data, 48 * 3600L) }
+        val ms = List(7) { nanos { NotificationPlanner.lookahead(s, data, 48 * 3600L) } / 1_000_000.0 }
+        println(
+            "BENCH lookahead 48h: best=%.1f ms, all=%s ms (target < 300 ms)".format(ms.min(), ms.map { it.toLong() }),
+        )
+        assertTrue(ms.min() < 300, "48h lookahead best is ${ms.min()} ms")
     }
 }
