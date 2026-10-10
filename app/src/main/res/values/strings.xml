@@ -552,7 +552,7 @@
     <string name="settings_api_key">API キー</string>
     <string name="settings_api_key_optional">API キー（不要なら空）</string>
     <string name="settings_model">モデル名</string>
-    <string name="settings_gemini_model_hint">既定：%1$s（プレビュー版。変更可）</string>
+    <string name="settings_gemini_model_hint">既定：%1$s（正式版。変更可）</string>
     <string name="settings_base_url">ベース URL（/v1 まで）</string>
     <string name="settings_base_url_hint">例：https://api.groq.com/openai/v1　http は LAN 内のみ</string>
     <string name="settings_url_rejected">http は LAN / localhost / *.local のみ使えます</string>

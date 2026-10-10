@@ -552,7 +552,7 @@
     <string name="settings_api_key">API key</string>
     <string name="settings_api_key_optional">API key (empty if not needed)</string>
     <string name="settings_model">Model name</string>
-    <string name="settings_gemini_model_hint">Default: %1$s (preview; changeable)</string>
+    <string name="settings_gemini_model_hint">Default: %1$s (stable; changeable)</string>
     <string name="settings_base_url">Base URL (up to /v1)</string>
     <string name="settings_base_url_hint">e.g. https://api.groq.com/openai/v1  (http only on LAN)</string>
     <string name="settings_url_rejected">http is allowed only for LAN / localhost / *.local</string>
