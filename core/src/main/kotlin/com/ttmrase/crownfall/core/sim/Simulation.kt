@@ -42,8 +42,13 @@ object Simulation {
         val events = ArrayList<GameEvent>()
         val target = satAdd(state.nowEpochSec, dtSec)
         var s = state
+        var tracked = 0
         while (true) {
             s = settleDue(s, data, events)
+            // クエスト / イベントの集計は、その時刻に生じたイベントを境界処理（週・日の切替）の前後で正しい側に数える
+            // ため、時刻ごとにここで行う（呼び出し側で束ねて数えない）。
+            s = Tracking.apply(s, events.subList(tracked, events.size), data)
+            tracked = events.size
             if (s.nowEpochSec >= target) break
             val segEnd = minOf(target, nextBoundary(s, data))
             s = produce(s, segEnd - s.nowEpochSec, data, events)

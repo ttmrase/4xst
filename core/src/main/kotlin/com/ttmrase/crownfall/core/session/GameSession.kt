@@ -157,7 +157,8 @@ class GameSession(
             val current = _state.value ?: return@withLock ActionResult.Failure(ActionFailure.InvalidArgument)
             val result = action(current)
             if (result is ActionResult.Success) {
-                _state.value = Tracking.apply(result.state, result.events, data)
+                _state.value =
+                    if (result.tracked) result.state else Tracking.apply(result.state, result.events, data)
                 _revision.value++
                 result.events.forEach { _events.tryEmit(it) }
                 dirty = true
@@ -202,7 +203,7 @@ class GameSession(
         val now = clock.nowEpochSec()
         if (now <= s.nowEpochSec) return
         val result = OfflineCatchUp.run(s, now, data)
-        _state.value = Tracking.apply(result.state, result.events, data)
+        _state.value = result.state
         result.events.forEach { _events.tryEmit(it) }
         dirty = true
         if (result.summary.elapsedSec >= data.rules.offlineSummaryMinSec) {

@@ -207,4 +207,43 @@ class EventTest {
             assertEquals(1L, rank, "seed $seed result")
         }
     }
+
+    @Test
+    fun gatherFinishedBeforeWeekEndIsScoredInThatWeekEvenWhenClosed() {
+        var gw = week
+        while (WeeklyEvents.definition(gw, data).kind != "GATHER") gw++
+        val wStart = WeeklyEvents.weekStart(gw, 0)
+        val end = wStart + WeeklyEvents.WEEK_SEC
+        val base0 = game(seed = 2, at = wStart + 3600)
+        val base = Simulation.tick(base0, 60, data).state
+        val march =
+            com.ttmrase.crownfall.core.march.March(
+                1,
+                com.ttmrase.crownfall.core.march.MarchKind.GATHER,
+                mapOf("infantry_t1" to 10L),
+                target = com.ttmrase.crownfall.core.map.TileRef(1, 1),
+                phase = com.ttmrase.crownfall.core.march.MarchPhase.RETURNING,
+                phaseStartEpochSec = end - 7200,
+                phaseEndEpochSec = end - 3600,
+                travelSec = 3600,
+                loot = com.ttmrase.crownfall.core.model.Resources(1_000_000, 0, 0, 0),
+            )
+        val from = at(base, end - 7200)
+        val s = from.copy(marches = listOf(march), event = from.event.copy(weekId = gw, selfScore = 30_000))
+        val to = end + 3600
+        val closed = com.ttmrase.crownfall.core.sim.OfflineCatchUp.run(s, to, data).state
+        var open = s
+        var t = s.nowEpochSec
+        while (t < to) {
+            val step = minOf(60L, to - t)
+            open = com.ttmrase.crownfall.core.sim.OfflineCatchUp.run(open, t + step, data).state
+            t += step
+        }
+        val a = closed.mails.filter { it.systemCode == "event_result" }.map { it.params }
+        val b = open.mails.filter { it.systemCode == "event_result" }.map { it.params }
+        assertEquals(1, a.size)
+        assertEquals(b, a)
+        assertTrue((a[0]["score"] ?: 0) > 30_000) // 採集ぶんが先週のスコアに入っている
+        assertEquals(open.event, closed.event)
+    }
 }

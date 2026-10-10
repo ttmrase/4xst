@@ -253,7 +253,7 @@ class QuestTest {
                 nextJobId = 3,
             )
         val whole = Simulation.tick(s, 2000, data)
-        val wholeTracked = Tracking.apply(whole.state, whole.events, data)
+        val wholeTracked = whole.state
         var cur = s
         var events = emptyList<GameEvent>()
         for (dt in listOf(299L, 2L, 598L, 1L, 600L, 500L)) {
@@ -261,8 +261,34 @@ class QuestTest {
             cur = r.state
             events = events + r.events
         }
-        val splitTracked = Tracking.apply(cur, events, data)
+        val splitTracked = cur
         assertEquals(wholeTracked.quest, splitTracked.quest)
         assertEquals(2L, splitTracked.quest.counters["build"])
+    }
+
+    @Test
+    fun yesterdaysEventsAreCountedYesterdayEvenWhenTheAppWasClosed() {
+        // 現地 22:00 に完了する建設。翌日 01:00 まで、(A) 1 回の catch-up、(B) 60 秒刻み で同じ結果になる
+        val start = 20_000L * day + 20 * 3600
+        val s0 = TestSupport.advanced(level = 3, castle = 3, now = start).copy(resources = TestSupport.RICH)
+        val farm = s0.slots.first { it.type == BuildingType.FARM }.slotId
+        val s =
+            s0.copy(
+                map = s0.map.copy(nextRaidEpochSec = Long.MAX_VALUE / 4),
+                timers = listOf(TimerJob(1, TimerKind.BUILD, farm, 4, start, start + 2 * 3600)),
+                nextJobId = 2,
+            )
+        val to = start + 5 * 3600
+        val closed = com.ttmrase.crownfall.core.sim.OfflineCatchUp.run(s, to, data).state
+        var open = s
+        var t = start
+        while (t < to) {
+            val step = minOf(60L, to - t)
+            open = com.ttmrase.crownfall.core.sim.OfflineCatchUp.run(open, t + step, data).state
+            t += step
+        }
+        assertEquals(open.quest, closed.quest)
+        assertEquals(1L, closed.quest.counters["build"])
+        assertTrue(QuestLogic.view(closed).dailyCounts.isEmpty()) // 日付が変わった後なので今日の分は 0
     }
 }

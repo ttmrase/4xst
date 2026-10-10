@@ -156,7 +156,15 @@ sealed interface ActionFailure {
 
 /** アクション結果。例外は投げず、成功か失敗かで返す。 */
 sealed interface ActionResult {
-    data class Success(val state: GameState, val events: List<GameEvent> = emptyList()) : ActionResult
+    /**
+     * [tracked] が true なら [events] は tick の中でクエスト / イベントの集計済み（`Simulation.tick` を通ったもの）で、
+     * 呼び出し側で再び数えない。
+     */
+    data class Success(
+        val state: GameState,
+        val events: List<GameEvent> = emptyList(),
+        val tracked: Boolean = false,
+    ) : ActionResult
 
     data class Failure(val reason: ActionFailure) : ActionResult
 }
@@ -539,7 +547,7 @@ object Actions {
                 timers = state.timers.map { if (it.id == jobId) it.copy(endEpochSec = newEnd) else it },
             )
         val settled = Simulation.tick(next, 0, data)
-        return ActionResult.Success(settled.state, settled.events)
+        return ActionResult.Success(settled.state, settled.events, tracked = true)
     }
 
     /** ジェムでタイマー [jobId] を即時完了させる。足りなければ [ActionFailure.NotEnoughGems]。 */
@@ -562,7 +570,7 @@ object Actions {
                 timers = state.timers.map { if (it.id == jobId) it.copy(endEpochSec = state.nowEpochSec) else it },
             )
         val settled = Simulation.tick(next, 0, data)
-        return ActionResult.Success(settled.state, settled.events)
+        return ActionResult.Success(settled.state, settled.events, tracked = true)
     }
 
     /** [kind] の行軍を [target] へ出す（兵は城から外れる）。 */
