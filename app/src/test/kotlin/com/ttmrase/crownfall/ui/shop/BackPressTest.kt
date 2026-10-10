@@ -158,7 +158,8 @@ class BackPressTest {
         rule.mainClock.autoAdvance = false
         rule.onNodeWithText(context.getString(R.string.billing_one_tap)).performClick()
         rule.mainClock.advanceTimeBy(300)
-        rule.onNodeWithText(context.getString(R.string.billing_processing)).assertExists()
+        // 通常は「処理中…」、10% は「確認しています…」。どちらでも出る注意書きで判定する
+        rule.onNodeWithText(context.getString(R.string.billing_do_not_close)).assertExists()
         Espresso.pressBack()
         rule.mainClock.advanceTimeBy(300)
         assertFalse("processing must not be cancelled by back", closed)
