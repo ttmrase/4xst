@@ -1,6 +1,10 @@
 package com.ttmrase.crownfall.ui.shop
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -130,6 +134,15 @@ class BackPressTest {
         assertFalse("no popup right after closing", popupShown())
     }
 
+    /** 画面に出ている文字（ダイアログ/シートの root を含む）。失敗時に状況が分かるようにする。 */
+    private fun shownTexts(): String =
+        rule.onAllNodes(isRoot()).fetchSemanticsNodes().joinToString(" | ") { textsOf(it) }
+
+    private fun textsOf(node: SemanticsNode): String {
+        val own = node.config.getOrNull(SemanticsProperties.Text)?.joinToString { it.text }.orEmpty()
+        return (listOf(own) + node.children.map { textsOf(it) }).filter { it.isNotEmpty() }.joinToString(" ")
+    }
+
     private fun billing(onClosed: () -> Unit) {
         val sku = data.offers.gemSkus.first().sku
         rule.setContent {
@@ -157,9 +170,14 @@ class BackPressTest {
         billing { closed = true }
         rule.mainClock.autoAdvance = false
         rule.onNodeWithText(context.getString(R.string.billing_one_tap)).performClick()
+        repeat(5) { rule.mainClock.advanceTimeByFrame() }
         rule.mainClock.advanceTimeBy(300)
         // 通常は「処理中…」、10% は「確認しています…」。どちらでも出る注意書きで判定する
-        rule.onNodeWithText(context.getString(R.string.billing_do_not_close)).assertExists()
+        val shown = shownTexts()
+        assertTrue(
+            "processing notice missing; closed=$closed shown=[$shown]",
+            shown.contains(context.getString(R.string.billing_do_not_close)),
+        )
         Espresso.pressBack()
         rule.mainClock.advanceTimeBy(300)
         assertFalse("processing must not be cancelled by back", closed)
