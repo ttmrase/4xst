@@ -169,6 +169,7 @@ jobs:
   - 不在サマリーはロード時だけでなく、前景に戻ったとき（ON_START）にも経過が 300 秒以上なら出す。
   - TooNew を検出したら、`newGame` は呼べない（例外を投げる。UI 側でもボタンを出さない）。
   - オファー誘導のフックは、構図のたびではなく、ユーザーが操作したときに 1 回だけ呼ぶ（M2 REVIEW）。
+  - 保存に失敗しても（容量不足など）セッションは落とさない。dirty のまま残して次の間隔で再試行する。時計が巻き戻ったときは即保存する（M2 QA 46cdc42）。
 
 ## 9. 軍事・研究・英雄の設計（M3 で Director が決定）
 - **バフは加算で集約する**: `core.buff.BuffAggregator` が、すべての出所（研究・Boost・将来の VIP や同盟テック）の bp を BuffKey ごとに加算し、対象の値に 1 回だけ掛ける。全体用（例 PRODUCTION_ALL）と個別用（例 PRODUCTION_FOOD）も加算する。乗算の連鎖はしない。速度系は `base*10000/(10000+Σbp)`（切り上げ、最小 1 秒）。
@@ -178,5 +179,5 @@ jobs:
 - 召喚: PREMIUM は SSR 2% / SR 13% / R 35% / N 50%、天井 100（SSR が出たら 0 に戻す）、10 連は SR 以上を 1 枠保証。NORMAL は SSR なし。乱数は rngState を使い、使用後に書き戻す。
 - 初期英雄は NewGame で付与する。M2 のセーブは、load の後に `HeroBootstrap.ensureStarter`（冪等）で補完する。
 - GameState と TimerJob への追加は、すべてデフォルト値付き（版は上げない）。
-- kover の対象パッケージ: sim / economy / military / research / hero / buff（各 80%）。
+- kover の対象パッケージ: sim / economy / military / research / hero / buff / session（各 80%）。
 

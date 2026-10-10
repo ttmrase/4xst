@@ -35,7 +35,7 @@ DoD: コンテナでテスト緑、CI で APK 生成確認（Debugger が `actio
 テスト: 決定論（同 seed 同結果）、オーバーフロー（Long 範囲）、24h catch-up、タイマー境界、migration no-op。
 DoD: `sim` `economy` の kover 行カバレッジ 80% 以上。
 
-## M2 城内 UI — 実装済み・Director Approve 2026-10-10（HEAD 7a3dcd4、CI run 38030769719。QA と要修正 1 件の待ち。設計は 02 §8）
+## M2 城内 UI — ✅ 完了 2026-10-10（HEAD 7a3dcd4 と修正 b22934e / 4924700 / 705ad2c、QA 46cdc42。CI run 38030769719。設計は 02 §8）
 | ID | 内容 |
 | --- | --- |
 | T2.1 | `GameRepository`（StateFlow、1 秒 tick、reduce）、`SaveStore`（アトミック保存・bak・debounce・onStop） |
