@@ -57,6 +57,7 @@ fun SpeedupDialog(
     onUseItem: (itemId: String, count: Int) -> Unit,
     onGemSkip: () -> Unit,
     onDismiss: () -> Unit,
+    onRequestHelp: () -> Unit = {},
 ) {
     val job = state.timers.firstOrNull { it.id == jobId }
     LaunchedEffect(job == null) {
@@ -118,6 +119,18 @@ fun SpeedupDialog(
                     }
                 }
                 HorizontalDivider()
+                if (job.kind == com.ttmrase.crownfall.core.model.TimerKind.HEAL) {
+                    // 治療はヘルプの対象外
+                } else if (job.helpRequested) {
+                    Text(
+                        stringResource(R.string.speedup_help_requested, job.helpCount),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                } else {
+                    OutlinedButton(onClick = onRequestHelp, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.speedup_ask_help))
+                    }
+                }
                 Button(onClick = { confirmGems = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         stringResource(R.string.speedup_gems) + "  " +
@@ -188,5 +201,13 @@ fun SpeedupHost(
         },
         onGemSkip = { scope.launch { handle(session.dispatch { Actions.gemSkip(it, jobId, data) }) } },
         onDismiss = onDismiss,
+        onRequestHelp = {
+            scope.launch {
+                val result = session.dispatch { Actions.requestHelp(it, jobId) }
+                if (result is ActionResult.Failure) {
+                    snackbarHostState.showReplacing(failureMessage(context, result.reason))
+                }
+            }
+        },
     )
 }

@@ -25,7 +25,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -61,7 +60,6 @@ import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.navigation.Screen
 import com.ttmrase.crownfall.offers.OfferHooks
-import com.ttmrase.crownfall.ui.eventMessage
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.researchNodeName
@@ -89,14 +87,6 @@ fun CityScreen(
     var sheetSlotId by rememberSaveable { mutableStateOf<Int?>(null) }
     var speedupJobId by rememberSaveable { mutableStateOf<Long?>(null) }
     var healOpen by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(session) {
-        session.events.collect { event ->
-            val message = eventMessage(context, event) ?: return@collect
-            snackbarHostState.currentSnackbarData?.dismiss()
-            launch { snackbarHostState.showSnackbar(message) }
-        }
-    }
 
     val s = state ?: return
 

@@ -402,6 +402,19 @@ class AllianceActionsTest {
     // ───── チャットの書き戻し・自由入力・クイズ ─────
 
     @Test
+    fun appendChatKeepsPendingUntilDoneAndUsesGivenTime() {
+        var s = at21()
+        s = queued(s, ChatEvent.DailyGreeting, "kaede")
+        val id = s.alliance.pendingChat.single().id
+        val a = Actions.appendChat(s, id, listOf(SpokenText("kaede", "一行目")), data, done = false, at = 777L).ok()
+        assertEquals(1, a.alliance.pendingChat.size)
+        assertEquals(777L, a.alliance.history.getValue(ChatKeys.ALLIANCE).single().epochSec)
+        val b = Actions.appendChat(a, id, listOf(SpokenText("kaede", "二行目")), data, done = true, at = 780L).ok()
+        assertTrue(b.alliance.pendingChat.isEmpty())
+        assertEquals(listOf("一行目", "二行目"), b.alliance.history.getValue(ChatKeys.ALLIANCE).map { it.text })
+    }
+
+    @Test
     fun appendChatMovesPendingIntoHistoryAndKeepsTheCap() {
         var s = at21()
         s = queued(s, ChatEvent.DailyGreeting, "kaede")

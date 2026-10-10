@@ -55,8 +55,6 @@ import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
-import com.ttmrase.crownfall.ui.common.showReplacing
-import com.ttmrase.crownfall.ui.eventMessage
 import com.ttmrase.crownfall.ui.failureMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -96,13 +94,6 @@ fun MapScreen(
     onOpenMail: () -> Unit,
 ) {
     val state by session.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    LaunchedEffect(session) {
-        session.events.collect { event ->
-            val message = eventMessage(context, event) ?: return@collect
-            launch { snackbarHostState.showReplacing(message) }
-        }
-    }
     val s = state ?: return
     val seed = s.map.seed
     val world by produceState<WorldMap?>(initialValue = null, key1 = seed) {

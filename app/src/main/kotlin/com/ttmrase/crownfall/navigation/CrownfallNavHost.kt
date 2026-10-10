@@ -2,6 +2,8 @@ package com.ttmrase.crownfall.navigation
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -10,9 +12,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -22,31 +26,56 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.ttmrase.crownfall.ai.AiService
+import com.ttmrase.crownfall.chat.ChatCoordinator
+import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.data.GameRepository
 import com.ttmrase.crownfall.data.Startup
 import com.ttmrase.crownfall.offers.OfferHooks
+import com.ttmrase.crownfall.ui.alliance.AllianceScreen
+import com.ttmrase.crownfall.ui.alliance.unreadTotal
 import com.ttmrase.crownfall.ui.barracks.BarracksScreen
+import com.ttmrase.crownfall.ui.chat.ChatScreen
 import com.ttmrase.crownfall.ui.city.CityScreen
 import com.ttmrase.crownfall.ui.common.RaidBanner
+import com.ttmrase.crownfall.ui.common.showReplacing
+import com.ttmrase.crownfall.ui.eventMessage
 import com.ttmrase.crownfall.ui.heroes.HeroesScreen
 import com.ttmrase.crownfall.ui.heroes.SummonScreen
 import com.ttmrase.crownfall.ui.mail.MailScreen
 import com.ttmrase.crownfall.ui.map.MapScreen
 import com.ttmrase.crownfall.ui.research.ResearchScreen
 import com.ttmrase.crownfall.ui.screens.StubScreen
+import com.ttmrase.crownfall.ui.settings.SettingsScreen
 import com.ttmrase.crownfall.ui.title.TitleScreen
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 /** 単一 Activity 用の NavHost と下部ナビ（Title では非表示）。 */
 @Composable
 fun CrownfallNavHost(
     repository: GameRepository,
     hooks: OfferHooks,
+    ai: AiService,
+    chat: ChatCoordinator,
 ) {
     val navController = rememberNavController()
     val startup by repository.startup.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val destination = backStackEntry?.destination
+    val context = LocalContext.current
+    val readySession = (startup as? Startup.Ready)?.session
+    val noState = remember { MutableStateFlow<GameState?>(null) }
+    val gameState by (readySession?.state ?: noState).collectAsStateWithLifecycle()
+
+    // 全画面共通のトースト（ヘルプ受領・ギフト・行軍の帰還など）。
+    LaunchedEffect(readySession) {
+        readySession?.events?.collect { event ->
+            val message = eventMessage(context, event) ?: return@collect
+            launch { snackbarHostState.showReplacing(message) }
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -63,7 +92,13 @@ fun CrownfallNavHost(
                                     restoreState = true
                                 }
                             },
-                            icon = { Icon(item.icon, contentDescription = null) },
+                            icon = {
+                                val isAlliance = item == BottomDestination.Alliance
+                                val count = if (isAlliance) gameState?.let(::unreadTotal) ?: 0 else 0
+                                BadgedBox(badge = { if (count > 0) Badge { Text(count.toString()) } }) {
+                                    Icon(item.icon, contentDescription = null)
+                                }
+                            },
                             label = { Text(stringResource(item.labelRes)) },
                         )
                     }
@@ -150,6 +185,19 @@ fun CrownfallNavHost(
                     val ready = startup as? Startup.Ready
                     if (ready != null) MailScreen(ready.session, ready.data)
                 }
+                composable(Screen.Alliance.route) {
+                    val ready = startup as? Startup.Ready
+                    if (ready != null) {
+                        AllianceScreen(ready.session, ready.data, snackbarHostState) {
+                            navController.navigate(Screen.Chat.route)
+                        }
+                    }
+                }
+                composable(Screen.Chat.route) {
+                    val ready = startup as? Startup.Ready
+                    if (ready != null) ChatScreen(ready.session, ready.data, chat.typing, snackbarHostState)
+                }
+                composable(Screen.Settings.route) { SettingsScreen(ai, snackbarHostState) }
                 val implemented =
                     setOf(
                         Screen.Title,
@@ -160,6 +208,9 @@ fun CrownfallNavHost(
                         Screen.Summon,
                         Screen.WorldMap,
                         Screen.Mail,
+                        Screen.Alliance,
+                        Screen.Chat,
+                        Screen.Settings,
                     )
                 Screen.entries
                     .filter { it !in implemented }

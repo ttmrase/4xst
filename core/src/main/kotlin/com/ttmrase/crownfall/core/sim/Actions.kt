@@ -614,13 +614,19 @@ object Actions {
         data: GameData,
     ): ActionResult = AllianceActions.submitFreeText(state, text, channel, data)
 
-    /** 文面待ちのチャット [pendingId] に [lines] を書き戻す（キューから外す）。 */
+    /**
+     * 文面待ちのチャット [pendingId] に [lines] を書き戻す。[done] が true ならキューから外す
+     * （false の間は 1 行ずつ出すためキューに残す）。[at] で時刻、[firstLine] で先頭行か（クイズの選択肢用）を指定できる。
+     */
     fun appendChat(
         state: GameState,
         pendingId: Long,
         lines: List<SpokenText>,
         data: GameData,
-    ): ActionResult = AllianceActions.appendChat(state, pendingId, lines, data)
+        done: Boolean = true,
+        at: Long? = null,
+        firstLine: Boolean = true,
+    ): ActionResult = AllianceActions.appendChat(state, pendingId, lines, data, done, at, firstLine)
 
     /** ぽんずのクイズ（メッセージ [messageId]）に [option] 番で答える。 */
     fun answerQuiz(

@@ -310,25 +310,27 @@ internal object AllianceActions {
         pendingId: Long,
         lines: List<SpokenText>,
         data: GameData,
+        done: Boolean = true,
+        at: Long? = null,
+        firstLine: Boolean = true,
     ): ActionResult {
         val pending =
             state.alliance.pendingChat.firstOrNull { it.id == pendingId } ?: return fail(ActionFailure.ChatNotFound)
         var s =
-            state.copy(
-                alliance =
-                    state.alliance.copy(
-                        pendingChat =
-                            state.alliance.pendingChat.filter {
-                                it.id != pendingId
-                            },
-                    ),
-            )
+            if (done) {
+                state.copy(
+                    alliance =
+                        state.alliance.copy(pendingChat = state.alliance.pendingChat.filter { it.id != pendingId }),
+                )
+            } else {
+                state
+            }
         val quiz = pending.event as? ChatEvent.PonzuQuiz
         lines.filter { it.text.isNotBlank() }.forEachIndexed { i, line ->
-            val q = quiz?.takeIf { i == 0 }
+            val q = quiz?.takeIf { i == 0 && firstLine }
             val choices = q?.let { data.templates.quizzes[it.quizId]?.options }.orEmpty()
-            val at = pending.createdEpochSec + i
-            s = addMessage(s, pending.channel, line.speaker, line.text.trim(), at, data, q?.quizId, choices)
+            val stamp = at ?: (pending.createdEpochSec + i)
+            s = addMessage(s, pending.channel, line.speaker, line.text.trim(), stamp, data, q?.quizId, choices)
         }
         return ActionResult.Success(s)
     }

@@ -378,3 +378,39 @@ fun skillEffectText(
     if (resId == 0) return null
     return context.getString(resId, (bpValue / BP_PER_PERCENT.toInt()).toString())
 }
+
+/** `<prefix><id>` に対応する文字列リソース。無ければ [id] をそのまま返す（同盟テック・ショップの名前用）。 */
+fun namedString(
+    context: Context,
+    prefix: String,
+    id: String,
+): String {
+    val resId = context.resources.getIdentifier(prefix + id, "string", context.packageName)
+    return if (resId != 0) context.getString(resId) else id
+}
+
+/** 同盟チャンネルの表示名（alliance / world / dm_<persona>）。 */
+fun channelName(
+    context: Context,
+    channel: String,
+): String =
+    when {
+        channel == "alliance" -> context.getString(R.string.chat_tab_alliance)
+        channel == "world" -> context.getString(R.string.chat_tab_world)
+        channel.startsWith("dm_") ->
+            context.getString(R.string.chat_tab_dm, personaName(context, channel.removePrefix("dm_")))
+        else -> channel
+    }
+
+/** チャットの発話者の表示名（ペルソナ ID / `world:<名前>` / `player` / `system`）。 */
+fun speakerName(
+    context: Context,
+    speaker: String,
+    playerName: String,
+): String =
+    when {
+        speaker == "player" -> playerName.ifBlank { context.getString(R.string.chat_you) }
+        speaker == "system" -> context.getString(R.string.chat_system)
+        speaker.startsWith("world:") -> speaker.removePrefix("world:")
+        else -> personaName(context, speaker)
+    }

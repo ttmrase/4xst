@@ -2,6 +2,8 @@ package com.ttmrase.crownfall
 
 import android.app.Application
 import android.content.Context
+import com.ttmrase.crownfall.ai.AiService
+import com.ttmrase.crownfall.chat.ChatCoordinator
 import com.ttmrase.crownfall.data.GameRepository
 import com.ttmrase.crownfall.offers.NoOpOfferHooks
 import com.ttmrase.crownfall.offers.OfferHooks
@@ -15,6 +17,12 @@ class AppContainer(context: Context) {
 
     /** ゲームデータとセッションの保持者。GameData は起動時に IO スレッドで 1 回だけ読む。 */
     val repository = GameRepository(context.applicationContext, appScope)
+
+    /** AI 設定・プロバイダ・ルーター（API キーが無くても Scripted で動く）。 */
+    val ai = AiService(context.applicationContext, appScope)
+
+    /** チャットの文面づくりと 1 行ずつの表示。前景の間だけ動く。 */
+    val chat = ChatCoordinator(repository, ai, appScope)
 
     /** オファー誘導のフック。M6 で実装に差し替える。 */
     val offerHooks: OfferHooks = NoOpOfferHooks
