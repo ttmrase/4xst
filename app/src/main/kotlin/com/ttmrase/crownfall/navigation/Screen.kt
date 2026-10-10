@@ -4,7 +4,10 @@ import androidx.annotation.StringRes
 import com.ttmrase.crownfall.R
 
 /** 全 12 画面のルート定義。 */
-enum class Screen(val route: String, @StringRes val titleRes: Int) {
+enum class Screen(
+    val route: String,
+    @StringRes val titleRes: Int,
+) {
     Title("title", R.string.screen_title),
     City("city", R.string.screen_city),
     WorldMap("world_map", R.string.screen_world_map),
