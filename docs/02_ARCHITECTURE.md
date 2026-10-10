@@ -232,4 +232,18 @@ jobs:
 - VIP の特典は既存の仕組みに接続する: 採集バフは BuffAggregator、オフライン上限は capSec、ジェムスキップは割引 bp、VIP6 の 2 本目ビルダーは buildQueueCapacity。
 - 日付の区切りは `settings.utcOffsetSec` の現地日付。デイリーディールは (seed, localDay) のハッシュで決める。
 - kover の対象に shop を追加する。
+- M6 で確定した実装上の判断:
+  - 閉じたオファーは期限まで「おすすめ」の棚に残す（dismissed）。
+  - 初回 2 倍は全ジェム SKU の基本ジェム分に適用する。
+  - 注文番号は (seed, 購入回数) から決定的に作る ORD-XXXX-XXXX。
+  - 決済演出の設定は「処理時間の長短」とエラー演出の ON/OFF。
+  - オファーの定期的な再評価（refreshOffers）は前景でだけ行う（M6 REVIEW）。
+
+## 13. クエスト・イベント・通知の設計（M7 で Director が決定）
+- クエストのカウンタは GameEvent からだけ加算する（`QuestTracker.track`）。状態から判定できる条件はカウンタを持たない。GameSession が dispatch と advanceToNow の結果に対して必ず track を通す。
+- デイリーと週の区切りは現地時刻（`utcOffsetSec`）で、週は月曜 0 時に始まる。イベントの開始・終了・集計・終了 24h 前の時刻は tick の境界にする。
+- NPC ランキング: 上位の NPC は、プレイヤーの自力スコアに対して +3〜12% 先行するよう決定的に追従する（保存しない）。逆転パックのポイントはボーナスとして追従計算から除外するので、パックを買えば 1 位を取れる（「買っても勝てない」設計にはしない）。
+- 通知は、onStop の時点で確定している未来の時刻だけを WorkManager で予約する（`NotificationPlanner.plan`。純関数）。背景でシミュレーションは回さない。**既知の制約**: 未来の AI のメンション・DM は予測できないので通知しない。
+- オンデバイス LLM（T7.5）は M9 へ繰り越す。
+- kover の対象に quest / event / notify を追加する。
 
