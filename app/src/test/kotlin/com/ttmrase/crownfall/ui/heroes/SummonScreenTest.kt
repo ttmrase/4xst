@@ -2,6 +2,7 @@ package com.ttmrase.crownfall.ui.heroes
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
@@ -102,17 +103,26 @@ class SummonScreenTest {
     }
 
     @Test
-    fun rapidDoubleTapOnAgainSummonsOnlyOnce() {
+    fun afterAgainIsPressedTheRitualCoversTheButtonsSoAnImmediateSecondTapCannotSummonAgain() {
         show()
         rule.onAllNodesWithText(context.getString(R.string.summon_once))[0].performClick()
         rule.mainClock.advanceTimeBy(8_000)
         rule.waitForIdle()
         val before = gems
         val again = context.getString(R.string.summon_again)
+        // 時計を止める: 1 回目の召喚の結果が出たあとも、演出（オーバーレイ）の最初の画面のままにする
+        rule.mainClock.autoAdvance = false
         rule.onAllNodesWithText(again)[0].performClick()
-        rule.onAllNodesWithText(again)[0].performClick()
-        rule.waitForIdle()
-        assertEquals("a double tap must cost exactly one summon", before - data.heroRules.premium.gems, gems)
+        val deadline = System.currentTimeMillis() + 5_000
+        while (gems == before && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20)
+            rule.mainClock.advanceTimeByFrame()
+        }
+        rule.mainClock.advanceTimeByFrame()
+        assertEquals("the first tap summons once", before - data.heroRules.premium.gems, gems)
+        rule.onAllNodesWithText(again).assertCountEquals(0)
+        rule.mainClock.advanceTimeByFrame()
+        assertEquals("nothing else is summoned", before - data.heroRules.premium.gems, gems)
     }
 
     private companion object {
