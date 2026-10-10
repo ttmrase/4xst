@@ -37,6 +37,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLooper
+import java.util.concurrent.TimeUnit
 
 /**
  * 1.0.1 の S1 の回帰テスト（戻るの原則、docs/02 §17）: オファーのポップアップと擬似決済シートは、
@@ -165,15 +167,36 @@ class BackPressTest {
         assertEquals(0L, session.state.value!!.shop.purchaseCount)
     }
 
-    @Test
-    fun theBillingSheetClosesWithBackOnceTheProcessingHasFinished() {
-        // 「処理中は戻るで閉じない」は、時計を止めた Robolectric ではタッチ/onClick の後に再構成が進まず検証できなかった
-        // （run 101〜107）。その部分は M10 T10.1（エミュレータ）で確かめる。ここでは、処理が終わったら戻るで閉じることを見る。
-        var closed = false
-        billing { closed = true }
+    private fun pay() {
         rule.onNodeWithText(context.getString(R.string.billing_one_tap))
             .performSemanticsAction(SemanticsActions.OnClick)
-        rule.mainClock.advanceTimeBy(10_000)
+        rule.waitForIdle()
+    }
+
+    private fun showsProcessing() = shownTexts().contains(context.getString(R.string.billing_do_not_close))
+
+    @Test
+    fun theBillingSheetIgnoresBackWhileProcessing() {
+        var closed = false
+        billing { closed = true }
+        pay()
+        // 通常は「処理中…」、10% は「確認しています…」。どちらでも出る注意書きで処理中を判定する
+        assertTrue("must be processing after paying; shown=[${shownTexts()}]", showsProcessing())
+        Espresso.pressBack()
+        rule.waitForIdle()
+        assertFalse("processing must not be cancelled by back", closed)
+        assertTrue("still processing after back; shown=[${shownTexts()}]", showsProcessing())
+        assertEquals("nothing is bought by closing", 0L, session.state.value!!.shop.purchaseCount)
+    }
+
+    @Test
+    fun theBillingSheetClosesWithBackOnceTheProcessingHasFinished() {
+        var closed = false
+        billing { closed = true }
+        pay()
+        assertTrue("must be processing after paying; shown=[${shownTexts()}]", showsProcessing())
+        // 処理の待ち時間はメインのルーパー上の時間なので、そちらを進める（Compose の時計では進まない）
+        ShadowLooper.idleMainLooper(12, TimeUnit.SECONDS)
         rule.waitForIdle()
         val shown = shownTexts()
         val finished =
