@@ -20,6 +20,7 @@ litertlm = "0.18.0"
 splashscreen = "1.0.1"
 robolectric = "4.14.1"
 androidx-test-core = "1.6.1"
+androidx-test-runner = "1.6.2"
 androidx-test-ext = "1.2.1"
 espresso = "3.6.1"
 junit4 = "4.13.2"
@@ -34,6 +35,7 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 junit-vintage-engine = { module = "org.junit.vintage:junit-vintage-engine" }
 junit4 = { module = "junit:junit", version.ref = "junit4" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test-runner" }
 androidx-test-core-ktx = { module = "androidx.test:core-ktx", version.ref = "androidx-test-core" }
 androidx-test-ext-junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-test-ext" }
 androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }

@@ -17,6 +17,7 @@ android {
         targetSdk = 35
         versionCode = 101
         versionName = "1.0.1"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // 端末内 LLM のネイティブライブラリで APK が大きくなるので、個人の実機（arm64）向けだけにする
         ndk {
             abiFilters += "arm64-v8a"
@@ -57,6 +58,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // CI の ui ジョブ（x86_64 のエミュレータ）用。release は arm64-v8a のままで、x86_64 は入れない（02 §18）
+            ndk {
+                abiFilters += "x86_64"
+            }
+        }
         release {
             // R8 は M8 では無効（kotlinx.serialization のリフレクションが実機でだけ壊れるのを避ける）
             isMinifyEnabled = false
@@ -133,4 +140,11 @@ dependencies {
     testImplementation(libs.androidx.test.espresso.core)
     testRuntimeOnly(libs.junit.vintage.engine)
     debugImplementation(libs.compose.ui.test.manifest)
+
+    // エミュレータの androidTest（CI の ui ジョブ）
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.ext.junit.ktx)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.espresso.core)
 }

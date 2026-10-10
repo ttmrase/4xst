@@ -42,6 +42,72 @@ jobs:
             ai/build/reports
           retention-days: 7
 
+  # エミュレータ（API 34、x86_64）で androidTest とスクリーンショット（docs/02 §18）。最初は継続ジョブ（失敗しても全体は赤にしない）。
+  # 2 回連続で緑になったら必須にする。
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-x86_64-google_apis-v1
+      - name: Create AVD and generate the snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+      - name: Run androidTest on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: bash .github/scripts/run-ui-tests.sh
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: ui-out/screenshots
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload logs and test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-logs
+          path: ui-out/logs
+          retention-days: 7
+          if-no-files-found: warn
+
   apk:
     needs: jvm
     runs-on: ubuntu-latest
@@ -108,6 +174,14 @@ jobs:
           mkdir -p dist
           cp "$src" "dist/$out"
           .github/scripts/check-apk-no-billing.sh "dist/$out"
+          # 02 §18: release は arm64-v8a だけ（x86_64 は debug のエミュレータ用だけ）。lib/ の ABI を確認する
+          abis_of() { unzip -Z1 "$1" | grep '^lib/' | cut -d/ -f2 | sort -u | tr '\n' ' '; }
+          release_abis="$(abis_of "dist/$out")"
+          echo "::notice title=APK native ABIs::debug=[$(abis_of app/build/outputs/apk/debug/app-debug.apk)] release=[$release_abis]"
+          if [[ -n "${release_abis// /}" && "${release_abis// /}" != "arm64-v8a" ]]; then
+            echo "::error::release APK has unexpected ABIs: $release_abis"
+            exit 1
+          fi
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
           echo "== debug APK certificate =="
           "$apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk | grep -E 'SHA-256|Signer #1 certificate DN'
