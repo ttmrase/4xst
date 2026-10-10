@@ -1,6 +1,7 @@
 package com.ttmrase.crownfall.ui.shop
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -169,7 +171,9 @@ class BackPressTest {
         var closed = false
         billing { closed = true }
         rule.mainClock.autoAdvance = false
-        rule.onNodeWithText(context.getString(R.string.billing_one_tap)).performClick()
+        // 時計を止めたままタッチを送ると届かない（確認画面のままだった）。意味のある onClick を直接呼ぶ
+        rule.onNodeWithText(context.getString(R.string.billing_one_tap))
+            .performSemanticsAction(SemanticsActions.OnClick)
         repeat(5) { rule.mainClock.advanceTimeByFrame() }
         rule.mainClock.advanceTimeBy(300)
         // 通常は「処理中…」、10% は「確認しています…」。どちらでも出る注意書きで判定する
