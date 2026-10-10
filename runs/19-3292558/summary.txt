@@ -1,0 +1,40 @@
+run: 19
+commit: 32925588db431fbef10f44404a4eefce95f975f6
+job status: cancelled
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38073223706
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 2/11 completed. (0 skipped) (0 failed)
+	androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 20000 ms
+emulator-5554 - 14 Tests 3/11 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 4/11 completed. (0 skipped) (2 failed)
+Tests on emulator-5554 - 14 failed: There was 2 failure(s).
+> Task :app:connectedDebugAndroidTest FAILED
+Test run failed to complete. Expected 11 tests, received 3
+> There were failing tests. See the report at: file:///home/runner/work/4xst/4xst/app/build/reports/androidTests/connected/debug/index.html
+--- per test (androidTest-results xml) ---
+PASS LaunchSmokeTest.titleScreenAppearsAndCanBeCaptured
+PASS SeederSmokeTest.seededRichCastleReachesTheSession
+FAIL ShopVipUiTest.offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured
+      androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 20000 ms
+      at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:504)
+      at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:339)
+      at com.ttmrase.crownfall.AppHarness.waitText(AppHarness.kt:48)
+FAIL ShopVipUiTest.vipCinematicAndRewardDialogCloseWithBack
+--- TestRunner (started / finished / failed) ---
+10-10 17:54:21.595 11 tests
+10-10 17:54:21.598 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+10-10 17:54:24.592 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+10-10 17:54:24.604 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+10-10 17:54:25.601 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+10-10 17:54:25.617 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-10 17:54:54.588 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-10 17:54:54.593 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-10 17:54:54.793 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+--- instrumentation results ---
+Starting 11 tests on emulator-5554 - 14
+Finished 4 tests on emulator-5554 - 14
