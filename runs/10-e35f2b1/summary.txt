@@ -1,0 +1,6 @@
+run: 10
+commit: e35f2b135aafa8a054769f7a621e411baeb41021
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38069307142
