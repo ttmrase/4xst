@@ -20,4 +20,5 @@ enum class Screen(
     Shop("shop", R.string.screen_shop),
     Mail("mail", R.string.screen_mail),
     Settings("settings", R.string.screen_settings),
+    Summon("summon", R.string.screen_summon),
 }

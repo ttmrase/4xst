@@ -11,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -18,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,14 +27,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.economy.GemSkip
 import com.ttmrase.crownfall.core.model.GameState
+import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.session.UiQueries
+import com.ttmrase.crownfall.core.sim.ActionFailure
+import com.ttmrase.crownfall.core.sim.ActionResult
+import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
+import com.ttmrase.crownfall.offers.OfferHooks
+import com.ttmrase.crownfall.ui.common.showReplacing
+import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.speedupItemName
+import kotlinx.coroutines.launch
 
 /**
  * 加速ダイアログ。残り時間と使える加速アイテム、ジェムスキップを出す。
@@ -137,4 +148,45 @@ fun SpeedupDialog(
             },
         )
     }
+}
+
+/**
+ * [SpeedupDialog] に操作（アイテム使用・ジェムスキップ）とエラー表示をつないだもの。
+ * 成功したら [onSuccess]（チュートリアルの進行など）を呼ぶ。ジェム不足は [OfferHooks.onGemShortage]。
+ */
+@Composable
+fun SpeedupHost(
+    session: GameSession,
+    data: GameData,
+    hooks: OfferHooks,
+    snackbarHostState: SnackbarHostState,
+    jobId: Long,
+    onSuccess: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val state by session.state.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val s = state ?: return
+
+    fun handle(result: ActionResult) {
+        when (result) {
+            is ActionResult.Success -> onSuccess()
+            is ActionResult.Failure -> {
+                val reason = result.reason
+                if (reason is ActionFailure.NotEnoughGems) hooks.onGemShortage(reason.missing)
+                scope.launch { snackbarHostState.showReplacing(failureMessage(context, reason)) }
+            }
+        }
+    }
+    SpeedupDialog(
+        state = s,
+        data = data,
+        jobId = jobId,
+        onUseItem = { itemId, count ->
+            scope.launch { handle(session.dispatch { Actions.applySpeedupItem(it, jobId, itemId, count, data) }) }
+        },
+        onGemSkip = { scope.launch { handle(session.dispatch { Actions.gemSkip(it, jobId, data) }) } },
+        onDismiss = onDismiss,
+    )
 }

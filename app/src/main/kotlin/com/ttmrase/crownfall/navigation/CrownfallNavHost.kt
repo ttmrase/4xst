@@ -15,14 +15,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.ttmrase.crownfall.data.GameRepository
 import com.ttmrase.crownfall.data.Startup
 import com.ttmrase.crownfall.offers.OfferHooks
+import com.ttmrase.crownfall.ui.barracks.BarracksScreen
 import com.ttmrase.crownfall.ui.city.CityScreen
+import com.ttmrase.crownfall.ui.heroes.HeroesScreen
+import com.ttmrase.crownfall.ui.heroes.SummonScreen
+import com.ttmrase.crownfall.ui.research.ResearchScreen
 import com.ttmrase.crownfall.ui.screens.StubScreen
 import com.ttmrase.crownfall.ui.title.TitleScreen
 
@@ -85,11 +91,49 @@ fun CrownfallNavHost(
                         hooks = hooks,
                         snackbarHostState = snackbarHostState,
                         onNavigate = { navController.navigate(it.route) },
+                        onOpenBarracks = { tab -> navController.navigate("${Screen.Barracks.route}?tab=$tab") },
                     )
                 }
             }
+            composable(
+                route = "${Screen.Barracks.route}?tab={tab}",
+                arguments =
+                    listOf(
+                        navArgument("tab") {
+                            type = NavType.IntType
+                            defaultValue = 0
+                        },
+                    ),
+            ) { entry ->
+                val ready = startup as? Startup.Ready
+                if (ready != null) {
+                    BarracksScreen(
+                        ready.session,
+                        ready.data,
+                        hooks,
+                        snackbarHostState,
+                        entry.arguments?.getInt("tab") ?: 0,
+                    )
+                }
+            }
+            composable(Screen.Research.route) {
+                val ready = startup as? Startup.Ready
+                if (ready != null) ResearchScreen(ready.session, ready.data, hooks, snackbarHostState)
+            }
+            composable(Screen.Heroes.route) {
+                val ready = startup as? Startup.Ready
+                if (ready != null) {
+                    HeroesScreen(ready.session, ready.data, snackbarHostState) { navController.navigate(it.route) }
+                }
+            }
+            composable(Screen.Summon.route) {
+                val ready = startup as? Startup.Ready
+                if (ready != null) SummonScreen(ready.session, ready.data, hooks, snackbarHostState)
+            }
+            val implemented =
+                setOf(Screen.Title, Screen.City, Screen.Barracks, Screen.Research, Screen.Heroes, Screen.Summon)
             Screen.entries
-                .filter { it != Screen.Title && it != Screen.City }
+                .filter { it !in implemented }
                 .forEach { screen ->
                     composable(screen.route) { StubScreen(screen) }
                 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,8 +42,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.data.TroopType
 import com.ttmrase.crownfall.core.economy.PowerCalculator
 import com.ttmrase.crownfall.core.model.BuildingSlot
+import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.model.TimerJob
@@ -61,7 +64,9 @@ import com.ttmrase.crownfall.offers.OfferHooks
 import com.ttmrase.crownfall.ui.eventMessage
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.nameRes
+import com.ttmrase.crownfall.ui.researchNodeName
 import com.ttmrase.crownfall.ui.titleRes
+import com.ttmrase.crownfall.ui.troopNameById
 import kotlinx.coroutines.launch
 
 private val QuickLinks =
@@ -75,6 +80,7 @@ fun CityScreen(
     hooks: OfferHooks,
     snackbarHostState: SnackbarHostState,
     onNavigate: (Screen) -> Unit,
+    onOpenBarracks: (Int) -> Unit,
 ) {
     val state by session.state.collectAsStateWithLifecycle()
     val summary by session.offlineSummary.collectAsStateWithLifecycle()
@@ -82,6 +88,7 @@ fun CityScreen(
     val context = LocalContext.current
     var sheetSlotId by rememberSaveable { mutableStateOf<Int?>(null) }
     var speedupJobId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var healOpen by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(session) {
         session.events.collect { event ->
@@ -118,6 +125,7 @@ fun CityScreen(
             highlight = s.tutorialStep == TUTORIAL_SPEEDUP_STEP,
             onTimerClick = { speedupJobId = it.id },
             onLockedClick = hooks::onSecondBuilderLocked,
+            onIdleClick = onNavigate,
         )
         Box(modifier = Modifier.weight(1f)) {
             BuildingGrid(
@@ -167,37 +175,53 @@ fun CityScreen(
                 onResourceShortage = hooks::onResourceShortage,
                 onUnlockBuilder = hooks::onSecondBuilderLocked,
                 onDismiss = { sheetSlotId = null },
+                extraActions = {
+                    BuildingExtraActions(
+                        type = preview.slot.type,
+                        hasWounded = s.wounded.isNotEmpty(),
+                        onGo = {
+                            sheetSlotId = null
+                            it()
+                        },
+                        onOpenBarracks = onOpenBarracks,
+                        onNavigate = onNavigate,
+                        onHeal = { healOpen = true },
+                    )
+                },
             )
         }
     }
 
     val jobId = speedupJobId
     if (jobId != null) {
-        SpeedupDialog(
+        SpeedupHost(
+            session = session,
+            data = data,
+            hooks = hooks,
+            snackbarHostState = snackbarHostState,
+            jobId = jobId,
+            onSuccess = { advanceTutorial(TUTORIAL_SPEEDUP_STEP) },
+            onDismiss = { speedupJobId = null },
+        )
+    }
+
+    if (healOpen) {
+        HealDialog(
             state = s,
             data = data,
-            jobId = jobId,
-            onUseItem = { itemId, count ->
+            onHeal = { batch ->
                 scope.launch {
-                    when (val r = session.dispatch { Actions.applySpeedupItem(it, jobId, itemId, count, data) }) {
-                        is ActionResult.Success -> advanceTutorial(TUTORIAL_SPEEDUP_STEP)
-                        is ActionResult.Failure -> showFailure(r.reason)
-                    }
-                }
-            },
-            onGemSkip = {
-                scope.launch {
-                    when (val r = session.dispatch { Actions.gemSkip(it, jobId, data) }) {
-                        is ActionResult.Success -> advanceTutorial(TUTORIAL_SPEEDUP_STEP)
+                    when (val r = session.dispatch { Actions.startHeal(it, batch, data) }) {
+                        is ActionResult.Success -> healOpen = false
                         is ActionResult.Failure -> {
                             val reason = r.reason
-                            if (reason is ActionFailure.NotEnoughGems) hooks.onGemShortage(reason.missing)
+                            if (reason is ActionFailure.NotEnoughResources) hooks.onResourceShortage(reason.missing)
                             showFailure(reason)
                         }
                     }
                 }
             },
-            onDismiss = { speedupJobId = null },
+            onDismiss = { healOpen = false },
         )
     }
 
@@ -266,69 +290,101 @@ private fun TimerBar(
     highlight: Boolean,
     onTimerClick: (TimerJob) -> Unit,
     onLockedClick: () -> Unit,
+    onIdleClick: (Screen) -> Unit,
 ) {
+    val context = LocalContext.current
     val builds = state.timers.filter { it.kind == TimerKind.BUILD }.sortedBy { it.endEpochSec }
     val capacity = Simulation.buildQueueCapacity(state, data)
     val firstJob = builds.getOrNull(0)
     val secondJob = builds.getOrNull(1)
-    Row(
+    val secondLocked = capacity < 2 && secondJob == null
+    val research = UiQueries.researchJob(state)
+    val heal = UiQueries.healJob(state)
+    Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        TimerCell(
-            R.string.timers_build1,
-            firstJob,
-            state,
-            state.slots,
-            highlight && firstJob != null,
-            Modifier.weight(1f),
-        ) {
-            firstJob?.let(onTimerClick)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TimerCell(
+                label = stringResource(R.string.timers_build1),
+                job = firstJob,
+                jobName = buildJobName(context, state, firstJob),
+                state = state,
+                highlight = highlight && firstJob != null,
+                modifier = Modifier.weight(1f),
+            ) { firstJob?.let(onTimerClick) ?: Unit }
+            TimerCell(
+                label = stringResource(R.string.timers_build2),
+                job = secondJob,
+                jobName = buildJobName(context, state, secondJob),
+                state = state,
+                modifier = Modifier.weight(1f),
+                locked = secondLocked,
+            ) { if (secondLocked) onLockedClick() else secondJob?.let(onTimerClick) ?: Unit }
+            TimerCell(
+                label = stringResource(R.string.timers_research),
+                job = research,
+                jobName = research?.researchId?.let { researchNodeName(context, it) },
+                state = state,
+                modifier = Modifier.weight(1f),
+            ) { research?.let(onTimerClick) ?: onIdleClick(Screen.Research) }
+            TimerCell(
+                label = stringResource(R.string.timers_heal),
+                job = heal,
+                jobName = if (heal != null) stringResource(R.string.timer_heal_job) else null,
+                state = state,
+                modifier = Modifier.weight(1f),
+            ) { heal?.let(onTimerClick) ?: Unit }
         }
-        val secondLocked = capacity < 2 && secondJob == null
-        TimerCell(
-            labelRes = R.string.timers_build2,
-            job = secondJob,
-            state = state,
-            slots = state.slots,
-            highlight = false,
-            modifier = Modifier.weight(1f),
-            locked = secondLocked,
-        ) {
-            if (secondLocked) onLockedClick() else secondJob?.let(onTimerClick)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TroopType.entries.forEach { type ->
+                val slot = state.slots.filter { it.type == type.trainingBuilding }.maxByOrNull { it.level }
+                val job = slot?.let { UiQueries.trainJob(state, it.slotId) }
+                TimerCell(
+                    label = stringResource(R.string.timers_train_slot, stringResource(type.nameRes())),
+                    job = job,
+                    jobName = job?.troopId?.let { troopNameById(context, it) },
+                    state = state,
+                    modifier = Modifier.weight(1f),
+                    dim = (slot?.level ?: 0) == 0,
+                ) { job?.let(onTimerClick) ?: onIdleClick(Screen.Barracks) }
+            }
         }
-        TimerCell(R.string.timers_research, null, state, state.slots, false, Modifier.weight(1f), soon = true) {}
-        TimerCell(R.string.timers_train, null, state, state.slots, false, Modifier.weight(1f), soon = true) {}
     }
+}
+
+private fun buildJobName(
+    context: android.content.Context,
+    state: GameState,
+    job: TimerJob?,
+): String? {
+    val type = job?.slotId?.let { id -> state.slots.firstOrNull { it.slotId == id }?.type } ?: return null
+    return context.getString(type.nameRes())
 }
 
 @Composable
 private fun TimerCell(
-    labelRes: Int,
+    label: String,
     job: TimerJob?,
+    jobName: String?,
     state: GameState,
-    slots: List<BuildingSlot>,
-    highlight: Boolean,
     modifier: Modifier = Modifier,
+    highlight: Boolean = false,
     locked: Boolean = false,
-    soon: Boolean = false,
+    dim: Boolean = false,
     onClick: () -> Unit,
 ) {
     TutorialHighlight(active = highlight, modifier = modifier) {
         Card(
-            modifier =
-                Modifier.fillMaxWidth().alpha(
-                    if (soon) 0.45f else 1f,
-                ).clickable(enabled = !soon, onClick = onClick),
+            modifier = Modifier.fillMaxWidth().alpha(if (dim) 0.45f else 1f).clickable(onClick = onClick),
             shape = RoundedCornerShape(10.dp),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(stringResource(labelRes), style = MaterialTheme.typography.labelSmall)
+                Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                 when {
-                    soon -> Text(stringResource(R.string.timer_soon), style = MaterialTheme.typography.labelMedium)
                     locked -> Text("🔒", style = MaterialTheme.typography.titleMedium)
                     job == null ->
                         Text(
@@ -336,13 +392,8 @@ private fun TimerCell(
                             style = MaterialTheme.typography.labelMedium,
                         )
                     else -> {
-                        val type = slots.firstOrNull { it.slotId == job.slotId }?.type
-                        if (type != null) {
-                            Text(
-                                stringResource(type.nameRes()),
-                                style = MaterialTheme.typography.labelSmall,
-                                maxLines = 1,
-                            )
+                        if (jobName != null) {
+                            Text(jobName, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                         }
                         LinearProgressIndicator(
                             progress = { UiQueries.progress(state, job) },
@@ -449,6 +500,39 @@ private fun BuildingTile(
                     )
                 }
             }
+        }
+    }
+}
+
+/** 建物詳細シートの下に出す、建物種ごとの導線（訓練・研究・召喚・治療）。 */
+@Composable
+private fun BuildingExtraActions(
+    type: BuildingType,
+    hasWounded: Boolean,
+    onGo: (() -> Unit) -> Unit,
+    onOpenBarracks: (Int) -> Unit,
+    onNavigate: (Screen) -> Unit,
+    onHeal: () -> Unit,
+) {
+    val trainTab = TroopType.entries.indexOfFirst { it.trainingBuilding == type }
+    Column(modifier = Modifier.padding(bottom = 16.dp)) {
+        when {
+            trainTab >= 0 ->
+                OutlinedButton(onClick = { onGo { onOpenBarracks(trainTab) } }, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.sheet_go_barracks))
+                }
+            type == BuildingType.ACADEMY ->
+                OutlinedButton(onClick = { onGo { onNavigate(Screen.Research) } }, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.sheet_go_research))
+                }
+            type == BuildingType.TAVERN ->
+                OutlinedButton(onClick = { onGo { onNavigate(Screen.Summon) } }, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.sheet_go_summon))
+                }
+            type == BuildingType.HOSPITAL && hasWounded ->
+                OutlinedButton(onClick = onHeal, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.heal_open))
+                }
         }
     }
 }

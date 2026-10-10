@@ -45,6 +45,7 @@ fun UpgradeSheet(
     onResourceShortage: (Resources) -> Unit,
     onUnlockBuilder: () -> Unit,
     onDismiss: () -> Unit,
+    extraActions: @Composable () -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val blocker = preview.blocker
@@ -85,6 +86,7 @@ fun UpgradeSheet(
                 onResourceShortage = onResourceShortage,
                 onUnlockBuilder = onUnlockBuilder,
             )
+            extraActions()
         }
     }
 }
