@@ -116,6 +116,6 @@ DoD: キー無しで完全動作。キー有りは Debugger が設定画面経�
 - 修正方針は 02 §17。回帰テスト（NavController の遷移、ポップアップの戻る）は Debugger が担当。
 - 結果: 下部ナビは saveState / restoreState を廃止（NavActions.navigateBottom）。オファーは戻るで閉じ、閉じたあとは popupGapSec（20 秒）空け、戻るで閉じたらそのセッションの自動ポップアップを止める。退出待ち（exitStage 1）でも戻るで確認へ進む。
 
-## M10 見た目と演出の大幅強化（ユーザー要望 2026-10-10）— T10.1〜T10.7 Approve（f17ff11）、T10.8 進行中（設計は 02 §18、アセットは docs/ASSETS.md）
+## M10 見た目と演出の大幅強化（ユーザー要望 2026-10-10）— ✅ 完了 2026-10-10（1.1.0、HEAD 6f5c1cf、android run 164 と ui run 42。設計は 02 §18、アセットは docs/ASSETS.md）
 - T10.1 検証基盤（CI にエミュレータとスクリーンショット）、T10.2 アセット方針（すべて自作。生成スクリプト tools/artgen・tools/sfxgen、フォントは Downloadable Fonts）、T10.3 城内を領地マップに作り直す、T10.4 オファーとショップの課金圧の演出、T10.5 ガチャの射幸心の演出、T10.6 VIP など課金で得たものの贅沢な演出、T10.7 全体の UI の磨き込み、T10.8 性能とサイズ（APK の増加は 20MB 程度まで）。順序は T10.1 → T10.2 → T10.3 → T10.5 → T10.4 → T10.6 → T10.7 / T10.8。各 DONE にスクリーンショット（ui-screenshots）を添付する。
 

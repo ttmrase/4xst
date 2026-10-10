@@ -1,12 +1,13 @@
 # STATUS（Director が更新）
 
-- 現在のマイルストーン: **M10 見た目と演出の大幅強化**（T10.1〜T10.7 は Approve、残りは T10.8）。M0〜M9 と 1.0.1 ホットフィックスは ✅ 完了
+- 現在のマイルストーン: なし（M10 まで ✅ 完了。1.1.0 の実機スモークと、ユーザーの次の要望待ち）。M0〜M10 と 1.0.1 ホットフィックスは ✅ 完了
 - 統合ブランチ: `claude/4x-strategy-game-planning-oxo80w`
-- 最終更新: 2026-10-10 Director（M10 T10.1〜T10.7 Approve）
+- 最終更新: 2026-10-10 Director（M10 完了、1.1.0）
 
 ## 完了
 | マイルストーン | 完了 | 根拠 |
 | --- | --- | --- |
+| M10 見た目と演出（1.1.0） | 2026-10-10 | d31c18a〜6f5c1cf、android run 164（38080642934）と ui run 42 が緑（androidTest 14 本、ui は required 化）、画像は qa-screenshots runs/42-6f5c1cf の 45 枚、release APK 33.5MB（1.0.1 から +1MB）、Debugger QA-OK、Director Approve |
 | 1.0.1 ホットフィックス（S1 × 2: ポップアップから戻れない、城内へ戻れない） | 2026-10-10 | e85e283 / d2b41e4 + レビュー修正 ac75fb4（退出待ちでも戻るが効く）、HEAD 4986231 で CI run 111（38061992582）が緑（jvm / apk。APK は debug 36.5MB / release 32.5MB で M9 と同等）、Debugger QA-OK（QaPopupTest 4、NavActionsTest 9、BackPressTest 4。Robolectric を導入）、Director Approve |
 | M0 基盤 | 2026-10-10 | HEAD 00f5f9b、CI run 38028345848（jvm と apk が緑、crownfall-debug-apk あり）、Debugger QA-OK、Director Approve |
 | M9 拡張（オンデバイス LLM・うるさい通知） | 2026-10-10 | 7d5ed68 + 修正 ec6bcc3、CI run 93 が緑（LiteRT-LM 0.18.0、Kotlin 2.4.0、APK は debug 36.5MB / release 32.5MB）、Debugger QA-OK（先読みと実際の catch-up の一致、通知の選別、襲撃の段階の R3、48h 先読み 28ms）、Director Approve |
@@ -24,9 +25,8 @@
 | --- | --- | --- | --- |
 | README の細部修正（台帳の項目、頻度の表記、LAN の許可範囲）、Gemini モデルのヒント文言 | Implementer | ✅ 完了 | 403b52a |
 | 実機でのスモークチェック | ユーザー | ✅ 実施済み（S1 × 2 と見た目への不満） | - |
-| M10 T10.1〜T10.7（見た目と演出） | Implementer | ✅ Approve（f17ff11、android run 156 と ui run 34 が緑、画像は qa-screenshots runs/34-f17ff11 の 37 枚） | d31c18a〜f17ff11 |
-| M10 T10.8（性能・サイズ・versionName 1.1.0 / versionCode 110・小さな仕上げ） | Implementer | 発行済み | - |
-| M10 の QA: ui ワークフロー（androidTest 11 本が緑、run 34。2 回連続で緑なら required 化）、qa-screenshots、SMOKE 第 12 章、T10.8 の QA | Debugger | 進行中 | d31c18a〜f9d3d61 |
+| M10 T10.1〜T10.8 と QA（ui ワークフロー、qa-screenshots、SMOKE 第 12 章） | Implementer / Debugger | ✅ 完了 | d31c18a〜6f5c1cf |
+| 1.1.0 の実機スモーク（SMOKE 第 12 章、特に 12-6 の 60fps の体感） | ユーザー | 依頼予定（Planner 経由） | - |
 | 1.0.1 ホットフィックスと回帰テスト | Implementer / Debugger | ✅ 完了 | e85e283〜4986231 |
 | T9.1・T9.2a・T9.2b + 修正 | Implementer | ✅ 完了 | 6857b81〜7d5ed68, ec6bcc3 |
 | M9 の QA・SMOKE_CHECKLIST 第 11 章・CI での APK サイズの出力 | Debugger | ✅ 完了（:core の QA-OK。実機の項目は未実施） | ec79280, c96fb0e ほか |
@@ -45,7 +45,7 @@
 - コアシミュレーションの設計規則 R1〜R9（02 §7）。M2 のセッションと UI の設計（02 §8: GameSession を :core に置く、保存はスロットリング、TooNew は上書きしない）。M3 の設計（02 §9: バフは加算で集約、キューは種類ごとに独立、維持費は正味レート、召喚の確率と天井）。M4 の設計（02 §10: マップは静的部分 + 動的オーバーレイ、行軍と襲撃も tick の境界、戦闘は整数演算）。M7 の設計（02 §13: クエストはイベント駆動、NPC ランキングの追従とボーナスの除外、通知は予測できるものだけ）。M6 の設計（02 §12: オファーのキュー、頻度の制御、購入の原子性、台帳は参照しない）。M5 の設計（02 §11: チャットのきっかけまでを :core が決定論的に生成、分のグリッドのスケジューラ、Keystore に暗号化したキー、平文 HTTP はプライベート IP だけ）。`tools/**` を Implementer の書き込み領域に追加
 
 ## ユーザー確認待ち（Planner 経由）
-- 1.0.1 の APK での再スモーク（戻るの原則、SMOKE_CHECKLIST の共通章）
+- 1.1.0 の APK での実機スモーク（SMOKE_CHECKLIST 第 12 章。エミュレータはソフトウェア描画なので、城内の 60fps の体感は実機でしか確かめられない）
 
 ## ユーザー決定（2026-10-10）
 - M9 に進む（オンデバイス LLM + 量産型にうるさい通知・警報）
