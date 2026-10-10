@@ -65,6 +65,10 @@ internal class SpriteCache private constructor(
         return null
     }
 
+    /** ラスタライズ済みスプライトの実メモリ（byte）と枚数。性能の計測用。 */
+    val usedBytes: Long get() = synchronized(sprites) { bytes }
+    val spriteCount: Int get() = synchronized(sprites) { sprites.size }
+
     private fun trim() {
         val it = sprites.entries.iterator()
         while (bytes > maxBytes && it.hasNext()) {

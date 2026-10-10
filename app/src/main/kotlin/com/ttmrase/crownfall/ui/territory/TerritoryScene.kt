@@ -128,7 +128,12 @@ internal class Ent(
     /** 立て札などが属する帯（この札の「Lv n」は帯から決まる）。 */
     val band: Int = 0,
 ) {
-    val depth: Float = gx + gy
+    /** 描く順の目安。立て札は森の木に隠れないよう、常に手前（遅く）に描く。 */
+    val depth: Float = gx + gy + if (kind == EntKind.SIGN) SIGN_DEPTH_LIFT else 0f
+
+    private companion object {
+        const val SIGN_DEPTH_LIFT = 12f
+    }
 }
 
 /** 通りを歩く住民。 */

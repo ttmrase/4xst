@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -47,14 +48,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
@@ -85,6 +93,8 @@ import com.ttmrase.crownfall.ui.rarityColor
 import com.ttmrase.crownfall.ui.theme.PressButton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.cos
+import kotlin.math.sin
 
 private const val FLIP_AFTER_MS = 450L
 private const val SINGLE_CARD_DP = 190
@@ -439,13 +449,15 @@ private fun SummonResults(
         modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // 見出しは、めくったカードの最高レアで決める（めくる前に結果を明かさない）
+        val shownTop = res.results.filterIndexed { i, _ -> i in flipped }.maxOfOrNull { it.rarity }
         Text(
-            when (ritual.plan.top) {
+            when (shownTop) {
                 HeroRarity.SSR -> stringResource(R.string.summon_result_ssr)
                 HeroRarity.SR -> stringResource(R.string.summon_result_sr)
                 else -> stringResource(R.string.summon_title)
             },
-            color = rarityColor(ritual.plan.top),
+            color = if (shownTop == null) Color.White else rarityColor(shownTop),
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
@@ -550,7 +562,7 @@ private fun SummonCard(
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(4.dp), contentAlignment = Alignment.Center) {
             if (!front) {
-                Text(stringResource(R.string.summon_back), style = MaterialTheme.typography.headlineMedium)
+                CardBack(description = stringResource(R.string.summon_back))
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(entry.rarity.name, color = frame, style = MaterialTheme.typography.titleSmall)
@@ -576,5 +588,49 @@ private fun SummonCard(
                 }
             }
         }
+    }
+}
+
+/** カードの裏面: 金の縁と、円と六芒星の紋章（結果を匂わせない同一の柄）。 */
+@Composable
+private fun CardBack(description: String) {
+    val gold = Color(0xFFE8C45A)
+    Canvas(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .semantics { contentDescription = description },
+    ) {
+        val w = size.width
+        val h = size.height
+        val stroke = w * 0.025f
+        drawRoundRect(
+            color = gold,
+            topLeft = Offset(stroke, stroke),
+            size = Size(w - 2 * stroke, h - 2 * stroke),
+            cornerRadius = CornerRadius(w * 0.08f),
+            style = Stroke(width = stroke),
+        )
+        drawRoundRect(
+            color = gold.copy(alpha = 0.45f),
+            topLeft = Offset(stroke * 4f, stroke * 4f),
+            size = Size(w - 8 * stroke, h - 8 * stroke),
+            cornerRadius = CornerRadius(w * 0.05f),
+            style = Stroke(width = stroke * 0.5f),
+        )
+        val c = Offset(w / 2f, h / 2f)
+        val r = w * 0.28f
+        drawCircle(gold, radius = r, center = c, style = Stroke(width = stroke * 0.8f))
+        val star = Path()
+        for (k in 0 until 2) {
+            for (i in 0 until 3) {
+                val a = (i * 120f + k * 60f - 90f) * (Math.PI / 180.0).toFloat()
+                val p = Offset(c.x + r * cos(a), c.y + r * sin(a))
+                if (i == 0) star.moveTo(p.x, p.y) else star.lineTo(p.x, p.y)
+            }
+            star.close()
+        }
+        drawPath(star, gold.copy(alpha = 0.9f), style = Stroke(width = stroke * 0.7f))
+        drawCircle(gold, radius = r * 0.16f, center = c)
     }
 }

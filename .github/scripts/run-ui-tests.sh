@@ -67,6 +67,8 @@ for f in sorted(glob.glob("app/build/outputs/androidTest-results/**/*.xml", recu
 PY
   echo "--- TestRunner (started / finished / failed) ---"
   grep -E 'started:|finished:|failed:' "$out/logs/testrunner.txt" | sed -E 's/^([0-9-]+ [0-9:.]+) .*TestRunner.*: /\1 /' | tail -40
+  echo "--- perf (logcat CrownfallPerf) ---"
+  adb logcat -d -s CrownfallPerf:I | grep -v '^---' | sed -E 's/^[0-9-]+ [0-9:.]+ +[0-9]+ +[0-9]+ I CrownfallPerf: //' | tail -5
   echo "--- instrumentation results ---"
   grep -hE 'Starting [0-9]+ tests|Finished [0-9]+ tests' "$out/logs/gradle.log" | head -10
 } > "$out/result.txt" 2>&1
