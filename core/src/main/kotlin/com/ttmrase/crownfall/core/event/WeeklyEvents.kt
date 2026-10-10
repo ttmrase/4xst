@@ -81,10 +81,17 @@ object WeeklyEvents {
         data: GameData,
     ): Long = satAdd(selfScore(state, data), state.event.bonusScore)
 
+    /** リーダーが追従する自力スコア。逆転パックの後は、購入時点より先の伸びを追わない。 */
+    fun followSelf(
+        state: GameState,
+        self: Long,
+    ): Long = if (state.event.followCapSelf >= 0) minOf(self, state.event.followCapSelf) else self
+
     /**
      * 週 [weekId] の NPC のスコア（降順）。[self] は自力スコア、[fracPermille] は経過割合（0〜1000）。
      * 上位 L 体（1〜3）は `max(自分の曲線, self × (1 + 3〜12%))`、それ以外は固定の曲線。
      */
+
     fun npcRows(
         state: GameState,
         data: GameData,
@@ -139,7 +146,7 @@ object WeeklyEvents {
         val w = weekId(state.nowEpochSec, off)
         val self = selfScore(state, data)
         val total = satAdd(self, state.event.bonusScore)
-        val npcs = npcRows(state, data, w, self, fracPermille(state))
+        val npcs = npcRows(state, data, w, followSelf(state, self), fracPermille(state))
         val me = StandingRow(state.playerName, null, total, true)
         val ahead = npcs.count { it.score > total }
         return npcs.take(ahead) + me + npcs.drop(ahead)

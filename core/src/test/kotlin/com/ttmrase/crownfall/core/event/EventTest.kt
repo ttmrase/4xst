@@ -188,4 +188,23 @@ class EventTest {
             cur.shop.offerQueue.map { it.trigger to it.sku },
         )
     }
+
+    @Test
+    fun comebackPackKeepsFirstPlaceWhenOwnScoreKeepsGrowing() {
+        for (seed in 1L..20L) {
+            val def = WeeklyEvents.definition(week, data)
+            val end = start + WeeklyEvents.WEEK_SEC
+            val s0 = withSelf(game(seed = seed), def.par)
+            val s1 = Simulation.tick(at(s0, end - data.events.warnBeforeEndSec - 10), 100, data).state
+            val offer = OfferEngine.active(s1).firstOrNull { it.trigger == "rankingNear" } ?: continue
+            val bought = Actions.fakePurchase(s1, com.ttmrase.crownfall.core.shop.ProductIds.offer(offer.id), data).ok()
+            assertEquals(1, WeeklyEvents.rank(bought, data), "seed $seed")
+            // 購入後に自力スコアが 2 倍になっても、週末まで 1 位
+            val grown = withSelf(bought, bought.event.selfScore * 2)
+            assertEquals(1, WeeklyEvents.rank(at(grown, end - 1), data), "seed $seed grown")
+            val done = Simulation.tick(at(grown, end - 5), 3600, data).state
+            val rank = done.mails.last { it.systemCode == "event_result" }.params.getValue("rank")
+            assertEquals(1L, rank, "seed $seed result")
+        }
+    }
 }

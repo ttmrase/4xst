@@ -72,7 +72,11 @@ object ShopLogic {
             s = s.copy(heroShards = shards)
         }
         if (c.eventPoints > 0 && s.event.weekId >= 0) {
-            s = s.copy(event = s.event.copy(bonusScore = satAdd(s.event.bonusScore, c.eventPoints)))
+            val cap = com.ttmrase.crownfall.core.event.WeeklyEvents.selfScore(s, data)
+            s =
+                s.copy(
+                    event = s.event.copy(bonusScore = satAdd(s.event.bonusScore, c.eventPoints), followCapSelf = cap),
+                )
         }
         if (c.secondBuilderDays > 0) {
             val base = maxOf(s.secondBuilderUntilEpochSec, s.nowEpochSec)

@@ -29,4 +29,6 @@ data class EventState(
     val bonusScore: Long = 0,
     val basePower: Long = 0,
     val warned: Boolean = false,
+    /** 逆転パックを受け取った時点の自力スコア（-1 は未購入）。リーダーの追従はこれを上限にする。 */
+    val followCapSelf: Long = -1,
 )

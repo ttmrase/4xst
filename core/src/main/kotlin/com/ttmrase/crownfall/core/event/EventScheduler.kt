@@ -78,7 +78,7 @@ internal object EventScheduler {
             }
         if (self < data.events.participation.minScore) return state
         val total = self + state.event.bonusScore
-        val npcs = WeeklyEvents.npcRows(state, data, week, self, PERMILLE)
+        val npcs = WeeklyEvents.npcRows(state, data, week, WeeklyEvents.followSelf(state, self), PERMILLE)
         val rank = npcs.count { it.score > total } + 1
         val reward = data.events.rewards.first { rank in it.from..it.to }.reward
         var s = ShopLogic.grant(state, reward, data)
