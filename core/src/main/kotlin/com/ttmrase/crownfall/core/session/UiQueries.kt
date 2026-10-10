@@ -4,13 +4,21 @@ import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.buff.BuffKey
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.ItemDef
+import com.ttmrase.crownfall.core.data.ResearchLevel
+import com.ttmrase.crownfall.core.data.ResearchNodeDef
+import com.ttmrase.crownfall.core.data.ResearchPrereq
+import com.ttmrase.crownfall.core.data.TroopDef
+import com.ttmrase.crownfall.core.data.TroopType
+import com.ttmrase.crownfall.core.military.Military
 import com.ttmrase.crownfall.core.model.BuildingSlot
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Prereq
+import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
+import com.ttmrase.crownfall.core.research.ResearchRules
 import com.ttmrase.crownfall.core.sim.ActionFailure
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
@@ -39,6 +47,47 @@ data class UpgradePreview(
     /** このスロットの進行中の建設。 */
     val upgrading: TimerJob?,
 )
+
+/** 兵舎画面の 1 Tier 分の表示モデル。 */
+data class TroopTierView(
+    val troop: TroopDef,
+    /** 訓練建物の Lv が足りず解放されていない。 */
+    val locked: Boolean,
+    val requiredBuildingLevel: Int,
+    val owned: Long,
+    val wounded: Long,
+    /** 今の資源と建物で 1 回に訓練できる最大数（未解放なら 0）。 */
+    val maxTrainable: Long,
+)
+
+/** 訓練の確認表示モデル。 */
+data class TrainPreview(
+    val count: Long,
+    val cost: Resources,
+    val missing: Resources,
+    val durationSec: Long,
+    /** 実行できない理由（startTraining の検査順で最初の失敗）。実行可能なら null。 */
+    val blocker: ActionFailure?,
+    /** この訓練建物で進行中の訓練。 */
+    val running: TimerJob?,
+)
+
+/** 研究ノードの表示モデル。 */
+data class ResearchPreview(
+    val node: ResearchNodeDef,
+    val currentLevel: Int,
+    /** 次のレベル。最大なら null。 */
+    val next: ResearchLevel?,
+    val missing: Resources,
+    val durationSec: Long,
+    val missingAcademy: Int?,
+    val missingNodes: List<ResearchPrereq>,
+    val blocker: ActionFailure?,
+    val running: TimerJob?,
+) {
+    /** 前提を満たさず着手できない（鍵表示）。 */
+    val locked: Boolean get() = missingAcademy != null || missingNodes.isNotEmpty()
+}
 
 /** 所持している加速アイテム 1 種。 */
 data class UsableItem(val item: ItemDef, val owned: Int)
@@ -94,6 +143,95 @@ object UiQueries {
             upgrading = state.timers.firstOrNull { it.kind == TimerKind.BUILD && it.slotId == slotId },
         )
     }
+
+    /** 兵種 [type] の Tier1..4 の表示モデル。 */
+    fun troopTiers(
+        state: GameState,
+        type: TroopType,
+        data: GameData,
+    ): List<TroopTierView> =
+        data.troops.values.filter { it.type == type }.sortedBy { it.tier }.map { troop ->
+            val level = Military.trainingBuildingLevel(state, troop)
+            val locked = level < troop.unlockBuildingLevel
+            TroopTierView(
+                troop = troop,
+                locked = locked,
+                requiredBuildingLevel = troop.unlockBuildingLevel,
+                owned = state.troops[troop.id] ?: 0L,
+                wounded = state.wounded[troop.id] ?: 0L,
+                maxTrainable = if (locked) 0L else maxTrainable(state, troop, data),
+            )
+        }
+
+    /** 今の資源で 1 回に訓練できる最大数 = min(train_capacity, 各資源 ÷ 単価)。 */
+    fun maxTrainable(
+        state: GameState,
+        troop: TroopDef,
+        data: GameData,
+    ): Long {
+        var max = Military.trainCapacity(state, troop, data)
+        for (type in ResourceType.entries) {
+            val unit = troop.cost[type]
+            if (unit > 0) max = minOf(max, state.resources[type] / unit)
+        }
+        return maxOf(0L, max)
+    }
+
+    /** 兵 [troopId] を [count] 体訓練する場合の確認表示モデル。未知の兵種なら null。 */
+    fun trainPreview(
+        state: GameState,
+        troopId: String,
+        count: Long,
+        data: GameData,
+    ): TrainPreview? {
+        val troop = data.troops[troopId] ?: return null
+        val cost = Military.trainingCost(troop, maxOf(0L, count))
+        val bp = BuffAggregator.compute(state, data)[BuffKey.TRAIN_SPEED]
+        val slot = Military.trainingSlot(state, troop)
+        return TrainPreview(
+            count = count,
+            cost = cost,
+            missing = cost.missingFrom(state.resources),
+            durationSec = Buffs.speedSeconds(Military.baseTrainSeconds(troop, maxOf(1L, count)), bp),
+            blocker = (Actions.startTraining(state, troopId, count, data) as? ActionResult.Failure)?.reason,
+            running = state.timers.firstOrNull { it.kind == TimerKind.TRAIN && it.slotId == slot?.slotId },
+        )
+    }
+
+    /** 研究ノード [nodeId] の表示モデル。未知のノードなら null。 */
+    fun researchPreview(
+        state: GameState,
+        nodeId: String,
+        data: GameData,
+    ): ResearchPreview? {
+        val node = data.research[nodeId] ?: return null
+        val current = state.research[nodeId] ?: 0
+        val next = if (current < node.maxLevel) node.level(current + 1) else null
+        val bp = BuffAggregator.compute(state, data)[BuffKey.RESEARCH_SPEED]
+        return ResearchPreview(
+            node = node,
+            currentLevel = current,
+            next = next,
+            missing = next?.cost?.missingFrom(state.resources) ?: Resources.ZERO,
+            durationSec = next?.let { Buffs.speedSeconds(it.seconds, bp) } ?: 0,
+            missingAcademy = next?.let { ResearchRules.missingAcademy(state, it) },
+            missingNodes = next?.let { ResearchRules.missingNodes(state, it) }.orEmpty(),
+            blocker = (Actions.startResearch(state, nodeId, data) as? ActionResult.Failure)?.reason,
+            running = state.timers.firstOrNull { it.kind == TimerKind.RESEARCH && it.researchId == nodeId },
+        )
+    }
+
+    /** 研究の進行中ジョブ（1 本）。 */
+    fun researchJob(state: GameState): TimerJob? = state.timers.firstOrNull { it.kind == TimerKind.RESEARCH }
+
+    /** 治療の進行中ジョブ（1 本）。 */
+    fun healJob(state: GameState): TimerJob? = state.timers.firstOrNull { it.kind == TimerKind.HEAL }
+
+    /** 訓練建物 [slotId] の進行中ジョブ。 */
+    fun trainJob(
+        state: GameState,
+        slotId: Int,
+    ): TimerJob? = state.timers.firstOrNull { it.kind == TimerKind.TRAIN && it.slotId == slotId }
 
     /** [job] に使える加速アイテム（カテゴリ一致＋GENERAL）を所持数つきで、短い順に返す。 */
     fun usableItems(
