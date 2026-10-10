@@ -65,3 +65,6 @@
 | Director | session_011UVGTeWG6L3xXBLdQUTLdF |
 | Implementer | session_01Ds6pr7JHqpUBCULVZTtbHX |
 | Debugger | session_01SAp6ZSY6K8bt1P43CqYzZb |
+
+## 8. 書き込み領域の例外（Director 決定の記録）
+- M0 の立ち上げに限り、Implementer が `.github/workflows/android.yml`（T0.4）とルートの `README.md`（T0.5）を作成してよい。M0 完了後、`.github/**` は Debugger の担当に戻る。以降の README 更新は、該当チケットの中で Director が担当者を指定する。
