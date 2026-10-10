@@ -95,7 +95,7 @@ DoD: キー無しで完全動作。キー有りは Debugger が設定画面経�
 | T7.4 | アプリアイコン、スプラッシュ、効果音（任意・自作 or CC0）、ローカライズ点検、量産型翻訳調の文言統一 |
 | T7.5 | オンデバイス LLM（MediaPipe）の実装検討 → **M9 へ繰り越し（Director 決定）** |
 
-## M8 QA・リリース — 発行済み 2026-10-10（設計は 02 §14。T8.1 は Debugger、T8.2 と T8.4（性能パス）は Implementer、T8.3 は Director）
+## M8 QA・リリース — ✅ 完了 2026-10-10（HEAD f3261e6、CI run 78。1.0.0。T8.1 は Debugger、T8.2 と T8.4 は Implementer、T8.3（docs 同期）は Director。設計は 02 §14）
 | ID | 内容 |
 | --- | --- |
 | T8.1 | 全画面スモークチェックリスト（Debugger 作成）、tick/catch-up ベンチ、セーブ互換テスト（v1 → 最新） |

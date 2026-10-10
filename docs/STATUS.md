@@ -1,6 +1,6 @@
 # STATUS（Director が更新）
 
-- 現在のマイルストーン: **M8 QA・リリース**（実装中）。M0〜M7 は ✅ 完了
+- 現在のマイルストーン: **M0〜M8 すべて完了（1.0.0）**。M9（任意の拡張）は Planner と相談中
 - 統合ブランチ: `claude/4x-strategy-game-planning-oxo80w`
 - 最終更新: 2026-10-10 Director
 
@@ -8,6 +8,7 @@
 | マイルストーン | 完了 | 根拠 |
 | --- | --- | --- |
 | M0 基盤 | 2026-10-10 | HEAD 00f5f9b、CI run 38028345848（jvm と apk が緑、crownfall-debug-apk あり）、Debugger QA-OK、Director Approve |
+| M8 QA・リリース | 2026-10-10 | f3261e6、CI run 78 が緑（debug と release（debugsigned）の APK、証明書の照合、billing の検査）、Debugger QA-OK（スモークチェックリスト、M1〜M7 のセーブ互換、ベンチ）、docs の同期（T8.3）、Director Approve |
 | M7 クエスト・イベント・通知・仕上げ | 2026-10-10 | 495aa3e + 修正 39e268f / 99f573c / ad01a44、Debugger QA-OK（週末・日付をまたぐ catch-up の一致、逆転パック後の 1 位）、Director Approve。後追い 2 件は依頼済み |
 | M6 ショップ・擬似課金 | 2026-10-10 | 13a1b86 + 修正 60f5b54、CI run 38043634212 が緑（billing の検査を含む）、Debugger QA-OK（購入の原子性、頻度の性質テスト、ブランド名の検査 check-no-payment-brands.sh を CI に追加、2aa10b1）、Director Approve |
 | M5 同盟・AI チャット | 2026-10-10 | 9a427d9 + 修正 71c9f8f（Gemini の既定を GA の gemini-3.1-flash-lite に変更、例外安全性など）、Debugger QA-OK（分のグリッドの R3、24h 分 11〜13ms、リダイレクトと UrlPolicy の修正 2dc11e1）、Director Approve |
@@ -19,28 +20,9 @@
 ## 進行中チケット
 | ID | 担当 | 状態 | SHA |
 | --- | --- | --- | --- |
-| M0 後追い（下部ナビの popUpTo、:ai の api(core)） | Implementer | ✅ 完了 | f9d0162, 88b1f42 |
-| T1.1〜T1.7 + 小修正 | Implementer | ✅ 完了 | 17d55b3〜d100d48, 31c92d0, 65462b2 |
-| T2.1〜T2.5 + 修正 | Implementer | ✅ 完了 | bd71065〜7a3dcd4, b22934e, 4924700, 705ad2c |
-| T3.1〜T3.5 + 修正 | Implementer | ✅ 完了 | 973f65e〜d74a23d, d939afc |
-| T4.1〜T4.4 + 修正 | Implementer | ✅ 完了 | 6f3616f〜59f6176, d5bfb9c, e316217 |
-| T5.1〜T5.6 + 修正 | Implementer | ✅ 完了 | 12f38e7〜9a427d9, 71c9f8f |
-| T6.1〜T6.5 + 修正 | Implementer | ✅ 完了 | 10ed532, d966afb, 13a1b86, 60f5b54 |
-| T7.1〜T7.4 + 修正 | Implementer | ✅ 完了 | 3e1076b, e174cae, 495aa3e, 39e268f, 99f573c, ad01a44 |
-| M7 後追い 2 件（逆転パックのボーナスを週末時点の NPC 最高スコア基準に、襲撃到着の通知） | Implementer | 依頼済み | - |
-| T8.2（release ビルド、署名の安定化、README）・T8.4（性能パス） | Implementer | 発行済み | - |
-| T8.1（スモークチェックリスト、ベンチ、セーブ互換の fixture）・CI のリリース対応 | Debugger | 実装済み（CI の確認待ち） | e17d749 |
-| T8.3（docs の最終同期） | Director | M8 の完了後 | - |
-| CI に koverVerify を追加・M1 の境界テスト | Debugger | ✅ 完了 | 795d5fe |
-| M2 の QA・GameSession の境界テスト | Debugger | ✅ 完了 | 46cdc42 |
-| FileSaveStorage の :app ユニットテスト（CI に testDebugUnitTest を追加） | Debugger | ✅ 完了 | 425d9d5 |
-| M3 の QA | Debugger | ✅ 完了 | 81afd4f |
-| M4 の R3 拡張テストの準備 | Debugger | ✅ 完了 | 3c8942f |
-| M4 の QA | Debugger | ✅ 完了 | b09c35e |
-| CI に :ai の koverVerify と billing 依存の検査を追加・M5 の QA | Debugger | ✅ 完了 | 2dc11e1, 13c046b, 0665c70 |
-| M6 の QA・ブランド名の検査 | Debugger | ✅ 完了 | 2aa10b1 |
-| CI の grep ステップの終了コード修正 | Debugger | ✅ 完了 | 62fedd3 |
-| M7 の QA | Debugger | ✅ 完了 | 0eef925 ほか |
+| README の細部修正（台帳の項目、頻度の表記、LAN の許可範囲）、Gemini モデルのヒント文言 | Implementer | 依頼済み | - |
+| 実機でのスモークチェック（docs/qa/SMOKE_CHECKLIST.md） | ユーザー | 未実施 | - |
+| M9（オンデバイス LLM、メンション通知の検討） | - | Planner と相談中 | - |
 
 ## 直近の決定事項
 - 技術構成: Kotlin / Compose。`:core` `:ai` は JVM、`:app` は CI でのみビルド（02 §0）
