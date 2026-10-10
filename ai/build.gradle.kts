@@ -47,6 +47,7 @@ kover {
                 packages(
                     "com.ttmrase.crownfall.ai.router",
                     "com.ttmrase.crownfall.ai.providers",
+                    "com.ttmrase.crownfall.ai.ondevice",
                 )
             }
         }

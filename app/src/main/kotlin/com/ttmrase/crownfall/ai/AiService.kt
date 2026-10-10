@@ -1,13 +1,18 @@
 package com.ttmrase.crownfall.ai
 
 import android.content.Context
+import android.os.BatteryManager
 import com.ttmrase.crownfall.ai.providers.GeminiProvider
+import com.ttmrase.crownfall.ai.providers.OnDeviceChatProvider
 import com.ttmrase.crownfall.ai.providers.OpenAiCompatProvider
 import com.ttmrase.crownfall.ai.providers.ScriptedProvider
 import com.ttmrase.crownfall.ai.router.AiRouter
 import com.ttmrase.crownfall.ai.router.UsageLog
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.util.SystemClock
+import com.ttmrase.crownfall.ondevice.LiteRtLmEngine
+import com.ttmrase.crownfall.ondevice.OnDeviceLlmEngine
+import com.ttmrase.crownfall.ondevice.OnDeviceModelStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +31,14 @@ class AiService(
     scope: CoroutineScope,
     val settingsStore: AppSettings = AppSettings(context),
 ) {
+    private val app = context.applicationContext
+
+    /** 端末内 LLM のモデルファイルの置き場。 */
+    val modelStore = OnDeviceModelStore(context, scope)
+
+    /** 端末内 LLM の実行エンジン（ランタイムはここに閉じ込める）。 */
+    private val onDeviceEngine: OnDeviceLlmEngine = LiteRtLmEngine(context, modelStore)
+
     private val _settings = MutableStateFlow<AiSettings?>(null)
     private val usage = UsageLog(PrefsUsageStore(context)) { SystemClock.nowEpochSec() }
     private val client =
@@ -59,6 +72,12 @@ class AiService(
             providers =
                 listOf(
                     GeminiProvider(client, { current().geminiKey }, { current().geminiModel }),
+                    OnDeviceChatProvider(
+                        ready = onDeviceEngine::isModelReady,
+                        generator = { system, prompt -> onDeviceEngine.generate(system, prompt) },
+                        chargingOnly = { current().onDeviceChargingOnly },
+                        charging = ::isCharging,
+                    ),
                     OpenAiCompatProvider(
                         client,
                         { current().openAiBaseUrl },
@@ -70,6 +89,11 @@ class AiService(
             config = { current().toRouterConfig() },
             usage = usage,
         )
+
+    /** 背景に入るとき、端末内 LLM のメモリを空ける。 */
+    fun releaseOnDevice() = onDeviceEngine.release()
+
+    private fun isCharging(): Boolean = app.getSystemService(BatteryManager::class.java)?.isCharging ?: true
 
     private companion object {
         const val CONNECT_SEC = 5L

@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.ai.AiService
 import com.ttmrase.crownfall.ai.AiSettings
+import com.ttmrase.crownfall.ai.OnDeviceProvider
 import com.ttmrase.crownfall.ai.providers.GeminiProvider
 import com.ttmrase.crownfall.ai.providers.UrlPolicy
 import com.ttmrase.crownfall.core.chat.RevealAi
@@ -150,6 +151,15 @@ private fun SettingsForm(
         SecretField(R.string.settings_api_key_optional, draft.openAiKey) { draft = draft.copy(openAiKey = it) }
         HorizontalDivider()
 
+        OnDeviceSettingsSection(
+            store = ai.modelStore,
+            chargingOnly = draft.onDeviceChargingOnly,
+            timeoutSec = draft.onDeviceTimeoutSec,
+            onChargingOnly = { draft = draft.copy(onDeviceChargingOnly = it) },
+            onTimeoutSec = { draft = draft.copy(onDeviceTimeoutSec = it) },
+        )
+        HorizontalDivider()
+
         Text(stringResource(R.string.settings_budget), style = MaterialTheme.typography.titleSmall)
         NumberField(R.string.settings_budget_hourly, draft.hourlyBudget) { draft = draft.copy(hourlyBudget = it) }
         NumberField(R.string.settings_budget_daily, draft.dailyBudget) { draft = draft.copy(dailyBudget = it) }
@@ -201,6 +211,7 @@ private fun SettingsForm(
 private fun providerLabel(id: String): String =
     when (id) {
         GeminiProvider.ID -> stringResource(R.string.settings_gemini)
+        OnDeviceProvider.ID -> stringResource(R.string.settings_on_device)
         else -> stringResource(R.string.settings_openai)
     }
 
@@ -229,7 +240,7 @@ private fun SecretField(
 }
 
 @Composable
-private fun NumberField(
+internal fun NumberField(
     labelRes: Int,
     value: Int,
     onChange: (Int) -> Unit,

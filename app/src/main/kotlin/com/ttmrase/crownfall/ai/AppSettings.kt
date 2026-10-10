@@ -37,6 +37,8 @@ class AppSettings(context: Context, private val cipher: SecretCipher = SecretCip
             hourlyBudget = p[HOURLY] ?: base.hourlyBudget,
             dailyBudget = p[DAILY] ?: base.dailyBudget,
             revealAi = if (p[REVEAL_ADMIT] == true) RevealAi.ADMIT else RevealAi.AMBIGUOUS,
+            onDeviceChargingOnly = p[ON_DEVICE_CHARGING] ?: base.onDeviceChargingOnly,
+            onDeviceTimeoutSec = p[ON_DEVICE_TIMEOUT] ?: base.onDeviceTimeoutSec,
         )
     }
 
@@ -71,6 +73,9 @@ class AppSettings(context: Context, private val cipher: SecretCipher = SecretCip
         p[HOURLY] = next.hourlyBudget.coerceIn(0, AiSettings.MAX_BUDGET)
         p[DAILY] = next.dailyBudget.coerceIn(0, AiSettings.MAX_BUDGET)
         p[REVEAL_ADMIT] = next.revealAi == RevealAi.ADMIT
+        p[ON_DEVICE_CHARGING] = next.onDeviceChargingOnly
+        p[ON_DEVICE_TIMEOUT] =
+            next.onDeviceTimeoutSec.coerceIn(AiSettings.MIN_ON_DEVICE_TIMEOUT_SEC, AiSettings.MAX_ON_DEVICE_TIMEOUT_SEC)
     }
 
     private companion object {
@@ -84,5 +89,7 @@ class AppSettings(context: Context, private val cipher: SecretCipher = SecretCip
         val HOURLY = intPreferencesKey("hourly_budget")
         val DAILY = intPreferencesKey("daily_budget")
         val REVEAL_ADMIT = booleanPreferencesKey("reveal_ai_admit")
+        val ON_DEVICE_CHARGING = booleanPreferencesKey("on_device_charging_only")
+        val ON_DEVICE_TIMEOUT = intPreferencesKey("on_device_timeout_sec")
     }
 }

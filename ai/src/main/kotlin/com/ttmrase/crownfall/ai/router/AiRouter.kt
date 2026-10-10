@@ -4,6 +4,7 @@ import com.ttmrase.crownfall.ai.AiProvider
 import com.ttmrase.crownfall.ai.AiResult
 import com.ttmrase.crownfall.ai.ChatRequest
 import com.ttmrase.crownfall.ai.ChatResponse
+import com.ttmrase.crownfall.ai.OnDeviceProvider
 import com.ttmrase.crownfall.ai.providers.ScriptedProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
@@ -18,11 +19,17 @@ data class RouterConfig(
     val hourlyBudget: Int = DEFAULT_HOURLY,
     val dailyBudget: Int = DEFAULT_DAILY,
     val timeoutMs: Long = DEFAULT_TIMEOUT_MS,
+    /** 端末内 LLM のタイムアウト（ローカルなので長め）。 */
+    val onDeviceTimeoutMs: Long = DEFAULT_ON_DEVICE_TIMEOUT_MS,
 ) {
     companion object {
         const val DEFAULT_HOURLY = 20
         const val DEFAULT_DAILY = 200
         const val DEFAULT_TIMEOUT_MS = 8_000L
+        const val DEFAULT_ON_DEVICE_TIMEOUT_MS = 30_000L
+
+        /** 予算の対象外のプロバイダ（端末内で動くので通信も料金もかからない）。 */
+        val LOCAL_PROVIDERS: Set<String> = setOf(OnDeviceProvider.ID)
     }
 }
 
@@ -44,9 +51,9 @@ class AiRouter(
         for (id in cfg.order) {
             val provider = providers[id] ?: continue
             if (id in cfg.disabled || !provider.isConfigured()) continue
-            if (overBudget(cfg)) {
-                log("budget exceeded; using scripted")
-                break
+            if (id !in RouterConfig.LOCAL_PROVIDERS && overBudget(cfg)) {
+                log("budget exceeded; skipping $id")
+                continue
             }
             val lines = attempt(provider, request, cfg)
             if (lines != null) return ChatResponse(lines)
@@ -55,7 +62,8 @@ class AiRouter(
     }
 
     private fun overBudget(cfg: RouterConfig): Boolean =
-        usage.countSince(UsageLog.HOUR) >= cfg.hourlyBudget || usage.countSince(UsageLog.DAY) >= cfg.dailyBudget
+        usage.countSince(UsageLog.HOUR, RouterConfig.LOCAL_PROVIDERS) >= cfg.hourlyBudget ||
+            usage.countSince(UsageLog.DAY, RouterConfig.LOCAL_PROVIDERS) >= cfg.dailyBudget
 
     private suspend fun attempt(
         provider: AiProvider,
@@ -64,7 +72,8 @@ class AiRouter(
     ): List<com.ttmrase.crownfall.ai.SpokenLine>? {
         val result =
             try {
-                withTimeoutOrNull(cfg.timeoutMs) { provider.complete(request) } ?: AiResult.Failure("timeout", true)
+                val limit = if (provider.id == OnDeviceProvider.ID) cfg.onDeviceTimeoutMs else cfg.timeoutMs
+                withTimeoutOrNull(limit) { provider.complete(request) } ?: AiResult.Failure("timeout", true)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

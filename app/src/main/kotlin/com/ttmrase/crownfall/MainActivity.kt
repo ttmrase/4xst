@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         container.chat.onBackground()
+        container.ai.releaseOnDevice()
         container.repository.onBackground()
         (container.repository.startup.value as? Startup.Ready)?.let { ready ->
             ready.session.state.value?.let { container.notices.schedule(it, ready.data) }

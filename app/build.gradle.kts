@@ -17,6 +17,10 @@ android {
         targetSdk = 35
         versionCode = 100
         versionName = "1.0.0"
+        // 端末内 LLM のネイティブライブラリで APK が大きくなるので、個人の実機（arm64）向けだけにする
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     // 署名: debug は固定の keystore（app/debug.keystore。debug 鍵は秘密ではない）。CI の実行ごとに鍵が変わると、
@@ -100,6 +104,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.work.runtime)
+    implementation(libs.litertlm.android)
     implementation(libs.androidx.core.splashscreen)
 
     testImplementation(platform(libs.junit.bom))

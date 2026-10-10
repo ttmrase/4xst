@@ -20,6 +20,10 @@ data class AiSettings(
     val hourlyBudget: Int = RouterConfig.DEFAULT_HOURLY,
     val dailyBudget: Int = RouterConfig.DEFAULT_DAILY,
     val revealAi: RevealAi = RevealAi.AMBIGUOUS,
+    /** 端末内 LLM は充電中だけ使う。 */
+    val onDeviceChargingOnly: Boolean = false,
+    /** 端末内 LLM のタイムアウト（秒）。 */
+    val onDeviceTimeoutSec: Int = DEFAULT_ON_DEVICE_TIMEOUT_SEC,
 ) {
     /** キーが空か、ヘッダに載せられる印字可能 ASCII か（例外メッセージにキーが載るのを防ぐ）。 */
     fun keysValid(): Boolean = PRINTABLE.matches(geminiKey.trim()) && PRINTABLE.matches(openAiKey.trim())
@@ -29,10 +33,22 @@ data class AiSettings(
         "AiSettings(order=$order, disabled=$disabled, geminiModel=$geminiModel, openAiModel=$openAiModel, keys=***)"
 
     fun toRouterConfig(): RouterConfig =
-        RouterConfig(order = order, disabled = disabled, hourlyBudget = hourlyBudget, dailyBudget = dailyBudget)
+        RouterConfig(
+            order = order,
+            disabled = disabled,
+            hourlyBudget = hourlyBudget,
+            dailyBudget = dailyBudget,
+            onDeviceTimeoutMs = timeoutSec() * MILLIS,
+        )
+
+    private fun timeoutSec(): Int = onDeviceTimeoutSec.coerceIn(MIN_ON_DEVICE_TIMEOUT_SEC, MAX_ON_DEVICE_TIMEOUT_SEC)
 
     companion object {
-        val DEFAULT_ORDER = listOf(GeminiProvider.ID, "openai_compat")
+        val DEFAULT_ORDER = listOf(GeminiProvider.ID, OnDeviceProvider.ID, "openai_compat")
+        const val DEFAULT_ON_DEVICE_TIMEOUT_SEC = 30
+        const val MIN_ON_DEVICE_TIMEOUT_SEC = 5
+        const val MAX_ON_DEVICE_TIMEOUT_SEC = 300
+        private const val MILLIS = 1000L
         const val MAX_BUDGET = 100_000
         private val PRINTABLE = Regex("[\\u0021-\\u007E]*")
     }

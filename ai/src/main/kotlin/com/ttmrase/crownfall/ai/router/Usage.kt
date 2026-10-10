@@ -34,7 +34,10 @@ class UsageLog(
 
     /** 直近 [windowSec] 秒の呼び出し回数。 */
     @Synchronized
-    fun countSince(windowSec: Long): Int = records.count { it.epochSec > nowSec() - windowSec }
+    fun countSince(
+        windowSec: Long,
+        excluding: Set<String> = emptySet(),
+    ): Int = records.count { it.epochSec > nowSec() - windowSec && it.provider !in excluding }
 
     /** 呼び出し結果を記録する。 */
     @Synchronized
