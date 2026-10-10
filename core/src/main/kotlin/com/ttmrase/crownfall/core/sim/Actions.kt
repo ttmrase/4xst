@@ -13,6 +13,7 @@ import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.model.satAdd
+import com.ttmrase.crownfall.core.model.satMul
 
 /** アクション失敗の理由（ID と数値のみ。表示文言は :app）。 */
 sealed interface ActionFailure {
@@ -103,7 +104,12 @@ object Actions {
     fun addResources(
         state: GameState,
         amount: Resources,
-    ): ActionResult = ActionResult.Success(state.copy(resources = state.resources + amount))
+    ): ActionResult {
+        if (amount.food < 0 || amount.wood < 0 || amount.stone < 0 || amount.gold < 0) {
+            return fail(ActionFailure.InvalidArgument)
+        }
+        return ActionResult.Success(state.copy(resources = state.resources + amount))
+    }
 
     /** ジェムを加算する（飽和）。 */
     fun addGems(
@@ -147,7 +153,7 @@ object Actions {
         val item = data.items[itemId]
         if ((state.items[itemId] ?: 0) < count || item == null) return fail(ActionFailure.ItemNotOwned)
         if (!item.category.matches(job.kind)) return fail(ActionFailure.CategoryMismatch)
-        val reduction = com.ttmrase.crownfall.core.model.satMul(item.seconds, count.toLong())
+        val reduction = satMul(item.seconds, count.toLong())
         val newEnd = maxOf(state.nowEpochSec, job.endEpochSec - reduction)
         val left = (state.items[itemId] ?: 0) - count
         val items = if (left > 0) state.items + (itemId to left) else state.items - itemId

@@ -286,6 +286,10 @@ class SimulationTest {
     fun rewardActions() {
         val s = TestSupport.newGame()
         assertEquals(s.gems + 50, Actions.addGems(s, 50).ok().gems)
+        assertEquals(s.resources + Resources(1, 2, 3, 4), Actions.addResources(s, Resources(1, 2, 3, 4)).ok().resources)
+        listOf(Resources(-1, 0, 0, 0), Resources(0, -1, 0, 0), Resources(0, 0, -1, 0), Resources(0, 0, 0, -1)).forEach {
+            assertEquals(ActionFailure.InvalidArgument, (Actions.addResources(s, it) as ActionResult.Failure).reason)
+        }
         assertEquals(ActionFailure.InvalidArgument, (Actions.addGems(s, -1) as ActionResult.Failure).reason)
         assertEquals(Long.MAX_VALUE, Actions.addGems(s.copy(gems = Long.MAX_VALUE - 1), 100).ok().gems)
         assertEquals(5, Actions.addItems(s, "speedup_build_5m", 5).ok().items["speedup_build_5m"])
