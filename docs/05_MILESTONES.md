@@ -35,7 +35,7 @@ DoD: コンテナでテスト緑、CI で APK 生成確認（Debugger が `actio
 テスト: 決定論（同 seed 同結果）、オーバーフロー（Long 範囲）、24h catch-up、タイマー境界、migration no-op。
 DoD: `sim` `economy` の kover 行カバレッジ 80% 以上。
 
-## M2 城内 UI — 発行済み 2026-10-10（設計は 02 §8）
+## M2 城内 UI — 実装済み・Director Approve 2026-10-10（HEAD 7a3dcd4、CI run 38030769719。QA と要修正 1 件の待ち。設計は 02 §8）
 | ID | 内容 |
 | --- | --- |
 | T2.1 | `GameRepository`（StateFlow、1 秒 tick、reduce）、`SaveStore`（アトミック保存・bak・debounce・onStop） |
@@ -45,7 +45,7 @@ DoD: `sim` `economy` の kover 行カバレッジ 80% 以上。
 | T2.5 | 新規ゲーム開始フロー（名前入力、初期英雄 3 択）、タイトル画面 |
 DoD: CI の APK で Castle Lv1→5 が遊べる。Debugger がエミュレータ無しのためコードレビュー + ユニットテスト（ViewModel ロジック）で確認。
 
-## M3 軍事・研究・英雄
+## M3 軍事・研究・英雄 — 発行済み 2026-10-10（設計は 02 §9）
 | ID | 内容 |
 | --- | --- |
 | T3.1 | `troops.json` `research.json` `heroes.json` + model |

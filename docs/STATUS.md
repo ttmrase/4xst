@@ -1,6 +1,6 @@
 # STATUS（Director が更新）
 
-- 現在のマイルストーン: **M2 城内 UI**（発行済み・実装中）。M0 と M1 は ✅ 完了
+- 現在のマイルストーン: **M3 軍事・研究・英雄**（発行済み）。M2 は実装済み・Director Approve（QA と要修正の待ち）。M0 と M1 は ✅ 完了
 - 統合ブランチ: `claude/4x-strategy-game-planning-oxo80w`
 - 最終更新: 2026-10-10 Director
 
@@ -15,9 +15,11 @@
 | --- | --- | --- | --- |
 | M0 後追い（下部ナビの popUpTo、:ai の api(core)） | Implementer | ✅ 完了 | f9d0162, 88b1f42 |
 | T1.1〜T1.7 + 小修正 | Implementer | ✅ 完了 | 17d55b3〜d100d48, 31c92d0, 65462b2 |
-| T2.1〜T2.5 | Implementer | 発行済み（T2.1 は着手済み） | - |
+| T2.1〜T2.5 | Implementer | Director Approve・QA 待ち | bd71065〜7a3dcd4 |
+| M2 要修正（UpgradeSheet のフックの多重呼び出し）・推奨 2 件 | Implementer | 依頼済み | - |
+| T3.1〜T3.5 | Implementer | 発行済み | - |
 | CI に koverVerify を追加・M1 の境界テスト | Debugger | ✅ 完了 | 795d5fe |
-| M2 の境界テスト（GameSession） | Debugger | 依頼済み | - |
+| M2 の QA・GameSession の境界テスト・FileSaveStorage の :app ユニットテスト | Debugger | 依頼済み | - |
 
 ## 直近の決定事項
 - 技術構成: Kotlin / Compose。`:core` `:ai` は JVM、`:app` は CI でのみビルド（02 §0）
@@ -30,7 +32,7 @@
 - テーマ: Material3、常にダーク。金 #C9A227 / 紺 #1F2F5C / 赤 #A4161A
 - M0 に限り、Implementer が `.github/**` と README を作成してよい（06 §8）。M0 完了により `.github/**` は Debugger の担当に戻った
 - KGP と AGP の読み込みは (a) 方式（各モジュールで適用）を採用。CI は setup-android を使わずランナー同梱の SDK を使う（02 §4）
-- コアシミュレーションの設計規則 R1〜R9（02 §7）。M2 のセッションと UI の設計（02 §8: GameSession を :core に置く、保存はスロットリング、TooNew は上書きしない）。`tools/**` を Implementer の書き込み領域に追加
+- コアシミュレーションの設計規則 R1〜R9（02 §7）。M2 のセッションと UI の設計（02 §8: GameSession を :core に置く、保存はスロットリング、TooNew は上書きしない）。M3 の設計（02 §9: バフは加算で集約、キューは種類ごとに独立、維持費は正味レート、召喚の確率と天井）。`tools/**` を Implementer の書き込み領域に追加
 
 ## ユーザー確認待ち（Planner 経由）
 - なし（ゲーム名・AI 既定プロバイダは確定済み）

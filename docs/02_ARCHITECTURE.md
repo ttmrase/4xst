@@ -164,3 +164,19 @@ jobs:
 - GameState への追加フィールド（デフォルト値付きなので版は上げない）: `playerName`、`starterHeroId`、`tutorialStep`。
 - オファー誘導のフックは `OfferHooks`（M2 では何もしない実装。中身は M6）。
 - 城内のレイアウトは、セクション見出しで区切った 3 列の固定グリッド。数値の短縮表示は `core.util.ShortNumber`（K/M/B/T、小数 1 桁、切り捨て）。
+- M2 で確定した実装上の判断:
+  - 保存のスロットリングは Clock の秒で判定する（前景では約 5 秒ごとに保存される）。
+  - 不在サマリーはロード時だけでなく、前景に戻ったとき（ON_START）にも経過が 300 秒以上なら出す。
+  - TooNew を検出したら、`newGame` は呼べない（例外を投げる。UI 側でもボタンを出さない）。
+  - オファー誘導のフックは、構図のたびではなく、ユーザーが操作したときに 1 回だけ呼ぶ（M2 REVIEW）。
+
+## 9. 軍事・研究・英雄の設計（M3 で Director が決定）
+- **バフは加算で集約する**: `core.buff.BuffAggregator` が、すべての出所（研究・Boost・将来の VIP や同盟テック）の bp を BuffKey ごとに加算し、対象の値に 1 回だけ掛ける。全体用（例 PRODUCTION_ALL）と個別用（例 PRODUCTION_FOOD）も加算する。乗算の連鎖はしない。速度系は `base*10000/(10000+Σbp)`（切り上げ、最小 1 秒）。
+- 英雄のスキルは BuffAggregator に入れない（行軍・戦闘の文脈でだけ効く。M4）。
+- キュー: 訓練は訓練建物ごとに 1 本、研究は 1 本、治療は 1 本。いずれも建設のキューとは独立。
+- Food の維持費は「Food の正味レート = 生産 − 維持費」として tick に組み込む。正味が負なら 0 で止まり、`FoodDepleted` を到達時刻に 1 回だけ出す。脱走は無し。
+- 召喚: PREMIUM は SSR 2% / SR 13% / R 35% / N 50%、天井 100（SSR が出たら 0 に戻す）、10 連は SR 以上を 1 枠保証。NORMAL は SSR なし。乱数は rngState を使い、使用後に書き戻す。
+- 初期英雄は NewGame で付与する。M2 のセーブは、load の後に `HeroBootstrap.ensureStarter`（冪等）で補完する。
+- GameState と TimerJob への追加は、すべてデフォルト値付き（版は上げない）。
+- kover の対象パッケージ: sim / economy / military / research / hero / buff（各 80%）。
+
