@@ -92,7 +92,7 @@ class PerfUiTest {
                     cache.usedBytes / MB,
                     cache.spriteCount,
                     mem.totalPss / KB,
-                    (mem.summary["summary.java-heap"]?.toDoubleOrNull() ?: Double.NaN) / KB,
+                    (mem.getMemoryStat("summary.java-heap")?.toDoubleOrNull() ?: Double.NaN) / KB,
                 )
         Log.i("CrownfallPerf", line)
         assertTrue("frames measured: ${sorted.size}", sorted.size > MIN_FRAMES)
