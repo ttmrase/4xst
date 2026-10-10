@@ -19,7 +19,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":core"))
+    api(project(":core"))
     api(libs.kotlinx.serialization.json)
     api(libs.kotlinx.coroutines.core)
 
