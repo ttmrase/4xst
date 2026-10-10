@@ -3,7 +3,7 @@ name: ui
 # エミュレータ（API 34、x86_64）の androidTest とスクリーンショット（docs/02 §18）。
 # android.yml とは別のワークフローにして、Implementer の連続 push で実行中のジョブが取り消されないようにする
 # （concurrency は cancel-in-progress: false。実行中のものは最後まで走り、待ちは最新の 1 件だけ残る）。
-# 最初は継続ジョブ扱い（失敗しても android ワークフローの成否には影響しない）。2 回連続で緑になったら必須にする。
+# 別ワークフローなので、失敗しても android ワークフローの成否には影響しない（ジョブは正直に赤になる）。2 回連続で緑になったら必須にする。
 
 on:
   push:
@@ -22,7 +22,6 @@ jobs:
   ui:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    continue-on-error: true
     permissions:
       contents: write # qa-screenshots ブランチへ画像を追記するため（このジョブだけ）
     steps:
@@ -91,6 +90,17 @@ jobs:
           SHA: ${{ github.sha }}
           JOB_STATUS: ${{ job.status }}
         run: bash .github/scripts/publish-screenshots.sh
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## ui: androidTest on the emulator"
+            echo "job status: \`${{ job.status }}\`"
+            echo '```'
+            cat ui-out/result.txt 2>/dev/null || echo "(no result.txt: the test step did not run)"
+            echo '```'
+            echo "screenshots: $(find ui-out/screenshots -type f 2>/dev/null | wc -l) file(s); published to the qa-screenshots branch (runs/${{ github.run_number }}-*)"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4

@@ -58,6 +58,10 @@ push_once() {
     echo "images: $(find "$dest" -name "*.jpg" | wc -l)"
     echo "bytes: $(find "$dest" -name "*.jpg" -exec cat {} + | wc -c)"
     echo "actions: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-}"
+    if [[ -f "${RESULT_FILE:-ui-out/result.txt}" ]]; then
+      echo "--- result ---"
+      cat "${RESULT_FILE:-ui-out/result.txt}"
+    fi
   } > "$dest/summary.txt"
   # 古い run を畳む（直近 keep_runs 件だけ残す）
   if [[ -d runs ]]; then
