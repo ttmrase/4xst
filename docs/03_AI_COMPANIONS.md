@@ -62,7 +62,7 @@
 | OpenAI 互換（Groq） | 無料 tier | base URL、API キー、モデル名 | llama 系。コンテナからは疎通不可だが端末からは可 |
 | OpenAI 互換（OpenRouter free モデル） | 無料モデル枠 | 同上 | |
 | OpenAI 互換（Ollama / LM Studio） | 完全無料 | LAN の base URL（例 `http://192.168.x.x:11434/v1`）、モデル名 | 自宅 PC で動かす場合。平文 HTTP は、アプリの UrlPolicy がプライベート IP・localhost・*.local のときだけ許可する（02 §11） |
-| オンデバイス（MediaPipe LLM Inference, Gemma 3 1B） | 完全無料 | モデルファイル DL（約 0.5GB） | **Phase 2**。端末 RAM 要件あり |
+| オンデバイス（LiteRT-LM。フォールバックとして MediaPipe tasks-genai。Gemma 系の小型モデル） | 完全無料 | モデルファイル（約 0.5GB〜）をファイル選択か URL ダウンロードで読み込む | **M9 で実装**。既定の順は gemini → onDevice → openai_compat → Scripted。端末 RAM の目安を表示する |
 | Scripted | 常時 | なし | 既定・オフライン・フォールバック |
 
 ### AiRouter の振る舞い

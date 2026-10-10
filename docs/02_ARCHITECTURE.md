@@ -271,3 +271,16 @@ jobs:
   - jvm ジョブ: `:core:test :ai:test ktlintCheck koverXmlReport :core:koverVerify :ai:koverVerify -PwithAndroid=false`、billing 依存の検査、check-no-billing-refs.sh、check-no-payment-brands.sh、失敗時のテストレポート。
   - apk ジョブ: `:app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck`、billing 依存の検査、check-apk-no-billing.sh、release の署名の準備（Secrets）、`assembleRelease`、証明書の SHA-256 の照合、成果物 crownfall-debug-apk と crownfall-release-apk（14 日）、lint レポート。
   - setup-android は使わず、ランナー同梱の SDK を使う。
+
+## 16. M9: オンデバイス LLM と「量産型にうるさい」通知（Director が決定、ユーザー承認済み）
+- **ランタイム**: 第一候補は LiteRT-LM（`com.google.ai.edge.litertlm:litertlm-android`）。MediaPipe の LLM Inference API（tasks-genai）は Android 版が保守のみのモードで、公式に LiteRT-LM への移行が推奨されているため。要件を満たさない、または CI で解決できない場合だけ tasks-genai にフォールバックする。いずれも `:app` の `OnDeviceLlmEngine` の後ろに閉じ込める。
+- AiRouter の既定の順: gemini → onDevice → openai_compat → Scripted。
+- モデルはアプリがホストしない。ファイル選択（SAF）か、https の URL からのダウンロード（再開・サイズ確認・任意の SHA-256）で `filesDir/models/` に置く。
+- 推論は単一スレッドで 1 件ずつ、遅延ロード、onStop で解放、タイムアウト 30 秒。abiFilters は arm64-v8a のみ。
+- **通知**:
+  - 襲撃は段階化する（偵察された → 進軍中 → 1 時間前 → 15 分前 → 開始 → 結果）。各段階は tick の境界で、Watchtower の Lv で見える段階が変わる。
+  - onStop の時点で、オフライン上限の範囲内を先読み（`NotificationPlanner.lookahead`、純関数）して予約する。背景サービスは使わない。上限を超える事件は予告しない。復帰の催促（4h / 24h / 72h / 7d）だけはゲーム外の通知として予約してよい。
+  - 強度 LOW / STANDARD / MASS（既定 MASS）、1 時間あたりの上限（襲撃は対象外）、まとめ通知、おやすみ時間（既定 OFF、襲撃は例外）。いずれも notification_rules.json と `NotificationPolicy`（純関数）で決める。
+  - 配送: 時刻精度が要るものは exact alarm（13 以降は USE_EXACT_ALARM。サイドロード専用のため宣言する。12 は SCHEDULE_EXACT_ALARM）。許可が無ければ inexact、それ以外は WorkManager。BOOT_COMPLETED で予約を復元する。
+- release の本格署名は不要（ユーザー決定）。debug 鍵署名の release APK で確定。Secrets の経路は任意の補足として残す。
+

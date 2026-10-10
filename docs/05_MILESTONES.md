@@ -103,8 +103,9 @@ DoD: キー無しで完全動作。キー有りは Debugger が設定画面経�
 | T8.3 | 最終ドキュメント同期（docs と実装の差分解消） |
 | T8.4 | 性能パス: 毎秒の state 更新による全画面の再構図を、部分的な購読で減らす（Director が追加） |
 
-## M9 拡張（任意・M8 の後）
+## M9 拡張（ユーザー承認 2026-10-10）— 発行済み（設計は 02 §16）
 | ID | 内容 |
 | --- | --- |
-| T9.1 | オンデバイス LLM（MediaPipe LLM Inference、Gemma 系の小型モデル）による OnDeviceProvider の実装（M7 の T7.5 から繰り越し） |
-| T9.2 | 未来の AI メンション・DM の通知（背景での軽量な予測、セーブとの競合なし）の検討 |
+| T9.1 | オンデバイス LLM（LiteRT-LM が第一候補、tasks-genai がフォールバック）。モデルの読み込み（ファイル選択・URL ダウンロード）、端末要件の表示、AiRouter の順は gemini → onDevice → openai_compat → Scripted |
+| T9.2a | :core: 襲撃の段階化（6 段階、Watchtower の Lv で可視性）、AI の反応、先読みの通知計画（オフライン上限の範囲内）、強度・上限・まとめ・おやすみ時間の選別 |
+| T9.2b | :app: exact alarm と WorkManager の配送、チャンネルの再編（襲撃は高い重要度）、BOOT_COMPLETED での復元、アプリ内のうるささ（最前面のポップアップ、緊急ティッカー、赤いバナー、バイブ）、設定 |
