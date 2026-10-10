@@ -32,6 +32,8 @@ data class GameState(
     val heroShards: Map<String, Int> = emptyMap(),
     val foodDepleted: Boolean = false,
     val map: MapState = MapState(),
+    val mails: List<Mail> = emptyList(),
+    val nextMailId: Long = 1,
 )
 
 /** tick / アクションが出すイベント（UI・通知・チャットへの入力）。 */

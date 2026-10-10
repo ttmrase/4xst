@@ -89,6 +89,7 @@ data class LootRules(val resourcesPerLevel: Resources, val fortMultiplier: Long,
 data class RallyRules(
     val allyTroopsByFortLevel: List<Long>,
     val allyTier: Int,
+    val allyMix: Map<String, Int>,
     val participationResourcesPerLevel: Resources,
 )
 

@@ -10,6 +10,13 @@ class BuffSet(private val bp: Map<BuffKey, Long>) {
     /** [key] の bp 合計（無ければ 0）。 */
     operator fun get(key: BuffKey): Long = bp[key] ?: 0L
 
+    /** [extra] を加算した新しい [BuffSet]（英雄パッシブなど、行軍単位の追加分に使う）。 */
+    operator fun plus(extra: Map<BuffKey, Long>): BuffSet {
+        val merged = HashMap(bp)
+        for ((k, v) in extra) merged[k] = (merged[k] ?: 0L) + v
+        return BuffSet(merged)
+    }
+
     /** 資源 [type] の生産に効く bp（全体用 + 個別用）。 */
     fun production(type: ResourceType): Long =
         this[BuffKey.PRODUCTION_ALL] +
@@ -27,6 +34,21 @@ class BuffSet(private val bp: Map<BuffKey, Long>) {
     override fun hashCode(): Int = bp.hashCode()
 
     override fun toString(): String = "BuffSet($bp)"
+}
+
+/** 英雄パッシブスキルの効果キーと [BuffKey] の対応。 */
+object HeroPassives {
+    /** 効果キー（heroes.json）に対応するバフ。無ければ null。 */
+    fun buffKey(effectKey: String): BuffKey? =
+        when (effectKey) {
+            "troop_attack_bp" -> BuffKey.TROOP_ATTACK
+            "troop_defense_bp" -> BuffKey.TROOP_DEFENSE
+            "troop_hp_bp" -> BuffKey.TROOP_HP
+            "gather_speed_bp" -> BuffKey.GATHER_SPEED
+            "march_speed_bp" -> BuffKey.MARCH_SPEED
+            "load_bp" -> BuffKey.LOAD_CAPACITY
+            else -> null
+        }
 }
 
 /**
@@ -61,5 +83,28 @@ object BuffAggregator {
             add(l.effectKey, l.effectBp)
         }
         return BuffSet(sum)
+    }
+
+    /**
+     * 行軍（戦闘・採集）用のバフ = 通常の集約 + 参加英雄（[heroIds]）のパッシブスキル。
+     * スキルは Lv に応じた値（bp）を加算する。アクティブスキルはここには含めない（戦闘ラウンドで扱う）。
+     */
+    fun forMarch(
+        state: GameState,
+        heroIds: List<String>,
+        data: GameData,
+    ): BuffSet {
+        val extra = HashMap<BuffKey, Long>()
+        for (id in heroIds) {
+            val hero = state.heroes.firstOrNull { it.heroId == id } ?: continue
+            val def = data.heroes[id] ?: continue
+            def.skills.forEachIndexed { index, skill ->
+                if (skill.slot != "passive") return@forEachIndexed
+                val key = HeroPassives.buffKey(skill.effectKey) ?: return@forEachIndexed
+                val level = hero.skillLevels.getOrElse(index) { 1 }.coerceIn(1, skill.values.size)
+                extra[key] = (extra[key] ?: 0L) + skill.values[level - 1]
+            }
+        }
+        return compute(state, data) + extra
     }
 }

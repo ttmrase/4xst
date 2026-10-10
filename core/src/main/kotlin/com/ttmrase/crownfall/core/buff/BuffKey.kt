@@ -19,4 +19,5 @@ enum class BuffKey {
     STORAGE_PROTECT,
     HOSPITAL_CAPACITY,
     UPKEEP_REDUCTION,
+    LOAD_CAPACITY,
 }

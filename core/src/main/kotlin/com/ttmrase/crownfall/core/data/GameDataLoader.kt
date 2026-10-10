@@ -399,7 +399,7 @@ object GameDataLoader {
                 "$where: raid intervals are invalid",
             )
         }
-        for (mix in listOf(m.barbarians.mix, m.raid.mix)) {
+        for (mix in listOf(m.barbarians.mix, m.raid.mix, m.rally.allyMix)) {
             if (mix.isEmpty() || mix.values.sum() != PERCENT ||
                 mix.keys.any {
                         k ->
