@@ -180,4 +180,20 @@ jobs:
 - 初期英雄は NewGame で付与する。M2 のセーブは、load の後に `HeroBootstrap.ensureStarter`（冪等）で補完する。
 - GameState と TimerJob への追加は、すべてデフォルト値付き（版は上げない）。
 - kover の対象パッケージ: sim / economy / military / research / hero / buff / session（各 80%）。
+- M3 で確定した実装上の判断:
+  - 研究の前提不足は専用の `ResearchPrereqNotMet` を使う。
+  - 治療中の兵は wounded から外す。
+  - `ItemDef.kind` を追加した。
+  - `GameData` は data class にした。
+  - :core と :ai は `-Xjdk-release=17` でコンパイルする（CI の JDK 17 で使えない API をローカルで弾くため）。
+  - :app の JVM ユニットテスト（`:app:testDebugUnitTest`）を CI の apk ジョブで実行する。
+
+## 10. マップ・行軍・戦闘の設計（M4 で Director が決定）
+- マップは「静的部分 + 動的オーバーレイ」に分ける。静的部分（地形と固定の拠点）は `MapGenerator.generate(seed)` で再生成し、保存しない。動的部分（ノードの残量、野蛮人）は `GameState.map` に保存する。再出現は、一定周期の一括補充を tick の境界として行う。
+- 行軍のフェーズ終了（到着・採集完了・集結完了・帰還）と NPC 襲撃（予告と本番）も tick の境界にし、R3 を維持する。
+- 戦闘は整数演算のみ（bp と Long）。最大 10 ラウンドで、両軍が同時にダメージを与える。三すくみは有利 ×1.2 / 不利 ×0.8。Siege は対兵 ×0.6・対壁 ×1.5。損害は 70% 負傷 / 30% 死亡。病院の容量を超えた分は死亡。
+- 英雄の効果は行軍単位で効かせる（`BuffAggregator.forMarch`）。アクティブスキルは「第 N ラウンドに追加ダメージ」。
+- メールは `GameState.mails`（上限 200 件）。種類は BATTLE / SCOUT / SYSTEM（RECEIPT / ALLIANCE は予約）。
+- ラリーは M4 ではプレイヤーが主催し、援軍は仮のもの。AI が主催するラリーへの参加は M5 で追加する。
+- kover の対象に map / march / combat を追加する。
 
