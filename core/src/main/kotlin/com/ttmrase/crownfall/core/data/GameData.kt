@@ -1,6 +1,8 @@
 package com.ttmrase.crownfall.core.data
 
+import com.ttmrase.crownfall.core.buff.BuffKey
 import com.ttmrase.crownfall.core.model.BuildingType
+import com.ttmrase.crownfall.core.model.HeroRarity
 import com.ttmrase.crownfall.core.model.Prereq
 import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.model.TimerKind
@@ -52,8 +54,20 @@ enum class SpeedupCategory {
         }
 }
 
-/** 加速アイテム定義。 */
-data class ItemDef(val id: String, val category: SpeedupCategory, val seconds: Long)
+/** アイテムの種類。 */
+enum class ItemKind { SPEEDUP, HERO_EXP, SKILL_BOOK, SUMMON_TICKET_NORMAL, SUMMON_TICKET_PREMIUM }
+
+/**
+ * アイテム定義。加速は [category] と [seconds]、英雄経験値は [value]（経験値量）を使う。
+ * 加速以外では [category] は null。
+ */
+data class ItemDef(
+    val id: String,
+    val kind: ItemKind,
+    val category: SpeedupCategory?,
+    val seconds: Long,
+    val value: Long,
+)
 
 /** ジェムスキップの区分。残り秒が [upToSec] まで（null は無限）の部分を毎時 [gemsPerHour] で課金。 */
 data class SpeedupTier(val upToSec: Long?, val gemsPerHour: Long)
@@ -66,6 +80,96 @@ data class NewGameRules(
     val items: Map<String, Int>,
 )
 
+/** 兵種。三すくみの [counter]（有利な相手）は M4 の戦闘で使う。 */
+enum class TroopType(val trainingBuilding: BuildingType) {
+    INFANTRY(BuildingType.BARRACKS),
+    CAVALRY(BuildingType.STABLE),
+    ARCHER(BuildingType.ARCHERY_RANGE),
+    SIEGE(BuildingType.SIEGE_WORKSHOP),
+}
+
+/** 兵の定義（1 体あたりの値。[upkeepPer100PerHour] は 100 体あたりの毎時 Food 維持費）。 */
+data class TroopDef(
+    val id: String,
+    val type: TroopType,
+    val tier: Int,
+    val attack: Long,
+    val defense: Long,
+    val hp: Long,
+    val speed: Long,
+    val load: Long,
+    val trainSec: Long,
+    val cost: Resources,
+    val upkeepPer100PerHour: Long,
+    val power: Long,
+    val unlockBuildingLevel: Int,
+    val counter: TroopType?,
+)
+
+/** 研究の前提となる先行ノード。 */
+data class ResearchPrereq(val nodeId: String, val level: Int)
+
+/** 研究ノードの 1 レベル分。[effectBp] はそのレベル時点の累積 bp。 */
+data class ResearchLevel(
+    val level: Int,
+    val cost: Resources,
+    val seconds: Long,
+    val academyLevel: Int,
+    val nodes: List<ResearchPrereq>,
+    val effectKey: BuffKey,
+    val effectBp: Long,
+    val power: Long,
+)
+
+/** 研究ノード。 */
+data class ResearchNodeDef(val id: String, val branch: String, val maxLevel: Int, val levels: List<ResearchLevel>) {
+    /** Lv[level]（1 始まり）の定義。 */
+    fun level(level: Int): ResearchLevel = levels[level - 1]
+}
+
+/** 英雄のスキル（Lv1..maxSkillLevel の値）。[slot] は "active" か "passive"。効果キーは M4 で使う。 */
+data class HeroSkillDef(val slot: String, val effectKey: String, val values: List<Int>)
+
+/** 英雄の定義。 */
+data class HeroDef(
+    val id: String,
+    val rarity: HeroRarity,
+    val troopAffinity: TroopType,
+    val attack: Long,
+    val defense: Long,
+    val hp: Long,
+    val skills: List<HeroSkillDef>,
+)
+
+/** 召喚の種類ごとの設定。確率は bp（合計 10000）。[pityAt] が 0 なら天井なし。 */
+data class SummonTable(
+    val gold: Long,
+    val goldTen: Long,
+    val gems: Long,
+    val gemsTen: Long,
+    val ticketItem: String,
+    val rates: Map<HeroRarity, Int>,
+    val tenGuarantee: HeroRarity,
+    val pityAt: Int,
+)
+
+/** 英雄育成の共通ルール。 */
+data class HeroRules(
+    val expToNext: List<Long>,
+    val starLevelCaps: List<Int>,
+    val starUpShards: List<Int>,
+    val dupShards: Map<HeroRarity, Int>,
+    val maxSkillLevel: Int,
+    val rarityPower: Map<HeroRarity, Long>,
+    val powerPerLevel: Long,
+    val powerPerSkillLevel: Long,
+    val normal: SummonTable,
+    val premium: SummonTable,
+) {
+    /** 最大レベル。 */
+    val maxLevel: Int get() = expToNext.size + 1
+}
+
 /** 全体ルール。 */
 data class Rules(
     val offlineCapSec: Long,
@@ -73,15 +177,21 @@ data class Rules(
     val baseBuildQueues: Int,
     val offlineSummaryMinSec: Long,
     val starterHeroes: List<String>,
+    val healCostPct: Long,
+    val healTimePct: Long,
     val newGame: NewGameRules,
 )
 
 /** ゲームデータ一式（不変・注入可能。シングルトンにしない）。 */
-class GameData(
+data class GameData(
     val buildings: Map<BuildingType, BuildingDef>,
     val rules: Rules,
     val items: Map<String, ItemDef>,
     val speedupTiers: List<SpeedupTier>,
+    val troops: Map<String, TroopDef>,
+    val research: Map<String, ResearchNodeDef>,
+    val heroes: Map<String, HeroDef>,
+    val heroRules: HeroRules,
 ) {
     /** 建物種 [type] の定義。 */
     fun building(type: BuildingType): BuildingDef = buildings.getValue(type)

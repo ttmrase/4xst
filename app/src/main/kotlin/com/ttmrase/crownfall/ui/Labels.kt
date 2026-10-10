@@ -156,7 +156,14 @@ fun eventMessage(
             context.getString(R.string.event_level_up, context.getString(event.type.nameRes()), event.newLevel)
         is GameEvent.StorageFull ->
             context.getString(R.string.event_storage_full, context.getString(event.resource.nameRes()))
-        is GameEvent.TimerCompleted, is GameEvent.BoostExpired -> null
+        is GameEvent.TimerCompleted,
+        is GameEvent.BoostExpired,
+        is GameEvent.TroopsTrained,
+        is GameEvent.TroopsHealed,
+        is GameEvent.ResearchCompleted,
+        is GameEvent.FoodDepleted,
+        is GameEvent.HeroSummoned,
+        -> null
     }
 
 /** 加速アイテムの表示名（例「建設加速 5 分」）。 */
@@ -165,7 +172,7 @@ fun speedupItemName(
     item: ItemDef,
 ): String {
     val category =
-        when (item.category) {
+        when (item.category ?: return item.id) {
             SpeedupCategory.GENERAL -> R.string.speedup_category_general
             SpeedupCategory.BUILD -> R.string.speedup_category_build
             SpeedupCategory.RESEARCH -> R.string.speedup_category_research

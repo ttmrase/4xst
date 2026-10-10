@@ -1,0 +1,20 @@
+{
+ "troops": [
+  {"id":"infantry_t1","type":"infantry","tier":1,"attack":10,"defense":14,"hp":120,"speed":10,"load":20,"trainSec":6,"cost":{"food":40,"wood":20,"stone":0,"gold":0},"upkeepPer100PerHour":1,"power":2,"unlockBuildingLevel":1,"counter":"cavalry"},
+  {"id":"infantry_t2","type":"infantry","tier":2,"attack":25,"defense":36,"hp":300,"speed":11,"load":40,"trainSec":20,"cost":{"food":120,"wood":80,"stone":20,"gold":0},"upkeepPer100PerHour":3,"power":6,"unlockBuildingLevel":6,"counter":"cavalry"},
+  {"id":"infantry_t3","type":"infantry","tier":3,"attack":60,"defense":84,"hp":720,"speed":12,"load":80,"trainSec":60,"cost":{"food":360,"wood":240,"stone":120,"gold":40},"upkeepPer100PerHour":8,"power":18,"unlockBuildingLevel":11,"counter":"cavalry"},
+  {"id":"infantry_t4","type":"infantry","tier":4,"attack":150,"defense":204,"hp":1800,"speed":13,"load":160,"trainSec":180,"cost":{"food":1000,"wood":700,"stone":400,"gold":200},"upkeepPer100PerHour":20,"power":54,"unlockBuildingLevel":16,"counter":"cavalry"},
+  {"id":"cavalry_t1","type":"cavalry","tier":1,"attack":12,"defense":11,"hp":100,"speed":16,"load":20,"trainSec":7,"cost":{"food":52,"wood":20,"stone":0,"gold":0},"upkeepPer100PerHour":1,"power":2,"unlockBuildingLevel":1,"counter":"archer"},
+  {"id":"cavalry_t2","type":"cavalry","tier":2,"attack":30,"defense":27,"hp":250,"speed":17,"load":40,"trainSec":22,"cost":{"food":156,"wood":80,"stone":20,"gold":0},"upkeepPer100PerHour":3,"power":6,"unlockBuildingLevel":6,"counter":"archer"},
+  {"id":"cavalry_t3","type":"cavalry","tier":3,"attack":72,"defense":63,"hp":600,"speed":18,"load":80,"trainSec":66,"cost":{"food":468,"wood":240,"stone":120,"gold":40},"upkeepPer100PerHour":8,"power":18,"unlockBuildingLevel":11,"counter":"archer"},
+  {"id":"cavalry_t4","type":"cavalry","tier":4,"attack":180,"defense":153,"hp":1500,"speed":19,"load":160,"trainSec":198,"cost":{"food":1300,"wood":700,"stone":400,"gold":200},"upkeepPer100PerHour":20,"power":54,"unlockBuildingLevel":16,"counter":"archer"},
+  {"id":"archer_t1","type":"archer","tier":1,"attack":13,"defense":8,"hp":80,"speed":10,"load":20,"trainSec":6,"cost":{"food":40,"wood":26,"stone":0,"gold":0},"upkeepPer100PerHour":1,"power":2,"unlockBuildingLevel":1,"counter":"infantry"},
+  {"id":"archer_t2","type":"archer","tier":2,"attack":32,"defense":21,"hp":200,"speed":11,"load":40,"trainSec":20,"cost":{"food":120,"wood":104,"stone":20,"gold":0},"upkeepPer100PerHour":3,"power":6,"unlockBuildingLevel":6,"counter":"infantry"},
+  {"id":"archer_t3","type":"archer","tier":3,"attack":78,"defense":49,"hp":480,"speed":12,"load":80,"trainSec":60,"cost":{"food":360,"wood":312,"stone":120,"gold":40},"upkeepPer100PerHour":8,"power":18,"unlockBuildingLevel":11,"counter":"infantry"},
+  {"id":"archer_t4","type":"archer","tier":4,"attack":195,"defense":119,"hp":1200,"speed":13,"load":160,"trainSec":180,"cost":{"food":1000,"wood":910,"stone":400,"gold":200},"upkeepPer100PerHour":20,"power":54,"unlockBuildingLevel":16,"counter":"infantry"},
+  {"id":"siege_t1","type":"siege","tier":1,"attack":15,"defense":6,"hp":90,"speed":10,"load":40,"trainSec":8,"cost":{"food":24,"wood":20,"stone":20,"gold":10},"upkeepPer100PerHour":1,"power":2,"unlockBuildingLevel":1,"counter":null},
+  {"id":"siege_t2","type":"siege","tier":2,"attack":38,"defense":15,"hp":225,"speed":11,"load":80,"trainSec":28,"cost":{"food":72,"wood":80,"stone":40,"gold":20},"upkeepPer100PerHour":3,"power":7,"unlockBuildingLevel":6,"counter":null},
+  {"id":"siege_t3","type":"siege","tier":3,"attack":90,"defense":35,"hp":540,"speed":12,"load":160,"trainSec":84,"cost":{"food":216,"wood":240,"stone":240,"gold":80},"upkeepPer100PerHour":8,"power":22,"unlockBuildingLevel":11,"counter":null},
+  {"id":"siege_t4","type":"siege","tier":4,"attack":225,"defense":85,"hp":1350,"speed":13,"load":320,"trainSec":252,"cost":{"food":600,"wood":700,"stone":800,"gold":400},"upkeepPer100PerHour":20,"power":65,"unlockBuildingLevel":16,"counter":null}
+ ]
+}

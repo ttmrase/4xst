@@ -17,7 +17,7 @@ class GameDataLoaderTest {
         queues: Int = 1,
         newGame: String = "{\"resources\": {}}",
         minSec: Int = 300,
-        heroes: String = "[\"a\", \"b\", \"c\"]",
+        heroes: String = "[\"hero_aldric\", \"hero_seren\", \"hero_brann\"]",
     ) = "{\"offlineCapSec\": $offlineCap, \"catchUpChunkSec\": $chunk, " +
         "\"baseBuildQueues\": $queues, \"offlineSummaryMinSec\": $minSec, \"starterHeroes\": $heroes, " +
         "\"newGame\": $newGame}"
@@ -34,7 +34,7 @@ class GameDataLoaderTest {
             assertEquals(25, def.maxLevel)
             assertEquals((1..25).toList(), def.levels.map { it.level })
         }
-        assertEquals(35, data.items.size)
+        assertEquals(41, data.items.size)
         assertEquals(4, data.buildings.getValue(BuildingType.FARM).count)
         assertEquals(3, data.buildings.getValue(BuildingType.QUARRY).count)
         assertEquals(2, data.buildings.getValue(BuildingType.GOLD_MINE).count)
@@ -136,8 +136,12 @@ class GameDataLoaderTest {
         assertLoadFails("buildings.json", "{ not json", "buildings.json")
         assertLoadFails("buildings.json", """{"buildings": []}""", "missing types")
         assertLoadFails("rules.json", rulesJson(minSec = -1), "offlineSummaryMinSec")
-        assertLoadFails("rules.json", rulesJson(heroes = "[\"a\", \"b\"]"), "starterHeroes")
-        assertLoadFails("rules.json", rulesJson(heroes = "[\"a\", \"a\", \"b\"]"), "starterHeroes")
+        assertLoadFails("rules.json", rulesJson(heroes = "[\"hero_aldric\", \"hero_seren\"]"), "starterHeroes")
+        assertLoadFails(
+            "rules.json",
+            rulesJson(heroes = "[\"hero_aldric\", \"hero_aldric\", \"hero_seren\"]"),
+            "starterHeroes",
+        )
         assertLoadFails(
             "rules.json",
             rulesJson(offlineCap = -1),

@@ -102,7 +102,7 @@ object UiQueries {
     ): List<UsableItem> =
         state.items.mapNotNull { (id, owned) ->
             val item = data.items[id]
-            if (item != null && owned > 0 && item.category.matches(job.kind)) UsableItem(item, owned) else null
+            if (item != null && owned > 0 && item.category?.matches(job.kind) == true) UsableItem(item, owned) else null
         }.sortedWith(compareBy({ it.item.seconds }, { it.item.id }))
 
     /** 残り [remainingSec] を消化するのに必要な個数（所持数で頭打ち。余りが出ても警告しない）。 */

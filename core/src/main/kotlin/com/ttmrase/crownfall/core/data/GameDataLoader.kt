@@ -1,6 +1,8 @@
 package com.ttmrase.crownfall.core.data
 
+import com.ttmrase.crownfall.core.buff.BuffKey
 import com.ttmrase.crownfall.core.model.BuildingType
+import com.ttmrase.crownfall.core.model.HeroRarity
 import com.ttmrase.crownfall.core.model.Prereq
 import com.ttmrase.crownfall.core.model.Resources
 import kotlinx.serialization.Serializable
@@ -33,6 +35,8 @@ private class RulesDto(
     val baseBuildQueues: Int,
     val offlineSummaryMinSec: Long = 300,
     val starterHeroes: List<String> = emptyList(),
+    val healCostPct: Long = 50,
+    val healTimePct: Long = 40,
     val newGame: NewGameDto,
 )
 
@@ -48,7 +52,106 @@ private class NewGameDto(
 private class ItemsFile(val items: List<ItemDto>)
 
 @Serializable
-private class ItemDto(val id: String, val category: String, val seconds: Long)
+private class ItemDto(
+    val id: String,
+    val kind: String = "speedup",
+    val category: String? = null,
+    val seconds: Long = 0,
+    val value: Long = 0,
+)
+
+@Serializable
+private class TroopsFile(val troops: List<TroopDto>)
+
+@Serializable
+private class TroopDto(
+    val id: String,
+    val type: String,
+    val tier: Int,
+    val attack: Long,
+    val defense: Long,
+    val hp: Long,
+    val speed: Long,
+    val load: Long,
+    val trainSec: Long,
+    val cost: Resources,
+    val upkeepPer100PerHour: Long,
+    val power: Long,
+    val unlockBuildingLevel: Int,
+    val counter: String? = null,
+)
+
+@Serializable
+private class ResearchFile(val nodes: List<ResearchNodeDto>)
+
+@Serializable
+private class ResearchNodeDto(val id: String, val branch: String, val maxLevel: Int, val levels: List<ResearchLevelDto>)
+
+@Serializable
+private class ResearchLevelDto(
+    val level: Int,
+    val cost: Resources,
+    val seconds: Long,
+    val prereqs: ResearchPrereqsDto,
+    val effect: ResearchEffectDto,
+    val power: Long,
+)
+
+@Serializable
+private class ResearchPrereqsDto(val academyLevel: Int, val nodes: List<ResearchNodeReqDto> = emptyList())
+
+@Serializable
+private class ResearchNodeReqDto(val id: String, val level: Int)
+
+@Serializable
+private class ResearchEffectDto(val key: String, val bp: Long)
+
+@Serializable
+private class HeroesFile(val rules: HeroRulesDto, val heroes: List<HeroDto>)
+
+@Serializable
+private class HeroRulesDto(
+    val expToNext: List<Long>,
+    val starLevelCaps: List<Int>,
+    val starUpShards: List<Int>,
+    val dupShards: Map<HeroRarity, Int>,
+    val maxSkillLevel: Int,
+    val power: HeroPowerDto,
+    val summon: SummonsDto,
+)
+
+@Serializable
+private class HeroPowerDto(val rarityBase: Map<HeroRarity, Long>, val perLevel: Long, val perSkillLevel: Long)
+
+@Serializable
+private class SummonsDto(val normal: SummonTableDto, val premium: SummonTableDto)
+
+@Serializable
+private class SummonTableDto(
+    val gold: Long = 0,
+    val goldTen: Long = 0,
+    val gems: Long = 0,
+    val gemsTen: Long = 0,
+    val ticketItem: String,
+    val rates: Map<HeroRarity, Int>,
+    val tenGuarantee: HeroRarity,
+    val pityAt: Int = 0,
+)
+
+@Serializable
+private class HeroDto(
+    val id: String,
+    val rarity: HeroRarity,
+    val troopAffinity: String,
+    val baseStats: HeroStatsDto,
+    val skills: List<HeroSkillDto>,
+)
+
+@Serializable
+private class HeroStatsDto(val attack: Long, val defense: Long, val hp: Long)
+
+@Serializable
+private class HeroSkillDto(val slot: String, val effectKey: String, val values: List<Int>)
 
 @Serializable
 private class SpeedupFile(val tiers: List<TierDto>)
@@ -63,8 +166,14 @@ object GameDataLoader {
     const val RULES = "rules.json"
     const val ITEMS = "items.json"
     const val SPEEDUP = "speedup.json"
+    const val TROOPS = "troops.json"
+    const val RESEARCH = "research.json"
+    const val HEROES = "heroes.json"
 
     private const val STARTER_HERO_COUNT = 3
+    private const val TROOP_TIERS = 4
+    private const val HERO_SKILLS = 3
+    private const val BP_TOTAL = 10_000
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -74,13 +183,21 @@ object GameDataLoader {
         val rules = decode<RulesDto>(jsonByName, RULES)
         val items = decode<ItemsFile>(jsonByName, ITEMS)
         val speedup = decode<SpeedupFile>(jsonByName, SPEEDUP)
+        val troopsFile = decode<TroopsFile>(jsonByName, TROOPS)
+        val researchFile = decode<ResearchFile>(jsonByName, RESEARCH)
+        val heroesFile = decode<HeroesFile>(jsonByName, HEROES)
         val defs = buildBuildings(buildings)
         val itemDefs = buildItems(items)
+        val heroDefs = buildHeroes(heroesFile, itemDefs)
         return GameData(
             buildings = defs,
-            rules = buildRules(rules, defs, itemDefs),
+            rules = buildRules(rules, defs, itemDefs, heroDefs.first),
             items = itemDefs,
             speedupTiers = buildTiers(speedup),
+            troops = buildTroops(troopsFile),
+            research = buildResearch(researchFile),
+            heroes = heroDefs.first,
+            heroRules = heroDefs.second,
         )
     }
 
@@ -152,6 +269,7 @@ object GameDataLoader {
         dto: RulesDto,
         defs: Map<BuildingType, BuildingDef>,
         items: Map<String, ItemDef>,
+        heroes: Map<String, HeroDef>,
     ): Rules {
         if (dto.offlineCapSec < 0) fail("rules.json: offlineCapSec must be >= 0")
         if (dto.catchUpChunkSec < 1) fail("rules.json: catchUpChunkSec must be >= 1")
@@ -160,6 +278,12 @@ object GameDataLoader {
         if (dto.starterHeroes.size != STARTER_HERO_COUNT || dto.starterHeroes.toSet().size != STARTER_HERO_COUNT) {
             fail("rules.json: starterHeroes must have $STARTER_HERO_COUNT distinct ids")
         }
+        dto.starterHeroes.firstOrNull { it !in heroes }?.let {
+            fail(
+                "rules.json: starterHeroes has unknown hero id $it",
+            )
+        }
+        if (dto.healCostPct < 0 || dto.healTimePct < 0) fail("rules.json: heal percentages must be >= 0")
         val ng = dto.newGame
         if (!nonNegative(ng.resources) || ng.gems < 0) fail("rules.json: newGame has negative resources/gems")
         for ((type, levels) in ng.initialLevels) {
@@ -183,6 +307,8 @@ object GameDataLoader {
             baseBuildQueues = dto.baseBuildQueues,
             offlineSummaryMinSec = dto.offlineSummaryMinSec,
             starterHeroes = dto.starterHeroes,
+            healCostPct = dto.healCostPct,
+            healTimePct = dto.healTimePct,
             newGame = NewGameRules(ng.resources, ng.gems, ng.initialLevels, ng.items),
         )
     }
@@ -191,13 +317,219 @@ object GameDataLoader {
         val out = LinkedHashMap<String, ItemDef>()
         for (dto in file.items) {
             if (dto.id in out) fail("items.json: duplicate item id ${dto.id}")
-            if (dto.seconds <= 0) fail("items.json: ${dto.id} seconds must be > 0")
-            val category =
-                SpeedupCategory.entries.firstOrNull { it.name.equals(dto.category, ignoreCase = true) }
-                    ?: fail("items.json: ${dto.id} has unknown category ${dto.category}")
-            out[dto.id] = ItemDef(dto.id, category, dto.seconds)
+            val kind =
+                ItemKind.entries.firstOrNull { it.name.equals(dto.kind, ignoreCase = true) }
+                    ?: fail("items.json: ${dto.id} has unknown kind ${dto.kind}")
+            if (dto.value < 0) fail("items.json: ${dto.id} value must be >= 0")
+            if (kind == ItemKind.SPEEDUP) {
+                if (dto.seconds <= 0) fail("items.json: ${dto.id} seconds must be > 0")
+                val category =
+                    SpeedupCategory.entries.firstOrNull { it.name.equals(dto.category, ignoreCase = true) }
+                        ?: fail("items.json: ${dto.id} has unknown category ${dto.category}")
+                out[dto.id] = ItemDef(dto.id, kind, category, dto.seconds, 0)
+            } else {
+                out[dto.id] = ItemDef(dto.id, kind, null, 0, dto.value)
+            }
         }
         return out
+    }
+
+    private fun troopType(
+        name: String,
+        where: String,
+    ): TroopType =
+        TroopType.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+            ?: fail("$where: unknown troop type $name")
+
+    private fun buildTroops(file: TroopsFile): Map<String, TroopDef> {
+        val out = LinkedHashMap<String, TroopDef>()
+        for (t in file.troops) {
+            if (t.id in out) fail("troops.json: duplicate id ${t.id}")
+            val type = troopType(t.type, "troops.json: ${t.id}")
+            if (t.tier !in 1..TROOP_TIERS) fail("troops.json: ${t.id} tier out of range")
+            if (t.trainSec <= 0) fail("troops.json: ${t.id} trainSec must be > 0")
+            if (!nonNegative(t.cost) || t.attack < 0 || t.defense < 0 || t.hp < 0 || t.speed < 0 || t.load < 0 ||
+                t.upkeepPer100PerHour < 0 || t.power < 0 || t.unlockBuildingLevel < 1
+            ) {
+                fail("troops.json: ${t.id} has a negative or invalid value")
+            }
+            val counter = t.counter?.let { troopType(it, "troops.json: ${t.id} counter") }
+            out[t.id] =
+                TroopDef(
+                    t.id, type, t.tier, t.attack, t.defense, t.hp, t.speed, t.load, t.trainSec, t.cost,
+                    t.upkeepPer100PerHour, t.power, t.unlockBuildingLevel, counter,
+                )
+        }
+        for (type in TroopType.entries) {
+            val tiers = out.values.filter { it.type == type }.map { it.tier }.sorted()
+            if (tiers != (1..TROOP_TIERS).toList()) {
+                fail(
+                    "troops.json: $type must have tiers 1..$TROOP_TIERS, has $tiers",
+                )
+            }
+        }
+        return out
+    }
+
+    private fun buildResearch(file: ResearchFile): Map<String, ResearchNodeDef> {
+        val out = LinkedHashMap<String, ResearchNodeDef>()
+        for (n in file.nodes) {
+            if (n.id in out) fail("research.json: duplicate node id ${n.id}")
+            if (n.maxLevel < 1 || n.levels.size != n.maxLevel) {
+                fail("research.json: ${n.id} has ${n.levels.size} levels, expected ${n.maxLevel}")
+            }
+            val levels =
+                n.levels.mapIndexed { i, l ->
+                    if (l.level != i + 1) fail("research.json: ${n.id} levels not contiguous at index $i")
+                    if (!nonNegative(l.cost) || l.seconds < 0 || l.power < 0 || l.effect.bp < 0) {
+                        fail("research.json: ${n.id} Lv${l.level} has a negative value")
+                    }
+                    if (l.prereqs.academyLevel < 0) fail("research.json: ${n.id} Lv${l.level} academyLevel is negative")
+                    val key =
+                        BuffKey.entries.firstOrNull { it.name == l.effect.key }
+                            ?: fail("research.json: ${n.id} has unknown buff key ${l.effect.key}")
+                    ResearchLevel(
+                        l.level,
+                        l.cost,
+                        l.seconds,
+                        l.prereqs.academyLevel,
+                        l.prereqs.nodes.map { ResearchPrereq(it.id, it.level) },
+                        key,
+                        l.effect.bp,
+                        l.power,
+                    )
+                }
+            out[n.id] = ResearchNodeDef(n.id, n.branch, n.maxLevel, levels)
+        }
+        for (n in out.values) {
+            for (l in n.levels) {
+                for (p in l.nodes) {
+                    val target =
+                        out[p.nodeId]
+                            ?: fail("research.json: ${n.id} Lv${l.level} prereq ${p.nodeId} does not exist")
+                    if (p.level < 1 || p.level > target.maxLevel) {
+                        fail("research.json: ${n.id} Lv${l.level} prereq ${p.nodeId} Lv${p.level} is out of range")
+                    }
+                }
+            }
+        }
+        checkNoResearchCycle(out)
+        return out
+    }
+
+    private fun checkNoResearchCycle(nodes: Map<String, ResearchNodeDef>) {
+        val state = HashMap<String, Int>() // 1 = 訪問中, 2 = 完了
+
+        fun visit(id: String) {
+            when (state[id]) {
+                1 -> fail("research.json: prerequisite cycle through $id")
+                2 -> return
+            }
+            state[id] = 1
+            nodes.getValue(id).levels.flatMap { it.nodes }.forEach { visit(it.nodeId) }
+            state[id] = 2
+        }
+        nodes.keys.forEach { visit(it) }
+    }
+
+    private fun buildHeroes(
+        file: HeroesFile,
+        items: Map<String, ItemDef>,
+    ): Pair<Map<String, HeroDef>, HeroRules> {
+        val r = file.rules
+        if (r.expToNext.isEmpty() || r.expToNext.any { it <= 0 }) fail("heroes.json: expToNext must be positive")
+        if (r.starLevelCaps.isEmpty() || r.starLevelCaps.zipWithNext().any { (a, b) -> b < a }) {
+            fail("heroes.json: starLevelCaps must be non-decreasing")
+        }
+        if (r.starLevelCaps.last() > r.expToNext.size + 1) fail("heroes.json: starLevelCaps exceeds the exp curve")
+        if (r.starUpShards.size != r.starLevelCaps.size - 1 || r.starUpShards.any { it <= 0 }) {
+            fail("heroes.json: starUpShards must have ${r.starLevelCaps.size - 1} positive entries")
+        }
+        if (HeroRarity.entries.any { (r.dupShards[it] ?: -1) < 0 }) {
+            fail(
+                "heroes.json: dupShards must cover every rarity",
+            )
+        }
+        if (r.maxSkillLevel < 1) fail("heroes.json: maxSkillLevel must be >= 1")
+        if (HeroRarity.entries.any {
+                (r.power.rarityBase[it] ?: -1) < 0
+            } || r.power.perLevel < 0 || r.power.perSkillLevel < 0
+        ) {
+            fail("heroes.json: power table must cover every rarity with non-negative values")
+        }
+        val heroes = LinkedHashMap<String, HeroDef>()
+        for (h in file.heroes) {
+            if (h.id in heroes) fail("heroes.json: duplicate hero id ${h.id}")
+            if (h.skills.size != HERO_SKILLS) fail("heroes.json: ${h.id} must have $HERO_SKILLS skills")
+            if (h.skills.any { it.values.size != r.maxSkillLevel || it.values.any { v -> v < 0 } }) {
+                fail("heroes.json: ${h.id} skill values must have ${r.maxSkillLevel} non-negative entries")
+            }
+            if (h.baseStats.attack < 0 || h.baseStats.defense < 0 || h.baseStats.hp < 0) {
+                fail(
+                    "heroes.json: ${h.id} has negative stats",
+                )
+            }
+            heroes[h.id] =
+                HeroDef(
+                    h.id, h.rarity, troopType(h.troopAffinity, "heroes.json: ${h.id}"),
+                    h.baseStats.attack, h.baseStats.defense, h.baseStats.hp,
+                    h.skills.map { HeroSkillDef(it.slot, it.effectKey, it.values) },
+                )
+        }
+
+        fun table(
+            name: String,
+            t: SummonTableDto,
+        ): SummonTable {
+            if (t.rates.values.any { it < 0 } || t.rates.values.sum() != BP_TOTAL) {
+                fail("heroes.json: summon.$name rates must sum to $BP_TOTAL bp")
+            }
+            if (t.gold < 0 || t.goldTen < 0 || t.gems < 0 || t.gemsTen < 0 || t.pityAt < 0) {
+                fail("heroes.json: summon.$name has a negative value")
+            }
+            val ticket =
+                items[t.ticketItem]
+                    ?: fail("heroes.json: summon.$name ticketItem ${t.ticketItem} is not in items.json")
+            if (ticket.kind != ItemKind.SUMMON_TICKET_NORMAL && ticket.kind != ItemKind.SUMMON_TICKET_PREMIUM) {
+                fail("heroes.json: summon.$name ticketItem ${t.ticketItem} is not a summon ticket")
+            }
+            for ((rarity, rate) in t.rates) {
+                if (rate > 0 &&
+                    heroes.values.none {
+                        it.rarity == rarity
+                    }
+                ) {
+                    fail("heroes.json: summon.$name has no hero of rarity $rarity")
+                }
+            }
+            if (heroes.values.none { it.rarity >= t.tenGuarantee }) {
+                fail(
+                    "heroes.json: summon.$name guarantee rarity has no heroes",
+                )
+            }
+            if (t.pityAt > 0 &&
+                heroes.values.none {
+                    it.rarity == HeroRarity.SSR
+                }
+            ) {
+                fail("heroes.json: summon.$name pity needs an SSR hero")
+            }
+            return SummonTable(t.gold, t.goldTen, t.gems, t.gemsTen, t.ticketItem, t.rates, t.tenGuarantee, t.pityAt)
+        }
+        val rules =
+            HeroRules(
+                expToNext = r.expToNext,
+                starLevelCaps = r.starLevelCaps,
+                starUpShards = r.starUpShards,
+                dupShards = r.dupShards,
+                maxSkillLevel = r.maxSkillLevel,
+                rarityPower = r.power.rarityBase,
+                powerPerLevel = r.power.perLevel,
+                powerPerSkillLevel = r.power.perSkillLevel,
+                normal = table("normal", r.summon.normal),
+                premium = table("premium", r.summon.premium),
+            )
+        return heroes to rules
     }
 
     private fun buildTiers(file: SpeedupFile): List<SpeedupTier> {

@@ -15,6 +15,14 @@ data class TimerJob(
     val targetLevel: Int? = null,
     val startEpochSec: Long,
     val endEpochSec: Long,
+    /** TRAIN: 訓練する兵種 ID。 */
+    val troopId: String? = null,
+    /** TRAIN: 訓練数。 */
+    val count: Long = 0,
+    /** RESEARCH: 研究ノード ID（[targetLevel] がこの完了後のレベル）。 */
+    val researchId: String? = null,
+    /** HEAL: 治療中の兵（兵種 ID → 数）。 */
+    val healBatch: Map<String, Long> = emptyMap(),
 )
 
 /** 期限付きバフの種類。 */

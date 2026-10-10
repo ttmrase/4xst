@@ -3,7 +3,6 @@ package com.ttmrase.crownfall.core.sim
 import com.ttmrase.crownfall.core.TestSupport
 import com.ttmrase.crownfall.core.TestSupport.RICH
 import com.ttmrase.crownfall.core.TestSupport.T0
-import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.economy.GemSkip
 import com.ttmrase.crownfall.core.model.Boost
 import com.ttmrase.crownfall.core.model.BoostKind
@@ -172,7 +171,7 @@ class QaBoundaryTest {
         val elapsed = 12_345L
         val ref = OfflineCatchUp.run(s, T0 + elapsed, data)
         for (chunk in listOf(1L, 7L, 59L, 60L, 61L, 3600L, elapsed, elapsed + 1)) {
-            val d = GameData(data.buildings, data.rules.copy(catchUpChunkSec = chunk), data.items, data.speedupTiers)
+            val d = data.copy(rules = data.rules.copy(catchUpChunkSec = chunk))
             val r = OfflineCatchUp.run(s, T0 + elapsed, d)
             assertEquals(ref.state, r.state, "chunk=$chunk")
             assertEquals(ref.events, r.events, "chunk=$chunk")

@@ -165,7 +165,7 @@ object Actions {
         val job = state.timers.firstOrNull { it.id == jobId } ?: return fail(ActionFailure.JobNotFound)
         val item = data.items[itemId]
         if ((state.items[itemId] ?: 0) < count || item == null) return fail(ActionFailure.ItemNotOwned)
-        if (!item.category.matches(job.kind)) return fail(ActionFailure.CategoryMismatch)
+        if (item.category?.matches(job.kind) != true) return fail(ActionFailure.CategoryMismatch)
         val reduction = satMul(item.seconds, count.toLong())
         val newEnd = maxOf(state.nowEpochSec, job.endEpochSec - reduction)
         val left = (state.items[itemId] ?: 0) - count

@@ -81,9 +81,9 @@ def effects_for(t, level):
     if t == "warehouse":
         return {"storage_cap": g(10000, STORAGE_GROWTH), "protect": g(5000, STORAGE_GROWTH)}
     if t in ("barracks", "archery_range", "stable", "siege_workshop"):
-        return {"train_batch": 50 * level}
+        return {"train_capacity": g(100, 1.25)}
     if t == "hospital":
-        return {"hospital_capacity": 200 * level}
+        return {"hospital_capacity": g(500, 1.28)}
     if t == "academy":
         return {"research_tier": level}
     if t == "wall":

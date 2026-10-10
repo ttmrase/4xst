@@ -24,3 +24,6 @@ app/release/
 # Secrets (API keys never committed)
 *.keystore.properties
 secrets.properties
+
+# Python
+__pycache__/

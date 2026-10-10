@@ -3,7 +3,15 @@ package com.ttmrase.crownfall.core.data
 /** クラスパス（jar のリソース）から data ディレクトリの JSON を読む。java.io.File は使わない（Android でも動く）。 */
 object ClasspathDataSource {
     private val names =
-        listOf(GameDataLoader.BUILDINGS, GameDataLoader.RULES, GameDataLoader.ITEMS, GameDataLoader.SPEEDUP)
+        listOf(
+            GameDataLoader.BUILDINGS,
+            GameDataLoader.RULES,
+            GameDataLoader.ITEMS,
+            GameDataLoader.SPEEDUP,
+            GameDataLoader.TROOPS,
+            GameDataLoader.RESEARCH,
+            GameDataLoader.HEROES,
+        )
 
     /** 全データファイルを「ファイル名 → 本文」で読む。 */
     fun readAll(loader: ClassLoader = ClasspathDataSource::class.java.classLoader): Map<String, String> =
