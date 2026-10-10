@@ -196,12 +196,15 @@ class BackPressTest {
         pay()
         assertTrue("must be processing after paying; shown=[${shownTexts()}]", showsProcessing())
         // 処理の待ち時間はメインのルーパー上の時間なので、そちらを進める（Compose の時計では進まない）
-        ShadowLooper.idleMainLooper(12, TimeUnit.SECONDS)
-        rule.waitForIdle()
+        // 最長 6 秒の処理が終わるまで（9 秒のガードには届かない）進め、購入の dispatch（実時間のスレッド）は待つ
+        ShadowLooper.idleMainLooper(7, TimeUnit.SECONDS)
+        val done = context.getString(R.string.billing_done)
+        val error = context.getString(R.string.billing_error)
+        runCatching {
+            rule.waitUntil(timeoutMillis = 10_000) { shownTexts().let { it.contains(done) || it.contains(error) } }
+        }
         val shown = shownTexts()
-        val finished =
-            shown.contains(context.getString(R.string.billing_done)) ||
-                shown.contains(context.getString(R.string.billing_error))
+        val finished = shown.contains(done) || shown.contains(error)
         assertTrue("processing must finish (done or error); closed=$closed shown=[$shown]", finished)
         assertFalse("the sheet must stay open until the user closes it", closed)
         Espresso.pressBack()
