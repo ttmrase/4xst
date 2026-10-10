@@ -126,6 +126,7 @@ fun CityScreen(
             onTimerClick = { speedupJobId = it.id },
             onLockedClick = hooks::onSecondBuilderLocked,
             onIdleClick = onNavigate,
+            onOpenBarracks = onOpenBarracks,
         )
         Box(modifier = Modifier.weight(1f)) {
             BuildingGrid(
@@ -291,6 +292,7 @@ private fun TimerBar(
     onTimerClick: (TimerJob) -> Unit,
     onLockedClick: () -> Unit,
     onIdleClick: (Screen) -> Unit,
+    onOpenBarracks: (Int) -> Unit,
 ) {
     val context = LocalContext.current
     val builds = state.timers.filter { it.kind == TimerKind.BUILD }.sortedBy { it.endEpochSec }
@@ -337,7 +339,7 @@ private fun TimerBar(
             ) { heal?.let(onTimerClick) ?: Unit }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TroopType.entries.forEach { type ->
+            TroopType.entries.forEachIndexed { index, type ->
                 val slot = state.slots.filter { it.type == type.trainingBuilding }.maxByOrNull { it.level }
                 val job = slot?.let { UiQueries.trainJob(state, it.slotId) }
                 TimerCell(
@@ -347,7 +349,7 @@ private fun TimerBar(
                     state = state,
                     modifier = Modifier.weight(1f),
                     dim = (slot?.level ?: 0) == 0,
-                ) { job?.let(onTimerClick) ?: onIdleClick(Screen.Barracks) }
+                ) { job?.let(onTimerClick) ?: onOpenBarracks(index) }
             }
         }
     }

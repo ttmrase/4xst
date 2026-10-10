@@ -26,6 +26,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -102,8 +103,11 @@ fun ResearchScreen(
             ) {
                 Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        stringResource(R.string.research_running) + ": " +
-                            researchNodeName(context, running.researchId ?: "") + " Lv ${running.targetLevel}",
+                        stringResource(
+                            R.string.research_running_node,
+                            researchNodeName(context, running.researchId ?: ""),
+                            running.targetLevel ?: 0,
+                        ),
                         style = MaterialTheme.typography.titleSmall,
                     )
                     LinearProgressIndicator(
@@ -123,7 +127,7 @@ fun ResearchScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(nodes, key = { it.id }) { node ->
-                val preview = UiQueries.researchPreview(s, node.id, data) ?: return@items
+                val row = UiQueries.researchRow(s, node.id, data) ?: return@items
                 Card(
                     modifier =
                         Modifier.fillMaxWidth().alpha(
@@ -136,11 +140,13 @@ fun ResearchScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
-                            (if (preview.locked) "🔒 " else "") + researchNodeName(context, node.id),
+                            researchNodeName(context, node.id).let {
+                                if (row.locked) stringResource(R.string.locked_label, it) else it
+                            },
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
-                            stringResource(R.string.research_level, preview.currentLevel, node.maxLevel),
+                            stringResource(R.string.research_level, row.currentLevel, node.maxLevel),
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -150,30 +156,26 @@ fun ResearchScreen(
     }
 
     val nodeId = selected
-    if (nodeId != null) {
-        val preview = UiQueries.researchPreview(s, nodeId, data)
-        if (preview == null) {
-            selected = null
-        } else {
-            ResearchSheet(
-                state = s,
-                preview = preview,
-                onStart = {
-                    scope.launch {
-                        when (val r = session.dispatch { Actions.startResearch(it, nodeId, data) }) {
-                            is ActionResult.Success -> Unit
-                            is ActionResult.Failure ->
-                                snackbarHostState.showReplacing(
-                                    failureMessage(context, r.reason),
-                                )
-                        }
+    val preview = nodeId?.let { UiQueries.researchPreview(s, it, data) }
+    if (nodeId != null && preview == null) {
+        LaunchedEffect(nodeId) { selected = null }
+    }
+    if (nodeId != null && preview != null) {
+        ResearchSheet(
+            state = s,
+            preview = preview,
+            onStart = {
+                scope.launch {
+                    when (val r = session.dispatch { Actions.startResearch(it, nodeId, data) }) {
+                        is ActionResult.Success -> Unit
+                        is ActionResult.Failure -> snackbarHostState.showReplacing(failureMessage(context, r.reason))
                     }
-                },
-                onSpeedup = { speedupJobId = it },
-                onResourceShortage = hooks::onResourceShortage,
-                onDismiss = { selected = null },
-            )
-        }
+                }
+            },
+            onSpeedup = { speedupJobId = it },
+            onResourceShortage = hooks::onResourceShortage,
+            onDismiss = { selected = null },
+        )
     }
 
     val jobId = speedupJobId

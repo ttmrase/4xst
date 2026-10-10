@@ -72,7 +72,7 @@ fun BarracksScreen(
 
     val type = TroopType.entries[tab]
     val tiers = UiQueries.troopTiers(s, type, data)
-    val view = tiers[tierIndex.coerceIn(0, tiers.lastIndex)]
+    val view = tiers.getOrNull(tierIndex.coerceIn(0, maxOf(0, tiers.lastIndex))) ?: return
     val troop = view.troop
     val maxCount = view.maxTrainable
     val count = if (maxCount <= 0) 1L else amount.roundToLong().coerceIn(1L, maxCount)
@@ -82,7 +82,7 @@ fun BarracksScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = tab) {
             TroopType.entries.forEachIndexed { index, t ->
-                val built = UiQueries.troopTiers(s, t, data).first().let { !it.locked }
+                val built = UiQueries.troopTiers(s, t, data).firstOrNull()?.let { !it.locked } ?: false
                 Tab(
                     selected = tab == index,
                     onClick = {
@@ -90,7 +90,10 @@ fun BarracksScreen(
                         tierIndex = 0
                         amount = 1f
                     },
-                    text = { Text((if (built) "" else "🔒 ") + stringResource(t.nameRes())) },
+                    text = {
+                        val name = stringResource(t.nameRes())
+                        Text(if (built) name else stringResource(R.string.locked_label, name))
+                    },
                 )
             }
         }
@@ -100,7 +103,8 @@ fun BarracksScreen(
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 tiers.forEachIndexed { index, t ->
-                    val label = "T${t.troop.tier}" + if (t.locked) " 🔒" else ""
+                    val tier = stringResource(R.string.tier_label, t.troop.tier)
+                    val label = if (t.locked) stringResource(R.string.locked_label, tier) else tier
                     if (index == tierIndex) {
                         Button(onClick = {}) { Text(label) }
                     } else {
@@ -120,7 +124,13 @@ fun BarracksScreen(
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
-                "ATK ${troop.attack}  DEF ${troop.defense}  HP ${troop.hp}  SPD ${troop.speed}",
+                stringResource(
+                    R.string.troop_stats,
+                    ShortNumber.format(troop.attack),
+                    ShortNumber.format(troop.defense),
+                    ShortNumber.format(troop.hp),
+                    ShortNumber.format(troop.speed),
+                ),
                 style = MaterialTheme.typography.labelMedium,
             )
             HorizontalDivider()

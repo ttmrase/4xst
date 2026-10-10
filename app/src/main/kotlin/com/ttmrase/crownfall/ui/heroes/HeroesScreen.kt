@@ -28,6 +28,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -76,7 +77,7 @@ fun HeroesScreen(
     val s = state ?: return
     val scope = rememberCoroutineScope()
 
-    fun run(action: (GameState) -> ActionResult) {
+    fun dispatch(action: (GameState) -> ActionResult) {
         scope.launch {
             val r = session.dispatch(action)
             if (r is ActionResult.Failure) snackbarHostState.showReplacing(failureMessage(context, r.reason))
@@ -107,21 +108,20 @@ fun HeroesScreen(
     }
 
     val heroId = selected
-    if (heroId != null) {
-        val def = data.heroes[heroId]
-        if (def == null) {
-            selected = null
-        } else {
-            HeroDetailSheet(
-                state = s,
-                data = data,
-                def = def,
-                onUseExp = { itemId -> run { Actions.useHeroExp(it, heroId, itemId, 1, data) } },
-                onSkillUp = { index -> run { Actions.skillUp(it, heroId, index, data) } },
-                onStarUp = { run { Actions.starUp(it, heroId, data) } },
-                onDismiss = { selected = null },
-            )
-        }
+    val selectedDef = heroId?.let { data.heroes[it] }
+    if (heroId != null && selectedDef == null) {
+        LaunchedEffect(heroId) { selected = null }
+    }
+    if (heroId != null && selectedDef != null) {
+        HeroDetailSheet(
+            state = s,
+            data = data,
+            def = selectedDef,
+            onUseExp = { itemId -> dispatch { Actions.useHeroExp(it, heroId, itemId, 1, data) } },
+            onSkillUp = { index -> dispatch { Actions.skillUp(it, heroId, index, data) } },
+            onStarUp = { dispatch { Actions.starUp(it, heroId, data) } },
+            onDismiss = { selected = null },
+        )
     }
 }
 
@@ -143,11 +143,19 @@ private fun HeroCard(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Box(modifier = Modifier.padding(4.dp), contentAlignment = Alignment.Center) {
-                Text(if (owned == null) "？" else "⚔", style = MaterialTheme.typography.headlineMedium, color = color)
+                Text(
+                    stringResource(if (owned == null) R.string.hero_unknown_icon else R.string.hero_icon),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = color,
+                )
             }
             Text(def.rarity.name, style = MaterialTheme.typography.labelSmall, color = color)
             Text(
-                if (owned == null) "？？？" else heroNameRes(def.id)?.let { stringResource(it) } ?: def.id,
+                if (owned == null) {
+                    stringResource(R.string.hero_unknown_name)
+                } else {
+                    heroNameRes(def.id)?.let { stringResource(it) } ?: def.id
+                },
                 style = MaterialTheme.typography.labelMedium,
                 maxLines = 1,
             )
@@ -228,8 +236,7 @@ private fun OwnedSection(
     val rules = data.heroRules
     val cap = HeroGrowth.levelCap(owned.star, data)
     Text(
-        stringResource(R.string.hero_star, owned.star) + "  " +
-            stringResource(R.string.hero_level, owned.level) + " / $cap",
+        stringResource(R.string.hero_star_level_cap, owned.star, owned.level, cap),
         style = MaterialTheme.typography.titleMedium,
     )
     if (owned.level >= cap) {
@@ -274,7 +281,7 @@ private fun OwnedSection(
     HorizontalDivider()
     // スキル
     Text(stringResource(R.string.hero_skills), style = MaterialTheme.typography.titleSmall)
-    val books = state.items["skill_book"] ?: 0
+    val books = state.items[Actions.SKILL_BOOK] ?: 0
     def.skills.forEachIndexed { index, skill ->
         val level = owned.skillLevels.getOrElse(index) { 1 }
         val value = skill.values.getOrElse(level - 1) { 0 }
@@ -297,7 +304,7 @@ private fun OwnedSection(
                 )
             }
             OutlinedButton(onClick = { onSkillUp(index) }, enabled = books > 0 && level < rules.maxSkillLevel) {
-                Text("＋" + books.toString())
+                Text(stringResource(R.string.hero_skill_up_button, books))
             }
         }
     }

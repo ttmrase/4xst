@@ -80,8 +80,11 @@ object Actions {
     /** チュートリアル完了を表すステップ番号。 */
     const val TUTORIAL_DONE = 3
 
-    private const val TEN_ROLL = 10
-    private const val SKILL_BOOK = "skill_book"
+    /** 10 連の回数。 */
+    const val TEN_ROLL = 10
+
+    /** スキル強化に使うアイテム ID。 */
+    const val SKILL_BOOK = "skill_book"
 
     /** スロット [slotId] のアップグレードを開始する。検査は宣言順で、最初の失敗を返す。 */
     fun startUpgrade(

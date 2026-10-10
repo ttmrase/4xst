@@ -89,6 +89,9 @@ data class ResearchPreview(
     val locked: Boolean get() = missingAcademy != null || missingNodes.isNotEmpty()
 }
 
+/** 研究一覧の 1 行分の表示モデル。 */
+data class ResearchRow(val currentLevel: Int, val locked: Boolean)
+
 /** 所持している加速アイテム 1 種。 */
 data class UsableItem(val item: ItemDef, val owned: Int)
 
@@ -219,6 +222,24 @@ object UiQueries {
             blocker = (Actions.startResearch(state, nodeId, data) as? ActionResult.Failure)?.reason,
             running = state.timers.firstOrNull { it.kind == TimerKind.RESEARCH && it.researchId == nodeId },
         )
+    }
+
+    /** 研究一覧の 1 行分（現在 Lv と、次のレベルの前提を満たさないか）。バフ集計や全検査をしない軽量版。 */
+    fun researchRow(
+        state: GameState,
+        nodeId: String,
+        data: GameData,
+    ): ResearchRow? {
+        val node = data.research[nodeId] ?: return null
+        val current = state.research[nodeId] ?: 0
+        val next = if (current < node.maxLevel) node.level(current + 1) else null
+        val locked =
+            next != null &&
+                (
+                    ResearchRules.missingAcademy(state, next) != null ||
+                        ResearchRules.missingNodes(state, next).isNotEmpty()
+                )
+        return ResearchRow(current, locked)
     }
 
     /** 研究の進行中ジョブ（1 本）。 */

@@ -141,4 +141,23 @@ class UiQueriesM3Test {
         val started = Actions.startHeal(s, mapOf("infantry_t1" to 10L), data).ok()
         assertEquals(started.timers.single(), UiQueries.healJob(started))
     }
+
+    @Test
+    fun researchRowIsTheLightweightVersionOfThePreview() {
+        val s = lab()
+        data.research.keys.forEach { id ->
+            val row = assertNotNull(UiQueries.researchRow(s, id, data))
+            val preview = assertNotNull(UiQueries.researchPreview(s, id, data))
+            assertEquals(preview.currentLevel, row.currentLevel, id)
+            assertEquals(preview.locked, row.locked, id)
+        }
+        assertNull(UiQueries.researchRow(s, "ghost", data))
+        // 最大 Lv では鍵にならない
+        assertEquals(
+            ResearchRow(10, false),
+            UiQueries.researchRow(s.copy(research = mapOf("eco_food" to 10)), "eco_food", data),
+        )
+        assertEquals(true, UiQueries.researchRow(lab(0), "eco_food", data)?.locked)
+        assertEquals(true, UiQueries.researchRow(s, "eco_food_adv", data)?.locked)
+    }
 }

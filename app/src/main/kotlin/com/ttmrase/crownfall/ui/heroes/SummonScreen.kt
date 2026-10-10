@@ -64,8 +64,6 @@ import com.ttmrase.crownfall.ui.heroNameRes
 import com.ttmrase.crownfall.ui.rarityColor
 import kotlinx.coroutines.launch
 
-private const val TEN = 10
-
 /** 召喚画面（T3.5）。通常/プレミアム × 単発/10 連、天井表示、カード反転の簡易演出。 */
 @Composable
 fun SummonScreen(
@@ -148,10 +146,10 @@ fun SummonScreen(
                 ) { summon(1) }
                 SummonButton(
                     label = stringResource(R.string.summon_ten),
-                    cost = costText(s, kind, TEN, data),
+                    cost = costText(s, kind, Actions.TEN_ROLL, data),
                     enabled = tavernBuilt,
                     modifier = Modifier.weight(1f),
-                ) { summon(TEN) }
+                ) { summon(Actions.TEN_ROLL) }
             }
         }
         val res = result
@@ -222,7 +220,7 @@ private fun SummonResultView(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )
-            hasSr && res.results.size >= TEN ->
+            hasSr && res.results.size >= Actions.TEN_ROLL ->
                 Text(
                     stringResource(R.string.summon_sr),
                     color = rarityColor(HeroRarity.SR),

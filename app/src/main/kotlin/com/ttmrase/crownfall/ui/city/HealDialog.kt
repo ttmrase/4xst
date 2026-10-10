@@ -21,6 +21,7 @@ import com.ttmrase.crownfall.core.buff.BuffKey
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.military.Military
 import com.ttmrase.crownfall.core.model.GameState
+import com.ttmrase.crownfall.core.session.UiQueries
 import com.ttmrase.crownfall.core.sim.Buffs
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
@@ -39,9 +40,10 @@ fun HealDialog(
     val batch = state.wounded.filterValues { it > 0 }
     val cost = Military.healCost(batch, data)
     val missing = cost.missingFrom(state.resources)
-    val bp = BuffAggregator.compute(state, data)[BuffKey.HEAL_SPEED]
-    val duration = Buffs.speedSeconds(Military.baseHealSeconds(batch, data), bp)
-    val capacity = Military.hospitalCapacity(state, data, BuffAggregator.compute(state, data))
+    val buffs = BuffAggregator.compute(state, data)
+    val duration = Buffs.speedSeconds(Military.baseHealSeconds(batch, data), buffs[BuffKey.HEAL_SPEED])
+    val capacity = Military.hospitalCapacity(state, data, buffs)
+    val healing = UiQueries.healJob(state) != null
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.heal_title)) },
@@ -65,7 +67,7 @@ fun HealDialog(
                     Text(stringResource(R.string.heal_cost), style = MaterialTheme.typography.titleSmall)
                     CostRows(have = state.resources, cost = cost, missing = missing)
                     Text(stringResource(R.string.barracks_duration, DurationFormat.clock(duration)))
-                    Button(onClick = { onHeal(batch) }, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { onHeal(batch) }, enabled = !healing, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.heal_all))
                     }
                 }
