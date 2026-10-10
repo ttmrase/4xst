@@ -9,6 +9,7 @@ import com.ttmrase.crownfall.core.shop.OfferEngine
 import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
+import com.ttmrase.crownfall.core.sim.Simulation
 import com.ttmrase.crownfall.data.Startup
 import kotlinx.coroutines.flow.first
 
@@ -86,10 +87,14 @@ object DebugStateSeeder {
                 val target = if (slot.type == BuildingType.CASTLE) castleTarget else (castleTarget - 2).coerceAtLeast(1)
                 slot.copy(level = target.coerceAtMost(max))
             }
+        // 資源は上限の 90%（上限ちょうどだと「倉庫がいっぱい」の通知が全画面に残る）。チュートリアルは完了済み
+        val cap = Simulation.storageCap(state.copy(slots = slots), data)
+        val amount = if (cap > 0) cap / 10 * 9 else RICH
         return state.copy(
             slots = slots,
-            resources = Resources(RICH, RICH, RICH, RICH),
+            resources = Resources(amount, amount, amount, amount),
             gems = RICH_GEMS,
+            tutorialStep = Actions.TUTORIAL_DONE,
         )
     }
 
