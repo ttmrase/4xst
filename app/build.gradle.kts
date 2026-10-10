@@ -15,8 +15,49 @@ android {
         applicationId = "com.ttmrase.crownfall"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.7.0"
+        versionCode = 100
+        versionName = "1.0.0"
+    }
+
+    // 署名: debug は固定の keystore（app/debug.keystore。debug 鍵は秘密ではない）。CI の実行ごとに鍵が変わると、
+    // 上書きインストールが「アプリはインストールされていません」で失敗するため。
+    // release は環境変数（RELEASE_KEYSTORE_FILE / RELEASE_STORE_PASSWORD / RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD）が
+    // 揃っているときだけその鍵を使い、無ければ固定の debug 鍵にフォールバックする。鍵とパスワードはリポジトリに置かない。
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+        create("release") {
+            val keystore = System.getenv("RELEASE_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }?.let { file(it) }
+            val storePass = System.getenv("RELEASE_STORE_PASSWORD")
+            val alias = System.getenv("RELEASE_KEY_ALIAS")
+            val keyPass = System.getenv("RELEASE_KEY_PASSWORD")
+            val complete = !storePass.isNullOrEmpty() && !alias.isNullOrEmpty() && !keyPass.isNullOrEmpty()
+            if (keystore != null && keystore.isFile && complete) {
+                storeFile = keystore
+                storePassword = storePass
+                keyAlias = alias
+                keyPassword = keyPass
+            } else {
+                val debug = getByName("debug")
+                storeFile = debug.storeFile
+                storePassword = debug.storePassword
+                keyAlias = debug.keyAlias
+                keyPassword = debug.keyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // R8 は M8 では無効（kotlinx.serialization のリフレクションが実機でだけ壊れるのを避ける）
+            isMinifyEnabled = false
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("release")
+        }
     }
 
     buildFeatures {
