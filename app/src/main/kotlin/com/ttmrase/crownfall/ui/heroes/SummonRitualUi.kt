@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -100,7 +101,7 @@ internal fun RitualAnimation(
         }
         onDone()
     }
-    Box(modifier = Modifier.fillMaxSize().background(RitualBackground)) {
+    Box(modifier = Modifier.fillMaxSize().background(RitualBackground).pointerInput(Unit) {}) {
         Canvas(modifier = Modifier.fillMaxSize()) { drawRitual(plan, elapsed) }
         Text(
             stringResource(R.string.summon_summoning),
@@ -269,7 +270,7 @@ internal fun SsrReveal(
                 modifier = Modifier.padding(top = 12.dp),
             )
             Text(
-                "★★★★★",
+                stringResource(R.string.summon_stars),
                 color = gold,
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(top = 8.dp),

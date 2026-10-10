@@ -43,6 +43,21 @@ fun SoundSettingsSection() {
                 },
             )
         }
+        var vibration by remember { mutableStateOf(Sfx.isVibrationEnabled(context)) }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.settings_vibration), modifier = Modifier.weight(1f))
+            Switch(
+                checked = vibration,
+                onCheckedChange = {
+                    vibration = it
+                    Sfx.setVibrationEnabled(context, it)
+                },
+            )
+        }
         Text(stringResource(R.string.settings_sound_note), style = MaterialTheme.typography.bodySmall)
     }
 }

@@ -23,6 +23,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -132,6 +133,7 @@ fun CityScreen(
     }
 
     val secondBuilderLocked = s.secondBuilderUntilEpochSec <= s.nowEpochSec
+    val locks = remember(s.slots) { UiQueries.lockedSlots(s, data) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         StatusBar(session, data)
@@ -149,6 +151,8 @@ fun CityScreen(
             TerritoryView(
                 state = s,
                 clock = LocalClock.current,
+                locks = locks,
+                events = session.events,
                 tutorialSlotId = tutorialTargetSlotId(s),
                 onTileClick = { slot ->
                     sheetSlotId = slot.slotId

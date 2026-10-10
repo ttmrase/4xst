@@ -38,6 +38,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,8 +47,10 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -85,13 +88,52 @@ private const val SINGLE_CARD_DP = 190
 private const val CARD_ASPECT = 0.7f
 private const val GRID_COLUMNS = 5
 
-/** 進行中の召喚演出。[result] は確定済みで、演出は [plan] に従って見せるだけ。 */
+/** 進行中の召喚演出。[result] は確定済みで、演出は [plan] に従って見せるだけ。[salt] は台本の再現用。 */
 private class Ritual(
     val result: SummonResult,
     val plan: RitualPlan,
     val times: Int,
     val kind: SummonKind,
+    val salt: Long,
 )
+
+private const val SEP = "|"
+
+private fun entryLine(e: SummonEntry): String = listOf(e.heroId, e.rarity.name, e.isNew, e.shards).joinToString(SEP)
+
+/** 画面回転でも結果が消えないよう、演出を保存・復元する（台本は結果から作り直す）。 */
+private fun ritualSaver(data: GameData): Saver<Ritual?, Any> =
+    Saver(
+        save = { r ->
+            r?.let {
+                arrayListOf<Any>(
+                    it.times,
+                    it.kind.ordinal,
+                    it.result.pityAfter,
+                    it.salt,
+                    ArrayList(it.result.results.map { e -> entryLine(e) }),
+                )
+            } ?: arrayListOf<Any>()
+        },
+        restore = { raw ->
+            val l = raw as? List<*> ?: return@Saver null
+            if (l.size < 5) return@Saver null
+            val entries =
+                (l[4] as List<*>).map { line ->
+                    val f = (line as String).split(SEP)
+                    SummonEntry(f[0], HeroRarity.valueOf(f[1]), f[2].toBoolean(), f[3].toInt())
+                }
+            val result = SummonResult(entries, l[2] as Int)
+            val salt = l[3] as Long
+            Ritual(
+                result,
+                SummonRitual.plan(result, data.heroRules.presentation, salt),
+                l[0] as Int,
+                SummonKind.entries[l[1] as Int],
+                salt,
+            )
+        },
+    )
 
 /**
  * 召喚画面（T3.5 / T10.5）。通常/プレミアム × 単発/10 連。召喚するとフルスクリーンの儀式演出 →
@@ -108,10 +150,13 @@ fun SummonScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var kindIndex by rememberSaveable { mutableIntStateOf(1) }
-    var ritual by remember { mutableStateOf<Ritual?>(null) }
-    var animating by remember { mutableStateOf(false) }
-    var flipped by remember { mutableStateOf(setOf<Int>()) }
+    var ritual by rememberSaveable(stateSaver = ritualSaver(data)) { mutableStateOf<Ritual?>(null) }
+    var animating by rememberSaveable { mutableStateOf(false) }
+    var flippedList by rememberSaveable { mutableStateOf(arrayListOf<Int>()) }
+    val flipped: Set<Int> = flippedList.toSet()
     var reveal by remember { mutableStateOf<SummonEntry?>(null) }
+    // 召喚の dispatch が返るまで再入を拒否する（連打で二重に召喚しない）
+    var inFlight by remember { mutableStateOf(false) }
     val s = state ?: return
 
     val kind = if (kindIndex == 0) SummonKind.NORMAL else SummonKind.PREMIUM
@@ -119,27 +164,42 @@ fun SummonScreen(
     val tickets = s.items[table.ticketItem] ?: 0
     val tavernBuilt = s.slots.any { it.type == BuildingType.TAVERN && it.level >= 1 }
 
+    suspend fun handleSummon(
+        times: Int,
+        useKind: SummonKind,
+    ) {
+        when (val r = session.dispatch { Actions.summon(it, useKind, times, data) }) {
+            is ActionResult.Success -> {
+                val res = r.events.filterIsInstance<GameEvent.HeroSummoned>().firstOrNull()?.result
+                if (res != null) {
+                    val salt = r.state.rngState
+                    val plan = SummonRitual.plan(res, data.heroRules.presentation, salt)
+                    ritual = Ritual(res, plan, times, useKind, salt)
+                    flippedList = arrayListOf()
+                    reveal = null
+                    animating = true
+                }
+            }
+            is ActionResult.Failure -> {
+                val reason = r.reason
+                if (reason is ActionFailure.NotEnoughGems) hooks.onGemShortage(reason.missing)
+                if (reason is ActionFailure.NotEnoughResources) hooks.onResourceShortage(reason.missing)
+                snackbarHostState.showReplacing(failureMessage(context, reason))
+            }
+        }
+    }
+
     fun summon(
         times: Int,
         useKind: SummonKind = kind,
     ) {
+        if (inFlight) return
+        inFlight = true
         scope.launch {
-            when (val r = session.dispatch { Actions.summon(it, useKind, times, data) }) {
-                is ActionResult.Success -> {
-                    val res = r.events.filterIsInstance<GameEvent.HeroSummoned>().firstOrNull()?.result
-                    if (res != null) {
-                        ritual = Ritual(res, SummonRitual.plan(res, data.heroRules.presentation), times, useKind)
-                        flipped = emptySet()
-                        reveal = null
-                        animating = true
-                    }
-                }
-                is ActionResult.Failure -> {
-                    val reason = r.reason
-                    if (reason is ActionFailure.NotEnoughGems) hooks.onGemShortage(reason.missing)
-                    if (reason is ActionFailure.NotEnoughResources) hooks.onResourceShortage(reason.missing)
-                    snackbarHostState.showReplacing(failureMessage(context, reason))
-                }
+            try {
+                handleSummon(times, useKind)
+            } finally {
+                inFlight = false
             }
         }
     }
@@ -148,7 +208,7 @@ fun SummonScreen(
         val r = ritual ?: return
         val fresh = indices - flipped
         if (fresh.isEmpty()) return
-        flipped = flipped + fresh
+        flippedList = ArrayList(flipped + fresh)
         val best = fresh.map { r.result.results[it] }.maxByOrNull { it.rarity }
         if (best != null && best.rarity == HeroRarity.SSR) {
             reveal = best
@@ -180,7 +240,7 @@ fun SummonScreen(
         }
         val current = ritual
         if (current != null) {
-            Box(modifier = Modifier.fillMaxSize().background(RitualBackground)) {
+            Box(modifier = Modifier.fillMaxSize().background(RitualBackground).pointerInput(Unit) {}) {
                 if (animating) {
                     RitualAnimation(plan = current.plan, onDone = { animating = false })
                 } else {
@@ -271,7 +331,7 @@ private fun PityMeter(
     val textColor = if (onDark) Color.White else MaterialTheme.colorScheme.primary
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            stringResource(R.string.summon_pity_big, remaining),
+            pluralStringResource(R.plurals.summon_pity_big, remaining, remaining),
             color = textColor,
             style = MaterialTheme.typography.titleMedium,
         )
@@ -347,8 +407,8 @@ private fun SummonResults(
     ) {
         Text(
             when (ritual.plan.top) {
-                HeroRarity.SSR -> stringResource(R.string.summon_ssr)
-                HeroRarity.SR -> stringResource(R.string.summon_sr)
+                HeroRarity.SSR -> stringResource(R.string.summon_result_ssr)
+                HeroRarity.SR -> stringResource(R.string.summon_result_sr)
                 else -> stringResource(R.string.summon_title)
             },
             color = rarityColor(ritual.plan.top),

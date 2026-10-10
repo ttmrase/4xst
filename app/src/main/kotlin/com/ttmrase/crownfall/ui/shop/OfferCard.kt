@@ -29,6 +29,7 @@ import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.OfferBadge
 import com.ttmrase.crownfall.core.data.PackContents
+import com.ttmrase.crownfall.ui.common.remainingUntil
 import com.ttmrase.crownfall.ui.theme.PressButton
 
 private const val PULSE_SCALE = 1.05f
@@ -64,9 +65,26 @@ fun badgeLabel(badge: OfferBadge): String? =
         OfferBadge.BEST_VALUE -> stringResource(R.string.badge_best_value)
     }
 
+/** 残り時間の行。毎秒の時計（LocalClock）はこの小さな Composable だけが読む（カード全体は再構図しない）。 */
+@Composable
+private fun Countdown(
+    expiresEpochSec: Long,
+    fallbackNow: Long,
+) {
+    val remaining = remainingUntil(expiresEpochSec, fallbackNow)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            stringResource(R.string.offer_remaining_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.error,
+        )
+        FlipCountdown(remaining)
+    }
+}
+
 /**
  * オファーのカード（04 §4 の演出: 取り消し線の定価、「95% OFF」、バッジ、残数、カウントダウン、大きく点滅する購入ボタン）。
- * [remainingSec] / [stockLeft] が null なら該当の表示を出さない。
+ * [expiresEpochSec] / [stockLeft] が null なら該当の表示を出さない。
  */
 @Composable
 fun OfferCard(
@@ -79,7 +97,8 @@ fun OfferCard(
     badge: OfferBadge,
     onBuy: () -> Unit,
     modifier: Modifier = Modifier,
-    remainingSec: Long? = null,
+    expiresEpochSec: Long? = null,
+    nowEpochSec: Long = 0L,
     stockLeft: Int? = null,
     extraGems: Long = 0,
     soldOut: Boolean = false,

@@ -59,4 +59,12 @@ class SummonRitualTest {
             }
         assertTrue(hits in 120..280, "hits=$hits")
     }
+
+    @Test
+    fun theSameHeroDoesNotAlwaysGetTheSameRitualWhenTheSaltChanges() {
+        val p = SummonPresentation(50, 50)
+        val one = result(HeroRarity.SSR, seed = 3)
+        val kinds = (0L until 200L).map { SummonRitual.plan(one, p, salt = it).kind }.toSet()
+        assertEquals(setOf(RitualKind.PROMOTION, RitualKind.PLAIN), kinds)
+    }
 }

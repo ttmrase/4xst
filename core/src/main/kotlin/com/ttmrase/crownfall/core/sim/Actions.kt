@@ -754,6 +754,12 @@ object Actions {
         data: GameData,
     ): ActionResult = ShopActions.fakePurchase(state, offerId, data)
 
+    /** VIP 昇格の演出済みの Lv を記録する。 */
+    fun markVipCelebrated(
+        state: GameState,
+        lv: Int,
+    ): ActionResult = ShopActions.markVipCelebrated(state, lv)
+
     /** VIP デイリーチェストを受け取る。 */
     fun claimVipChest(
         state: GameState,

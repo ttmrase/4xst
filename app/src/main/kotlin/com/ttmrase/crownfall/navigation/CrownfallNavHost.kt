@@ -112,6 +112,7 @@ fun CrownfallNavHost(
             if (ready != null) ShopOfferHooks(ready.session, ready.data, uiScope) else NoOpOfferHooks
         }
     var billingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var vipActive by remember { mutableStateOf(false) }
     // 退出前オファーの流れ: 0 = なし、1 = 「待って！」を出している、2 = 閉じ終えたのでタイトルへ戻る確認
     var exitStage by rememberSaveable { mutableIntStateOf(0) }
     // 毎秒変わる状態を NavHost で読まない。必要な値だけを取り出し、変わったときだけ再構図する。
@@ -392,7 +393,7 @@ fun CrownfallNavHost(
             session = ready.session,
             data = ready.data,
             coordinator = sessionCoordinator,
-            busy = billingId != null,
+            busy = billingId != null || vipActive,
             onBuy = {
                 billingId = it
                 // 退出オファーを買いに行ったら、タイトルへの確認は出さず城内に残る
@@ -400,7 +401,7 @@ fun CrownfallNavHost(
             },
             onIdle = { if (exitStage == 1) exitStage = 2 },
         )
-        VipCinematicHost(ready.session, ready.data, hold = billingId != null)
+        VipCinematicHost(ready.session, ready.data, hold = billingId != null, onActive = { vipActive = it })
         billingId?.let { id ->
             FakeBillingSheet(
                 id,

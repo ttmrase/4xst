@@ -3,7 +3,10 @@ package com.ttmrase.crownfall.ui.territory
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -11,14 +14,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Matrix
@@ -33,6 +34,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -41,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -48,11 +53,15 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.model.BuildingSlot
 import com.ttmrase.crownfall.core.model.BuildingType
+import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
+import com.ttmrase.crownfall.core.model.Prereq
 import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.util.DurationFormat
+import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.theme.CrownFonts
+import kotlinx.coroutines.flow.SharedFlow
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.max
@@ -65,6 +74,14 @@ internal class TerritoryCamera {
     var cy by mutableFloatStateOf(0f)
     var sc by mutableFloatStateOf(0f)
     var ready = false
+
+    fun set(c: CamState) {
+        cx = c.cx
+        cy = c.cy
+        sc = c.sc
+    }
+
+    fun get() = CamState(cx, cy, sc)
 }
 
 /** 帯（城 Lv の段階）が変わったときの拡張アニメの状態。 */
@@ -78,32 +95,32 @@ private const val ANIM_DONE_MS = 10_000L
 private const val BAND_ANIM_MS = 1_800f
 private const val POP_MS = 800f
 private const val BOUNCE_MS = 260f
-private const val MAX_SLOTS = 40
-private const val FRAME_MS = 33L
 
 /** 小さな文字列のレイアウトを使い回す（毎フレーム measure しない）。 */
 private class TextCache(private val measurer: TextMeasurer) {
-    private val map =
-        object : LinkedHashMap<String, TextLayoutResult>(64, 0.75f, true) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, TextLayoutResult>?): Boolean =
-                size > MAX_ENTRIES
-        }
+    private val byStyle = HashMap<TextStyle, HashMap<String, TextLayoutResult>>()
 
     fun layout(
         text: String,
         style: TextStyle,
-    ): TextLayoutResult = map.getOrPut("${style.fontSize.value}|$text") { measurer.measure(text, style) }
+    ): TextLayoutResult {
+        val map = byStyle.getOrPut(style) { HashMap() }
+        map[text]?.let { return it }
+        if (map.size >= MAX_ENTRIES) map.clear()
+        return measurer.measure(text, style).also { map[text] = it }
+    }
 
     private companion object {
-        const val MAX_ENTRIES = 96
+        const val MAX_ENTRIES = 160
     }
 }
 
 /**
  * 領地ビュー（T10.3）。城・区画・城壁・森・川を、ズームとパンができるアイソメトリック風の地図に描く。
  * 見た目の層だけを差し替える: スロットとレベルは [state] のまま、建物の見た目は Lv の段階（1–5 / 6–10 / …）で変わる。
- * アニメは描画フェーズの時計 [frame] で動かし、毎秒の state 更新とは分ける。スプライトは [SpriteCache] で
- * 事前にラスタライズする。
+ * アニメは描画フェーズの時計 [frame] で動かし、毎秒の state 更新とは分ける。スプライトはアプリ共通の [SpriteCache]。
+ * [locks] は今は建設できない区画（未建設で前提未達）で、森と霧で覆って札を立てる。建設できる区画は覆わない。
+ * [events] の [GameEvent.BuildingLevelUp] で完成のポップを出す（5 秒サンプリングの state に依存しない）。
  */
 @Composable
 fun TerritoryView(
@@ -112,10 +129,11 @@ fun TerritoryView(
     tutorialSlotId: Int?,
     onTileClick: (BuildingSlot) -> Unit,
     modifier: Modifier = Modifier,
+    locks: Map<Int, Prereq> = emptyMap(),
+    events: SharedFlow<GameEvent>? = null,
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val cache = remember { SpriteCache(context, scope) }
+    val cache = remember { SpriteCache.shared(context) }
     val measurer = rememberTextMeasurer()
     val texts = remember(measurer) { TextCache(measurer) }
     val cam = remember { TerritoryCamera() }
@@ -123,60 +141,47 @@ fun TerritoryView(
     val currentState by rememberUpdatedState(state)
     val currentClick by rememberUpdatedState(onTileClick)
 
-    val cells =
-        remember {
-            val perType = HashMap<BuildingType, Int>()
-            state.slots.map { slot ->
-                val idx = perType.getOrDefault(slot.type, 0)
-                perType[slot.type] = idx + 1
-                Triple(slot.slotId, PlotLayout.cellOf(slot.type, idx), slot.type)
-            }
-        }
-    val scene = remember { TerritoryScene.build(cells) }
+    val layoutKey = state.slots.map { it.slotId to it.type }
+    val cells = remember(layoutKey) { PlotLayout.cellsFor(state.slots) }
+    val scene = remember(layoutKey) { TerritoryScene.build(cells) }
     val frontToBack = remember(scene) { scene.buildingEnts.sortedBy { it.depth } }
+    val slotCount = (state.slots.maxOfOrNull { it.slotId } ?: -1) + 1
     val typeBySlot =
-        remember {
-            arrayOfNulls<BuildingType>(MAX_SLOTS).also { a -> state.slots.forEach { a[it.slotId] = it.type } }
+        remember(layoutKey) {
+            arrayOfNulls<BuildingType>(slotCount).also { a -> state.slots.forEach { a[it.slotId] = it.type } }
         }
-
-    val levels = IntArray(MAX_SLOTS)
+    val levels = remember(slotCount) { IntArray(slotCount) }
+    val jobs = remember(slotCount) { arrayOfNulls<TimerJob>(slotCount) }
     state.slots.forEach { levels[it.slotId] = it.level }
-    val jobs = arrayOfNulls<TimerJob>(MAX_SLOTS)
-    state.timers.forEach { if (it.kind == TimerKind.BUILD) it.slotId?.let { id -> jobs[id] = it } }
+    jobs.fill(null)
+    state.timers.forEach { if (it.kind == TimerKind.BUILD) it.slotId?.let { id -> if (id < slotCount) jobs[id] = it } }
+    val lockLabels = remember(slotCount) { arrayOfNulls<String>(slotCount) }
+    lockLabels.fill(null)
+    locks.forEach { (id, info) -> if (id < slotCount) lockLabels[id] = lockText(context, info) }
     val castleLevel = state.slots.firstOrNull { it.type == BuildingType.CASTLE }?.level ?: 1
     val band = PlotLayout.bandOfCastle(castleLevel)
 
     val anim = remember { BandAnim(band) }
-    val popAt = remember { LongArray(MAX_SLOTS) { -ANIM_DONE_MS } }
-    val bounceAt = remember { LongArray(MAX_SLOTS) { -ANIM_DONE_MS } }
-    val seenLevels = remember { IntArray(MAX_SLOTS) { -1 } }
-    val signLabel = stringResource(R.string.territory_expand_sign, PlotLayout.nextBandCastleLevel(band) ?: 0)
+    val popAt = remember(slotCount) { LongArray(slotCount) { -ANIM_DONE_MS } }
+    val bounceAt = remember(slotCount) { LongArray(slotCount) { -ANIM_DONE_MS } }
+    // 各帯の札は、その帯から決まる「Lv n」を持つ（帯が進んで消えていく間も、自分の n のまま）
+    val signLabels =
+        remember {
+            Array(PlotLayout.BANDS + 1) { b ->
+                PlotLayout.nextBandCastleLevel(b)?.let { context.getString(R.string.territory_expand_sign, it) } ?: ""
+            }
+        }
     val levelLabels = remember { HashMap<Int, String>() }
-    val lvFormat = stringResource(R.string.tile_level, 0)
+    val emptyMark = stringResource(R.string.territory_empty_mark)
 
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            var last = 0L
-            while (true) {
-                androidx.compose.runtime.withFrameMillis { t ->
-                    if (t - last >= FRAME_MS) {
-                        last = t
-                        frame.longValue = t
-                    }
-                }
-            }
+            while (true) androidx.compose.runtime.withFrameMillis { t -> frame.longValue = t }
         }
     }
     LaunchedEffect(Unit) {
-        cache.preload(
-            SpriteIds.ALL_BUILDINGS.filterIndexed {
-                    i,
-                    _,
-                ->
-                i % 5 == 0
-            } + SpriteIds.SITE,
-        )
+        cache.preload(SpriteIds.ALL_BUILDINGS.filterIndexed { i, _ -> i % 5 == 0 } + SpriteIds.SITE)
     }
     LaunchedEffect(band) {
         if (band != anim.to) {
@@ -185,11 +190,9 @@ fun TerritoryView(
             anim.startMs = frame.longValue
         }
     }
-    LaunchedEffect(levels.contentHashCode()) {
-        for (slot in state.slots) {
-            val before = seenLevels[slot.slotId]
-            if (before >= 0 && slot.level > before) popAt[slot.slotId] = frame.longValue
-            seenLevels[slot.slotId] = slot.level
+    LaunchedEffect(events, slotCount) {
+        events?.collect { e ->
+            if (e is GameEvent.BuildingLevelUp && e.slotId in 0 until slotCount) popAt[e.slotId] = frame.longValue
         }
     }
 
@@ -198,113 +201,192 @@ fun TerritoryView(
     LaunchedEffect(viewW) {
         if (viewW > 0f && !cam.ready) {
             cam.ready = true
-            cam.sc = viewW / INITIAL_SPAN
-            cam.cx = 0f
-            cam.cy = PlotLayout.wy(PlotLayout.CENTER, PlotLayout.CENTER) + CAMERA_DROP
+            cam.set(CameraMath.initial(viewW, 0f, PlotLayout.wy(PlotLayout.MID, PlotLayout.MID) + CAMERA_DROP))
         }
     }
+    val painter = remember { TerritoryPainter() }
+    val res = context.resources
 
-    Canvas(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .clipToBounds()
-                .onSizeChanged {
-                    viewW = it.width.toFloat()
-                    viewH = it.height.toFloat()
-                }
-                .pointerInput(Unit) {
-                    detectTransformGestures { centroid, pan, zoom, _ ->
-                        val old = cam.sc
-                        val target = (old * zoom).coerceIn(size.width / MAX_SPAN, size.width / MIN_SPAN)
-                        // 指の下のワールド点を保つ
-                        val dx = centroid.x - size.width / 2f
-                        val dy = centroid.y - size.height / 2f
-                        val wx = cam.cx + dx / old
-                        val wy = cam.cy + dy / old
-                        cam.sc = target
-                        cam.cx = (wx - dx / target - pan.x / target).coerceIn(-PAN_X, PAN_X)
-                        cam.cy = (wy - dy / target - pan.y / target).coerceIn(PAN_Y_MIN, PAN_Y_MAX)
+    Box(modifier = modifier.fillMaxSize()) {
+        Canvas(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clipToBounds()
+                    .onSizeChanged {
+                        viewW = it.width.toFloat()
+                        viewH = it.height.toFloat()
                     }
-                }
-                .pointerInput(scene) {
-                    detectTapGestures(
-                        onDoubleTap = {
-                            cam.sc = size.width / INITIAL_SPAN
-                            cam.cx = 0f
-                            cam.cy = PlotLayout.wy(PlotLayout.CENTER, PlotLayout.CENTER) + CAMERA_DROP
-                        },
-                        onTap = { tap ->
-                            val sc = cam.sc
-                            var best: Ent? = null
-                            for (e in scene.buildingEnts) {
-                                val sx = size.width / 2f + (PlotLayout.wx(e.gx, e.gy) - cam.cx) * sc
-                                val sy = size.height / 2f + (PlotLayout.wy(e.gx, e.gy) - cam.cy) * sc
-                                val inside =
-                                    abs(tap.x - sx) <= HIT_HALF_W * sc && tap.y >= sy - HIT_UP * sc &&
-                                        tap.y <= sy + HIT_DOWN * sc
-                                if (inside && (best == null || e.depth > best.depth)) best = e
-                            }
-                            best?.let { hit ->
-                                val slot = currentState.slots.firstOrNull { it.slotId == hit.slotId }
-                                if (slot != null) {
-                                    bounceAt[slot.slotId] = frame.longValue
-                                    currentClick(slot)
+                    .pointerInput(Unit) {
+                        detectTransformGestures { centroid, pan, zoom, _ ->
+                            cam.set(
+                                CameraMath.transform(
+                                    cam.get(),
+                                    size.width.toFloat(),
+                                    size.height.toFloat(),
+                                    centroid.x,
+                                    centroid.y,
+                                    pan.x,
+                                    pan.y,
+                                    zoom,
+                                ),
+                            )
+                        }
+                    }
+                    .pointerInput(scene) {
+                        // ダブルタップを待たないので、タップは遅れない
+                        detectTapGestures(
+                            onTap = { tap ->
+                                val sc = cam.sc
+                                var best: Ent? = null
+                                for (e in scene.buildingEnts) {
+                                    val sx = size.width / 2f + (PlotLayout.wx(e.gx, e.gy) - cam.cx) * sc
+                                    val sy = size.height / 2f + (PlotLayout.wy(e.gx, e.gy) - cam.cy) * sc
+                                    val inside =
+                                        abs(tap.x - sx) <= HIT_HALF_W * sc && tap.y >= sy - HIT_UP * sc &&
+                                            tap.y <= sy + HIT_DOWN * sc
+                                    if (inside && (best == null || e.depth > best.depth)) best = e
                                 }
+                                best?.let { hit ->
+                                    val slot = currentState.slots.firstOrNull { it.slotId == hit.slotId }
+                                    if (slot != null) {
+                                        bounceAt[slot.slotId] = frame.longValue
+                                        currentClick(slot)
+                                    }
+                                }
+                            },
+                        )
+                    },
+        ) {
+            val nowMs = frame.longValue
+            val loadTick = cache.version
+            if (!cam.ready || loadTick < 0) return@Canvas
+            val sc = cam.sc
+            val nowSec = clock?.value ?: state.nowEpochSec
+            val t = ((nowMs - anim.startMs) / BAND_ANIM_MS).coerceIn(0f, 1f)
+            val e = 1f - (1f - t) * (1f - t)
+            painter.begin(
+                this, cache, texts, scene, sc, size.width / 2f - cam.cx * sc, size.height / 2f - cam.cy * sc,
+                nowMs, nowSec, anim.from, anim.to, if (t >= 1f) 1f else e, t >= 1f,
+            )
+            painter.drawGround()
+            painter.drawEntities(levels, jobs, typeBySlot, popAt, bounceAt, tutorialSlotId, signLabels, lockLabels)
+            painter.drawBadges(frontToBack, levels, jobs, levelLabels, lockLabels, emptyMark) { lv ->
+                res.getString(R.string.tile_level, lv)
+            }
+        }
+        // 画面の読み上げ・操作用: 区画ごとの透明なノード（ポインタ入力は受けず、タップは Canvas が処理する）
+        for (ent in scene.buildingEnts) {
+            val slot = state.slots.firstOrNull { it.slotId == ent.slotId } ?: continue
+            val desc = slotDescription(context, slot, lockLabels.getOrNull(slot.slotId))
+            Box(
+                modifier =
+                    Modifier
+                        .offset {
+                            val sc = cam.sc
+                            val x = viewW / 2f + (PlotLayout.wx(ent.gx, ent.gy) - cam.cx) * sc
+                            val y = viewH / 2f + (PlotLayout.wy(ent.gx, ent.gy) - cam.cy) * sc - A11Y_LIFT * sc
+                            IntOffset((x - A11Y_HALF * density).roundToInt(), (y - A11Y_HALF * density).roundToInt())
+                        }
+                        .size(A11Y_SIZE_DP.dp)
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = desc
+                            onClick(label = desc) {
+                                currentClick(slot)
+                                true
                             }
                         },
-                    )
-                },
-    ) {
-        val nowMs = frame.longValue
-        val loadTick = cache.version
-        if (!cam.ready || loadTick < 0) return@Canvas
-        val sc = cam.sc
-        val ox = size.width / 2f - cam.cx * sc
-        val oy = size.height / 2f - cam.cy * sc
-        val nowSec = clock?.value ?: state.nowEpochSec
-        val t = ((nowMs - anim.startMs) / BAND_ANIM_MS).coerceIn(0f, 1f)
-        val e = 1f - (1f - t) * (1f - t)
-        val painter =
-            TerritoryPainter(
-                this, cache, texts, scene, sc, ox, oy, nowMs, nowSec, anim.from, anim.to, if (t >= 1f) 1f else e,
-                t >= 1f,
             )
-        painter.drawGround()
-        painter.drawEntities(levels, jobs, typeBySlot, popAt, bounceAt, tutorialSlotId, signLabel)
-        painter.drawBadges(frontToBack, levels, jobs, typeBySlot, levelLabels, lvFormat)
-        painter.drawFog()
+        }
     }
 }
 
-private const val INITIAL_SPAN = 470f
-private const val MAX_SPAN = 300f
-private const val MIN_SPAN = 1000f
+private fun lockText(
+    context: android.content.Context,
+    need: Prereq,
+): String =
+    if (need.type == BuildingType.CASTLE) {
+        context.getString(R.string.territory_unlock_castle, need.level)
+    } else {
+        context.getString(R.string.territory_unlock_building, context.getString(need.type.nameRes()), need.level)
+    }
+
+private fun slotDescription(
+    context: android.content.Context,
+    slot: BuildingSlot,
+    lock: String?,
+): String {
+    val name = context.getString(slot.type.nameRes())
+    return when {
+        slot.level > 0 -> context.getString(R.string.territory_slot_built, name, slot.level)
+        lock != null -> context.getString(R.string.territory_slot_locked, name, lock)
+        else -> context.getString(R.string.territory_slot_empty, name)
+    }
+}
+
 private const val CAMERA_DROP = 14f
-private const val PAN_X = 620f
-private const val PAN_Y_MIN = -230f
-private const val PAN_Y_MAX = 430f
 private const val HIT_HALF_W = 52f
 private const val HIT_UP = 98f
 private const val HIT_DOWN = 30f
+private const val A11Y_SIZE_DP = 48
+private const val A11Y_HALF = 24f
+private const val A11Y_LIFT = 40f
 
 /** 1 フレーム分の描画。状態は持たず、引数の値だけで描く。 */
-private class TerritoryPainter(
-    private val scope: DrawScope,
-    private val cache: SpriteCache,
-    private val texts: TextCache,
-    private val scene: TerritoryScene,
-    private val sc: Float,
-    private val ox: Float,
-    private val oy: Float,
-    private val nowMs: Long,
-    private val nowSec: Long,
-    private val fromBand: Int,
-    private val toBand: Int,
-    private val ease: Float,
-    private val settled: Boolean,
-) {
-    private val seconds = nowMs / 1000f
+private class TerritoryPainter {
+    private lateinit var scope: DrawScope
+    private lateinit var cache: SpriteCache
+    private lateinit var texts: TextCache
+    private lateinit var scene: TerritoryScene
+    private var sc = 1f
+    private var ox = 0f
+    private var oy = 0f
+    private var nowMs = 0L
+    private var nowSec = 0L
+    private var fromBand = 1
+    private var toBand = 1
+    private var ease = 1f
+    private var settled = true
+    private var seconds = 0f
+    private val iso = Matrix()
+    private val ringPath = Path()
+    private val arrowPath = Path()
+    private val diamond = Path()
+    private val labelCache = HashMap<Long, String>()
+    private var pillStroke = Stroke(1f)
+    private var pillDensity = 0f
+
+    /** 1 フレームの始まり。このクラスのインスタンスは使い回す（フレームごとに作らない）。 */
+    fun begin(
+        scope: DrawScope,
+        cache: SpriteCache,
+        texts: TextCache,
+        scene: TerritoryScene,
+        sc: Float,
+        ox: Float,
+        oy: Float,
+        nowMs: Long,
+        nowSec: Long,
+        fromBand: Int,
+        toBand: Int,
+        ease: Float,
+        settled: Boolean,
+    ) {
+        this.scope = scope
+        this.cache = cache
+        this.texts = texts
+        this.scene = scene
+        this.sc = sc
+        this.ox = ox
+        this.oy = oy
+        this.nowMs = nowMs
+        this.nowSec = nowSec
+        this.fromBand = fromBand
+        this.toBand = toBand
+        this.ease = ease
+        this.settled = settled
+        seconds = nowMs / MS_PER_SEC
+    }
 
     private fun sx(
         gx: Float,
@@ -349,17 +431,12 @@ private class TerritoryPainter(
                     )
                 }
                 // 川
-                drawPath(scene.river, RIVER_BANK, style = Stroke(5.6f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                drawPath(scene.river, RIVER, style = Stroke(3.6f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                drawPath(scene.river, RIVER_BANK, style = RIVER_BANK_STROKE)
+                drawPath(scene.river, RIVER, style = RIVER_STROKE)
                 drawPath(
                     scene.river,
-                    Color.White.copy(alpha = 0.45f),
-                    style =
-                        Stroke(
-                            0.5f,
-                            cap = StrokeCap.Round,
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(1.6f, 4.4f), -seconds * 2.2f),
-                        ),
+                    RIVER_FOAM,
+                    style = FOAM_STROKE,
                 )
             }
         }
@@ -368,7 +445,8 @@ private class TerritoryPainter(
     private fun streetColor(band: Int): Color = if (band <= 2) STREET_DIRT else STREET_COBBLE
 
     private fun isoMatrix(): Matrix {
-        val m = Matrix()
+        val m = iso
+        m.reset()
         m.values[Matrix.ScaleX] = PlotLayout.U * sc
         m.values[Matrix.SkewY] = PlotLayout.V * sc
         m.values[Matrix.SkewX] = -PlotLayout.U * sc
@@ -412,13 +490,14 @@ private class TerritoryPainter(
         popAt: LongArray,
         bounceAt: LongArray,
         tutorialSlotId: Int?,
-        signLabel: String,
+        signLabels: Array<String>,
+        locks: Array<String?>,
     ) {
-        val vils = visibleVillagers()
+        val nv = computeVillagers()
         var vi = 0
         for (ent in scene.ents) {
-            while (vi < vils.size && vils[vi].depth < ent.depth) {
-                drawVillager(vils[vi])
+            while (vi < nv && vDepth[vOrder[vi]] < ent.depth) {
+                drawVillager(vOrder[vi])
                 vi++
             }
             // 画面外はすぐ飛ばす
@@ -426,7 +505,11 @@ private class TerritoryPainter(
             val py = sy(ent.gx, ent.gy)
             if (isOffScreen(px, py)) continue
             if (ent.kind == EntKind.BUILDING) {
-                drawBuilding(ent, levels, jobs, types, popAt, bounceAt, tutorialSlotId)
+                if (locks[ent.slotId] != null) {
+                    drawLocked(ent)
+                } else {
+                    drawBuilding(ent, levels, jobs, types, popAt, bounceAt, tutorialSlotId)
+                }
                 continue
             }
             val a = presence(ent)
@@ -436,14 +519,35 @@ private class TerritoryPainter(
                     drawSprite(ent.sprite, ent.gx, ent.gy, a, scale = 0.7f + 0.3f * a, dy = swayTree(ent))
                 EntKind.SIGN -> {
                     drawSprite(ent.sprite, ent.gx, ent.gy, a)
-                    if (signLabel.isNotEmpty()) drawSignText(ent, signLabel, a)
+                    val label = signLabels.getOrNull(ent.band).orEmpty()
+                    if (label.isNotEmpty()) drawSignText(ent, label, a)
                 }
                 else -> drawSprite(ent.sprite, ent.gx, ent.gy, a, scale = 0.88f + 0.12f * a)
             }
         }
-        while (vi < vils.size) {
-            drawVillager(vils[vi])
+        while (vi < nv) {
+            drawVillager(vOrder[vi])
             vi++
+        }
+    }
+
+    /** 建設できない区画: 森と霧で覆い、札は [drawBadges] が出す。 */
+    private fun drawLocked(ent: Ent) {
+        with(scope) {
+            val h = 2.6f
+            diamond.rewind()
+            diamond.moveTo(sx(ent.gx, ent.gy - h), sy(ent.gx, ent.gy - h))
+            diamond.lineTo(sx(ent.gx + h, ent.gy), sy(ent.gx + h, ent.gy))
+            diamond.lineTo(sx(ent.gx, ent.gy + h), sy(ent.gx, ent.gy + h))
+            diamond.lineTo(sx(ent.gx - h, ent.gy), sy(ent.gx - h, ent.gy))
+            diamond.close()
+            drawPath(diamond, Color(0xFF14301E))
+        }
+        for (k in LOCK_TREES.indices step 2) {
+            drawSprite(SpriteIds.TREE_PINE_A, ent.gx + LOCK_TREES[k], ent.gy + LOCK_TREES[k + 1], 1f)
+        }
+        with(scope) {
+            drawPath(diamond, FOG.copy(alpha = 0.55f))
         }
     }
 
@@ -510,25 +614,23 @@ private class TerritoryPainter(
     private fun drawTutorialRing(ent: Ent) {
         val pulse = 0.5f + 0.5f * sin(seconds * 6f)
         with(scope) {
-            val path =
-                Path().apply {
-                    moveTo(sx(ent.gx, ent.gy - 2.3f), sy(ent.gx, ent.gy - 2.3f))
-                    lineTo(sx(ent.gx + 2.3f, ent.gy), sy(ent.gx + 2.3f, ent.gy))
-                    lineTo(sx(ent.gx, ent.gy + 2.3f), sy(ent.gx, ent.gy + 2.3f))
-                    lineTo(sx(ent.gx - 2.3f, ent.gy), sy(ent.gx - 2.3f, ent.gy))
-                    close()
-                }
+            val path = ringPath
+            path.rewind()
+            path.moveTo(sx(ent.gx, ent.gy - 2.3f), sy(ent.gx, ent.gy - 2.3f))
+            path.lineTo(sx(ent.gx + 2.3f, ent.gy), sy(ent.gx + 2.3f, ent.gy))
+            path.lineTo(sx(ent.gx, ent.gy + 2.3f), sy(ent.gx, ent.gy + 2.3f))
+            path.lineTo(sx(ent.gx - 2.3f, ent.gy), sy(ent.gx - 2.3f, ent.gy))
+            path.close()
             drawPath(path, GOLD.copy(alpha = 0.25f + 0.35f * pulse))
             drawPath(path, GOLD, style = Stroke(width = 3f * density))
             val cx = sx(ent.gx, ent.gy)
             val cy = sy(ent.gx, ent.gy) - (115f + 8f * pulse) * sc
-            val arrow =
-                Path().apply {
-                    moveTo(cx, cy)
-                    lineTo(cx - 9f * density, cy - 14f * density)
-                    lineTo(cx + 9f * density, cy - 14f * density)
-                    close()
-                }
+            val arrow = arrowPath
+            arrow.rewind()
+            arrow.moveTo(cx, cy)
+            arrow.lineTo(cx - 9f * density, cy - 14f * density)
+            arrow.lineTo(cx + 9f * density, cy - 14f * density)
+            arrow.close()
             drawPath(arrow, GOLD)
         }
     }
@@ -537,14 +639,15 @@ private class TerritoryPainter(
     private fun drawConstruction(ent: Ent) {
         with(scope) {
             val wood = Color(0xFF8C6A3C)
-            val corners = listOf(-2f to -2f, 2f to -2f, -2f to 2f, 2f to 2f)
-            for ((dx, dy) in corners) {
+            for (c in 0 until 4) {
+                val dx = CORNERS[c * 2]
+                val dy = CORNERS[c * 2 + 1]
                 val x = sx(ent.gx + dx, ent.gy + dy)
                 val y = sy(ent.gx + dx, ent.gy + dy)
                 drawLine(wood, Offset(x, y), Offset(x, y - 46f * sc), strokeWidth = 1.6f * sc)
                 drawLine(wood, Offset(x, y - 20f * sc), Offset(x + 5f * sc, y - 28f * sc), strokeWidth = 1.2f * sc)
             }
-            for (h in listOf(18f, 36f)) {
+            for (h in RAILS) {
                 val a = Offset(sx(ent.gx - 2f, ent.gy + 2f), sy(ent.gx - 2f, ent.gy + 2f) - h * sc)
                 val b = Offset(sx(ent.gx + 2f, ent.gy + 2f), sy(ent.gx + 2f, ent.gy + 2f) - h * sc)
                 val c = Offset(sx(ent.gx + 2f, ent.gy - 2f), sy(ent.gx + 2f, ent.gy - 2f) - h * sc)
@@ -624,7 +727,7 @@ private class TerritoryPainter(
                     }
                 }
                 BuildingType.WATCHTOWER -> {
-                    val h = listOf(34f, 44f, 54f, 64f, 76f)[tier - 1] + 3f
+                    val h = TOWER_HEIGHTS[tier - 1] + 3f
                     val glow = 0.25f + 0.2f * sin(seconds * 3f)
                     drawCircle(
                         Color(0xFFFFCC66).copy(alpha = glow),
@@ -663,29 +766,51 @@ private class TerritoryPainter(
 
     // ---- 住民 -----------------------------------------------------------------
 
-    private class VillagerPose(val depth: Float, val gx: Float, val gy: Float, val color: Color)
+    private var vDepth = FloatArray(0)
+    private var vGx = FloatArray(0)
+    private var vGy = FloatArray(0)
+    private var vOrder = IntArray(0)
 
-    private fun visibleVillagers(): List<VillagerPose> {
-        val out = ArrayList<VillagerPose>(scene.villagers.size)
-        for (v in scene.villagers) {
+    /** 見える住民の位置と描く順（奥から手前）を配列に作る。返り値は人数。毎フレームの確保はしない。 */
+    private fun computeVillagers(): Int {
+        val list = scene.villagers
+        if (vDepth.size < list.size) {
+            vDepth = FloatArray(list.size)
+            vGx = FloatArray(list.size)
+            vGy = FloatArray(list.size)
+            vOrder = IntArray(list.size)
+        }
+        var n = 0
+        for (idx in list.indices) {
+            val v = list[idx]
             if (v.introBand > toBand) continue
             val len = max(1f, v.to - v.from)
             val u = (seconds * v.speed * 0.8f + v.phase * len * 2f) % (len * 2f)
             val along = v.from + if (u < len) u else len * 2f - u
             val gx = if (v.alongX) along else v.fixed
             val gy = if (v.alongX) v.fixed else along
-            out.add(VillagerPose(gx + gy, gx, gy, Color(v.color)))
+            vDepth[idx] = gx + gy
+            vGx[idx] = gx
+            vGy[idx] = gy
+            // 挿入ソート（人数は十数人）
+            var k = n
+            while (k > 0 && vDepth[vOrder[k - 1]] > vDepth[idx]) {
+                vOrder[k] = vOrder[k - 1]
+                k--
+            }
+            vOrder[k] = idx
+            n++
         }
-        out.sortBy { it.depth }
-        return out
+        return n
     }
 
-    private fun drawVillager(v: VillagerPose) {
+    private fun drawVillager(idx: Int) {
+        val v = scene.villagers[idx]
         with(scope) {
-            val x = sx(v.gx, v.gy)
-            val y = sy(v.gx, v.gy)
+            val x = sx(vGx[idx], vGy[idx])
+            val y = sy(vGx[idx], vGy[idx])
             drawCircle(Color.Black.copy(alpha = 0.25f), radius = 2.6f * sc, center = Offset(x, y + 0.5f * sc))
-            drawRect(v.color, Offset(x - 1.3f * sc, y - 6f * sc), Size(2.6f * sc, 5.6f * sc))
+            drawRect(Color(v.color), Offset(x - 1.3f * sc, y - 6f * sc), Size(2.6f * sc, 5.6f * sc))
             drawCircle(Color(0xFFF1D2B0), radius = 1.5f * sc, center = Offset(x, y - 7.4f * sc))
         }
     }
@@ -696,9 +821,10 @@ private class TerritoryPainter(
         order: List<Ent>,
         levels: IntArray,
         jobs: Array<TimerJob?>,
-        types: Array<BuildingType?>,
         levelLabels: HashMap<Int, String>,
-        lvFormat: String,
+        locks: Array<String?>,
+        emptyMark: String,
+        levelText: (Int) -> String,
     ) {
         for (ent in order) {
             val px = sx(ent.gx, ent.gy)
@@ -706,14 +832,30 @@ private class TerritoryPainter(
             if (isOffScreen(px, py)) continue
             val level = levels[ent.slotId]
             val job = jobs[ent.slotId]
+            val lock = locks[ent.slotId]
             val label =
                 when {
-                    job != null -> DurationFormat.clock((job.endEpochSec - nowSec).coerceAtLeast(0))
-                    level <= 0 -> "＋"
-                    else -> levelLabels.getOrPut(level) { lvFormat.replace("0", level.toString()) }
+                    lock != null -> lock
+                    job != null -> timerLabel((job.endEpochSec - nowSec).coerceAtLeast(0))
+                    level <= 0 -> emptyMark
+                    else -> levelLabels.getOrPut(level) { levelText(level) }
                 }
             drawPill(label, px, py, active = job != null, empty = level <= 0 && job == null)
         }
+    }
+
+    /** 残り時間の文字列。同じ秒の間は作り直さない。 */
+    private fun timerLabel(remainSec: Long): String {
+        if (labelCache.size > MAX_LABELS) labelCache.clear()
+        return labelCache.getOrPut(remainSec) { DurationFormat.clock(remainSec) }
+    }
+
+    private fun pillStrokeFor(density: Float): Stroke {
+        if (density != pillDensity) {
+            pillDensity = density
+            pillStroke = Stroke(width = 1.2f * density)
+        }
+        return pillStroke
     }
 
     private fun drawPill(
@@ -748,7 +890,7 @@ private class TerritoryPainter(
                 Offset(left, top),
                 Size(w, h),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(h / 2f),
-                style = Stroke(width = 1.2f * density),
+                style = pillStrokeFor(density),
             )
             drawText(
                 layout,
@@ -758,40 +900,19 @@ private class TerritoryPainter(
         }
     }
 
-    // ---- 霧 -------------------------------------------------------------------
-
-    fun drawFog() {
-        val fog = PlotLayout.FOG
-        val from = fog[fromBand - 1]
-        val to = fog[toBand - 1]
-        val radiusUnits = if (settled) to else from + (to - from) * ease
-        val rx = radiusUnits * PlotLayout.U * 1.414f * sc
-        val cx = sx(PlotLayout.CENTER, PlotLayout.CENTER)
-        val cy = sy(PlotLayout.CENTER, PlotLayout.CENTER)
-        with(scope) {
-            withTransform({
-                translate(cx, cy)
-                scale(1f, 0.5f, Offset.Zero)
-            }) {
-                drawCircle(
-                    brush =
-                        Brush.radialGradient(
-                            0f to Color.Transparent,
-                            0.6f to Color.Transparent,
-                            0.82f to FOG.copy(alpha = 0.7f),
-                            1f to FOG,
-                            center = Offset.Zero,
-                            radius = rx,
-                        ),
-                    radius = rx * 4f,
-                    center = Offset.Zero,
-                )
-            }
-        }
-    }
-
     private companion object {
-        const val OFF = 90f
+        const val OFF = 130f
+        const val MS_PER_SEC = 1000f
+        const val MAX_LABELS = 400
+        val CORNERS = floatArrayOf(-2f, -2f, 2f, -2f, -2f, 2f, 2f, 2f)
+        val RAILS = floatArrayOf(18f, 36f)
+        val TOWER_HEIGHTS = floatArrayOf(34f, 44f, 54f, 64f, 76f)
+        val LOCK_TREES = floatArrayOf(-1.2f, -1.2f, 1.2f, -1.2f, -1.2f, 1.2f, 1.2f, 1.2f)
+        val RIVER_BANK_STROKE = Stroke(5.6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val RIVER_STROKE = Stroke(3.6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val RIVER_FOAM = Color.White.copy(alpha = 0.45f)
+        val DASH = PathEffect.dashPathEffect(floatArrayOf(1.6f, 4.4f), 0f)
+        val FOAM_STROKE = Stroke(0.5f, cap = StrokeCap.Round, pathEffect = DASH)
         val GOLD = Color(0xFFC9A227)
         val LAWN = Color(0xFF5C9944)
         val STREET_DIRT = Color(0xFF8E7B57)

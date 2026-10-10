@@ -57,6 +57,12 @@
     <string name="section_resource">資源</string>
     <string name="section_military">軍事</string>
     <string name="section_other">その他</string>
+    <string name="territory_empty_mark">＋</string>
+    <string name="territory_unlock_castle">城 Lv%1$d で開放</string>
+    <string name="territory_unlock_building">%1$s Lv%2$d で開放</string>
+    <string name="territory_slot_built">%1$s Lv%2$d</string>
+    <string name="territory_slot_locked">%1$s（%2$s）</string>
+    <string name="territory_slot_empty">%1$s（未建設）</string>
     <string name="territory_expand_sign">城 Lv%1$d で領地が広がる</string>
     <string name="tile_build">建設</string>
     <string name="tile_level">Lv %1$d</string>
@@ -321,8 +327,9 @@
     <string name="summon_flip_all">すべてめくる</string>
     <string name="summon_new">NEW!</string>
     <string name="summon_dup">欠片 +%1$d</string>
-    <string name="summon_ssr">SSR 確定！！</string>
-    <string name="summon_sr">SR 以上 確定！</string>
+    <string name="summon_result_ssr">SSR を獲得！</string>
+    <string name="summon_result_sr">SR を獲得！</string>
+    <string name="summon_stars">★★★★★</string>
     <string name="summon_ten_deal">10 連（お得）</string>
     <string name="summon_again">もう一度！</string>
     <string name="summon_skip">スキップ</string>
@@ -330,7 +337,9 @@
     <string name="summon_close">閉じる</string>
     <string name="summon_ssr_banner">SSR 降臨！</string>
     <string name="summon_tap_continue">タップで続ける</string>
-    <string name="summon_pity_big">あと %1$d 回で SSR 確定</string>
+    <plurals name="summon_pity_big">
+        <item quantity="other">あと %1$d 回で SSR 確定</item>
+    </plurals>
     <string name="summon_back">❓</string>
     <string name="timers_train_slot">訓練 %1$s</string>
     <string name="timers_heal">治療</string>
@@ -553,6 +562,7 @@
     <string name="chat_world_readonly">ワールドチャットは読み取り専用です</string>
     <string name="settings_sound_title">サウンド</string>
     <string name="settings_sound_effects">効果音（演出・ボタン）</string>
+    <string name="settings_vibration">振動（SSR などの演出）</string>
     <string name="settings_sound_note">端末がマナーモード / サイレントのときは、オンでも鳴りません。</string>
     <string name="settings_loading">読み込み中…</string>
     <string name="settings_ai_title">AI チャット</string>
@@ -628,8 +638,6 @@
     <string name="badge_best_value">最もお得</string>
     <string name="offer_list_value">価値 %1$s 相当</string>
     <string name="offer_off">%1$d%% OFF</string>
-    <string name="offer_remaining">残り %1$s</string>
-    <string name="offer_stock_left">本日残り %1$d 個</string>
     <string name="offer_one_time">1回限り！</string>
     <string name="offer_stock_ribbon">残り %1$d 個</string>
     <string name="offer_remaining_label">残り</string>

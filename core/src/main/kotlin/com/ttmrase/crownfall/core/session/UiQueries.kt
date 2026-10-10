@@ -119,6 +119,27 @@ object UiQueries {
             else -> BuildingSection.OTHER
         }
 
+    /**
+     * いま建設できない（未建設で前提条件を満たしていない）スロットと、その最大の未達の前提条件。
+     * 領地ビューが霧と「Lv n で開放」の札を出す対象。前提を満たしている区画は含まない。
+     */
+    fun lockedSlots(
+        state: GameState,
+        data: GameData,
+    ): Map<Int, Prereq> {
+        val out = HashMap<Int, Prereq>()
+        for (slot in state.slots) {
+            if (slot.level > 0) continue
+            val prereqs = data.building(slot.type).level(1).prereqs
+            val unmet =
+                prereqs.filter { p ->
+                    p.level > 0 && (state.slots.filter { it.type == p.type }.maxOfOrNull { it.level } ?: 0) < p.level
+                }
+            unmet.maxByOrNull { it.level }?.let { out[slot.slotId] = it }
+        }
+        return out
+    }
+
     /** スロット [slotId] のアップグレード表示モデル。スロットが無ければ null。 */
     fun upgradePreview(
         state: GameState,

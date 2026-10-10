@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
@@ -28,13 +29,17 @@ internal class Sprite(
  * VectorDrawable を 1 度だけビットマップにしておく（毎フレーム Path を組み立てないため）。
  * 読み込みはバックグラウンド。[get] は未読み込みなら null を返し、読み込み完了で [version] を進めて再描画させる。
  */
-internal class SpriteCache(
+internal class SpriteCache private constructor(
     context: Context,
     private val scope: CoroutineScope,
-    private val rasterScale: Float = RASTER_SCALE,
+    private val rasterScale: Float,
+    private val maxBytes: Long,
 ) {
     private val app = context.applicationContext
-    private val sprites = ConcurrentHashMap<Int, Sprite>()
+
+    /** アクセス順の LRU。[bytes] が [maxBytes] を超えたら古いものから捨てる（再び描くときに読み直す）。 */
+    private val sprites = LinkedHashMap<Int, Sprite>(64, 0.75f, true)
+    private var bytes = 0L
     private val loading = ConcurrentHashMap.newKeySet<Int>()
 
     /** 読み込みが終わるたびに増える（描画が読んで再描画の目印にする）。 */
@@ -42,16 +47,31 @@ internal class SpriteCache(
         private set
 
     fun get(id: Int): Sprite? {
-        sprites[id]?.let { return it }
+        synchronized(sprites) { sprites[id] }?.let { return it }
         if (loading.add(id)) {
             scope.launch(Dispatchers.Default) {
-                rasterize(id)?.let {
-                    sprites[id] = it
-                    version++
+                val made = rasterize(id)
+                if (made != null) {
+                    synchronized(sprites) {
+                        sprites[id] = made
+                        bytes += made.image.width.toLong() * made.image.height * BYTES_PER_PIXEL
+                        trim()
+                    }
                 }
+                loading.remove(id)
+                if (made != null) version++
             }
         }
         return null
+    }
+
+    private fun trim() {
+        val it = sprites.entries.iterator()
+        while (bytes > maxBytes && it.hasNext()) {
+            val e = it.next()
+            bytes -= e.value.image.width.toLong() * e.value.image.height * BYTES_PER_PIXEL
+            it.remove()
+        }
     }
 
     /** 先に読み込んでおく（画面を開いたとき）。 */
@@ -79,6 +99,22 @@ internal class SpriteCache(
     }
 
     companion object {
+        private const val BYTES_PER_PIXEL = 4L
+        private const val MAX_BYTES = 56L * 1024 * 1024
+
+        @Volatile private var instance: SpriteCache? = null
+
+        /** アプリ全体で 1 つ。城内に戻るたびに作り直さない（ラスタライズ済みを使い回す）。 */
+        fun shared(context: Context): SpriteCache =
+            instance ?: synchronized(this) {
+                instance ?: SpriteCache(
+                    context,
+                    CoroutineScope(SupervisorJob() + Dispatchers.Default),
+                    RASTER_SCALE,
+                    MAX_BYTES,
+                ).also { instance = it }
+            }
+
         /** viewport 1 単位あたりのビットマップ px。最大ズームで画面 px とほぼ等倍になる値。 */
         const val RASTER_SCALE = 2.5f
         private const val WIDE_VIEWPORT = 100f

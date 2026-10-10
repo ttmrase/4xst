@@ -94,6 +94,8 @@ data class ShopState(
     val loginPopupDay: Long = -1,
     val exitOfferDay: Long = -1,
     val vipChestDay: Long = -1,
+    /** 昇格の演出を見せた最大の VIP Lv（-1 は未初期化。最初に UI が開いたとき現在の Lv にそろえる）。 */
+    val vipCelebrated: Int = -1,
     val piggyGems: Long = 0,
     val wheelFreeDay: Long = -1,
     val wheelExtra: Int = 0,

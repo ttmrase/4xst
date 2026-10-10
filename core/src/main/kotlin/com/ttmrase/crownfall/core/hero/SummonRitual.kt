@@ -34,13 +34,17 @@ data class RitualPlan(
 object SummonRitual {
     private const val PERCENT = 100
 
-    /** 結果 [result] の演出台本。同じ結果と同じ比率なら常に同じ台本になる。 */
+    /**
+     * 結果 [result] の演出台本。同じ結果・比率・[salt] なら常に同じ台本になる。
+     * [salt] は召喚ごとに変わる値（召喚後の rngState など）で、英雄ごとに演出が固定されて先読みされるのを防ぐ。
+     */
     fun plan(
         result: SummonResult,
         presentation: SummonPresentation,
+        salt: Long = 0L,
     ): RitualPlan {
         val top = result.results.maxOfOrNull { it.rarity } ?: HeroRarity.N
-        val roll = roll(result)
+        val roll = roll(result, salt)
         return when (top) {
             HeroRarity.SSR ->
                 if (roll < presentation.promotionPct) {
@@ -67,8 +71,11 @@ object SummonRitual {
         }
 
     /** 0..99。英雄 ID の並びと天井カウンタから作る安定ハッシュ（乱数状態は触らない）。 */
-    private fun roll(result: SummonResult): Int {
-        var h = 17
+    private fun roll(
+        result: SummonResult,
+        salt: Long,
+    ): Int {
+        var h = 17 + (salt xor (salt ushr 32)).toInt()
         for (e in result.results) h = h * 31 + e.heroId.hashCode()
         h = h * 31 + result.pityAfter
         return Math.floorMod(h, PERCENT)

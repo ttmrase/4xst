@@ -57,6 +57,12 @@
     <string name="section_resource">Resources</string>
     <string name="section_military">Military</string>
     <string name="section_other">Other</string>
+    <string name="territory_empty_mark">+</string>
+    <string name="territory_unlock_castle">Unlocks at Castle Lv%1$d</string>
+    <string name="territory_unlock_building">Unlocks at %1$s Lv%2$d</string>
+    <string name="territory_slot_built">%1$s Lv%2$d</string>
+    <string name="territory_slot_locked">%1$s (%2$s)</string>
+    <string name="territory_slot_empty">%1$s (not built)</string>
     <string name="territory_expand_sign">Territory grows at Castle Lv%1$d</string>
     <string name="tile_build">Build</string>
     <string name="tile_level">Lv %1$d</string>
@@ -321,8 +327,9 @@
     <string name="summon_flip_all">Flip all</string>
     <string name="summon_new">NEW!</string>
     <string name="summon_dup">Shards +%1$d</string>
-    <string name="summon_ssr">SSR GUARANTEED!!</string>
-    <string name="summon_sr">SR or better!</string>
+    <string name="summon_result_ssr">You got an SSR!</string>
+    <string name="summon_result_sr">You got an SR!</string>
+    <string name="summon_stars">★★★★★</string>
     <string name="summon_ten_deal">10 pulls (best value)</string>
     <string name="summon_again">Again!</string>
     <string name="summon_skip">Skip</string>
@@ -330,7 +337,10 @@
     <string name="summon_close">Close</string>
     <string name="summon_ssr_banner">SSR has arrived!</string>
     <string name="summon_tap_continue">Tap to continue</string>
-    <string name="summon_pity_big">%1$d more pulls to a guaranteed SSR</string>
+    <plurals name="summon_pity_big">
+        <item quantity="one">%1$d more pull to a guaranteed SSR</item>
+        <item quantity="other">%1$d more pulls to a guaranteed SSR</item>
+    </plurals>
     <string name="summon_back">❓</string>
     <string name="timers_train_slot">Train %1$s</string>
     <string name="timers_heal">Heal</string>
@@ -553,6 +563,7 @@
     <string name="chat_world_readonly">World chat is read-only</string>
     <string name="settings_sound_title">Sound</string>
     <string name="settings_sound_effects">Sound effects (rituals, buttons)</string>
+    <string name="settings_vibration">Vibration (SSR and other effects)</string>
     <string name="settings_sound_note">Nothing plays while the device is on vibrate or silent, even when this is on.</string>
     <string name="settings_loading">Loading…</string>
     <string name="settings_ai_title">AI chat</string>
@@ -628,8 +639,6 @@
     <string name="badge_best_value">Best Value</string>
     <string name="offer_list_value">Worth %1$s</string>
     <string name="offer_off">%1$d%% OFF</string>
-    <string name="offer_remaining">%1$s left</string>
-    <string name="offer_stock_left">%1$d left today</string>
     <string name="offer_one_time">One time only!</string>
     <string name="offer_stock_ribbon">%1$d left</string>
     <string name="offer_remaining_label">Ends in</string>

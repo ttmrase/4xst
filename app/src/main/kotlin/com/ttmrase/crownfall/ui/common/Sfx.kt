@@ -34,10 +34,30 @@ enum class SfxId(
 object Sfx {
     private const val PREFS = "crownfall_ui_prefs"
     private const val KEY_ENABLED = "sfx_enabled"
+    private const val KEY_VIBRATION = "vibration_enabled"
     private const val MAX_STREAMS = 6
 
     private var pool: SoundPool? = null
-    private val loaded = mutableMapOf<SfxId, Int>()
+    private val sampleIds = mutableMapOf<SfxId, Int>()
+    private val ready = java.util.concurrent.ConcurrentHashMap.newKeySet<Int>()
+
+    /**
+     * 効果音を全部読み込む（アプリ起動時に 1 回）。SoundPool.load は非同期なので、読み込み完了を待ってから鳴らす
+     * （起動直後の 1 回目が無音にならないよう、画面を開く前に始める）。
+     */
+    @Synchronized
+    fun init(context: Context) {
+        if (pool != null) return
+        val app = context.applicationContext
+        try {
+            val p = createPool()
+            p.setOnLoadCompleteListener { _, sampleId, status -> if (status == 0) ready.add(sampleId) }
+            SfxId.entries.forEach { sampleIds[it] = p.load(app, it.res, 1) }
+            pool = p
+        } catch (e: Exception) {
+            // 音が出せなくてもゲームは続ける
+        }
+    }
 
     /** 効果音が有効か。 */
     fun isEnabled(context: Context): Boolean =
@@ -52,17 +72,30 @@ object Sfx {
             .edit().putBoolean(KEY_ENABLED, enabled).apply()
     }
 
-    /** [id] を鳴らす。ミュート中・マナー中は何もしない。 */
+    /** 振動が有効か（効果音とは別の設定。既定は ON）。 */
+    fun isVibrationEnabled(context: Context): Boolean =
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_VIBRATION, true)
+
+    /** 振動の ON/OFF を保存する。 */
+    fun setVibrationEnabled(
+        context: Context,
+        enabled: Boolean,
+    ) {
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_VIBRATION, enabled).apply()
+    }
+
+    /** [id] を鳴らす。ミュート中・マナー中・まだ読み込み中のときは何もしない。 */
     fun play(
         context: Context,
         id: SfxId,
     ) {
         val app = context.applicationContext
         if (!isEnabled(app) || ringerMode(app) != AudioManager.RINGER_MODE_NORMAL) return
+        init(app)
         try {
-            val p = pool ?: createPool().also { pool = it }
-            val sample = loaded.getOrPut(id) { p.load(app, id.res, 1) }
-            p.play(sample, 1f, 1f, 1, 0, 1f)
+            val sample = sampleIds[id] ?: return
+            if (sample in ready) pool?.play(sample, 1f, 1f, 1, 0, 1f)
         } catch (e: Exception) {
             // 音が出せなくてもゲームは続ける
         }
@@ -74,7 +107,7 @@ object Sfx {
         millis: Long,
     ) {
         val app = context.applicationContext
-        if (ringerMode(app) == AudioManager.RINGER_MODE_SILENT) return
+        if (!isVibrationEnabled(app) || ringerMode(app) == AudioManager.RINGER_MODE_SILENT) return
         try {
             val vibrator =
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

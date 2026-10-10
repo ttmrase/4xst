@@ -48,7 +48,6 @@ import com.ttmrase.crownfall.core.shop.ProductIds
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.data.SessionCoordinator
 import com.ttmrase.crownfall.ui.common.collectCalmState
-import com.ttmrase.crownfall.ui.common.remainingUntil
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -221,7 +220,8 @@ private fun OfferPopup(
                         priceYen = offer.priceYen,
                         listValueYen = offer.listValueYen,
                         badge = offer.badge,
-                        remainingSec = remainingUntil(offer.expiresEpochSec, nowEpochSec),
+                        expiresEpochSec = offer.expiresEpochSec,
+                        nowEpochSec = nowEpochSec,
                         stockLeft = null,
                         oneTime = true,
                         onBuy = onBuy,

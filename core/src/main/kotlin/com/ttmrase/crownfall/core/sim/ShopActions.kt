@@ -87,6 +87,12 @@ internal object ShopActions {
         data: GameData,
     ): ActionResult = FakePurchase.purchase(state, offerId, data)
 
+    /** VIP 昇格の演出を [lv] まで見せたと記録する（戻らない）。再起動しても二重に演出しないため。 */
+    fun markVipCelebrated(
+        state: GameState,
+        lv: Int,
+    ): ActionResult = ok(state.copy(shop = state.shop.copy(vipCelebrated = maxOf(state.shop.vipCelebrated, lv))))
+
     fun claimVipChest(
         state: GameState,
         data: GameData,

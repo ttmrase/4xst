@@ -39,6 +39,7 @@ import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.DailyDeals
 import com.ttmrase.crownfall.core.shop.GrowthFund
+import com.ttmrase.crownfall.core.shop.MonthPass
 import com.ttmrase.crownfall.core.shop.OfferEngine
 import com.ttmrase.crownfall.core.shop.PiggyBank
 import com.ttmrase.crownfall.core.shop.ProductIds
@@ -48,7 +49,6 @@ import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.collectCalmState
-import com.ttmrase.crownfall.ui.common.remainingUntil
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import kotlinx.coroutines.launch
@@ -153,7 +153,7 @@ fun ShopScreen(
                         data,
                         onBuy,
                         onClaimPass = {
-                            val daily = PackContents(gems = data.shopRules.monthPass.dailyGems.toLong())
+                            val daily = MonthPass.daily(data)
                             act(
                                 Triple(R.string.pass_claim_title, daily, false),
                             ) { st -> Actions.claimMonthPass(st, data) }
@@ -190,7 +190,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.recommended(
             priceYen = o.priceYen,
             listValueYen = o.listValueYen,
             badge = o.badge,
-            remainingSec = remainingUntil(o.expiresEpochSec, s.nowEpochSec),
+            expiresEpochSec = o.expiresEpochSec,
+            nowEpochSec = s.nowEpochSec,
             stockLeft = data.offers.pack(o.sku)?.let { stockLeft(s, o.sku, it.dailyStock) },
             onBuy = { onBuy(ProductIds.offer(o.id)) },
         )
@@ -324,7 +325,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.deals(
             priceYen = c.priceYen,
             listValueYen = c.listValueYen,
             badge = c.pack.badge,
-            remainingSec = remainingUntil(midnight, s.nowEpochSec),
+            expiresEpochSec = midnight,
+            nowEpochSec = s.nowEpochSec,
             stockLeft = if (c.soldOut) 0 else 1,
             soldOut = c.soldOut,
             offOverride = c.offPct,

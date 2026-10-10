@@ -19,7 +19,7 @@ def load(path):
 
 
 def placeholders(s):
-    return sorted(re.findall(r"%\d+\$[sd]|%[sd]", s))
+    return sorted(set(re.findall(r"%\d+\$[sd]|%[sd]", s)))
 
 
 def main():

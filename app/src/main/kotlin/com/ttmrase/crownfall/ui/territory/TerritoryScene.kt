@@ -19,11 +19,20 @@ internal object PlotLayout {
     const val CENTER = 2f
     const val BANDS = 5
 
-    /** 城 Lv の帯ごとの城壁の半幅（グリッド単位。中心は [CENTER]）。 */
-    val WALL_HALF = floatArrayOf(8.5f, 13f, 18f, 21.5f, 25f)
+    /**
+     * 領地の中心（全区画の外接矩形の中心。グリッド単位）。区画は i, j = -2..3 のセルにあり、足元は 5i..5i+4 なので
+     * 外接は -10..19、中心は 4.5。
+     */
+    const val MID = 4.5f
 
-    /** 霧の半径（グリッド単位）。 */
-    val FOG = floatArrayOf(22f, 27f, 32f, 37f, 42f)
+    /**
+     * 城 Lv の帯ごとの城壁の半幅（グリッド単位。中心は [MID]）。最初の帯の壁の内側に全 27 区画のフットプリントが
+     * 余裕を持って収まる（壁は区画を横切らない）。広がるのは壁の外側の見た目だけ。
+     */
+    val WALL_HALF = floatArrayOf(16f, 20f, 24f, 28f, 32f)
+
+    /** 区画の足元の外接矩形の半幅（[MID] から）。 */
+    const val PLOTS_HALF = 14.5f
 
     /** 森を開く余白（城壁の外側）。 */
     const val CLEAR_MARGIN = 1.2f
@@ -49,6 +58,21 @@ internal object PlotLayout {
             BuildingType.STABLE to listOf(-2 to 2),
             BuildingType.BUILDERS_HUT to listOf(-2 to 1),
         )
+
+    /** スロット列から (slotId, セル, 種類) を作る。同じ種類は並び順にセルを割り当てる。 */
+    fun cellsFor(
+        slots: List<com.ttmrase.crownfall.core.model.BuildingSlot>,
+    ): List<Triple<Int, Pair<Int, Int>, BuildingType>> {
+        val perType = HashMap<BuildingType, Int>()
+        return slots.map { slot ->
+            val idx = perType.getOrDefault(slot.type, 0)
+            perType[slot.type] = idx + 1
+            Triple(slot.slotId, cellOf(slot.type, idx), slot.type)
+        }
+    }
+
+    /** セル (i, j) の足元の矩形 [x0, x0 + 4] x [y0, y0 + 4]（グリッド単位）の左上。 */
+    fun footprintOrigin(cell: Pair<Int, Int>): Pair<Float, Float> = (cell.first * CELL) to (cell.second * CELL)
 
     /** 種類 [type] の [index] 番目のスロットが置かれるセル (i, j)。 */
     fun cellOf(
@@ -96,6 +120,8 @@ internal class Ent(
     val goneBand: Int = 99,
     val slotId: Int = -1,
     val seed: Float = 0f,
+    /** 立て札などが属する帯（この札の「Lv n」は帯から決まる）。 */
+    val band: Int = 0,
 ) {
     val depth: Float = gx + gy
 }
@@ -123,12 +149,13 @@ internal class TerritoryScene(
 ) {
     companion object {
         private const val TREE_STEP = 2.4f
-        private const val TREE_RANGE = 18
+        private const val TREE_RANGE = 22
+        private const val RIVER_X = 45f
 
         fun build(slotCells: List<Triple<Int, Pair<Int, Int>, BuildingType>>): TerritoryScene {
             val rng = Lcg(20_261_010L)
             val ents = ArrayList<Ent>(1600)
-            val c = PlotLayout.CENTER
+            val c = PlotLayout.MID
             val half = PlotLayout.WALL_HALF
 
             fun bandInside(
@@ -194,8 +221,8 @@ internal class TerritoryScene(
             }
 
             // 草地の小物（茂み・岩）。芝の見た目を単調にしない
-            for (a in -10..10) {
-                for (b in -10..10) {
+            for (a in -12..12) {
+                for (b in -12..12) {
                     val x = c + a * 4.1f + (rng.next() - 0.5f) * 2.5f
                     val y = c + b * 4.1f + (rng.next() - 0.5f) * 2.5f
                     val intro = bandInside(x, y, -1.5f)
@@ -219,8 +246,8 @@ internal class TerritoryScene(
 
             // 小さな家（外側の帯ほど増える。区画の外・通りの外）
             val houseSprites = intArrayOf(SpriteIds.HOUSE_A, SpriteIds.HOUSE_B, SpriteIds.HOUSE_C)
-            for (a in -9..9) {
-                for (b in -9..9) {
+            for (a in -11..11) {
+                for (b in -11..11) {
                     val x = c + a * 3.3f
                     val y = c + b * 3.3f
                     val intro = bandInside(x, y, -2.2f)
@@ -235,8 +262,8 @@ internal class TerritoryScene(
             }
 
             // 街灯（交差点の一部）
-            for (i in -3..4) {
-                for (j in -3..4) {
+            for (i in -7..8) {
+                for (j in -7..8) {
                     if ((i + j) % 2 != 0) continue
                     val x = i * PlotLayout.CELL - 0.5f
                     val y = j * PlotLayout.CELL - 0.5f
@@ -270,7 +297,7 @@ internal class TerritoryScene(
                 ents.add(Ent(EntKind.GATE, hi, hi, SpriteIds.gate(band), band, band + 1))
                 // 「Lv n で拡張」の立て札（次の帯がある間、前の角の外側）
                 if (band < PlotLayout.BANDS) {
-                    ents.add(Ent(EntKind.SIGN, hi + 3.2f, hi - 0.5f, SpriteIds.SIGNPOST, band, band + 1))
+                    ents.add(Ent(EntKind.SIGN, hi + 3.2f, hi - 0.5f, SpriteIds.SIGNPOST, band, band + 1, band = band))
                 }
             }
 
@@ -309,7 +336,7 @@ internal class TerritoryScene(
 
         private fun lawnPath(h: Float): Path =
             Path().apply {
-                val c = PlotLayout.CENTER
+                val c = PlotLayout.MID
                 moveTo(c - h, c - h)
                 lineTo(c + h, c - h)
                 lineTo(c + h, c + h)
@@ -320,11 +347,11 @@ internal class TerritoryScene(
         /** 通り（隙間の幅 1）。区画の外へも、帯の範囲まで延ばす。 */
         private fun streetsPath(h: Float): Path =
             Path().apply {
-                val c = PlotLayout.CENTER
+                val c = PlotLayout.MID
                 val lo = c - h
                 val hi = c + h
-                var k = -6
-                while (k <= 7) {
+                var k = -8
+                while (k <= 9) {
                     val v = k * PlotLayout.CELL - 0.5f
                     if (v - 0.5f > lo && v + 0.5f < hi) {
                         addRectPoly(v - 0.5f, lo, v + 0.5f, hi)
@@ -350,11 +377,11 @@ internal class TerritoryScene(
         /** 川の中心線（最大の城壁の外側をゆるく蛇行する）。 */
         private fun riverPath(): Path =
             Path().apply {
-                var gy = -46f
-                moveTo(31f + 1.6f * kotlin.math.sin(gy * 0.11f), gy)
-                while (gy < 52f) {
+                var gy = -64f
+                moveTo(RIVER_X + 1.6f * kotlin.math.sin(gy * 0.11f), gy)
+                while (gy < 74f) {
                     gy += 2f
-                    lineTo(31f + 1.6f * kotlin.math.sin(gy * 0.11f), gy)
+                    lineTo(RIVER_X + 1.6f * kotlin.math.sin(gy * 0.11f), gy)
                 }
             }
     }

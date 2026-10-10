@@ -11,6 +11,7 @@ import com.ttmrase.crownfall.notify.NoticeScheduler
 import com.ttmrase.crownfall.notify.NotificationPrefs
 import com.ttmrase.crownfall.offers.NoOpOfferHooks
 import com.ttmrase.crownfall.offers.OfferHooks
+import com.ttmrase.crownfall.ui.common.Sfx
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,5 +58,6 @@ class CrownfallApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         NoticeScheduler.ensureChannels(this)
+        Sfx.init(this)
     }
 }

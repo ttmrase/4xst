@@ -24,8 +24,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -46,13 +48,16 @@ import androidx.compose.ui.window.DialogProperties
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.VipLevelDef
-import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.session.GameSession
+import com.ttmrase.crownfall.core.shop.VipCalculator
+import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
+import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.shop.CoinShower
 import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.min
@@ -78,9 +83,9 @@ internal fun vipColors(lv: Int): List<Color> =
                 Color(0xFF6BC8FF),
                 Color(0xFFB57BE0),
             )
-        lv >= TIER_GOLD -> listOf(Color(0xFFFFE9A0), Color(0xFFFFC107), Color(0xFFB8860B))
-        lv >= TIER_SILVER -> listOf(Color(0xFFF4F7FB), Color(0xFFB8C2D0), Color(0xFF7D8896))
-        else -> listOf(Color(0xFFE8B07A), Color(0xFFCD7F32), Color(0xFF7A4A1E))
+        lv >= TIER_GOLD -> listOf(Color(0xFFFFE9A0), Color(0xFFFFC107), Color(0xFFD4A017))
+        lv >= TIER_SILVER -> listOf(Color(0xFFF4F7FB), Color(0xFFC6CFDB), Color(0xFFA5B0BF))
+        else -> listOf(Color(0xFFF3D2AE), Color(0xFFE0A56B), Color(0xFFCF8A4A))
     }
 
 /** チャットなどに付ける VIP バッジ（金属質の小さな札）。VIP でなければ何も出さない。 */
@@ -138,22 +143,39 @@ fun VipAvatar(
 
 /**
  * VIP 昇格の演出を出す（全画面。金貨の雨と後光、巨大な「VIP n」、解放された特典が順に現れる）。
- * [hold] の間（決済シートが開いている間など）は出さずに溜めておく。タップ・OK・戻るで閉じ、次の昇格があれば続けて出す。
+ * 「最後に演出した Lv」は状態（ShopState）に保存するので、ログインボーナスでの昇格も、城内に入ったときに演出され、
+ * 再起動しても二重には出ない。[hold] の間（決済シートが開いている間など）は出さずに待つ。
+ * 表示中は [onActive] で知らせる（オファーを上に重ねないため）。戻る・OK・タップで閉じる。
  */
 @Composable
 fun VipCinematicHost(
     session: GameSession,
     data: GameData,
     hold: Boolean,
+    onActive: (Boolean) -> Unit,
 ) {
-    val pending = remember { mutableStateListOf<Int>() }
-    LaunchedEffect(session) {
-        session.events.collect { e -> if (e is GameEvent.VipLevelUp) pending.add(e.lv) }
+    val state by session.collectCalmState()
+    val scope = rememberCoroutineScope()
+    val s = state
+    val level = if (s == null) 0 else VipCalculator.level(s, data)
+    val celebrated = s?.shop?.vipCelebrated ?: 0
+    // 初回は現在の Lv にそろえるだけ（過去の昇格を遡って祝わない）
+    LaunchedEffect(s != null, celebrated) {
+        if (s != null && celebrated < 0) session.dispatch { Actions.markVipCelebrated(it, level) }
     }
-    val lv = pending.firstOrNull() ?: return
-    if (hold) return
-    val def = data.vip.levels.getOrNull(lv - 1)
-    VipCinematic(lv = lv, def = def, onDismiss = { if (pending.isNotEmpty()) pending.removeAt(0) })
+    // 保存の反映は 5 秒サンプリングの state より早いので、閉じた Lv はここでも覚えておく
+    var dismissedLv by rememberSaveable { mutableIntStateOf(-1) }
+    val show = s != null && celebrated >= 0 && level > maxOf(celebrated, dismissedLv) && !hold
+    LaunchedEffect(show) { onActive(show) }
+    if (!show) return
+    VipCinematic(
+        lv = level,
+        def = data.vip.levels.getOrNull(level - 1),
+        onDismiss = {
+            dismissedLv = level
+            scope.launch { session.dispatch { Actions.markVipCelebrated(it, level) } }
+        },
+    )
 }
 
 @Composable

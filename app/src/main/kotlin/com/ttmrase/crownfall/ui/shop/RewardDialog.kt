@@ -26,7 +26,7 @@ import com.ttmrase.crownfall.ui.theme.CrownFonts
 
 /**
  * 報酬の受け取り演出（宝箱が開き、金貨が降り、アイコンが所持品へ飛ぶ）。VIP デイリーチェスト・月パス・成長ファンドで使う。
- * [paidBack] が true のときは「元が取れた！」を大きく出す。戻る・OK・外側のタップで閉じられる。
+ * [paidBack] が true のときは「元が取れた！」を大きく出す。戻る・OK で閉じられる（全画面なので外側のタップは無い）。
  */
 @Composable
 fun RewardDialog(
@@ -41,7 +41,7 @@ fun RewardDialog(
         properties =
             DialogProperties(
                 dismissOnBackPress = true,
-                dismissOnClickOutside = true,
+                dismissOnClickOutside = false,
                 usePlatformDefaultWidth = false,
             ),
     ) {
