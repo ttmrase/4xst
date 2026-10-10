@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <!-- 襲撃の各段階・オファーの終了を正確な時刻で通知する。サイドロード専用（Google Play では配布しない）ので USE_EXACT_ALARM を宣言する -->
+    <!-- 襲撃の各段階・オファーの終了を正確な時刻で通知する。サイドロード専用（ストアでは配布しない）ので USE_EXACT_ALARM を宣言する -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
