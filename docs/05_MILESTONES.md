@@ -76,7 +76,7 @@ DoD: CI の APK で Castle Lv1→5 が遊べる。Debugger がエミュレータ
 テスト: Scripted のみで全イベントに応答がある、MockWebServer で 200/429/timeout/壊れ JSON、予算超過でフォールバック。
 DoD: キー無しで完全動作。キー有りは Debugger が設定画面経路をコードレビュー（実キーは使わない）。
 
-## M6 ショップ・擬似課金 — 実装済み・Director Approve 2026-10-10（HEAD 13a1b86、CI run 38043634212。QA と要修正 2 件の待ち。設計は 02 §12）
+## M6 ショップ・擬似課金 — ✅ 完了 2026-10-10（HEAD 13a1b86 と修正 60f5b54、QA 2aa10b1。CI run 38043634212。設計は 02 §12）
 | ID | 内容 |
 | --- | --- |
 | T6.1 | `offers.json`（全 SKU・パック・トリガー DSL）、`OfferEngine`（トリガー評価・クールダウン・キュー・頻度設定・復活）、`FakeLedger`、`VipCalculator` + `vip.json` |

@@ -1,6 +1,6 @@
 # STATUS（Director が更新）
 
-- 現在のマイルストーン: **M7 クエスト・イベント・通知・仕上げ**（発行済み）。M6 は実装済み・Director Approve（QA と要修正の待ち）。M0〜M5 は ✅ 完了
+- 現在のマイルストーン: **M7 クエスト・イベント・通知・仕上げ**（発行済み・実装中）。M0〜M6 は ✅ 完了
 - 統合ブランチ: `claude/4x-strategy-game-planning-oxo80w`
 - 最終更新: 2026-10-10 Director
 
@@ -8,6 +8,7 @@
 | マイルストーン | 完了 | 根拠 |
 | --- | --- | --- |
 | M0 基盤 | 2026-10-10 | HEAD 00f5f9b、CI run 38028345848（jvm と apk が緑、crownfall-debug-apk あり）、Debugger QA-OK、Director Approve |
+| M6 ショップ・擬似課金 | 2026-10-10 | 13a1b86 + 修正 60f5b54、CI run 38043634212 が緑（billing の検査を含む）、Debugger QA-OK（購入の原子性、頻度の性質テスト、ブランド名の検査 check-no-payment-brands.sh を CI に追加、2aa10b1）、Director Approve |
 | M5 同盟・AI チャット | 2026-10-10 | 9a427d9 + 修正 71c9f8f（Gemini の既定を GA の gemini-3.1-flash-lite に変更、例外安全性など）、Debugger QA-OK（分のグリッドの R3、24h 分 11〜13ms、リダイレクトと UrlPolicy の修正 2dc11e1）、Director Approve |
 | M4 ワールドマップ・戦闘 | 2026-10-10 | 59f6176 + 修正 d5bfb9c / e316217、CI run 38036914082 が緑、Debugger QA-OK（QaWorldTest 10 本。兵の保存則、略奪、R3 を 6 シナリオ × 40 分割、b09c35e）、Director Approve |
 | M3 軍事・研究・英雄 | 2026-10-10 | d74a23d + 修正 d939afc、CI run 38033161525 が緑、kover の対象 7 パッケージが 98〜100%、Debugger QA-OK（QaMilitaryTest、OfflineSummary の負数を 81afd4f で修正）、Director Approve |
@@ -23,8 +24,7 @@
 | T3.1〜T3.5 + 修正 | Implementer | ✅ 完了 | 973f65e〜d74a23d, d939afc |
 | T4.1〜T4.4 + 修正 | Implementer | ✅ 完了 | 6f3616f〜59f6176, d5bfb9c, e316217 |
 | T5.1〜T5.6 + 修正 | Implementer | ✅ 完了 | 12f38e7〜9a427d9, 71c9f8f |
-| T6.1〜T6.5 | Implementer | Director Approve・QA 待ち | 10ed532, d966afb, 13a1b86 |
-| M6 要修正 2 件（OfferPresenter が背景でも dispatch する件、決済シートが snackbar を待って閉じる件） | Implementer | 依頼済み | - |
+| T6.1〜T6.5 + 修正 | Implementer | ✅ 完了 | 10ed532, d966afb, 13a1b86, 60f5b54 |
 | T7.1〜T7.4 | Implementer | 発行済み | - |
 | CI に koverVerify を追加・M1 の境界テスト | Debugger | ✅ 完了 | 795d5fe |
 | M2 の QA・GameSession の境界テスト | Debugger | ✅ 完了 | 46cdc42 |
@@ -33,7 +33,8 @@
 | M4 の R3 拡張テストの準備 | Debugger | ✅ 完了 | 3c8942f |
 | M4 の QA | Debugger | ✅ 完了 | b09c35e |
 | CI に :ai の koverVerify と billing 依存の検査を追加・M5 の QA | Debugger | ✅ 完了 | 2dc11e1, 13c046b, 0665c70 |
-| M6 の QA・CI の grep ステップの終了コード修正 | Debugger | 依頼済み | - |
+| M6 の QA・ブランド名の検査 | Debugger | ✅ 完了 | 2aa10b1 |
+| CI の grep ステップの終了コード修正・M7 の QA | Debugger | 依頼済み | - |
 
 ## 直近の決定事項
 - 技術構成: Kotlin / Compose。`:core` `:ai` は JVM、`:app` は CI でのみビルド（02 §0）
