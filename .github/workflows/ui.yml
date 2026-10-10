@@ -39,6 +39,21 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      # システムイメージのダウンロードが一時的に壊れる（"Error on ZipFile unknown archive"）ことがあるので、先に再試行つきで入れる
+      - name: Install the emulator system image (with retries)
+        run: |
+          sdk="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          for i in 1 2 3 4; do
+            if "$sdk" --install 'platform-tools' 'emulator' 'platforms;android-34' 'system-images;android-34;google_apis;x86_64' > sdk-install.log 2>&1 \
+              && ! grep -qi "error" sdk-install.log; then
+              echo "installed on attempt $i"
+              exit 0
+            fi
+            echo "attempt $i failed:"; tail -5 sdk-install.log
+            rm -rf "$ANDROID_HOME/system-images/android-34" || true
+            sleep $((i * 10))
+          done
+          echo "::warning::could not pre-install the system image; the emulator action will try again"
       - name: AVD cache
         uses: actions/cache@v4
         id: avd-cache

@@ -55,8 +55,8 @@ push_once() {
     echo "run: ${run}"
     echo "commit: ${sha}"
     echo "job status: ${status}"
-    echo "images: $(ls "$dest"/*.jpg 2>/dev/null | wc -l)"
-    echo "bytes: $(cat "$dest"/*.jpg 2>/dev/null | wc -c)"
+    echo "images: $(find "$dest" -name "*.jpg" | wc -l)"
+    echo "bytes: $(find "$dest" -name "*.jpg" -exec cat {} + | wc -c)"
     echo "actions: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-}"
   } > "$dest/summary.txt"
   # 古い run を畳む（直近 keep_runs 件だけ残す）
@@ -64,7 +64,7 @@ push_once() {
     ls -1 runs | sort -t- -k1,1n | head -n -"$keep_runs" 2>/dev/null | while read -r old; do git rm -rq "runs/$old"; done
   fi
   git add -A
-  git commit -q -m "ui run ${run} (${short}): ${status}, $(ls "$dest"/*.jpg 2>/dev/null | wc -l) image(s)" || return 0
+  git commit -q -m "ui run ${run} (${short}): ${status}, $(find "$dest" -name "*.jpg" | wc -l) image(s)" || return 0
   git push -q origin qa-screenshots
 }
 
