@@ -22,7 +22,7 @@ Director はここを唯一のバックログとして更新してよい（分�
 | T0.5 | README にビルド手順・APK 入手手順（Actions → Artifacts）を追記 |
 DoD: コンテナでテスト緑、CI で APK 生成確認（Debugger が `actions_list` で確認して報告）。
 
-## M1 コアシミュレーション — 発行済み 2026-10-10（設計規則は 02 §7）
+## M1 コアシミュレーション — 実装済み・Director Approve 2026-10-10（HEAD d100d48、CI run 38029693916。Debugger の QA-OK 待ち。設計規則は 02 §7）
 | ID | 内容 |
 | --- | --- |
 | T1.1 | `model`: `Resources`, `Building`/`BuildingSlot`, `TimerJob`, `GameState`（最小構成）、`Clock`, `SeededRandom` |
@@ -35,7 +35,7 @@ DoD: コンテナでテスト緑、CI で APK 生成確認（Debugger が `actio
 テスト: 決定論（同 seed 同結果）、オーバーフロー（Long 範囲）、24h catch-up、タイマー境界、migration no-op。
 DoD: `sim` `economy` の kover 行カバレッジ 80% 以上。
 
-## M2 城内 UI
+## M2 城内 UI — 発行済み 2026-10-10（設計は 02 §8）
 | ID | 内容 |
 | --- | --- |
 | T2.1 | `GameRepository`（StateFlow、1 秒 tick、reduce）、`SaveStore`（アトミック保存・bak・debounce・onStop） |

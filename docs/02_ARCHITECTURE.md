@@ -149,5 +149,18 @@ jobs:
 - **R9**: `:core` は ID と数値だけを返す（表示用の文字列は `:app`）。
 - 資源の上限（cap）= Castle の `storage_cap_base` + Warehouse の `storage_cap`。cap で止まるのは生産だけで、報酬や購入は cap を超えてよい。アップグレード中の建物も旧レベルで生産を続ける。
 - 2 本目ビルダーの期限が切れても、進行中のジョブは最後まで進む（新規の開始だけができなくなる）。
-- オフライン上限を超えた時間は、生産もタイマーも進めない。`nowEpochSec` だけを現在時刻にそろえる。
+- オフライン上限を超えた時間は、生産もタイマーも進めない。`nowEpochSec` を現在時刻にそろえ、タイマー・Boost・2 本目ビルダーの期限は超過した分だけ後ろへずらす（残り時間を保つ。M1 で確定）。
+- GemSkip は `speedup.json` の区分テーブル（`gemsPerHour`、区分ごとに切り上げ）で計算する。性質として保証するのは、単調非減少・区分単価の非増加・劣加法性（区分ごとの切り上げがあるため、秒あたりの単価は厳密には単調にならない）。
+- StorageFull イベントは、cap に達した正確な時刻の順（同時刻は ResourceType の順）に出す（R3 を events まで成り立たせるため）。
+- kover: `:core:koverVerify` は、対象パッケージ（M1 時点では sim と economy）ごとに行カバレッジ 80% を要求する。M3 で combat、M6 で shop を対象に加える。
 - データ生成: 大きなテーブル（`buildings.json` など）は `tools/datagen/*.py`（標準ライブラリのみ）で生成し、JSON をコミットする。ゲームが読むのは JSON だけ。`tools/**` は Implementer の書き込み領域。
+
+## 8. セッションと UI の設計（M2 で Director が決定）
+- 状態ホルダ `core.session.GameSession` は `:core` に置く（coroutines だけを使う。コンテナでテストできるようにするため）。`:app` の `GameRepository` は、ライフサイクルとファイル I/O をつなぐ薄い層にとどめる。
+- 保存は `SaveStorage` インターフェース経由で行う（`:app` の実装は `FileSaveStorage`: tmp に書いて fsync → 既存を bak へ rename → tmp を本体へ rename。壊れたファイルは `slot0.corrupt-<epoch>.json` へ退避）。TooNew のセーブは決して上書きしない。
+- 保存のタイミング: dirty かつ前回の保存から 5 秒以上たったら保存する（スロットリング）＋ onStop で flush。
+- 現在時刻への追従（`advanceToNow`）は、常に `OfflineCatchUp.run` を使う。時計が巻き戻ったときは何もしない。アクションの適用前には必ず現在時刻まで進める。
+- DI は手動（`CrownfallApp` / AppContainer）。
+- GameState への追加フィールド（デフォルト値付きなので版は上げない）: `playerName`、`starterHeroId`、`tutorialStep`。
+- オファー誘導のフックは `OfferHooks`（M2 では何もしない実装。中身は M6）。
+- 城内のレイアウトは、セクション見出しで区切った 3 列の固定グリッド。数値の短縮表示は `core.util.ShortNumber`（K/M/B/T、小数 1 桁、切り捨て）。
