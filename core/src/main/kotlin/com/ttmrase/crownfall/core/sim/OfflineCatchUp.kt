@@ -6,7 +6,7 @@ import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.model.TimerJob
 
-/** 不在サマリー（表示は M2）。 */
+/** 不在サマリー（表示は M2）。[produced] は資源ごとの増加分で、減少した資源は 0。 */
 data class OfflineSummary(
     val elapsedSec: Long,
     val appliedSec: Long,
@@ -47,12 +47,13 @@ object OfflineCatchUp {
         }
         val skipped = elapsed - applied
         if (skipped > 0) s = shift(s, skipped)
+        // 維持費で Food が減った場合などは増加分 0 とする（UI は "+" 付きで表示するため負数にしない。R5）
         val produced =
             Resources(
-                s.resources.food - state.resources.food,
-                s.resources.wood - state.resources.wood,
-                s.resources.stone - state.resources.stone,
-                s.resources.gold - state.resources.gold,
+                maxOf(0L, s.resources.food - state.resources.food),
+                maxOf(0L, s.resources.wood - state.resources.wood),
+                maxOf(0L, s.resources.stone - state.resources.stone),
+                maxOf(0L, s.resources.gold - state.resources.gold),
             )
         val summary =
             OfflineSummary(
