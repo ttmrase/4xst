@@ -5,7 +5,9 @@ import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.event.WeeklyEvents
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
+import com.ttmrase.crownfall.core.model.OfferFrequency
 import com.ttmrase.crownfall.core.model.RaidStage
+import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.quest.QuestLogic
 import com.ttmrase.crownfall.core.shop.OfferEngine
 import com.ttmrase.crownfall.core.shop.ShopLogic
@@ -22,6 +24,9 @@ internal object Lookahead {
     private const val DAY_SEC = 86_400L
     private const val MINUTE = 60L
     private const val EVENT_CHECK_SEC = 1_800L
+
+    /** 訓練キューが空いてから「兵が待機中」を出すまで（暫定）。 */
+    private const val TROOPS_IDLE_DELAY_SEC = 1_800L
 
     fun run(
         state: GameState,
@@ -41,6 +46,8 @@ internal object Lookahead {
             .filter { it.type.category != NoticeCategory.RAID && it.epochSec <= limit }
             .forEach { out.add(it) }
         offerLastCall(state, data, out, limit)
+        offerRevived(state, out, limit)
+        troopsIdle(state, out, limit)
         simulate(state, data, now, limit, out)
         eventNotices(state, data, limit, out)
         engagement(state, data, limit, out)
@@ -110,6 +117,30 @@ internal object Lookahead {
                 )
             }
         }
+    }
+
+    /** 量産型の頻度なら、期限切れのオファーは一度だけ「復活！」として出し直される（OfferEngine.refresh）。 */
+    private fun offerRevived(
+        state: GameState,
+        out: MutableList<PlannedNotice>,
+        limit: Long,
+    ) {
+        if (state.shop.settings.frequency != OfferFrequency.MASS) return
+        for (o in OfferEngine.active(state)) {
+            if (o.revived || o.expiresEpochSec > limit) continue
+            out.add(PlannedNotice(o.expiresEpochSec, NoticeType.OFFER_REVIVED, NoticeChannel.OFFER))
+        }
+    }
+
+    /** 訓練が全部終わって、キューが空いたまま放置されている（新しい訓練は入れないものとして予測する）。 */
+    private fun troopsIdle(
+        state: GameState,
+        out: MutableList<PlannedNotice>,
+        limit: Long,
+    ) {
+        val lastEnd = state.timers.filter { it.kind == TimerKind.TRAIN }.maxOfOrNull { it.endEpochSec } ?: return
+        val at = lastEnd + TROOPS_IDLE_DELAY_SEC
+        if (at > state.nowEpochSec && at <= limit) out.add(note(at, NoticeType.TROOPS_IDLE))
     }
 
     private fun eventNotices(

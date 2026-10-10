@@ -10,6 +10,7 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.Worker
@@ -121,7 +122,12 @@ class NoticeScheduler(context: Context, private val prefs: NotificationPrefs) {
                             )
                             .addTag(TAG)
                             .build()
-                    wm.enqueue(request)
+                    // 種類・時刻・パラメータで一意にする。再起動後に BOOT から積み直しても二重にならない
+                    wm.enqueueUniqueWork(
+                        "$TAG.${n.epochSec}.${n.type.name}.${n.param}",
+                        ExistingWorkPolicy.REPLACE,
+                        request,
+                    )
                 }
             }
         }

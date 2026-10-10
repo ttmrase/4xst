@@ -1,5 +1,6 @@
 {
  "raid": {
+  "reactors": ["kaede", "gen"],
   "stages": [
    {"stage": "SCOUTED", "offsetSec": 43200, "minWatchtowerLv": 6},
    {"stage": "MARCHING", "offsetSec": 14400, "minWatchtowerLv": 4},

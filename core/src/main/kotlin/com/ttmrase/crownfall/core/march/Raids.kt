@@ -94,7 +94,7 @@ object Raids {
         if (last != null && Marching.levelOf(state, BuildingType.WATCHTOWER) >= last.minWatchtowerLv) {
             val stage = RaidStage.valueOf(last.stage)
             events.add(GameEvent.RaidStageReached(stage, raid))
-            s = AllianceLogic.enqueueReactive(s, ChatEvent.RaidStage(stage), listOf("kaede", "gen"), data)
+            s = AllianceLogic.enqueueReactive(s, ChatEvent.RaidStage(stage), data.notifyRules.raid.reactors, data)
         }
         return s
     }

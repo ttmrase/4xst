@@ -871,6 +871,7 @@
     <string name="on_device_url_hint">ライセンスの同意が必要な配布元は、ブラウザで入手してから「読み込む」を使ってください</string>
     <string name="on_device_sha">SHA-256（任意）</string>
     <string name="on_device_download">ダウンロード</string>
+    <string name="on_device_size_unknown">不明</string>
     <string name="on_device_progress">%1$s / %2$s</string>
     <string name="on_device_done">モデルを設定しました: %1$s</string>
     <string name="on_device_charging_only">充電中だけ使う</string>
@@ -897,6 +898,8 @@
     <string name="notify_raid_defended">襲撃を撃退しました！ 結果をご確認ください</string>
     <string name="notify_raid_defeated">襲撃されました！ 資源が奪われました。結果をご確認ください！</string>
     <string name="notify_offer_last_call">【最終告知】限定オファー終了まであと 10 分です！ お見逃しなく！</string>
+    <string name="notify_offer_revived">限定オファーが復活しました！ 今度こそお見逃しなく！</string>
+    <string name="notify_troops_idle">訓練が完了し、部隊が待機中です。次の訓練を指示してください！</string>
     <string name="notify_alliance_help">同盟の仲間が助けを求めています！</string>
     <string name="notify_alliance_dm">仲間からメッセージが届いています</string>
     <string name="notify_event_ending">週間イベントがまもなく終了いたします！ 最後のチャンスです！</string>

@@ -188,6 +188,8 @@ object NoticePoster {
             NoticeType.STORAGE_FULL -> R.string.notify_storage_full
             NoticeType.OFFER_EXPIRING -> R.string.notify_offer_expiring
             NoticeType.OFFER_LAST_CALL -> R.string.notify_offer_last_call
+            NoticeType.OFFER_REVIVED -> R.string.notify_offer_revived
+            NoticeType.TROOPS_IDLE -> R.string.notify_troops_idle
             NoticeType.RAID_WARNING -> R.string.notify_raid_warning
             NoticeType.RAID_ARRIVAL -> R.string.notify_raid_arrival
             NoticeType.RAID_SCOUTED -> R.string.notify_raid_scouted

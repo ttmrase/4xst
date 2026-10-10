@@ -27,6 +27,8 @@ enum class NoticeType(val category: NoticeCategory, val channel: NoticeChannel) 
     STORAGE_FULL(NoticeCategory.TIMER, NoticeChannel.TIMER),
     OFFER_EXPIRING(NoticeCategory.OFFER, NoticeChannel.OFFER),
     OFFER_LAST_CALL(NoticeCategory.OFFER, NoticeChannel.OFFER),
+    OFFER_REVIVED(NoticeCategory.OFFER, NoticeChannel.OFFER),
+    TROOPS_IDLE(NoticeCategory.TIMER, NoticeChannel.TIMER),
     RAID_WARNING(NoticeCategory.RAID, NoticeChannel.RAID),
     RAID_ARRIVAL(NoticeCategory.RAID, NoticeChannel.RAID),
     RAID_SCOUTED(NoticeCategory.RAID, NoticeChannel.RAID),

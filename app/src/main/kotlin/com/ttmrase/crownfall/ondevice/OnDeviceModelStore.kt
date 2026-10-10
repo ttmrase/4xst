@@ -59,6 +59,9 @@ class OnDeviceModelStore(
     private val _revision = MutableStateFlow(0)
     private var job: Job? = null
 
+    /** `listFiles` の結果（モデルが入れ替わる [revision] ごとに読み直す）。 */
+    @Volatile private var cached: Pair<Int, File?>? = null
+
     /** 進み具合。 */
     val state: StateFlow<TransferState> = _state.asStateFlow()
 
@@ -66,10 +69,16 @@ class OnDeviceModelStore(
     val revision: StateFlow<Int> = _revision.asStateFlow()
 
     /** いま使うモデル（無ければ null）。 */
-    fun current(): File? =
-        dir.listFiles()
-            ?.filter { it.isFile && ModelTransfer.isSupportedName(it.name) }
-            ?.maxByOrNull { it.lastModified() }
+    fun current(): File? {
+        val rev = _revision.value
+        cached?.let { if (it.first == rev) return it.second }
+        val found =
+            dir.listFiles()
+                ?.filter { it.isFile && ModelTransfer.isSupportedName(it.name) }
+                ?.maxByOrNull { it.lastModified() }
+        cached = rev to found
+        return found
+    }
 
     /** 端末の総 RAM と、保存先の空き容量。 */
     fun deviceInfo(): DeviceInfo {
@@ -128,6 +137,9 @@ class OnDeviceModelStore(
                 TransferState.Failed(e.code)
             } catch (e: IOException) {
                 TransferState.Failed("io")
+            } catch (e: Exception) {
+                // 不正な URL や SAF の SecurityException などで Running のまま固まらないようにする
+                TransferState.Failed("unexpected")
             }
         _revision.value++
     }
@@ -168,28 +180,48 @@ class OnDeviceModelStore(
         val safe =
             ModelTransfer.safeFileName(Uri.parse(url).lastPathSegment.orEmpty()) ?: throw TransferException("bad_name")
         val part = File(dir, "$safe.part")
-        val have = if (part.exists()) part.length() else 0L
-        val request =
-            Request.Builder().url(url).apply { if (have > 0) header("Range", "bytes=$have-") }.build()
-        var total = 0L
-        val http = client.newBuilder().followRedirects(true).followSslRedirects(false).build()
-        http.newCall(request).execute().use { res ->
-            val contentRange = res.header("Content-Range")
-            val resume = ModelTransfer.resumeFor(have, res.code, contentRange)
-            if (resume is ModelTransfer.Resume.Complete) return finish(part, safe, part.length(), sha256)
-            if (!res.isSuccessful) throw TransferException("http_${res.code}")
-            val body = res.body ?: throw TransferException("io")
-            val append = resume is ModelTransfer.Resume.From
-            val offset = if (append) have else 0L
-            total = if (body.contentLength() > 0) offset + body.contentLength() else 0L
-            val need = (total - offset).coerceAtLeast(0)
-            if (!ModelTransfer.hasEnoughSpace(freeBytes(), need)) throw TransferException("no_space")
-            if (!append) part.delete()
-            java.io.FileOutputStream(part, append).use { out ->
-                body.byteStream().use { src -> copy(src, out, safe, total, offset) }
+        val source = File(dir, "$safe.part.url")
+        // 別の URL の途中ファイルには継ぎ足さない
+        if (part.exists() && runCatching { source.readText() }.getOrNull() != url) part.delete()
+        var restarted = false
+        while (true) {
+            val have = if (part.exists()) part.length() else 0L
+            val request =
+                Request.Builder().url(url).apply { if (have > 0) header("Range", "bytes=$have-") }.build()
+            var total = 0L
+            var retryFromScratch = false
+            val http = client.newBuilder().followRedirects(true).followSslRedirects(false).build()
+            http.newCall(request).execute().use { res ->
+                val resume = ModelTransfer.resumeFor(have, res.code, res.header("Content-Range"))
+                if (resume is ModelTransfer.Resume.Complete) return finish(part, safe, part.length(), sha256)
+                if (!res.isSuccessful) {
+                    // 続きが拒否された（配布元のファイルが変わった等）。途中ファイルを捨てて Range なしで 1 回だけやり直す
+                    if (have > 0 && !restarted) {
+                        retryFromScratch = true
+                        return@use
+                    }
+                    throw TransferException("http_${res.code}")
+                }
+                val body = res.body ?: throw TransferException("io")
+                val append = resume is ModelTransfer.Resume.From
+                val offset = if (append) have else 0L
+                total = if (body.contentLength() > 0) offset + body.contentLength() else 0L
+                val need = (total - offset).coerceAtLeast(0)
+                if (!ModelTransfer.hasEnoughSpace(freeBytes(), need)) throw TransferException("no_space")
+                if (!append) part.delete()
+                source.writeText(url)
+                java.io.FileOutputStream(part, append).use { out ->
+                    body.byteStream().use { src -> copy(src, out, safe, total, offset) }
+                }
             }
+            if (retryFromScratch) {
+                restarted = true
+                part.delete()
+                source.delete()
+                continue
+            }
+            return finish(part, safe, total, sha256)
         }
-        return finish(part, safe, total, sha256)
     }
 
     private suspend fun copy(
@@ -216,7 +248,7 @@ class OnDeviceModelStore(
         _state.value = TransferState.Running(label, done, total)
     }
 
-    /** 検査して確定する（古いモデルは消す）。 */
+    /** 検査して確定する（置けてから古いモデルを消す）。 */
     private suspend fun finish(
         part: File,
         name: String,
@@ -236,12 +268,13 @@ class OnDeviceModelStore(
                 throw TransferException("sha_mismatch")
             }
         }
-        dir.listFiles()?.filter { it != part }?.forEach { it.delete() }
+        // 新しいモデルを置いてから、古いモデルを消す
         val target = File(dir, name)
         if (!part.renameTo(target)) {
             part.copyTo(target, overwrite = true)
             part.delete()
         }
+        dir.listFiles()?.filter { it != target }?.forEach { it.delete() }
         return name
     }
 

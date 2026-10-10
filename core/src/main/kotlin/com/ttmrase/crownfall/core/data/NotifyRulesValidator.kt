@@ -16,6 +16,9 @@ internal object NotifyRulesValidator {
                 "raid stages must be ${RaidStage.entries}",
             )
         }
+        if (r.raid.reactors.isEmpty() || r.raid.reactors.any { id -> data.personas.personas.none { it.id == id } }) {
+            fail("raid reactors must be existing personas")
+        }
         if (stages.any { it.offsetSec < 0 || it.minWatchtowerLv < 0 }) fail("negative stage values")
         if (stages.zipWithNext().any { (a, b) -> a.offsetSec < b.offsetSec }) fail("stage offsets must not increase")
         if (stages.last().minWatchtowerLv != 0 || stages[stages.size - 2].minWatchtowerLv != 0) {

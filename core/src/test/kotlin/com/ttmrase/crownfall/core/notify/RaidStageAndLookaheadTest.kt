@@ -1,11 +1,17 @@
 package com.ttmrase.crownfall.core.notify
 
 import com.ttmrase.crownfall.core.TestSupport
+import com.ttmrase.crownfall.core.data.OfferBadge
+import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.MailKind
+import com.ttmrase.crownfall.core.model.Offer
+import com.ttmrase.crownfall.core.model.OfferFrequency
 import com.ttmrase.crownfall.core.model.RaidStage
+import com.ttmrase.crownfall.core.model.TimerJob
+import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.sim.OfflineCatchUp
 import com.ttmrase.crownfall.core.sim.Simulation
 import com.ttmrase.crownfall.core.sim.SplitInvariance
@@ -149,5 +155,60 @@ class RaidStageAndLookaheadTest {
         val plan = NotificationPlanner.lookahead(s, data)
         // 24 時間先までの同盟の動き（要請・DM）が少なくとも 1 つは予測される
         assertTrue(plan.any { it.type == NoticeType.ALLIANCE_HELP || it.type == NoticeType.ALLIANCE_DM }, "$plan")
+    }
+
+    private fun offer(
+        state: GameState,
+        expiresIn: Long,
+        revived: Boolean = false,
+    ) = Offer(
+        id = 1,
+        sku = "starter",
+        trigger = "test",
+        createdEpochSec = state.nowEpochSec,
+        expiresEpochSec = state.nowEpochSec + expiresIn,
+        priceYen = 600,
+        listValueYen = 1_800,
+        badge = OfferBadge.entries.first(),
+        contents = PackContents(),
+        revived = revived,
+    )
+
+    @Test
+    fun troopsGoIdleAfterTheLastTrainingJobEnds() {
+        val s0 = game(watchtower = 0, raidIn = 90 * 3600L)
+
+        fun job(
+            id: Long,
+            end: Long,
+        ) = TimerJob(
+            id = id,
+            kind = TimerKind.TRAIN,
+            startEpochSec = s0.nowEpochSec,
+            endEpochSec = end,
+            troopId = "infantry_t1",
+            count = 10,
+        )
+        val s = s0.copy(timers = listOf(job(1, s0.nowEpochSec + 600), job(2, s0.nowEpochSec + 1_200)))
+        val idle = NotificationPlanner.lookahead(s, data).filter { it.type == NoticeType.TROOPS_IDLE }
+        assertEquals(1, idle.size)
+        assertTrue(idle.single().epochSec > s.nowEpochSec + 1_200)
+        assertEquals(NoticeChannel.TIMER, idle.single().channel)
+        assertTrue(NotificationPlanner.lookahead(s0, data).none { it.type == NoticeType.TROOPS_IDLE })
+    }
+
+    @Test
+    fun anExpiringOfferIsAnnouncedAsRevivedOnlyInMassFrequencyAndOnlyOnce() {
+        val s0 = game(watchtower = 0, raidIn = 90 * 3600L)
+        val withOffer = s0.copy(shop = s0.shop.copy(offerQueue = listOf(offer(s0, expiresIn = 7_200))))
+
+        fun revived(st: GameState) =
+            NotificationPlanner.lookahead(st, data).filter { it.type == NoticeType.OFFER_REVIVED }
+        assertEquals(listOf(withOffer.nowEpochSec + 7_200), revived(withOffer).map { it.epochSec })
+        val standardSettings = withOffer.shop.settings.copy(frequency = OfferFrequency.STANDARD)
+        val standard = withOffer.copy(shop = withOffer.shop.copy(settings = standardSettings))
+        assertTrue(revived(standard).isEmpty())
+        val alreadyRevived = s0.copy(shop = s0.shop.copy(offerQueue = listOf(offer(s0, 7_200, revived = true))))
+        assertTrue(revived(alreadyRevived).isEmpty())
     }
 }

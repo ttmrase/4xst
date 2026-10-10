@@ -42,7 +42,7 @@ class OnDeviceChatProvider(
                 generator.generate(shortSystem(request, speakers), prompt(request, speakers))
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 return AiResult.Failure("on_device_${e::class.simpleName}", true)
             } finally {
                 lastFinishedMs = nowMs()

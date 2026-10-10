@@ -29,6 +29,7 @@ class ModelTransferTest {
         assertEquals("https_only", ModelTransfer.validateUrl("file:///sdcard/m.task"))
         assertEquals("userinfo", ModelTransfer.validateUrl("https://user:pw@example.com/m.task"))
         assertEquals("no_host", ModelTransfer.validateUrl("https:///m.task"))
+        assertEquals("bad_url", ModelTransfer.validateUrl("https://exa mple.com/m.task"))
     }
 
     @Test

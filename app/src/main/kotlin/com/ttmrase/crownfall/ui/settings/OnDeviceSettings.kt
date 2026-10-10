@@ -17,7 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -28,8 +28,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.ai.ondevice.ModelTransfer
+import com.ttmrase.crownfall.ondevice.DeviceInfo
 import com.ttmrase.crownfall.ondevice.OnDeviceModelStore
 import com.ttmrase.crownfall.ondevice.TransferState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * 設定の端末内 LLM の部分（T9.1）。モデルファイルを読み込む / https の URL からダウンロードする。
@@ -48,19 +51,26 @@ fun OnDeviceSettingsSection(
     val revision by store.revision.collectAsStateWithLifecycle()
     var url by rememberSaveable { mutableStateOf("") }
     var sha by rememberSaveable { mutableStateOf("") }
-    val model = remember(revision) { store.current() }
-    val info = remember(revision, state) { store.deviceInfo() }
+    val running = state is TransferState.Running
+
+    // listFiles / StatFs は IO で計算し、モデルの入れ替わりと転送の開始・終了のときだけ読み直す（進捗ごとには読まない）
+    val model by produceState<java.io.File?>(null, revision, running) {
+        value = withContext(Dispatchers.IO) { store.current() }
+    }
+    val info by produceState(DeviceInfo(0L, 0L), revision, running) {
+        value = withContext(Dispatchers.IO) { store.deviceInfo() }
+    }
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(store::import) }
-    val running = state is TransferState.Running
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.settings_on_device), style = MaterialTheme.typography.titleSmall)
         Text(stringResource(R.string.settings_on_device_note), style = MaterialTheme.typography.bodySmall)
+        val current = model
         Text(
-            if (model != null) {
-                val size = Formatter.formatFileSize(context, model.length())
-                stringResource(R.string.on_device_model_current, model.name, size)
+            if (current != null) {
+                val size = Formatter.formatFileSize(context, current.length())
+                stringResource(R.string.on_device_model_current, current.name, size)
             } else {
                 stringResource(R.string.on_device_model_none)
             },
@@ -119,11 +129,17 @@ fun OnDeviceSettingsSection(
                 } else {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
+                val totalText =
+                    if (s.total > 0) {
+                        Formatter.formatFileSize(context, s.total)
+                    } else {
+                        stringResource(R.string.on_device_size_unknown)
+                    }
                 Text(
                     stringResource(
                         R.string.on_device_progress,
                         Formatter.formatFileSize(context, s.done),
-                        if (s.total > 0) Formatter.formatFileSize(context, s.total) else "?",
+                        totalText,
                     ),
                     style = MaterialTheme.typography.bodySmall,
                 )

@@ -871,6 +871,7 @@
     <string name="on_device_url_hint">For sources that require accepting a license, get the file in a browser and use Import</string>
     <string name="on_device_sha">SHA-256 (optional)</string>
     <string name="on_device_download">Download</string>
+    <string name="on_device_size_unknown">unknown</string>
     <string name="on_device_progress">%1$s / %2$s</string>
     <string name="on_device_done">Model ready: %1$s</string>
     <string name="on_device_charging_only">Use only while charging</string>
@@ -897,6 +898,8 @@
     <string name="notify_raid_defended">You repelled the raid! Check the result</string>
     <string name="notify_raid_defeated">You were raided! Resources were taken. Check the result!</string>
     <string name="notify_offer_last_call">[FINAL CALL] The limited offer ends in 10 minutes! Do not miss it!</string>
+    <string name="notify_offer_revived">The limited offer is back! Do not miss it this time!</string>
+    <string name="notify_troops_idle">Training is complete and your troops are idle. Give them new orders!</string>
     <string name="notify_alliance_help">An alliance member needs your help!</string>
     <string name="notify_alliance_dm">You have a message from a friend</string>
     <string name="notify_event_ending">The weekly event is ending soon! Last chance!</string>

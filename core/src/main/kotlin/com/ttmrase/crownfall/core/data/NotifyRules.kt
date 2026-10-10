@@ -7,7 +7,11 @@ import kotlinx.serialization.Serializable
 data class RaidStageRule(val stage: String, val offsetSec: Long, val minWatchtowerLv: Int)
 
 @Serializable
-data class RaidNotifyRules(val stages: List<RaidStageRule>)
+data class RaidNotifyRules(
+    val stages: List<RaidStageRule>,
+    /** 襲撃の各段階に反応する同盟メンバーの persona ID（順に反応する）。 */
+    val reactors: List<String>,
+)
 
 /** 強度ごとの通知。[hourlyCap] は 1 時間あたりの上限（襲撃は対象外）、[categories] は有効なカテゴリ。 */
 @Serializable

@@ -1,7 +1,9 @@
 package com.ttmrase.crownfall.ui.common
 
 import android.content.Context
+import android.media.AudioManager
 import android.os.Build
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -117,7 +119,16 @@ private fun vibrate(context: Context) {
             @Suppress("DEPRECATION")
             context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
-    if (vibrator?.hasVibrator() == true) vibrator.vibrate(VibrationEffect.createWaveform(RAID_PATTERN, -1))
+    if (vibrator?.hasVibrator() != true) return
+    // マナーモード（無音）では鳴らさない。通知用途として振動させるので、おやすみモードの設定も効く
+    val ringer = context.getSystemService(AudioManager::class.java)?.ringerMode
+    if (ringer == AudioManager.RINGER_MODE_SILENT) return
+    val effect = VibrationEffect.createWaveform(RAID_PATTERN, -1)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        vibrator.vibrate(effect, VibrationAttributes.createForUsage(VibrationAttributes.USAGE_NOTIFICATION))
+    } else {
+        vibrator.vibrate(effect)
+    }
 }
 
 private const val RED = 0xFFC62828

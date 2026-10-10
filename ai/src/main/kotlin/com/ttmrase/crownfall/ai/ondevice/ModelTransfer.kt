@@ -29,6 +29,9 @@ object ModelTransfer {
         val authority = rest.substringBefore('/').substringBefore('?').substringBefore('#')
         if (authority.isEmpty()) return "no_host"
         if ('@' in authority) return "userinfo"
+        // 空白など URL として解釈できないものは弾く（ホストが取れること）
+        val uri = runCatching { java.net.URI(trimmed) }.getOrNull()
+        if (uri?.host.isNullOrEmpty()) return "bad_url"
         return null
     }
 
