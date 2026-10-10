@@ -1,0 +1,17 @@
+run: 37
+commit: 0fed58d8d3ba5871aeaa9d51b831b8dd288bb785
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38079252556
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+e: app/src/androidTest/kotlin/com/ttmrase/crownfall/PerfUiTest.kt:95:26 Unresolved reference 'summary'.
+e: app/src/androidTest/kotlin/com/ttmrase/crownfall/PerfUiTest.kt:95:56 Unresolved reference 'toDoubleOrNull'.
+--- failed tests ---
+> Task :app:compileDebugAndroidTestKotlin FAILED
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
