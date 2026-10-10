@@ -1,6 +1,7 @@
 package com.ttmrase.crownfall.core.economy
 
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.hero.HeroPower
 import com.ttmrase.crownfall.core.military.Military
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.satAdd
@@ -26,13 +27,13 @@ object PowerCalculator {
             if (node == null || level <= 0) acc else satAdd(acc, node.level(minOf(level, node.maxLevel)).power)
         }
 
-    /** 合計戦力（建物 + 研究 + 生存兵）。 */
+    /** 合計戦力（建物 + 研究 + 生存兵 + 英雄）。 */
     fun total(
         state: GameState,
         data: GameData,
     ): Long =
         satAdd(
             satAdd(buildingPower(state, data), researchPower(state, data)),
-            Military.troopPower(state, data),
+            satAdd(Military.troopPower(state, data), HeroPower.total(state, data)),
         )
 }

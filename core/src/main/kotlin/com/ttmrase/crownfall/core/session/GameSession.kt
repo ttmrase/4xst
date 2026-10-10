@@ -1,6 +1,7 @@
 package com.ttmrase.crownfall.core.session
 
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.hero.HeroBootstrap
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.save.DecodeResult
@@ -117,7 +118,7 @@ class GameSession(
                 is DecodeResult.Corrupt -> LoadResult.Corrupt
                 is DecodeResult.Success -> {
                     seed = decoded.save.seed
-                    _state.value = decoded.save.state
+                    _state.value = HeroBootstrap.ensureStarter(decoded.save.state)
                     dirty = true
                     advanceLocked()
                     if (recovered) LoadResult.RecoveredFromBackup else LoadResult.Loaded
@@ -133,11 +134,7 @@ class GameSession(
     ): GameState =
         mutex.withLock {
             check(!blockedByTooNew) { "cannot start a new game over a newer save" }
-            val state =
-                NewGame.create(data, clock.nowEpochSec(), seed).copy(
-                    playerName = playerName,
-                    starterHeroId = starterHeroId,
-                )
+            val state = NewGame.create(data, clock.nowEpochSec(), seed, playerName, starterHeroId)
             this.seed = seed
             _state.value = state
             _offlineSummary.value = null

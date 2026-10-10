@@ -47,6 +47,7 @@ kover {
                     "com.ttmrase.crownfall.core.buff",
                     "com.ttmrase.crownfall.core.research",
                     "com.ttmrase.crownfall.core.military",
+                    "com.ttmrase.crownfall.core.hero",
                 )
             }
         }

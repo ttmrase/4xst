@@ -7,6 +7,9 @@ import com.ttmrase.crownfall.core.data.ResearchPrereq
 import com.ttmrase.crownfall.core.economy.CostCheck
 import com.ttmrase.crownfall.core.economy.Costs
 import com.ttmrase.crownfall.core.economy.GemSkip
+import com.ttmrase.crownfall.core.hero.HeroGrowth
+import com.ttmrase.crownfall.core.hero.SummonKind
+import com.ttmrase.crownfall.core.hero.Summoner
 import com.ttmrase.crownfall.core.military.Military
 import com.ttmrase.crownfall.core.model.Boost
 import com.ttmrase.crownfall.core.model.BuildingType
@@ -47,6 +50,13 @@ sealed interface ActionFailure {
     /** 兵種の訓練建物の Lv が足りない。[requiredLevel] は必要な建物 Lv。 */
     data class TroopLocked(val requiredLevel: Int) : ActionFailure
 
+    data object HeroNotOwned : ActionFailure
+
+    data object MaxStar : ActionFailure
+
+    /** 星上げの欠片が足りない。[missing] は不足数。 */
+    data class NotEnoughShards(val missing: Int) : ActionFailure
+
     data object NodeNotFound : ActionFailure
 
     data object AlreadyResearching : ActionFailure
@@ -69,6 +79,9 @@ sealed interface ActionResult {
 object Actions {
     /** チュートリアル完了を表すステップ番号。 */
     const val TUTORIAL_DONE = 3
+
+    private const val TEN_ROLL = 10
+    private const val SKILL_BOOK = "skill_book"
 
     /** スロット [slotId] のアップグレードを開始する。検査は宣言順で、最初の失敗を返す。 */
     fun startUpgrade(
@@ -294,6 +307,109 @@ object Actions {
         if (step < 0 || step > TUTORIAL_DONE) return fail(ActionFailure.InvalidArgument)
         if (step <= state.tutorialStep) return ActionResult.Success(state)
         return ActionResult.Success(state.copy(tutorialStep = step))
+    }
+
+    /**
+     * 英雄を [times]（1 か 10）回召喚する。Tavern が Lv1 以上必要。チケットを優先し、足りなければ通常は Gold、
+     * プレミアムはジェムを払う（10 連は一括価格）。確率・天井・SR 保証は heroes.json（[Summoner]）。
+     */
+    fun summon(
+        state: GameState,
+        kind: SummonKind,
+        times: Int,
+        data: GameData,
+    ): ActionResult {
+        if (times != 1 && times != TEN_ROLL) return fail(ActionFailure.InvalidArgument)
+        if (state.slots.none { it.type == BuildingType.TAVERN && it.level >= 1 }) {
+            return fail(ActionFailure.PrereqNotMet(listOf(Prereq(BuildingType.TAVERN, 1))))
+        }
+        val table = Summoner.table(data, kind)
+        val tickets = state.items[table.ticketItem] ?: 0
+        var paid = state
+        if (tickets >= times) {
+            val left = tickets - times
+            val items = if (left > 0) paid.items + (table.ticketItem to left) else paid.items - table.ticketItem
+            paid = paid.copy(items = items)
+        } else if (kind == SummonKind.NORMAL) {
+            val cost = Resources(gold = if (times == 1) table.gold else table.goldTen)
+            val rest =
+                when (val check = Costs.check(paid.resources, cost)) {
+                    is CostCheck.Missing -> return fail(ActionFailure.NotEnoughResources(check.missing))
+                    CostCheck.Ok -> paid.resources.minusOrNull(cost) ?: return fail(ActionFailure.InvalidArgument)
+                }
+            paid = paid.copy(resources = rest)
+        } else {
+            val gems = if (times == 1) table.gems else table.gemsTen
+            if (paid.gems < gems) return fail(ActionFailure.NotEnoughGems(gems - paid.gems))
+            paid = paid.copy(gems = paid.gems - gems)
+        }
+        val drawn = Summoner.draw(paid, kind, times, data)
+        return ActionResult.Success(drawn.state, listOf(GameEvent.HeroSummoned(drawn.result)))
+    }
+
+    /** 英雄 [heroId] に経験値アイテム [itemId] を [count] 個使う。上限レベルで止め、余った経験値は捨てる。 */
+    fun useHeroExp(
+        state: GameState,
+        heroId: String,
+        itemId: String,
+        count: Int,
+        data: GameData,
+    ): ActionResult {
+        if (count <= 0) return fail(ActionFailure.InvalidArgument)
+        val hero = state.heroes.firstOrNull { it.heroId == heroId } ?: return fail(ActionFailure.HeroNotOwned)
+        if (!HeroGrowth.isExpItem(itemId, data) || (state.items[itemId] ?: 0) < count) {
+            return fail(ActionFailure.ItemNotOwned)
+        }
+        if (hero.level >= HeroGrowth.levelCap(hero.star, data)) return fail(ActionFailure.MaxLevel)
+        val grown = HeroGrowth.addExp(hero, satMul(data.items.getValue(itemId).value, count.toLong()), data)
+        val left = state.items.getValue(itemId) - count
+        return ActionResult.Success(
+            state.copy(
+                heroes = state.heroes.map { if (it.heroId == heroId) grown else it },
+                items = if (left > 0) state.items + (itemId to left) else state.items - itemId,
+            ),
+        )
+    }
+
+    /** 英雄 [heroId] の星を 1 つ上げる（欠片を消費。星 5 が上限）。 */
+    fun starUp(
+        state: GameState,
+        heroId: String,
+        data: GameData,
+    ): ActionResult {
+        val hero = state.heroes.firstOrNull { it.heroId == heroId } ?: return fail(ActionFailure.HeroNotOwned)
+        if (hero.star >= data.heroRules.starLevelCaps.size) return fail(ActionFailure.MaxStar)
+        val need = data.heroRules.starUpShards[hero.star - 1]
+        val have = state.heroShards[heroId] ?: 0
+        if (have < need) return fail(ActionFailure.NotEnoughShards(need - have))
+        val shards = if (have - need > 0) state.heroShards + (heroId to have - need) else state.heroShards - heroId
+        return ActionResult.Success(
+            state.copy(
+                heroes = state.heroes.map { if (it.heroId == heroId) it.copy(star = it.star + 1) else it },
+                heroShards = shards,
+            ),
+        )
+    }
+
+    /** 英雄 [heroId] のスキル [skillIndex]（0..2）を 1 Lv 上げる（skill_book を 1 冊消費。上限は maxSkillLevel）。 */
+    fun skillUp(
+        state: GameState,
+        heroId: String,
+        skillIndex: Int,
+        data: GameData,
+    ): ActionResult {
+        val hero = state.heroes.firstOrNull { it.heroId == heroId } ?: return fail(ActionFailure.HeroNotOwned)
+        if (skillIndex !in hero.skillLevels.indices) return fail(ActionFailure.InvalidArgument)
+        if (hero.skillLevels[skillIndex] >= data.heroRules.maxSkillLevel) return fail(ActionFailure.MaxLevel)
+        val books = state.items[SKILL_BOOK] ?: 0
+        if (books < 1) return fail(ActionFailure.ItemNotOwned)
+        val levels = hero.skillLevels.mapIndexed { i, lv -> if (i == skillIndex) lv + 1 else lv }
+        return ActionResult.Success(
+            state.copy(
+                heroes = state.heroes.map { if (it.heroId == heroId) it.copy(skillLevels = levels) else it },
+                items = if (books > 1) state.items + (SKILL_BOOK to books - 1) else state.items - SKILL_BOOK,
+            ),
+        )
     }
 
     /** 期限付きバフを追加する（同 id は置き換え）。 */

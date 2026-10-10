@@ -249,4 +249,26 @@ class GameSessionTest {
             assertEquals(created.resources.food + 300, s2.state.value?.resources?.food)
             assertEquals(Resources.ZERO, Resources.ZERO)
         }
+
+    @Test
+    fun loadingAnM2SaveGrantsTheStarterHero() =
+        runTest {
+            // M2 のセーブ: starterHeroId はあるが heroes が空
+            val legacy = TestSupport.newGame().copy(playerName = "Old", starterHeroId = "hero_seren")
+            val text =
+                com.ttmrase.crownfall.core.save.SaveCodec.encode(
+                    com.ttmrase.crownfall.core.save.SaveGame(savedAtEpochSec = T0, seed = 3, state = legacy),
+                )
+            val s = session(InMemorySaveStorage(primary = text), FixedClock(T0))
+            assertEquals(LoadResult.Loaded, s.load())
+            assertEquals(listOf("hero_seren"), s.state.value?.heroes?.map { it.heroId })
+        }
+
+    @Test
+    fun newGameGrantsTheStarterHero() =
+        runTest {
+            val s = session(InMemorySaveStorage(), FixedClock(T0))
+            val created = s.newGame("A", "hero_brann", 7)
+            assertEquals(listOf("hero_brann"), created.heroes.map { it.heroId })
+        }
 }
