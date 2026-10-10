@@ -302,11 +302,14 @@ internal class TerritoryScene(
                     ents.add(Ent(EntKind.STATUE, gx - 2.6f, gy, SpriteIds.STATUE, introBand = 4, seed = rng.next()))
                     ents.add(Ent(EntKind.STATUE, gx, gy - 2.6f, SpriteIds.STATUE, introBand = 4, seed = rng.next()))
                 } else if (k % 2 == 0) {
-                    ents.add(Ent(EntKind.STALL, gx, gy, SpriteIds.STALL, goneBand = 3, seed = rng.next()))
-                    ents.add(Ent(EntKind.MANOR, gx, gy, SpriteIds.MANOR, introBand = 3, seed = rng.next()))
+                    ents.add(Ent(EntKind.STALL, gx - 1.2f, gy - 1.2f, SpriteIds.STALL, goneBand = 3, seed = rng.next()))
+                    ents.add(
+                        Ent(EntKind.MANOR, gx - 1.2f, gy - 1.2f, SpriteIds.MANOR, introBand = 3, seed = rng.next()),
+                    )
+                    ents.add(Ent(EntKind.FIELD, gx + 1.3f, gy + 1.3f, SpriteIds.FIELD, seed = rng.next()))
                 } else {
-                    val house = houseSprites[k % houseSprites.size]
-                    ents.add(Ent(EntKind.HOUSE, gx, gy, house, seed = rng.next()))
+                    ents.add(Ent(EntKind.HOUSE, gx - 1.2f, gy - 1.2f, houseSprites[k % 3], seed = rng.next()))
+                    ents.add(Ent(EntKind.HOUSE, gx + 1.3f, gy + 1.3f, houseSprites[(k + 1) % 3], seed = rng.next()))
                 }
             }
 
