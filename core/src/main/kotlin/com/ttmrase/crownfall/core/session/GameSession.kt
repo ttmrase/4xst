@@ -12,6 +12,7 @@ import com.ttmrase.crownfall.core.sim.NewGame
 import com.ttmrase.crownfall.core.sim.OfflineCatchUp
 import com.ttmrase.crownfall.core.sim.OfflineSummary
 import com.ttmrase.crownfall.core.util.Clock
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -205,7 +206,10 @@ class GameSession(
     }
 
     private suspend fun maybeSaveLocked() {
-        if (dirty && clock.nowEpochSec() - lastSaveEpochSec >= SAVE_INTERVAL_SEC) saveLocked()
+        if (!dirty) return
+        val sinceLastSave = clock.nowEpochSec() - lastSaveEpochSec
+        // 時計が巻き戻されて差が負のときは、巻き戻し分の時間だけ保存が止まらないよう即保存する
+        if (sinceLastSave < 0 || sinceLastSave >= SAVE_INTERVAL_SEC) saveLocked()
     }
 
     private suspend fun saveLocked() {
@@ -215,7 +219,15 @@ class GameSession(
             withContext(defaultDispatcher) {
                 SaveCodec.encode(SaveGame(savedAtEpochSec = now, seed = seed, state = s))
             }
-        withContext(ioDispatcher) { storage.writeAtomic(text) }
+        try {
+            withContext(ioDispatcher) { storage.writeAtomic(text) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // 書き込み失敗（容量不足など）でセッションを落とさない。dirty のまま残し、次の間隔で再試行する。
+            lastSaveEpochSec = now
+            return
+        }
         dirty = false
         lastSaveEpochSec = now
     }
