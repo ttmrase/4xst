@@ -3,7 +3,7 @@ package com.ttmrase.crownfall.navigation
 import androidx.annotation.StringRes
 import com.ttmrase.crownfall.R
 
-/** 全 12 画面のルート定義。 */
+/** 全画面のルート定義。 */
 enum class Screen(
     val route: String,
     @StringRes val titleRes: Int,
@@ -21,4 +21,5 @@ enum class Screen(
     Mail("mail", R.string.screen_mail),
     Settings("settings", R.string.screen_settings),
     Summon("summon", R.string.screen_summon),
+    Event("event", R.string.screen_event),
 }

@@ -112,6 +112,12 @@ fun ContentsLines(
             val label = if (res != null) stringResource(res) else id
             Text(stringResource(R.string.content_shards, label, n), style = MaterialTheme.typography.bodyMedium)
         }
+        if (contents.eventPoints > 0) {
+            Text(
+                stringResource(R.string.content_event_points, ShortNumber.format(contents.eventPoints)),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
         if (contents.secondBuilderDays > 0) {
             Text(
                 stringResource(R.string.content_builder, contents.secondBuilderDays),

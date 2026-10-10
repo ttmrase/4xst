@@ -53,6 +53,7 @@ import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.FakePurchase
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
+import com.ttmrase.crownfall.ui.event.eventNameRes
 import com.ttmrase.crownfall.ui.itemName
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.shop.ContentsLines
@@ -117,7 +118,7 @@ fun MailScreen(
                         ),
                     ) {
                         Text(
-                            mailTitle(context, mail),
+                            mailTitle(context, mail, data),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = if (mail.read) FontWeight.Normal else FontWeight.Bold,
                         )
@@ -137,13 +138,13 @@ fun MailScreen(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(mailTitle(context, open), style = MaterialTheme.typography.headlineSmall)
+                Text(mailTitle(context, open, data), style = MaterialTheme.typography.headlineSmall)
                 Text(formatTime(timeFormat, open.epochSec), style = MaterialTheme.typography.labelMedium)
                 HorizontalDivider()
                 open.battle?.let { BattleBody(it, data) }
                 open.scout?.let { ScoutBody(it) }
                 open.receipt?.let { ReceiptBody(it, data) }
-                if (open.kind == MailKind.SYSTEM) Text(systemText(context, open))
+                if (open.kind == MailKind.SYSTEM) Text(systemText(context, open, data))
             }
         }
     }
@@ -189,6 +190,7 @@ private fun playerWon(b: BattleReport): Boolean = if (b.kind == BattleKind.RAID)
 private fun mailTitle(
     context: Context,
     mail: Mail,
+    data: GameData,
 ): String {
     mail.battle?.let { b ->
         val res = if (playerWon(b)) R.string.mail_title_win else R.string.mail_title_lose
@@ -198,12 +200,13 @@ private fun mailTitle(
     mail.receipt?.let {
         return context.getString(R.string.mail_title_receipt, productName(context, it.sku), formatYen(it.priceYen))
     }
-    return systemText(context, mail)
+    return systemText(context, mail, data)
 }
 
 private fun systemText(
     context: Context,
     mail: Mail,
+    data: GameData,
 ): String {
     val x = (mail.params["x"] ?: 0L).toInt()
     val y = (mail.params["y"] ?: 0L).toInt()
@@ -216,6 +219,16 @@ private fun systemText(
                 R.string.mail_sys_gather_done,
                 context.getString(type.nameRes()),
                 ShortNumber.format(mail.params["amount"] ?: 0L),
+            )
+        }
+        "event_result" -> {
+            val def = (mail.params["event"] ?: 0L).toInt().let { data.events.events.getOrNull(it) }
+            context.getString(
+                R.string.mail_sys_event_result,
+                def?.let { context.getString(eventNameRes(it)) } ?: "",
+                (mail.params["rank"] ?: 0L).toInt(),
+                ShortNumber.format(mail.params["score"] ?: 0L),
+                ShortNumber.format(mail.params["gems"] ?: 0L),
             )
         }
         else -> context.getString(R.string.mail_sys_unknown)

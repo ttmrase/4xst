@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -43,12 +45,14 @@ import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.TroopType
 import com.ttmrase.crownfall.core.economy.PowerCalculator
+import com.ttmrase.crownfall.core.event.WeeklyEvents
 import com.ttmrase.crownfall.core.model.BuildingSlot
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
+import com.ttmrase.crownfall.core.quest.QuestLogic
 import com.ttmrase.crownfall.core.session.BuildingSection
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.session.UiQueries
@@ -60,12 +64,36 @@ import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.navigation.Screen
 import com.ttmrase.crownfall.offers.OfferHooks
+import com.ttmrase.crownfall.ui.event.eventNameRes
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.researchNodeName
 import com.ttmrase.crownfall.ui.titleRes
 import com.ttmrase.crownfall.ui.troopNameById
 import kotlinx.coroutines.launch
+
+/** 開催中の週替わりイベントのバナー（タップでイベント画面）。 */
+@Composable
+private fun EventBanner(
+    s: GameState,
+    data: GameData,
+    onClick: () -> Unit,
+) {
+    val def = WeeklyEvents.current(s, data)
+    val remaining = WeeklyEvents.endEpochSec(s) - s.nowEpochSec
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.End,
+    ) {
+        TextButton(onClick = onClick) {
+            Text(
+                stringResource(R.string.event_banner, stringResource(eventNameRes(def))) +
+                    " · " + DurationFormat.clock(remaining),
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+    }
+}
 
 private val QuickLinks =
     listOf(Screen.Mail, Screen.Quests, Screen.Research, Screen.Barracks, Screen.Chat, Screen.Settings)
@@ -109,6 +137,7 @@ fun CityScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         StatusBar(s, data)
+        EventBanner(s, data) { onNavigate(Screen.Event) }
         TimerBar(
             state = s,
             data = data,
@@ -134,8 +163,14 @@ fun CityScreen(
             })
         }
         Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+            val claimable = QuestLogic.claimableCount(s, data)
             QuickLinks.forEach { screen ->
-                TextButton(onClick = { onNavigate(screen) }) { Text(stringResource(screen.titleRes)) }
+                TextButton(onClick = { onNavigate(screen) }) {
+                    val count = if (screen == Screen.Quests) claimable else 0
+                    BadgedBox(badge = { if (count > 0) Badge { Text(count.toString()) } }) {
+                        Text(stringResource(screen.titleRes))
+                    }
+                }
             }
         }
     }

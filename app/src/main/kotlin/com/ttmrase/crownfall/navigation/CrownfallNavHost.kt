@@ -38,6 +38,7 @@ import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.ai.AiService
 import com.ttmrase.crownfall.chat.ChatCoordinator
 import com.ttmrase.crownfall.core.model.GameState
+import com.ttmrase.crownfall.core.quest.QuestLogic
 import com.ttmrase.crownfall.core.shop.OfferEngine
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.data.GameRepository
@@ -53,11 +54,13 @@ import com.ttmrase.crownfall.ui.chat.ChatScreen
 import com.ttmrase.crownfall.ui.city.CityScreen
 import com.ttmrase.crownfall.ui.common.RaidBanner
 import com.ttmrase.crownfall.ui.common.showReplacing
+import com.ttmrase.crownfall.ui.event.EventScreen
 import com.ttmrase.crownfall.ui.eventMessage
 import com.ttmrase.crownfall.ui.heroes.HeroesScreen
 import com.ttmrase.crownfall.ui.heroes.SummonScreen
 import com.ttmrase.crownfall.ui.mail.MailScreen
 import com.ttmrase.crownfall.ui.map.MapScreen
+import com.ttmrase.crownfall.ui.quest.QuestScreen
 import com.ttmrase.crownfall.ui.research.ResearchScreen
 import com.ttmrase.crownfall.ui.screens.StubScreen
 import com.ttmrase.crownfall.ui.settings.SettingsScreen
@@ -99,6 +102,14 @@ fun CrownfallNavHost(
             gameState?.alliance?.let { unreadTotal(it.history, it.chatRead) } ?: 0
         }
 
+    // クエストの未受け取り数。戦力の計算を伴うので 30 秒に 1 回だけ数え直す
+    val snapshot = gameState
+    val bucket = (snapshot?.nowEpochSec ?: 0L) / 30
+    val claimable =
+        remember(ready?.session, snapshot?.quest, snapshot?.slots, snapshot?.heroes, bucket) {
+            if (ready != null && snapshot != null) QuestLogic.claimableCount(snapshot, ready.data) else 0
+        }
+
     // 全画面共通のトースト（ヘルプ受領・ギフト・行軍の帰還など）。
     LaunchedEffect(readySession) {
         readySession?.events?.collect { event ->
@@ -138,7 +149,13 @@ fun CrownfallNavHost(
                             },
                             icon = {
                                 val isAlliance = item == BottomDestination.Alliance
-                                val count = if (isAlliance) unread else 0
+                                val isCity = item == BottomDestination.City
+                                val count =
+                                    when {
+                                        isAlliance -> unread
+                                        isCity -> claimable
+                                        else -> 0
+                                    }
                                 BadgedBox(badge = { if (count > 0) Badge { Text(count.toString()) } }) {
                                     Icon(item.icon, contentDescription = null)
                                 }
@@ -245,6 +262,14 @@ fun CrownfallNavHost(
                     val r = startup as? Startup.Ready
                     if (r != null) ShopScreen(r.session, r.data, snackbarHostState) { billingId = it }
                 }
+                composable(Screen.Quests.route) {
+                    val r = startup as? Startup.Ready
+                    if (r != null) QuestScreen(r.session, r.data, snackbarHostState)
+                }
+                composable(Screen.Event.route) {
+                    val r = startup as? Startup.Ready
+                    if (r != null) EventScreen(r.session, r.data)
+                }
                 composable(Screen.Settings.route) {
                     val r = startup as? Startup.Ready
                     SettingsScreen(ai, r?.session, snackbarHostState)
@@ -263,6 +288,8 @@ fun CrownfallNavHost(
                         Screen.Chat,
                         Screen.Settings,
                         Screen.Shop,
+                        Screen.Quests,
+                        Screen.Event,
                     )
                 Screen.entries
                     .filter { it !in implemented }

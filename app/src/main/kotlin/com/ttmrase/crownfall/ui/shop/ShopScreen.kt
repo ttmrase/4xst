@@ -18,6 +18,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -84,6 +85,8 @@ fun ShopScreen(
     val context = LocalContext.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val s = state ?: return
+    // デイリー「ショップを開く」用。画面を開くたびに 1 回だけ数える
+    LaunchedEffect(Unit) { session.dispatch { Actions.recordShopOpened(it) } }
 
     fun act(block: (GameState) -> ActionResult) {
         scope.launch {
