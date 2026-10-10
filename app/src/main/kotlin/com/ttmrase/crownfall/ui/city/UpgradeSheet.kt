@@ -16,7 +16,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -49,10 +48,6 @@ fun UpgradeSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val blocker = preview.blocker
-    // 資源不足でシートが表示された（または不足量が変わった）ときにオファー誘導のフックを呼ぶ。
-    LaunchedEffect(preview.missing, blocker is ActionFailure.NotEnoughResources) {
-        if (blocker is ActionFailure.NotEnoughResources) onResourceShortage(blocker.missing)
-    }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier =
@@ -179,7 +174,10 @@ private fun ActionSection(
             }
             blocker == ActionFailure.MaxLevel -> Unit
             blocker is ActionFailure.NotEnoughResources ->
-                Text(stringResource(R.string.sheet_not_enough_resources), color = MaterialTheme.colorScheme.error)
+                // オファー誘導はタップ時に 1 回だけ（表示中の副作用にしない。M6 で再検討）。
+                OutlinedButton(onClick = { onResourceShortage(blocker.missing) }, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.sheet_not_enough_resources), color = MaterialTheme.colorScheme.error)
+                }
             blocker is ActionFailure.PrereqNotMet -> Unit
             blocker == ActionFailure.QueueFull -> {
                 Text(stringResource(R.string.sheet_queue_full), color = MaterialTheme.colorScheme.error)
