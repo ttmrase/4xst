@@ -1,0 +1,64 @@
+{
+ "schedulerPeriodSec": 60,
+ "caps": {"pendingChat": 50, "history": 200, "actionLog": 50, "openRequests": 3, "openRallies": 1, "helpPool": 10, "gifts": 20},
+ "durationsSec": {"request": 7200, "rallyJoin": 1800, "helpEntry": 3600, "gift": 172800},
+ "chancePermillePerMinute": {
+  "ambient": 8,
+  "worldAmbient": 6,
+  "needsHelp": 2,
+  "asksScout": 1,
+  "purchase": 1,
+  "johnnyPurchase": 3,
+  "aiRally": 2,
+  "memberHelpRequest": 15,
+  "quiz": 2,
+  "yukiReturn": 600,
+  "aiHelpOnPlayerTimer": 450
+ },
+ "help": {"reductionPct": 1, "minReductionSec": 60, "dailyLimit": 50, "pointsPerHelp": 5, "favorPerHelp": 1, "favorEveryHelps": 5, "minHelpsPerTimer": 3},
+ "request": {
+  "amountBase": 5000, "amountPerCastleLv": 2500,
+  "feeBpBase": 2000, "feeBpReductionPerTradingPostLevel": 100, "minFeeBp": 0,
+  "favor": 4, "points": 20, "scoutFavor": 3, "scoutPoints": 15
+ },
+ "donate": {
+  "resourceUnit": 10000, "gemUnit": 10,
+  "techExpPerResourceUnit": 30, "techExpPerGemUnit": 100,
+  "pointsPerResourceUnit": 10, "pointsPerGemUnit": 40,
+  "favor": 1, "dailyLimit": 30
+ },
+ "techs": [
+  {"id": "tech_production", "buff": "PRODUCTION_ALL", "expPerLevel": [300, 900, 2000, 4000, 7000], "bpPerLevel": [100, 200, 300, 400, 500]},
+  {"id": "tech_gather", "buff": "GATHER_SPEED", "expPerLevel": [300, 900, 2000, 4000, 7000], "bpPerLevel": [200, 400, 600, 800, 1000]},
+  {"id": "tech_attack", "buff": "TROOP_ATTACK", "expPerLevel": [400, 1200, 2800, 5500, 9000], "bpPerLevel": [100, 200, 300, 400, 500]},
+  {"id": "tech_hp", "buff": "TROOP_HP", "expPerLevel": [400, 1200, 2800, 5500, 9000], "bpPerLevel": [100, 200, 300, 400, 500]}
+ ],
+ "shop": [
+  {"id": "ally_speedup_5m", "item": "speedup_general_5m", "count": 1, "cost": 10, "dailyLimit": 20},
+  {"id": "ally_speedup_60m", "item": "speedup_general_60m", "count": 1, "cost": 100, "dailyLimit": 5},
+  {"id": "ally_hero_exp", "item": "hero_exp_1k", "count": 1, "cost": 40, "dailyLimit": 5},
+  {"id": "ally_skill_book", "item": "skill_book", "count": 1, "cost": 150, "dailyLimit": 2},
+  {"id": "ally_food", "resources": {"food": 50000}, "cost": 60, "dailyLimit": 5},
+  {"id": "ally_wood", "resources": {"wood": 50000}, "cost": 60, "dailyLimit": 5},
+  {"id": "ally_stone", "resources": {"stone": 40000}, "cost": 60, "dailyLimit": 5},
+  {"id": "ally_gold", "resources": {"gold": 20000}, "cost": 80, "dailyLimit": 5}
+ ],
+ "gifts": [
+  {"weight": 40, "resources": {"food": 20000, "wood": 20000}},
+  {"weight": 25, "item": "speedup_general_5m", "count": 2},
+  {"weight": 20, "resources": {"stone": 15000, "gold": 5000}},
+  {"weight": 10, "item": "speedup_general_60m", "count": 1},
+  {"weight": 5, "gems": 20}
+ ],
+ "rally": {"hosts": ["marcus", "kaede"], "extraParticipants": 2, "troopsPerCastleLv": 40, "maxFortLevel": 5, "castleLvPerFortLevel": 6},
+ "quizzes": [
+  {"id": "q_storage", "correct": 0},
+  {"id": "q_hospital", "correct": 1},
+  {"id": "q_research", "correct": 2},
+  {"id": "q_scout", "correct": 0},
+  {"id": "q_wall", "correct": 1}
+ ],
+ "quiz": {"correctFavor": 3, "wrongFavor": 1, "minIntervalSec": 21600},
+ "favor": {"milestoneGiftResources": {"food": 30000, "wood": 30000, "stone": 20000, "gold": 10000}, "milestoneGiftGems": 10},
+ "log": {"helpWindowSec": 604800}
+}

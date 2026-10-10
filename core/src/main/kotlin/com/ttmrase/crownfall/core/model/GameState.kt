@@ -38,6 +38,8 @@ data class GameState(
     val nextMailId: Long = 1,
     val marches: List<March> = emptyList(),
     val nextMarchId: Long = 1,
+    val alliance: AllianceState = AllianceState(),
+    val settings: Settings = Settings(),
 )
 
 /** tick / アクションが出すイベント（UI・通知・チャットへの入力）。 */
@@ -74,6 +76,9 @@ sealed interface GameEvent {
 
     /** 行軍 [marchId] が帰還した。 */
     data class MarchReturned(val marchId: Long, val kind: MarchKind) : GameEvent
+
+    /** 同盟メンバー [persona] がタイマー [jobId] にヘルプしてくれた（[reducedSec] 秒短縮）。 */
+    data class HelpReceived(val persona: String, val jobId: Long, val reducedSec: Long) : GameEvent
 
     /** NPC の襲撃が [arrivalEpochSec] に到着する（予告）。 */
     data class RaidIncoming(val arrivalEpochSec: Long) : GameEvent

@@ -1,0 +1,638 @@
+{
+ "personas": [
+  {
+   "id": "kaede",
+   "displayName": "Kaede",
+   "rank": 5,
+   "vipLv": 9,
+   "region": "kansai",
+   "activeHours": [
+    {
+     "start": 20,
+     "end": 27
+    }
+   ],
+   "personality": {
+    "extraversion": 850,
+    "caring": 950,
+    "aggression": 250,
+    "meticulous": 500,
+    "humor": 700
+   },
+   "speechStyle": {
+    "endings": [
+     "やで",
+     "やんか",
+     "やな",
+     "なぁ"
+    ],
+    "emojiPermille": 350,
+    "punctuation": "！",
+    "tilde": true,
+    "samples": [
+     "みんなお疲れさん！今日もええ感じやで",
+     "ヘルプありがとなぁ、助かるわ",
+     "砦のラリー立てるで、集まってや！",
+     "無理せんと、ゆっくりやってこな",
+     "よう頑張っとるやん、えらいで"
+    ]
+   },
+   "specialty": "leader",
+   "castleLvCurve": [
+    [
+     0,
+     22
+    ],
+    [
+     30,
+     27
+    ],
+    [
+     90,
+     30
+    ]
+   ],
+   "spendingHabit": 80,
+   "favorThresholds": [
+    12,
+    40,
+    90,
+    160
+   ],
+   "nicknameSuffix": "はん",
+   "troopTier": 3
+  },
+  {
+   "id": "marcus",
+   "displayName": "Marcus_DE",
+   "rank": 4,
+   "vipLv": 11,
+   "region": "de",
+   "activeHours": [
+    {
+     "start": 5,
+     "end": 10
+    }
+   ],
+   "personality": {
+    "extraversion": 600,
+    "caring": 350,
+    "aggression": 950,
+    "meticulous": 450,
+    "humor": 300
+   },
+   "speechStyle": {
+    "endings": [
+     "だぜ",
+     "ぞ",
+     "な"
+    ],
+    "emojiPermille": 150,
+    "punctuation": "!",
+    "tilde": false,
+    "samples": [
+     "Good morning、今日は砦を落とすぞ",
+     "Rally 立てた、Join してくれ",
+     "Scout の情報が足りない、頼めるか？",
+     "Nice job、その調子だ",
+     "Attack は Timing が命だぜ"
+    ]
+   },
+   "specialty": "war",
+   "castleLvCurve": [
+    [
+     0,
+     24
+    ],
+    [
+     30,
+     28
+    ],
+    [
+     90,
+     30
+    ]
+   ],
+   "spendingHabit": 120,
+   "favorThresholds": [
+    15,
+    45,
+    100,
+    180
+   ],
+   "nicknameSuffix": "-san",
+   "troopTier": 4
+  },
+  {
+   "id": "ponzu",
+   "displayName": "ぽんず",
+   "rank": 2,
+   "vipLv": 1,
+   "region": "jp",
+   "activeHours": [
+    {
+     "start": 16,
+     "end": 24
+    }
+   ],
+   "personality": {
+    "extraversion": 900,
+    "caring": 600,
+    "aggression": 100,
+    "meticulous": 150,
+    "humor": 650
+   },
+   "speechStyle": {
+    "endings": [
+     "です",
+     "ですぅ",
+     "かな？",
+     "ます"
+    ],
+    "emojiPermille": 600,
+    "punctuation": "！！",
+    "tilde": false,
+    "samples": [
+     "あの、これってどうやるんですか？",
+     "資源ください……お願いします！",
+     "ありがとうございます！！本当に助かります！",
+     "また質問してもいいですか？",
+     "わぁ、すごいですね！"
+    ]
+   },
+   "specialty": "newbie",
+   "castleLvCurve": [
+    [
+     0,
+     6
+    ],
+    [
+     30,
+     12
+    ],
+    [
+     90,
+     18
+    ]
+   ],
+   "spendingHabit": 10,
+   "favorThresholds": [
+    8,
+    25,
+    60,
+    120
+   ],
+   "nicknameSuffix": "先輩",
+   "troopTier": 1
+  },
+  {
+   "id": "sato",
+   "displayName": "Sato_Farm",
+   "rank": 3,
+   "vipLv": 4,
+   "region": "jp",
+   "activeHours": [
+    {
+     "start": 6,
+     "end": 9
+    },
+    {
+     "start": 12,
+     "end": 14
+    },
+    {
+     "start": 21,
+     "end": 23
+    }
+   ],
+   "personality": {
+    "extraversion": 300,
+    "caring": 550,
+    "aggression": 150,
+    "meticulous": 850,
+    "humor": 200
+   },
+   "speechStyle": {
+    "endings": [
+     "です",
+     "ます",
+     "だね"
+    ],
+    "emojiPermille": 50,
+    "punctuation": "。",
+    "tilde": false,
+    "samples": [
+     "本日の採集、順調です。",
+     "石が余っています。必要なら言ってください。",
+     "あの森は効率が良いですよ。",
+     "ヘルプありがとうございます。",
+     "淡々とやっていきます。"
+    ]
+   },
+   "specialty": "gather",
+   "castleLvCurve": [
+    [
+     0,
+     16
+    ],
+    [
+     30,
+     21
+    ],
+    [
+     90,
+     26
+    ]
+   ],
+   "spendingHabit": 30,
+   "favorThresholds": [
+    12,
+    40,
+    90,
+    160
+   ],
+   "nicknameSuffix": "さん",
+   "troopTier": 2
+  },
+  {
+   "id": "lin",
+   "displayName": "Lin",
+   "rank": 4,
+   "vipLv": 7,
+   "region": "tw",
+   "activeHours": [
+    {
+     "start": 9,
+     "end": 13
+    },
+    {
+     "start": 19,
+     "end": 22
+    }
+   ],
+   "personality": {
+    "extraversion": 450,
+    "caring": 400,
+    "aggression": 300,
+    "meticulous": 950,
+    "humor": 350
+   },
+   "speechStyle": {
+    "endings": [
+     "ですね",
+     "と思います",
+     "ですよ"
+    ],
+    "emojiPermille": 100,
+    "punctuation": "。",
+    "tilde": false,
+    "samples": [
+     "研究は軍事の前に経済を上げると効率が良いですよ。",
+     "戦力の伸びを計算してみました。",
+     "ランキング上位との差は約 8% です。",
+     "ヘルプ、助かります。",
+     "データ上は採集バフが優先です。"
+    ]
+   },
+   "specialty": "analyst",
+   "castleLvCurve": [
+    [
+     0,
+     21
+    ],
+    [
+     30,
+     26
+    ],
+    [
+     90,
+     30
+    ]
+   ],
+   "spendingHabit": 60,
+   "favorThresholds": [
+    14,
+    42,
+    95,
+    170
+   ],
+   "nicknameSuffix": "さん",
+   "troopTier": 3
+  },
+  {
+   "id": "johnny",
+   "displayName": "ジョニー",
+   "rank": 2,
+   "vipLv": 13,
+   "region": "us",
+   "activeHours": [
+    {
+     "start": 12,
+     "end": 16
+    },
+    {
+     "start": 22,
+     "end": 26
+    }
+   ],
+   "personality": {
+    "extraversion": 950,
+    "caring": 400,
+    "aggression": 350,
+    "meticulous": 150,
+    "humor": 900
+   },
+   "speechStyle": {
+    "endings": [
+     "だよ！",
+     "でしょ！",
+     "さ！"
+    ],
+    "emojiPermille": 750,
+    "punctuation": "！！",
+    "tilde": true,
+    "samples": [
+     "新しいパック買っちゃった！最高！",
+     "ガチャ引いたら神引きだったよ！",
+     "みんなにギフト配るよ〜！",
+     "課金は正義でしょ！",
+     "ヘルプ感謝！またよろしく！"
+    ]
+   },
+   "specialty": "spender",
+   "castleLvCurve": [
+    [
+     0,
+     20
+    ],
+    [
+     30,
+     25
+    ],
+    [
+     90,
+     29
+    ]
+   ],
+   "spendingHabit": 400,
+   "favorThresholds": [
+    10,
+    30,
+    80,
+    150
+   ],
+   "nicknameSuffix": "ちゃん",
+   "troopTier": 2
+  },
+  {
+   "id": "yuki",
+   "displayName": "Yuki",
+   "rank": 3,
+   "vipLv": 5,
+   "region": "jp",
+   "activeHours": [
+    {
+     "start": 10,
+     "end": 12
+    }
+   ],
+   "personality": {
+    "extraversion": 500,
+    "caring": 800,
+    "aggression": 100,
+    "meticulous": 400,
+    "humor": 450
+   },
+   "speechStyle": {
+    "endings": [
+     "です",
+     "ね",
+     "よ"
+    ],
+    "emojiPermille": 450,
+    "punctuation": "…",
+    "tilde": false,
+    "samples": [
+     "久しぶりです！みんな元気でしたか？",
+     "ヘルプ、ありがとうございます…！",
+     "ちょっとログインが空いちゃいました、ごめんなさい。",
+     "今日はゆっくりできそうです。",
+     "また頑張りますね。"
+    ]
+   },
+   "specialty": "returner",
+   "castleLvCurve": [
+    [
+     0,
+     18
+    ],
+    [
+     30,
+     22
+    ],
+    [
+     90,
+     26
+    ]
+   ],
+   "spendingHabit": 20,
+   "favorThresholds": [
+    8,
+    25,
+    60,
+    120
+   ],
+   "nicknameSuffix": "さん",
+   "troopTier": 2
+  },
+  {
+   "id": "gen",
+   "displayName": "老兵ゲン",
+   "rank": 3,
+   "vipLv": 6,
+   "region": "jp",
+   "activeHours": [
+    {
+     "start": 4,
+     "end": 7
+    },
+    {
+     "start": 18,
+     "end": 21
+    }
+   ],
+   "personality": {
+    "extraversion": 150,
+    "caring": 500,
+    "aggression": 450,
+    "meticulous": 700,
+    "humor": 100
+   },
+   "speechStyle": {
+    "endings": [
+     "だ",
+     "ぞ",
+     "のう"
+    ],
+    "emojiPermille": 0,
+    "punctuation": "。",
+    "tilde": false,
+    "samples": [
+     "焦るな。城は一日にして成らず。",
+     "備えを怠るな。",
+     "若いの、よくやっておる。",
+     "ふむ、悪くない。",
+     "昔の戦ではな……いや、よそう。"
+    ]
+   },
+   "specialty": "veteran",
+   "castleLvCurve": [
+    [
+     0,
+     25
+    ],
+    [
+     30,
+     28
+    ],
+    [
+     90,
+     30
+    ]
+   ],
+   "spendingHabit": 15,
+   "favorThresholds": [
+    20,
+    55,
+    110,
+    200
+   ],
+   "nicknameSuffix": "の",
+   "troopTier": 4
+  }
+ ],
+ "fillerMembers": [
+  {
+   "name": "Aoba",
+   "castleLv": 8,
+   "lastLoginHoursAgo": 1
+  },
+  {
+   "name": "Rin_88",
+   "castleLv": 15,
+   "lastLoginHoursAgo": 6
+  },
+  {
+   "name": "TakeBear",
+   "castleLv": 22,
+   "lastLoginHoursAgo": 11
+  },
+  {
+   "name": "Mizuki",
+   "castleLv": 12,
+   "lastLoginHoursAgo": 16
+  },
+  {
+   "name": "Hayato_X",
+   "castleLv": 19,
+   "lastLoginHoursAgo": 21
+  },
+  {
+   "name": "Sora",
+   "castleLv": 9,
+   "lastLoginHoursAgo": 26
+  },
+  {
+   "name": "Nanami",
+   "castleLv": 16,
+   "lastLoginHoursAgo": 31
+  },
+  {
+   "name": "KuroNeko",
+   "castleLv": 23,
+   "lastLoginHoursAgo": 36
+  },
+  {
+   "name": "Daichi",
+   "castleLv": 13,
+   "lastLoginHoursAgo": 41
+  },
+  {
+   "name": "Emi_Emi",
+   "castleLv": 20,
+   "lastLoginHoursAgo": 46
+  },
+  {
+   "name": "Toru",
+   "castleLv": 10,
+   "lastLoginHoursAgo": 51
+  },
+  {
+   "name": "Haruka",
+   "castleLv": 17,
+   "lastLoginHoursAgo": 56
+  },
+  {
+   "name": "Pepper",
+   "castleLv": 24,
+   "lastLoginHoursAgo": 61
+  },
+  {
+   "name": "Ryo_Z",
+   "castleLv": 14,
+   "lastLoginHoursAgo": 66
+  },
+  {
+   "name": "Mei",
+   "castleLv": 21,
+   "lastLoginHoursAgo": 1
+  },
+  {
+   "name": "BlueFox",
+   "castleLv": 11,
+   "lastLoginHoursAgo": 6
+  },
+  {
+   "name": "Kenta",
+   "castleLv": 18,
+   "lastLoginHoursAgo": 11
+  },
+  {
+   "name": "Yuzu",
+   "castleLv": 8,
+   "lastLoginHoursAgo": 16
+  },
+  {
+   "name": "Shin",
+   "castleLv": 15,
+   "lastLoginHoursAgo": 21
+  },
+  {
+   "name": "Noa",
+   "castleLv": 22,
+   "lastLoginHoursAgo": 26
+  },
+  {
+   "name": "Tomo",
+   "castleLv": 12,
+   "lastLoginHoursAgo": 31
+  },
+  {
+   "name": "Hikari",
+   "castleLv": 19,
+   "lastLoginHoursAgo": 36
+  }
+ ],
+ "worldNpcNames": [
+  "Aria_JP",
+  "Boris",
+  "Chen_Wei",
+  "DarkLord88",
+  "Elena",
+  "Frost_K",
+  "GrandMaster",
+  "Hiro_T"
+ ],
+ "allianceName": "Crown Wardens",
+ "allianceTag": "CRW"
+}

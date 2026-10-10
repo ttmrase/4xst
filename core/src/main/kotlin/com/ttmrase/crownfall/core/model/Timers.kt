@@ -23,6 +23,10 @@ data class TimerJob(
     val researchId: String? = null,
     /** HEAL: 治療中の兵（兵種 ID → 数）。 */
     val healBatch: Map<String, Long> = emptyMap(),
+    /** ヘルプを求めた（同盟メンバーがヘルプしてくれる）。 */
+    val helpRequested: Boolean = false,
+    /** 受けたヘルプの回数。 */
+    val helpCount: Int = 0,
 )
 
 /** 期限付きバフの種類。 */

@@ -1,6 +1,7 @@
 package com.ttmrase.crownfall.core.sim
 
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.model.AllianceState
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Resources
@@ -13,6 +14,10 @@ data class OfflineSummary(
     val produced: Resources,
     val completedJobs: List<TimerJob>,
     val levelUps: Int,
+    /** 不在中に AI メンバーがヘルプしてくれた回数。 */
+    val helpReceived: Int = 0,
+    /** 不在中に溜まったチャットのきっかけの数。 */
+    val chatsReceived: Int = 0,
 )
 
 /** [OfflineCatchUp.run] の結果。 */
@@ -62,6 +67,8 @@ object OfflineCatchUp {
                 produced = produced,
                 completedJobs = events.filterIsInstance<GameEvent.TimerCompleted>().map { it.job },
                 levelUps = events.count { it is GameEvent.BuildingLevelUp },
+                helpReceived = (s.alliance.helpReceivedTotal - state.alliance.helpReceivedTotal).toInt(),
+                chatsReceived = (s.alliance.chatQueuedTotal - state.alliance.chatQueuedTotal).toInt(),
             )
         return OfflineResult(s, summary, events)
     }
@@ -89,10 +96,22 @@ object OfflineCatchUp {
                         phaseEndEpochSec = it.phaseEndEpochSec + sec,
                     )
                 },
+            alliance = shiftAlliance(s.alliance, sec),
             map =
                 s.map.copy(
                     nextRefreshEpochSec = if (s.map.nextRefreshEpochSec > 0) s.map.nextRefreshEpochSec + sec else 0,
                     nextRaidEpochSec = if (s.map.nextRaidEpochSec > 0) s.map.nextRaidEpochSec + sec else 0,
                 ),
+        )
+
+    private fun shiftAlliance(
+        a: AllianceState,
+        sec: Long,
+    ): AllianceState =
+        a.copy(
+            requests = a.requests.map { it.copy(expiresEpochSec = it.expiresEpochSec + sec) },
+            helpPool = a.helpPool.map { it.copy(expiresEpochSec = it.expiresEpochSec + sec) },
+            gifts = a.gifts.map { it.copy(expiresEpochSec = it.expiresEpochSec + sec) },
+            rallies = a.rallies.map { it.copy(joinDeadlineEpochSec = it.joinDeadlineEpochSec + sec) },
         )
 }
