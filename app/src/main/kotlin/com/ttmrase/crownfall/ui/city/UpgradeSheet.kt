@@ -82,6 +82,7 @@ fun UpgradeSheet(
                 tutorialBuildStep = tutorialBuildStep,
                 onUpgrade = onUpgrade,
                 onSpeedup = onSpeedup,
+                onResourceShortage = onResourceShortage,
                 onUnlockBuilder = onUnlockBuilder,
             )
         }
@@ -156,6 +157,7 @@ private fun ActionSection(
     tutorialBuildStep: Boolean,
     onUpgrade: () -> Unit,
     onSpeedup: (Long) -> Unit,
+    onResourceShortage: (Resources) -> Unit,
     onUnlockBuilder: () -> Unit,
 ) {
     val job = preview.upgrading
