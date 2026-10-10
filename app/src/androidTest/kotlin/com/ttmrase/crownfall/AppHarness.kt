@@ -12,6 +12,7 @@ import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.data.Startup
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.debug.DebugStateSeeder
+import com.ttmrase.crownfall.notify.NotificationPrefs
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -37,6 +38,8 @@ class AppHarness(private val rule: ComposeTestRule) {
     }
 
     fun seed(preset: DebugStateSeeder.Preset) {
+        // チュートリアル完了のシードで通知権限のシステムダイアログが出て、以降のテストがフォーカスを失うのを防ぐ
+        NotificationPrefs(context).permissionAsked = true
         runBlocking { DebugStateSeeder.seed(app.container, preset) }
     }
 
