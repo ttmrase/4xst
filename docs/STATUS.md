@@ -22,7 +22,7 @@
 | --- | --- | --- | --- |
 | README の細部修正（台帳の項目、頻度の表記、LAN の許可範囲）、Gemini モデルのヒント文言 | Implementer | ✅ 完了 | 403b52a |
 | 実機でのスモークチェック（docs/qa/SMOKE_CHECKLIST.md） | ユーザー | 未実施 | - |
-| T9.1（オンデバイス LLM）・T9.2a（:core の通知計画）・T9.2b（:app の配送と演出） | Implementer | 発行済み | - |
+| T9.1（オンデバイス LLM）・T9.2a（:core の通知計画）・T9.2b（:app の配送と演出） | Implementer | Director Approve・要修正 6 件（タイムアウト、転送の例外、再開の無限失敗、BOOT の二重予約、不正なモデル、先読みの対象）待ち | 6857b81〜7d5ed68 |
 | M9 の QA・SMOKE_CHECKLIST への M9 の章の追加・CI での APK サイズの出力 | Debugger | 依頼済み | - |
 
 ## 直近の決定事項

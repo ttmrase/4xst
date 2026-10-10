@@ -283,4 +283,10 @@ jobs:
   - 強度 LOW / STANDARD / MASS（既定 MASS）、1 時間あたりの上限（襲撃は対象外）、まとめ通知、おやすみ時間（既定 OFF、襲撃は例外）。いずれも notification_rules.json と `NotificationPolicy`（純関数）で決める。
   - 配送: 時刻精度が要るものは exact alarm（13 以降は USE_EXACT_ALARM。サイドロード専用のため宣言する。12 は SCHEDULE_EXACT_ALARM）。許可が無ければ inexact、それ以外は WorkManager。BOOT_COMPLETED で予約を復元する。
 - release の本格署名は不要（ユーザー決定）。debug 鍵署名の release APK で確定。Secrets の経路は任意の補足として残す。
+- M9 で確定した実装上の判断:
+  - LiteRT-LM 0.18.0 を採用した。その AAR が Kotlin 2.4 のメタデータを必要とするため、**Kotlin 2.1.21 → 2.4.0、kover 0.9.1 → 0.9.11** に更新した（§1 と §15 の版は、これで置き換える）。
+  - abiFilters は arm64-v8a のみで、APK は debug 約 36.5MB / release 約 32.5MB。
+  - litertlm に生成のキャンセル API が無いので、生成中の新しい要求は即座に失敗させ（fail-fast）、タイムアウト時は呼び出し側だけ先に戻る（M9 REVIEW）。
+  - 襲撃の段階（notification_rules.json）: 偵察された 12h 前 / Watchtower Lv6、進軍中 4h 前 / Lv4、1 時間前 / Lv2、15 分前 / Lv1、開始と結果 / Lv0。
+  - 強度ごとの 1 時間あたりの上限: LOW 2、STANDARD 6、MASS 12（襲撃は対象外）。先読みは 48h（ゲーム内のイベントはオフライン上限の範囲内だけ）。
 
