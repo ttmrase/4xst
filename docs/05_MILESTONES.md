@@ -70,8 +70,8 @@ DoD: CI の APK で Castle Lv1→5 が遊べる。Debugger がエミュレータ
 | T5.1 | `personas.json`、`AllianceScheduler`（活動時間帯・確率・オフライン生成）、好感度 |
 | T5.2 | ヘルプ（送受）、寄付と同盟テック、同盟ショップ、ラリー主催（AI）と参加、同盟ギフト |
 | T5.3 | `:ai` `ScriptedProvider` + `templates.json`（全イベント × 8 ペルソナ × 5 本以上）+ `StyleApplier` + 直近回避 |
-| T5.4 | `:ai` `GeminiProvider`、`OpenAiCompatProvider`、`AiRouter`（優先順・タイムアウト・予算・フォールバック）、`PromptContextBuilder` |
-| T5.5 | UI: 同盟画面、チャット画面（タブ、タイピング表示、1 行ずつ放出）、設定（プロバイダ順・キー・base URL・モデル名・予算、使用回数表示） |
+| T5.4 | `:ai` `GeminiProvider`、`OpenAiCompatProvider`、`AiRouter`（優先順・タイムアウト・予算・フォールバック。**既定順は Gemini → Scripted**、他プロバイダは設定で追加する任意扱い［ユーザー確定］）、`PromptContextBuilder` |
+| T5.5 | UI: 同盟画面、チャット画面（タブ、タイピング表示、1 行ずつ放出）、設定（プロバイダ順・キー・base URL・モデル名・予算、使用回数表示。**初期選択は Gemini**） |
 | T5.6 | ぽんずの「質問 3 択」ミニイベント、Yuki の過去行動参照、好感度マイルストーン DM |
 テスト: Scripted のみで全イベントに応答がある、MockWebServer で 200/429/timeout/壊れ JSON、予算超過でフォールバック。
 DoD: キー無しで完全動作。キー有りは Debugger が設定画面経路をコードレビュー（実キーは使わない）。
