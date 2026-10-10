@@ -100,7 +100,7 @@ object Actions {
         return ActionResult.Success(state.copy(secondBuilderUntilEpochSec = satAdd(base, durationSec)))
     }
 
-    /** 資源を加算する（報酬・購入。上限を超えてよい。飽和）。 */
+    /** 資源を加算する（報酬・購入。上限を超えてよい。飽和）。負の成分は R5（負数を作らない）のため拒否する。 */
     fun addResources(
         state: GameState,
         amount: Resources,
