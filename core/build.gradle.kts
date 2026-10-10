@@ -46,6 +46,7 @@ kover {
                     "com.ttmrase.crownfall.core.session",
                     "com.ttmrase.crownfall.core.buff",
                     "com.ttmrase.crownfall.core.research",
+                    "com.ttmrase.crownfall.core.military",
                 )
             }
         }

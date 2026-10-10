@@ -3,6 +3,7 @@ package com.ttmrase.crownfall.core.sim
 import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.buff.BuffSet
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.military.Military
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
@@ -23,6 +24,8 @@ data class TickResult(val state: GameState, val events: List<GameEvent>)
  */
 object Simulation {
     private const val SECONDS_PER_HOUR = 3600L
+    private const val FULL = 0
+    private const val DEPLETED = 1
 
     /** [state] を [dtSec] 秒進める。dt = 0 は期限を過ぎたジョブの確定処理だけ。 */
     fun tick(
@@ -111,6 +114,7 @@ object Simulation {
             val dueIds = due.map { it.id }.toSet()
             var slots = s.slots
             var research = s.research
+            var troops = s.troops
             for (job in due) {
                 val slotId = job.slotId
                 val level = job.targetLevel
@@ -126,20 +130,37 @@ object Simulation {
                             research = research + (job.researchId to level)
                             events.add(GameEvent.ResearchCompleted(job.researchId, level))
                         }
-                    else -> Unit
+                    TimerKind.TRAIN ->
+                        if (job.troopId != null) {
+                            troops = troops + (job.troopId to (troops[job.troopId] ?: 0L) + job.count)
+                            events.add(GameEvent.TroopsTrained(job.troopId, job.count))
+                        }
+                    TimerKind.HEAL -> {
+                        job.healBatch.forEach { (id, n) -> troops = troops + (id to (troops[id] ?: 0L) + n) }
+                        events.add(GameEvent.TroopsHealed(job.healBatch))
+                    }
                 }
                 events.add(GameEvent.TimerCompleted(job))
             }
-            s = s.copy(slots = slots, research = research, timers = s.timers.filter { it.id !in dueIds })
+            s =
+                s.copy(
+                    slots = slots,
+                    research = research,
+                    troops = troops,
+                    timers = s.timers.filter { it.id !in dueIds },
+                )
             s = syncStorageFlags(s, data)
         }
         return s
     }
 
     /**
-     * セグメント内の生産。cap に達したら cap で止め、端数の繰り越しもリセットする。
-     * StorageFull は「cap に達した正確な時刻」の順（同時刻は ResourceType 順）で出す。これにより
-     * 分割の仕方に関係なく events の並びが一致する（R3）。すでに満杯の資源は区間の開始時刻で出す。
+     * セグメント内の生産と維持費。Food は「生産 − 維持費」の正味レートで増減する。
+     * - 正味が 0 以上: cap に達したら cap で止め、端数の繰り越しもリセットする（StorageFull）。
+     * - 正味が負: 0 に向かって減り、0 で止めて端数もリセットする（FoodDepleted）。
+     * 到達イベントは「到達した正確な時刻」の順（同時刻は資源順）で出す。これにより分割の仕方に関係なく
+     * events の並びが一致する（R3）。すでに満杯・枯渇している資源は区間の開始時刻で出す。
+     * 端数の繰り越しは floorDiv / floorMod で符号付きでも一貫させる。
      */
     private fun produce(
         state: GameState,
@@ -150,43 +171,76 @@ object Simulation {
         if (seconds <= 0) return state
         val cap = storageCap(state, data)
         val buffs = BuffAggregator.compute(state, data)
+        val upkeep = Military.upkeepPerHour(state, data, buffs)
         var res = state.resources
         var rem = state.productionRemainder
         var flags = state.storageFullFlags
-        val reached = ArrayList<Pair<Long, ResourceType>>()
+        var depleted = state.foodDepleted
+        val reached = ArrayList<Reached>()
         for (type in ResourceType.entries) {
             val have = res[type]
             if (have < cap && type in flags) flags = flags - type
-            if (have >= cap) {
-                rem = rem.with(type, 0)
-                if (cap > 0 && type !in flags) {
-                    flags = flags + type
-                    reached.add(state.nowEpochSec to type)
-                }
-                continue
-            }
-            val rate = hourlyRate(state, type, data, buffs)
-            val total = satAdd(satMul(rate, seconds), rem[type])
-            val produced = total / SECONDS_PER_HOUR
-            if (satAdd(have, produced) >= cap) {
-                val needTotal = satMul(cap - have, SECONDS_PER_HOUR) - rem[type]
-                val secs = (needTotal - 1) / rate + 1
-                reached.add(satAdd(state.nowEpochSec, secs) to type)
+            if (type == ResourceType.FOOD && have > 0 && depleted) depleted = false
+            if (cap > 0 && have >= cap && type !in flags) {
                 flags = flags + type
-                res = res.with(type, cap)
-                rem = rem.with(type, 0)
+                reached.add(Reached(state.nowEpochSec, type, FULL, GameEvent.StorageFull(type)))
+            }
+            val gross = hourlyRate(state, type, data, buffs)
+            val net = if (type == ResourceType.FOOD) gross - upkeep else gross
+            if (net >= 0) {
+                if (have >= cap) {
+                    rem = rem.with(type, 0)
+                    continue
+                }
+                val total = satAdd(satMul(net, seconds), rem[type])
+                val produced = total / SECONDS_PER_HOUR
+                if (satAdd(have, produced) >= cap) {
+                    val needTotal = satMul(cap - have, SECONDS_PER_HOUR) - rem[type]
+                    val secs = (needTotal - 1) / net + 1
+                    reached.add(Reached(satAdd(state.nowEpochSec, secs), type, FULL, GameEvent.StorageFull(type)))
+                    flags = flags + type
+                    res = res.with(type, cap)
+                    rem = rem.with(type, 0)
+                } else {
+                    res = res.with(type, have + produced)
+                    rem = rem.with(type, total % SECONDS_PER_HOUR)
+                }
             } else {
-                res = res.with(type, have + produced)
-                rem = rem.with(type, total % SECONDS_PER_HOUR)
+                val total = satAdd(satMul(net, seconds), rem[type])
+                val delta = Math.floorDiv(total, SECONDS_PER_HOUR)
+                if (have + delta <= 0) {
+                    // floorDiv(net*secs + rem, 3600) <= -have を最初に満たす秒（floor のせいで「ちょうど 0」より早く 0 になる）
+                    val secs =
+                        if (have == 0L) {
+                            0L
+                        } else {
+                            (satAdd(satMul(have, SECONDS_PER_HOUR), rem[type]) - (SECONDS_PER_HOUR - 1) - 1) / -net + 1
+                        }
+                    if (!depleted) {
+                        depleted = true
+                        reached.add(Reached(satAdd(state.nowEpochSec, secs), type, DEPLETED, GameEvent.FoodDepleted))
+                    }
+                    res = res.with(type, 0)
+                    rem = rem.with(type, 0)
+                } else {
+                    res = res.with(type, have + delta)
+                    rem = rem.with(type, Math.floorMod(total, SECONDS_PER_HOUR))
+                }
             }
         }
-        reached.sortedWith(
-            compareBy({
-                it.first
-            }, { it.second.ordinal }),
-        ).forEach { events.add(GameEvent.StorageFull(it.second)) }
-        return state.copy(resources = res, productionRemainder = rem, storageFullFlags = flags)
+        reached.sortedWith(compareBy({ it.time }, { it.type.ordinal }, { it.order })).forEach { events.add(it.event) }
+        return syncStorageFlags(
+            state.copy(resources = res, productionRemainder = rem, storageFullFlags = flags, foodDepleted = depleted),
+            data,
+        )
     }
+
+    private class Reached(
+        val time: Long,
+        val type: ResourceType,
+        val order: Int,
+        val event: GameEvent,
+    )
 
     /** 上限を下回った資源の StorageFull フラグを戻す（イベントは出さない）。 */
     internal fun syncStorageFlags(
@@ -195,6 +249,11 @@ object Simulation {
     ): GameState {
         val cap = storageCap(state, data)
         val flags = state.storageFullFlags.filterTo(HashSet()) { state.resources[it] >= cap }
-        return if (flags.size == state.storageFullFlags.size) state else state.copy(storageFullFlags = flags)
+        val depleted = state.foodDepleted && state.resources.food <= 0
+        return if (flags.size == state.storageFullFlags.size && depleted == state.foodDepleted) {
+            state
+        } else {
+            state.copy(storageFullFlags = flags, foodDepleted = depleted)
+        }
     }
 }

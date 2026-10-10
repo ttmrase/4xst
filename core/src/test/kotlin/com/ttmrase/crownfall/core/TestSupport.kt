@@ -49,6 +49,17 @@ object TestSupport {
         return s.copy(slots = s.slots.map { it.copy(level = levelOf(it)) })
     }
 
+    /** [type] の [index] 番目のスロットを [level] にした状態。 */
+    fun withLevel(
+        state: GameState,
+        type: BuildingType,
+        level: Int,
+        index: Int = 0,
+    ): GameState {
+        val id = slotOf(state, type, index)
+        return state.copy(slots = state.slots.map { if (it.slotId == id) it.copy(level = level) else it })
+    }
+
     /** Academy を [level] にした状態。 */
     fun withAcademy(
         state: GameState,

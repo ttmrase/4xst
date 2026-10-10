@@ -7,7 +7,9 @@ import com.ttmrase.crownfall.core.data.ResearchPrereq
 import com.ttmrase.crownfall.core.economy.CostCheck
 import com.ttmrase.crownfall.core.economy.Costs
 import com.ttmrase.crownfall.core.economy.GemSkip
+import com.ttmrase.crownfall.core.military.Military
 import com.ttmrase.crownfall.core.model.Boost
+import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Prereq
@@ -41,6 +43,9 @@ sealed interface ActionFailure {
     data class NotEnoughGems(val missing: Long) : ActionFailure
 
     data object InvalidArgument : ActionFailure
+
+    /** 兵種の訓練建物の Lv が足りない。[requiredLevel] は必要な建物 Lv。 */
+    data class TroopLocked(val requiredLevel: Int) : ActionFailure
 
     data object NodeNotFound : ActionFailure
 
@@ -140,6 +145,100 @@ object Actions {
                 researchId = nodeId,
             )
         val next = state.copy(resources = rest, timers = state.timers + job, nextJobId = state.nextJobId + 1)
+        return ActionResult.Success(Simulation.syncStorageFlags(next, data))
+    }
+
+    /**
+     * 兵 [troopId] を [count] 体訓練する。訓練は訓練建物ごとに 1 本。コストは即時に差し引く。
+     * 検査順: 不正な引数 → TroopLocked → 上限超過（InvalidArgument）→ QueueFull → NotEnoughResources。
+     */
+    fun startTraining(
+        state: GameState,
+        troopId: String,
+        count: Long,
+        data: GameData,
+    ): ActionResult {
+        val troop = data.troops[troopId] ?: return fail(ActionFailure.InvalidArgument)
+        if (count <= 0) return fail(ActionFailure.InvalidArgument)
+        val slot = Military.trainingSlot(state, troop)
+        if (slot == null || slot.level < troop.unlockBuildingLevel) {
+            return fail(ActionFailure.TroopLocked(troop.unlockBuildingLevel))
+        }
+        if (count > Military.trainCapacity(state, troop, data)) return fail(ActionFailure.InvalidArgument)
+        if (state.timers.any { it.kind == TimerKind.TRAIN && it.slotId == slot.slotId }) {
+            return fail(
+                ActionFailure.QueueFull,
+            )
+        }
+        val cost = Military.trainingCost(troop, count)
+        val rest =
+            when (val check = Costs.check(state.resources, cost)) {
+                is CostCheck.Missing -> return fail(ActionFailure.NotEnoughResources(check.missing))
+                CostCheck.Ok -> state.resources.minusOrNull(cost) ?: return fail(ActionFailure.InvalidArgument)
+            }
+        val duration =
+            Buffs.speedSeconds(
+                Military.baseTrainSeconds(troop, count),
+                BuffAggregator.compute(state, data)[BuffKey.TRAIN_SPEED],
+            )
+        val job =
+            TimerJob(
+                id = state.nextJobId,
+                kind = TimerKind.TRAIN,
+                slotId = slot.slotId,
+                startEpochSec = state.nowEpochSec,
+                endEpochSec = satAdd(state.nowEpochSec, duration),
+                troopId = troopId,
+                count = count,
+            )
+        val next = state.copy(resources = rest, timers = state.timers + job, nextJobId = state.nextJobId + 1)
+        return ActionResult.Success(Simulation.syncStorageFlags(next, data))
+    }
+
+    /**
+     * 負傷兵 [batch]（兵種 ID → 数）の治療を始める（Hospital の治療キューは 1 本）。負傷兵は開始時に wounded から外れ、
+     * 完了で troops へ戻る。コスト = 訓練コスト × healCostPct / 100、時間 = trainSec × healTimePct / 100 × 数。
+     */
+    fun startHeal(
+        state: GameState,
+        batch: Map<String, Long>,
+        data: GameData,
+    ): ActionResult {
+        if (batch.isEmpty() || batch.any { (id, n) -> n <= 0 || id !in data.troops || n > (state.wounded[id] ?: 0L) }) {
+            return fail(ActionFailure.InvalidArgument)
+        }
+        if (state.slots.none { it.type == BuildingType.HOSPITAL && it.level >= 1 }) {
+            return fail(ActionFailure.PrereqNotMet(listOf(Prereq(BuildingType.HOSPITAL, 1))))
+        }
+        if (state.timers.any { it.kind == TimerKind.HEAL }) return fail(ActionFailure.QueueFull)
+        val cost = Military.healCost(batch, data)
+        val rest =
+            when (val check = Costs.check(state.resources, cost)) {
+                is CostCheck.Missing -> return fail(ActionFailure.NotEnoughResources(check.missing))
+                CostCheck.Ok -> state.resources.minusOrNull(cost) ?: return fail(ActionFailure.InvalidArgument)
+            }
+        val duration =
+            Buffs.speedSeconds(
+                Military.baseHealSeconds(batch, data),
+                BuffAggregator.compute(state, data)[BuffKey.HEAL_SPEED],
+            )
+        val sorted = batch.toSortedMap().toMap()
+        val job =
+            TimerJob(
+                id = state.nextJobId,
+                kind = TimerKind.HEAL,
+                startEpochSec = state.nowEpochSec,
+                endEpochSec = satAdd(state.nowEpochSec, duration),
+                healBatch = sorted,
+            )
+        val wounded = state.wounded.mapValues { (id, n) -> n - (sorted[id] ?: 0L) }.filterValues { it > 0 }
+        val next =
+            state.copy(
+                resources = rest,
+                wounded = wounded,
+                timers = state.timers + job,
+                nextJobId = state.nextJobId + 1,
+            )
         return ActionResult.Success(Simulation.syncStorageFlags(next, data))
     }
 
