@@ -188,4 +188,32 @@ class QaShopTest {
         val short = OfflineCatchUp.run(pass, pass.nowEpochSec + 6 * HOUR, data)
         assertTrue(OfferEngine.active(short.state).none { it.trigger == "comeback" }, "no comeback pack after 6h")
     }
+
+    @Test
+    fun gameLogicNeverDependsOnTheLedger() {
+        val clean = base()
+        val huge =
+            com.ttmrase.crownfall.core.model.Ledger(
+                count = 9_999,
+                totalYen = 9_999_999,
+                byMonth = mapOf("2026-01" to 5_000_000L),
+                byTrigger = mapOf("login" to 5_000_000L),
+                bySku = mapOf("gems_max" to 9_000_000L),
+                folded = 4_999,
+            )
+        val heavy = clean.copy(shop = clean.shop.copy(ledger = huge))
+
+        fun script(s0: GameState): GameState {
+            var s = Actions.beginSession(s0, data).ok()
+            s = Actions.offerForGemShortage(s, 300, data).ok()
+            s = Actions.offerForShortage(s, Resources(5_000, 0, 0, 0), data).ok()
+            s = Actions.fakePurchase(s, data.offers.gemSkus.first().sku, data).ok()
+            s = Actions.exitOffer(s, data).ok()
+            return Simulation.tick(s, 3 * HOUR, data).state
+        }
+
+        fun withoutLedger(s: GameState) = s.copy(shop = s.shop.copy(ledger = com.ttmrase.crownfall.core.model.Ledger()))
+        // 台帳の中身が違っても、オファー・VIP・資源・メールなど台帳以外は完全に同じ
+        assertEquals(withoutLedger(script(clean)), withoutLedger(script(heavy)))
+    }
 }

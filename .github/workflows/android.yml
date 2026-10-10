@@ -29,13 +29,7 @@ jobs:
           .github/scripts/check-no-billing.sh :core runtimeClasspath -PwithAndroid=false
           .github/scripts/check-no-billing.sh :ai runtimeClasspath -PwithAndroid=false
       - name: No billing SDK or permission references
-        run: |
-          if grep -rIn -e "com.android.vending.BILLING" -e "com.android.billingclient" -e "play-billing" \
-            app/src gradle/libs.versions.toml build.gradle.kts settings.gradle.kts core/build.gradle.kts \
-            ai/build.gradle.kts app/build.gradle.kts; then
-            echo "::error::billing SDK or permission reference found"
-            exit 1
-          fi
+        run: .github/scripts/check-no-billing-refs.sh
       - name: No payment brand names
         run: .github/scripts/check-no-payment-brands.sh
       - name: Upload test reports
@@ -67,6 +61,8 @@ jobs:
           .github/scripts/check-no-billing.sh :app releaseRuntimeClasspath -PwithAndroid=true
       - name: Build debug APK, unit tests, lint and ktlint
         run: ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck -PwithAndroid=true
+      - name: No billing in merged manifest and APK permissions
+        run: .github/scripts/check-apk-no-billing.sh app/build/outputs/apk/debug/app-debug.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
