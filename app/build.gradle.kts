@@ -80,6 +80,8 @@ android {
 
     testOptions {
         unitTests.all { it.useJUnitPlatform() }
+        // Robolectric（NavController と Compose の回帰テスト）が manifest とリソースを使う
+        unitTests.isIncludeAndroidResources = true
     }
 }
 
@@ -111,4 +113,16 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.kotlin.test.junit5)
     testRuntimeOnly(libs.junit.platform.launcher)
+
+    // 回帰テスト用（JUnit4 の Robolectric は Vintage エンジンで JUnit5 と同居する）
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.navigation.testing)
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.androidx.test.core.ktx)
+    testImplementation(libs.androidx.test.ext.junit.ktx)
+    testImplementation(libs.androidx.test.espresso.core)
+    testRuntimeOnly(libs.junit.vintage.engine)
+    debugImplementation(libs.compose.ui.test.manifest)
 }
