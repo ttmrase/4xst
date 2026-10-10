@@ -42,6 +42,7 @@ import com.ttmrase.crownfall.core.chat.ChatKeys
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.model.ChatMessage
 import com.ttmrase.crownfall.core.session.GameSession
+import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.ui.alliance.unreadIn
@@ -50,6 +51,8 @@ import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.speakerName
+import com.ttmrase.crownfall.ui.vip.VipAvatar
+import com.ttmrase.crownfall.ui.vip.VipBadge
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -132,7 +135,13 @@ fun ChatScreen(
         ) {
             if (messages.isEmpty()) item { Text(stringResource(R.string.chat_empty)) }
             items(messages, key = { it.id }) { m ->
-                MessageRow(m, playerName, timeFormat, onAnswer)
+                val vip =
+                    if (m.speaker == "player") {
+                        VipCalculator.level(s, data)
+                    } else {
+                        data.personas.personas.firstOrNull { it.id == m.speaker }?.vipLv ?: 0
+                    }
+                MessageRow(m, playerName, vip, timeFormat, onAnswer)
             }
         }
         typingNow[channel]?.let { who ->
@@ -178,6 +187,7 @@ fun ChatScreen(
 private fun MessageRow(
     m: ChatMessage,
     playerName: String,
+    vip: Int,
     timeFormat: DateFormat,
     onAnswer: (Long, Int) -> Unit,
 ) {
@@ -198,8 +208,13 @@ private fun MessageRow(
                 ),
         ) {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    VipAvatar(name, vip)
                     Text(name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                    VipBadge(vip)
                     Text(time, style = MaterialTheme.typography.labelSmall)
                 }
                 Text(m.text)

@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.PackContents
+import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Offer
 import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.util.ShortNumber
@@ -23,6 +24,34 @@ import java.text.NumberFormat
 import java.util.Locale
 
 private const val PERCENT = 100L
+
+/** 成長ファンドの購入額を、基本のジェム SKU の換算（円/個）でジェムに直した「元が取れる」ライン。 */
+fun fundPaybackGems(data: GameData): Long {
+    val base = data.offers.gemSkus.firstOrNull() ?: return 0L
+    if (base.priceYen <= 0 || base.gems <= 0) return 0L
+    val fund = data.shopRules.growthFund.priceYen
+    return (fund * base.gems + base.priceYen - 1) / base.priceYen
+}
+
+/** これまでに受け取った成長ファンドのジェム合計。 */
+fun fundClaimedGems(
+    state: GameState,
+    data: GameData,
+): Long =
+    data.shopRules.growthFund.milestones
+        .filter { it[0].toInt() in state.shop.growthFundClaimed }
+        .sumOf { it[1] }
+
+/** 今回 [newGems] を受け取ると、はじめて「元が取れる」か。 */
+fun fundPaidBack(
+    state: GameState,
+    data: GameData,
+    newGems: Long,
+): Boolean {
+    val payback = fundPaybackGems(data)
+    val claimed = fundClaimedGems(state, data)
+    return payback > 0 && claimed < payback && claimed + newGems >= payback
+}
 
 /** 円の表示（¥ とカンマ区切り）。 */
 fun formatYen(yen: Long): String = "¥" + NumberFormat.getIntegerInstance(Locale.JAPAN).format(yen)

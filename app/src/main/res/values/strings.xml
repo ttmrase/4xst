@@ -662,6 +662,13 @@
     <string name="piggy_open">%1$s で開封</string>
     <string name="deals_note">毎日 3 枚。日付が変わると入れ替わります</string>
     <string name="deal_super_title">超特価 %1$d%% OFF！</string>
+    <string name="vip_promoted_title">VIP 昇格！</string>
+    <string name="fund_payback">元が取れた！</string>
+    <string name="fund_payback_sub">受け取ったジェムが購入額を超えました</string>
+    <string name="fund_payback_left">元が取れるまで あと %1$s ジェム</string>
+    <string name="reward_chest_title">報酬を受け取った！</string>
+    <string name="vip_chest_open_title">VIP デイリーチェスト</string>
+    <string name="pass_claim_title">月パス 今日の特典</string>
     <string name="vip_perk_gather">採集速度 +%1$s%%</string>
     <string name="vip_perk_offline">オフライン上限 +%1$d 時間</string>
     <string name="vip_perk_gem_skip">ジェムスキップ -%1$s%%</string>

@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -37,10 +38,12 @@ import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.DailyDeals
+import com.ttmrase.crownfall.core.shop.GrowthFund
 import com.ttmrase.crownfall.core.shop.OfferEngine
 import com.ttmrase.crownfall.core.shop.PiggyBank
 import com.ttmrase.crownfall.core.shop.ProductIds
 import com.ttmrase.crownfall.core.shop.ShopLogic
+import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
@@ -96,11 +99,23 @@ fun ShopScreen(
         }
     }
 
-    fun act(block: (GameState) -> ActionResult) {
+    var reward by remember { mutableStateOf<Triple<Int, PackContents, Boolean>?>(null) }
+
+    fun act(
+        shown: Triple<Int, PackContents, Boolean>? = null,
+        block: (GameState) -> ActionResult,
+    ) {
         scope.launch {
             val r = session.dispatch(block)
-            if (r is ActionResult.Failure) snackbarHostState.showReplacing(failureMessage(context, r.reason))
+            if (r is ActionResult.Failure) {
+                snackbarHostState.showReplacing(failureMessage(context, r.reason))
+            } else if (shown != null) {
+                reward = shown
+            }
         }
+    }
+    reward?.let { (titleRes, contents, paidBack) ->
+        RewardDialog(stringResource(titleRes), contents, data, paidBack) { reward = null }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -126,14 +141,30 @@ fun ShopScreen(
                 1 -> gems(s, data, onBuy)
                 2 -> packs(s, data, onBuy)
                 3 -> deals(s, data, onBuy)
-                4 -> vipTab(s, data) { act { st -> Actions.claimVipChest(st, data) } }
+                4 ->
+                    vipTab(s, data) {
+                        act(Triple(R.string.vip_chest_open_title, VipCalculator.chest(s, data), false)) { st ->
+                            Actions.claimVipChest(st, data)
+                        }
+                    }
                 else ->
                     passTab(
                         s,
                         data,
                         onBuy,
-                        onClaimPass = { act { st -> Actions.claimMonthPass(st, data) } },
-                        onClaimFund = { act { st -> Actions.claimGrowthFund(st, data) } },
+                        onClaimPass = {
+                            val daily = PackContents(gems = data.shopRules.monthPass.dailyGems.toLong())
+                            act(
+                                Triple(R.string.pass_claim_title, daily, false),
+                            ) { st -> Actions.claimMonthPass(st, data) }
+                        },
+                        onClaimFund = {
+                            val gems = GrowthFund.claimable(s, data).sumOf { it.second }
+                            val paid = fundPaidBack(s, data, gems)
+                            act(Triple(R.string.reward_chest_title, PackContents(gems = gems), paid)) { st ->
+                                Actions.claimGrowthFund(st, data)
+                            }
+                        },
                     )
             }
         }

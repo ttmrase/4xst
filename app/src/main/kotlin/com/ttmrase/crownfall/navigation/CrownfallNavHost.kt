@@ -73,6 +73,7 @@ import com.ttmrase.crownfall.ui.shop.FakeBillingSheet
 import com.ttmrase.crownfall.ui.shop.OfferPresenter
 import com.ttmrase.crownfall.ui.shop.ShopScreen
 import com.ttmrase.crownfall.ui.title.TitleScreen
+import com.ttmrase.crownfall.ui.vip.VipCinematicHost
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
@@ -384,6 +385,7 @@ fun CrownfallNavHost(
             },
             onIdle = { if (exitStage == 1) exitStage = 2 },
         )
+        VipCinematicHost(ready.session, ready.data, hold = billingId != null)
         billingId?.let { id ->
             FakeBillingSheet(
                 id,

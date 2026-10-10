@@ -186,6 +186,23 @@ internal fun LazyListScope.passTab(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
+                val payback = fundPaybackGems(data)
+                val got = fundClaimedGems(s, data)
+                if (s.shop.growthFundOwned && payback > 0) {
+                    LinearProgressIndicator(
+                        progress = { (got.toFloat() / payback).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        if (got >= payback) {
+                            stringResource(R.string.fund_payback)
+                        } else {
+                            stringResource(R.string.fund_payback_left, ShortNumber.format(payback - got))
+                        },
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
                 val claimable = GrowthFund.claimable(s, data)
                 if (s.shop.growthFundOwned) {
                     OutlinedButton(

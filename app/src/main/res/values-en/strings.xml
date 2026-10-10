@@ -662,6 +662,13 @@
     <string name="piggy_open">Open for %1$s</string>
     <string name="deals_note">3 new deals every day</string>
     <string name="deal_super_title">Super deal %1$d%% OFF!</string>
+    <string name="vip_promoted_title">VIP promotion!</string>
+    <string name="fund_payback">Paid back!</string>
+    <string name="fund_payback_sub">The gems you received now exceed the price</string>
+    <string name="fund_payback_left">%1$s more gems to pay back</string>
+    <string name="reward_chest_title">Reward claimed!</string>
+    <string name="vip_chest_open_title">VIP daily chest</string>
+    <string name="pass_claim_title">Month pass daily reward</string>
     <string name="vip_perk_gather">Gather speed +%1$s%%</string>
     <string name="vip_perk_offline">Offline cap +%1$d h</string>
     <string name="vip_perk_gem_skip">Gem skip -%1$s%%</string>
