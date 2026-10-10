@@ -122,6 +122,14 @@ jobs:
           expected_debug=83bab479344f752e592c4e6d5d1454743ca9cd16cec5cde278afb74e535396b0
           if [[ "$d" != "$expected_debug" ]]; then echo "::error::debug certificate changed: $d"; exit 1; fi
           if [[ "$SIGNED" != "release" && "$r" != "$d" ]]; then echo "::error::debug-signed release APK does not use the debug key"; exit 1; fi
+      - name: APK sizes
+        env:
+          SIGNED: ${{ steps.signing.outputs.signed }}
+        run: |
+          size() { stat -c %s "$1"; }
+          d="$(size app/build/outputs/apk/debug/app-debug.apk)"
+          r="$(size dist/crownfall-release*.apk)"
+          echo "::notice title=APK sizes::debug=$((d / 1024)) KiB, release=$((r / 1024)) KiB"
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
