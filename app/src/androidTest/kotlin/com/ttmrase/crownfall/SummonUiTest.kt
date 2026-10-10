@@ -101,10 +101,10 @@ class SummonUiTest {
         h.launchToCity()
         h.open("summon")
         h.step("summon_stages") {
-            h.waitText(h.str(R.string.summon_ten), substring = true)
+            h.waitText(h.str(R.string.summon_ten_deal), substring = true)
             // 時計を止めてからタップし、段階ごとに撮る
             rule.mainClock.autoAdvance = false
-            rule.onAllNodesWithText(h.str(R.string.summon_ten), substring = true)[0].performTouchInput { click() }
+            rule.onAllNodesWithText(h.str(R.string.summon_ten_deal), substring = true)[0].performTouchInput { click() }
             rule.mainClock.advanceTimeBy(100)
             assertTrue("the ritual (Skip) must be shown", h.hasText(h.str(R.string.summon_skip), true))
             for ((i, ms) in listOf(200L, 700L, 700L, 900L).withIndex()) {

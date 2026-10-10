@@ -10,6 +10,7 @@ import androidx.test.espresso.Espresso
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.data.Startup
+import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.debug.DebugStateSeeder
 import kotlinx.coroutines.runBlocking
 
@@ -27,6 +28,12 @@ class AppHarness(private val rule: ComposeTestRule) {
     fun state(): GameState {
         val ready = app.container.repository.startup.value as Startup.Ready
         return checkNotNull(ready.session.state.value)
+    }
+
+    /** 実行中のセッションの状態を直接書き換える（シードでは足りない細かい前提を作る）。 */
+    fun update(block: (GameState) -> GameState) {
+        val ready = app.container.repository.startup.value as Startup.Ready
+        runBlocking { ready.session.dispatch { s -> ActionResult.Success(block(s), tracked = true) } }
     }
 
     fun seed(preset: DebugStateSeeder.Preset) {
@@ -68,8 +75,10 @@ class AppHarness(private val rule: ComposeTestRule) {
     /** タイトルから「続きから」で城内へ。ログイン時のポップアップ（本日限定・お知らせ・ギフト）は閉じて、下部ナビが見える状態にする。 */
     fun launchToCity(keepOfferPopup: Boolean = false): ActivityScenario<MainActivity> {
         val scenario = ActivityScenario.launch(MainActivity::class.java)
-        click(str(R.string.title_continue))
-        waitText(str(R.string.nav_city))
+        step("launch") {
+            click(str(R.string.title_continue))
+            waitText(str(R.string.nav_city))
+        }
         if (!keepOfferPopup) clearPopups()
         return scenario
     }

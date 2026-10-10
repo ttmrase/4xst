@@ -87,6 +87,11 @@ class ShopVipUiTest {
         h.step("vip_cinematic") {
             h.click(h.str(R.string.shop_tab_gems))
             rule.waitForIdle()
+            // 次の Lv まで 1 pt 手前にしてから払う（シードの値に頼らない。celebrated は現在の Lv のまま）
+            h.update { s ->
+                val next = data.vip.levels[VipCalculator.level(s, data)]
+                s.copy(shop = s.shop.copy(vipPoints = next.pt - 1))
+            }
             val before = vipInfo(h)
             payFirstYenButton(h)
             h.waitText(h.str(R.string.billing_done), timeoutMs = 30_000)
