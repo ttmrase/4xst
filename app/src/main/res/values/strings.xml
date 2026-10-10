@@ -627,6 +627,9 @@
     <string name="offer_off">%1$d%% OFF</string>
     <string name="offer_remaining">残り %1$s</string>
     <string name="offer_stock_left">本日残り %1$d 個</string>
+    <string name="offer_one_time">1回限り！</string>
+    <string name="offer_stock_ribbon">残り %1$d 個</string>
+    <string name="offer_remaining_label">残り</string>
     <string name="offer_sold_out">売り切れ</string>
     <string name="offer_revived">復活！%1$s</string>
     <string name="billing_title">お支払い</string>

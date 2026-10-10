@@ -180,7 +180,10 @@ fun FakeBillingSheet(
                 }
                 Box(Modifier.height(16.dp))
             }
-            if (stage == Stage.Done) Confetti(Modifier.fillMaxSize())
+            if (stage == Stage.Done) {
+                Confetti(Modifier.fillMaxSize())
+                CoinShower(Modifier.fillMaxSize())
+            }
         }
     }
 }
@@ -254,6 +257,7 @@ private fun DoneBody(
     onClose: () -> Unit,
 ) {
     AnimatedCheck(color = MaterialTheme.colorScheme.primary)
+    PurchaseCelebration(view.contents)
     Text(
         stringResource(R.string.billing_done),
         style = MaterialTheme.typography.titleLarge,

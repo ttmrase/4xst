@@ -25,13 +25,11 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.OfferBadge
 import com.ttmrase.crownfall.core.data.PackContents
-import com.ttmrase.crownfall.core.util.DurationFormat
 
 private const val PULSE_SCALE = 1.05f
 private const val PULSE_MS = 650
@@ -86,9 +84,11 @@ fun OfferCard(
     extraGems: Long = 0,
     soldOut: Boolean = false,
     offOverride: Int? = null,
+    oneTime: Boolean = false,
+    foil: Boolean = true,
 ) {
     val off = offOverride ?: offPercent(priceYen, listValueYen)
-    Card(modifier = modifier.fillMaxWidth()) {
+    Card(modifier = modifier.fillMaxWidth().then(if (foil) Modifier.goldFoil() else Modifier)) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -115,35 +115,31 @@ fun OfferCard(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
+            ContentIcons(contents)
             ContentsLines(contents, data, extraGems = extraGems)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (off > 0) Ribbon(stringResource(R.string.offer_off, off))
+                if (oneTime) Ribbon(stringResource(R.string.offer_one_time))
+                stockLeft?.let { Ribbon(stringResource(R.string.offer_stock_ribbon, it)) }
+            }
             if (off > 0) {
+                RollingPrice(listYen = listValueYen, dealYen = priceYen)
+                Text(
+                    stringResource(R.string.offer_list_value, formatYen(listValueYen)),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            remainingSec?.let {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        stringResource(R.string.offer_list_value, formatYen(listValueYen)),
-                        textDecoration = TextDecoration.LineThrough,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    Text(
-                        stringResource(R.string.offer_off, off),
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                remainingSec?.let {
-                    Text(
-                        stringResource(R.string.offer_remaining, DurationFormat.clock(it)),
+                        stringResource(R.string.offer_remaining_label),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.error,
                     )
-                }
-                stockLeft?.let {
-                    Text(stringResource(R.string.offer_stock_left, it), style = MaterialTheme.typography.labelMedium)
+                    FlipCountdown(it)
                 }
             }
             Button(

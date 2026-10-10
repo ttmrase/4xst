@@ -203,6 +203,7 @@ private fun OfferPopup(
                     modifier = Modifier.align(Alignment.Center).fillMaxWidth().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
+                    HeroPortrait(heroId = offer.contents.heroShards.keys.firstOrNull())
                     Text(
                         stringResource(headline(offer)),
                         style = MaterialTheme.typography.headlineMedium,
@@ -222,6 +223,7 @@ private fun OfferPopup(
                         badge = offer.badge,
                         remainingSec = remainingUntil(offer.expiresEpochSec, nowEpochSec),
                         stockLeft = null,
+                        oneTime = true,
                         onBuy = onBuy,
                     )
                     Text(
