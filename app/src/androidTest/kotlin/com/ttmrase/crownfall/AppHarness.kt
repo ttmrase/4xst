@@ -9,8 +9,8 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ttmrase.crownfall.core.model.GameState
-import com.ttmrase.crownfall.data.Startup
 import com.ttmrase.crownfall.core.sim.ActionResult
+import com.ttmrase.crownfall.data.Startup
 import com.ttmrase.crownfall.debug.DebugStateSeeder
 import com.ttmrase.crownfall.notify.NotificationPrefs
 import kotlinx.coroutines.runBlocking
