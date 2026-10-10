@@ -1,11 +1,13 @@
 package com.ttmrase.crownfall.core.sim
 
+import com.ttmrase.crownfall.core.buff.BuffAggregator
+import com.ttmrase.crownfall.core.buff.BuffKey
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.data.ResearchPrereq
 import com.ttmrase.crownfall.core.economy.CostCheck
 import com.ttmrase.crownfall.core.economy.Costs
 import com.ttmrase.crownfall.core.economy.GemSkip
 import com.ttmrase.crownfall.core.model.Boost
-import com.ttmrase.crownfall.core.model.BoostKind
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Prereq
@@ -14,6 +16,7 @@ import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.model.satAdd
 import com.ttmrase.crownfall.core.model.satMul
+import com.ttmrase.crownfall.core.research.ResearchRules
 
 /** アクション失敗の理由（ID と数値のみ。表示文言は :app）。 */
 sealed interface ActionFailure {
@@ -38,6 +41,16 @@ sealed interface ActionFailure {
     data class NotEnoughGems(val missing: Long) : ActionFailure
 
     data object InvalidArgument : ActionFailure
+
+    data object NodeNotFound : ActionFailure
+
+    data object AlreadyResearching : ActionFailure
+
+    /** 研究の前提不足。[missingAcademy] は必要な Academy Lv（足りているなら null）、[missingNodes] は不足している先行ノード。 */
+    data class ResearchPrereqNotMet(
+        val missingAcademy: Int?,
+        val missingNodes: List<ResearchPrereq>,
+    ) : ActionFailure
 }
 
 /** アクション結果。例外は投げず、成功か失敗かで返す。 */
@@ -79,7 +92,7 @@ object Actions {
                 is CostCheck.Missing -> return fail(ActionFailure.NotEnoughResources(check.missing))
                 CostCheck.Ok -> state.resources.minusOrNull(target.cost) ?: return fail(ActionFailure.InvalidArgument)
             }
-        val duration = Buffs.buildSeconds(target.seconds, Buffs.totalBp(state.boosts, BoostKind.BUILD_SPEED))
+        val duration = Buffs.speedSeconds(target.seconds, BuffAggregator.compute(state, data)[BuffKey.BUILD_SPEED])
         val job =
             TimerJob(
                 id = state.nextJobId,
@@ -88,6 +101,43 @@ object Actions {
                 targetLevel = slot.level + 1,
                 startEpochSec = state.nowEpochSec,
                 endEpochSec = satAdd(state.nowEpochSec, duration),
+            )
+        val next = state.copy(resources = rest, timers = state.timers + job, nextJobId = state.nextJobId + 1)
+        return ActionResult.Success(Simulation.syncStorageFlags(next, data))
+    }
+
+    /** 研究ノード [nodeId] を 1 レベル上げる研究を始める（Academy の研究キューは 1 本）。 */
+    fun startResearch(
+        state: GameState,
+        nodeId: String,
+        data: GameData,
+    ): ActionResult {
+        val node = data.research[nodeId] ?: return fail(ActionFailure.NodeNotFound)
+        val current = state.research[nodeId] ?: 0
+        if (current >= node.maxLevel) return fail(ActionFailure.MaxLevel)
+        val running = state.timers.filter { it.kind == TimerKind.RESEARCH }
+        if (running.any { it.researchId == nodeId }) return fail(ActionFailure.AlreadyResearching)
+        val target = node.level(current + 1)
+        val missingNodes = ResearchRules.missingNodes(state, target)
+        val missingAcademy = ResearchRules.missingAcademy(state, target)
+        if (missingAcademy != null || missingNodes.isNotEmpty()) {
+            return fail(ActionFailure.ResearchPrereqNotMet(missingAcademy, missingNodes))
+        }
+        if (running.isNotEmpty()) return fail(ActionFailure.QueueFull)
+        val rest =
+            when (val check = Costs.check(state.resources, target.cost)) {
+                is CostCheck.Missing -> return fail(ActionFailure.NotEnoughResources(check.missing))
+                CostCheck.Ok -> state.resources.minusOrNull(target.cost) ?: return fail(ActionFailure.InvalidArgument)
+            }
+        val duration = Buffs.speedSeconds(target.seconds, BuffAggregator.compute(state, data)[BuffKey.RESEARCH_SPEED])
+        val job =
+            TimerJob(
+                id = state.nextJobId,
+                kind = TimerKind.RESEARCH,
+                targetLevel = current + 1,
+                startEpochSec = state.nowEpochSec,
+                endEpochSec = satAdd(state.nowEpochSec, duration),
+                researchId = nodeId,
             )
         val next = state.copy(resources = rest, timers = state.timers + job, nextJobId = state.nextJobId + 1)
         return ActionResult.Success(Simulation.syncStorageFlags(next, data))

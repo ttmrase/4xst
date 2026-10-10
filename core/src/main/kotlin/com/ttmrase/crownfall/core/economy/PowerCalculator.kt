@@ -4,7 +4,7 @@ import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.satAdd
 
-/** 戦力（Power）計算。M3 で兵・研究・英雄を [total] に足す。 */
+/** 戦力（Power）計算。建物・研究（・M3 で兵・英雄）の合計を [total] で返す。 */
 object PowerCalculator {
     /** 全スロットの建物戦力の合計（level 0 は 0）。 */
     fun buildingPower(
@@ -15,9 +15,19 @@ object PowerCalculator {
             if (slot.level <= 0) acc else satAdd(acc, data.building(slot.type).level(slot.level).power)
         }
 
-    /** 合計戦力（現状は建物のみ）。 */
+    /** 研究の戦力（各ノードの現在レベル時点の power の合計）。 */
+    fun researchPower(
+        state: GameState,
+        data: GameData,
+    ): Long =
+        state.research.entries.fold(0L) { acc, (id, level) ->
+            val node = data.research[id]
+            if (node == null || level <= 0) acc else satAdd(acc, node.level(minOf(level, node.maxLevel)).power)
+        }
+
+    /** 合計戦力。 */
     fun total(
         state: GameState,
         data: GameData,
-    ): Long = buildingPower(state, data)
+    ): Long = satAdd(buildingPower(state, data), researchPower(state, data))
 }

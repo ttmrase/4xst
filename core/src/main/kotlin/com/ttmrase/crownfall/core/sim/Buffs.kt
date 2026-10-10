@@ -1,18 +1,10 @@
 package com.ttmrase.crownfall.core.sim
 
-import com.ttmrase.crownfall.core.model.Boost
-import com.ttmrase.crownfall.core.model.BoostKind
 import com.ttmrase.crownfall.core.model.satMul
 
 /** basis point 計算を 1 か所に集約する（端数は常に切り捨て）。 */
 internal object Buffs {
     private const val BP_ONE = 10_000L
-
-    /** [boosts] のうち [kind] の bp 合計。 */
-    fun totalBp(
-        boosts: List<Boost>,
-        kind: BoostKind,
-    ): Long = boosts.filter { it.kind == kind }.sumOf { it.bp.toLong() }
 
     /** `value × (10000 + bp) / 10000`（切り捨て、飽和）。倍率が 0 未満にはならない。 */
     fun applyBp(
@@ -20,8 +12,8 @@ internal object Buffs {
         bp: Long,
     ): Long = satMul(value, maxOf(0L, BP_ONE + bp)) / BP_ONE
 
-    /** 建設所要秒 = `seconds × 10000 / (10000 + bp)`（切り上げ、最小 1 秒）。 */
-    fun buildSeconds(
+    /** 速度系バフ適用後の所要秒 = `seconds × 10000 / (10000 + bp)`（切り上げ、最小 1 秒）。建設・研究・訓練・治療で共通。 */
+    fun speedSeconds(
         seconds: Long,
         bp: Long,
     ): Long {

@@ -49,6 +49,15 @@ object TestSupport {
         return s.copy(slots = s.slots.map { it.copy(level = levelOf(it)) })
     }
 
+    /** Academy を [level] にした状態。 */
+    fun withAcademy(
+        state: GameState,
+        level: Int,
+    ): GameState =
+        state.copy(
+            slots = state.slots.map { if (it.type == BuildingType.ACADEMY) it.copy(level = level) else it },
+        )
+
     val RICH = Resources(1_000_000_000, 1_000_000_000, 1_000_000_000, 1_000_000_000)
 }
 

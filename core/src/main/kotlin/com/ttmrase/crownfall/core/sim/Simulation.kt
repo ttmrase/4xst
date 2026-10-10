@@ -1,11 +1,13 @@
 package com.ttmrase.crownfall.core.sim
 
+import com.ttmrase.crownfall.core.buff.BuffAggregator
+import com.ttmrase.crownfall.core.buff.BuffSet
 import com.ttmrase.crownfall.core.data.GameData
-import com.ttmrase.crownfall.core.model.BoostKind
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
+import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.model.satAdd
 import com.ttmrase.crownfall.core.model.satMul
 
@@ -59,11 +61,12 @@ object Simulation {
         return cap
     }
 
-    /** 資源 [type] の毎時生産レート（Boost 込み、切り捨て）。 */
+    /** 資源 [type] の毎時生産レート（バフ込み、切り捨て）。 */
     fun hourlyRate(
         state: GameState,
         type: ResourceType,
         data: GameData,
+        buffs: BuffSet = BuffAggregator.compute(state, data),
     ): Long {
         var base = 0L
         for (slot in state.slots) {
@@ -71,7 +74,7 @@ object Simulation {
                 base = satAdd(base, data.building(slot.type).effect(slot.level, "production_per_hour"))
             }
         }
-        return Buffs.applyBp(base, Buffs.totalBp(state.boosts, BoostKind.PRODUCTION))
+        return Buffs.applyBp(base, buffs.production(type))
     }
 
     /** 同時に進められる BUILD の数。 */
@@ -107,17 +110,27 @@ object Simulation {
         if (due.isNotEmpty()) {
             val dueIds = due.map { it.id }.toSet()
             var slots = s.slots
+            var research = s.research
             for (job in due) {
                 val slotId = job.slotId
                 val level = job.targetLevel
-                if (slotId != null && level != null) {
-                    slots = slots.map { if (it.slotId == slotId) it.copy(level = level) else it }
-                    val type = slots.first { it.slotId == slotId }.type
-                    events.add(GameEvent.BuildingLevelUp(slotId, type, level))
+                when (job.kind) {
+                    TimerKind.BUILD ->
+                        if (slotId != null && level != null) {
+                            slots = slots.map { if (it.slotId == slotId) it.copy(level = level) else it }
+                            val type = slots.first { it.slotId == slotId }.type
+                            events.add(GameEvent.BuildingLevelUp(slotId, type, level))
+                        }
+                    TimerKind.RESEARCH ->
+                        if (job.researchId != null && level != null) {
+                            research = research + (job.researchId to level)
+                            events.add(GameEvent.ResearchCompleted(job.researchId, level))
+                        }
+                    else -> Unit
                 }
                 events.add(GameEvent.TimerCompleted(job))
             }
-            s = s.copy(slots = slots, timers = s.timers.filter { it.id !in dueIds })
+            s = s.copy(slots = slots, research = research, timers = s.timers.filter { it.id !in dueIds })
             s = syncStorageFlags(s, data)
         }
         return s
@@ -136,6 +149,7 @@ object Simulation {
     ): GameState {
         if (seconds <= 0) return state
         val cap = storageCap(state, data)
+        val buffs = BuffAggregator.compute(state, data)
         var res = state.resources
         var rem = state.productionRemainder
         var flags = state.storageFullFlags
@@ -151,7 +165,7 @@ object Simulation {
                 }
                 continue
             }
-            val rate = hourlyRate(state, type, data)
+            val rate = hourlyRate(state, type, data, buffs)
             val total = satAdd(satMul(rate, seconds), rem[type])
             val produced = total / SECONDS_PER_HOUR
             if (satAdd(have, produced) >= cap) {

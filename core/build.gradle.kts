@@ -37,14 +37,20 @@ tasks.test {
 // M1 DoD: sim / economy パッケージは「パッケージごとに」行カバレッジ 80% 以上（`./gradlew :core:koverVerify`）
 kover {
     reports {
-        // 注意: filters は koverXmlReport / koverHtmlReport にも効く（M1 では sim / economy のみが対象）
+        // 注意: filters は koverXmlReport / koverHtmlReport にも効く（対象は includes のパッケージのみ）
         filters {
             includes {
-                packages("com.ttmrase.crownfall.core.sim", "com.ttmrase.crownfall.core.economy")
+                packages(
+                    "com.ttmrase.crownfall.core.sim",
+                    "com.ttmrase.crownfall.core.economy",
+                    "com.ttmrase.crownfall.core.session",
+                    "com.ttmrase.crownfall.core.buff",
+                    "com.ttmrase.crownfall.core.research",
+                )
             }
         }
         verify {
-            rule("sim / economy line coverage per package") {
+            rule("coverage-gated packages line coverage per package") {
                 groupBy = GroupingEntityType.PACKAGE
                 minBound(80)
             }

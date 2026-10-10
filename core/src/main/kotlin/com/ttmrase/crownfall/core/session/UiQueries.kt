@@ -1,8 +1,9 @@
 package com.ttmrase.crownfall.core.session
 
+import com.ttmrase.crownfall.core.buff.BuffAggregator
+import com.ttmrase.crownfall.core.buff.BuffKey
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.ItemDef
-import com.ttmrase.crownfall.core.model.BoostKind
 import com.ttmrase.crownfall.core.model.BuildingSlot
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameState
@@ -78,14 +79,14 @@ object UiQueries {
             next?.prereqs.orEmpty().filter { p ->
                 p.level > 0 && (state.slots.filter { it.type == p.type }.maxOfOrNull { it.level } ?: 0) < p.level
             }
-        val bp = Buffs.totalBp(state.boosts, BoostKind.BUILD_SPEED)
+        val bp = BuffAggregator.compute(state, data)[BuffKey.BUILD_SPEED]
         return UpgradePreview(
             slot = slot,
             maxLevel = def.maxLevel,
             nextLevel = next?.level,
             cost = next?.cost ?: Resources.ZERO,
             missing = next?.cost?.missingFrom(state.resources) ?: Resources.ZERO,
-            durationSec = next?.let { Buffs.buildSeconds(it.seconds, bp) } ?: 0,
+            durationSec = next?.let { Buffs.speedSeconds(it.seconds, bp) } ?: 0,
             unmetPrereqs = unmet,
             currentEffects = if (slot.level > 0) def.level(slot.level).effects else emptyMap(),
             nextEffects = next?.effects ?: emptyMap(),
