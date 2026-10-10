@@ -109,7 +109,7 @@ class ResearchTest {
             ).ok().timers.single()
         val seconds = data.research.getValue("eco_gold").level(1).seconds
         assertEquals(Buffs.speedSeconds(seconds, 3000), fast.endEpochSec - fast.startEpochSec)
-        assertEquals(Math.ceilDiv(seconds * 10_000, 13_000L), fast.endEpochSec - fast.startEpochSec)
+        assertEquals((seconds * 10_000 + 12_999) / 13_000, fast.endEpochSec - fast.startEpochSec)
         assertTrue(fast.endEpochSec - fast.startEpochSec <= plain.endEpochSec - plain.startEpochSec + seconds)
         assertEquals(1, Buffs.speedSeconds(1, 1_000_000))
         assertEquals(BuffKey.RESEARCH_SPEED, data.research.getValue("dev_research").level(1).effectKey)

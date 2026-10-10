@@ -16,6 +16,8 @@ java {
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
+        // CI は JDK 17。ローカル（JDK 21）で 18 以降の API を使うとコンパイルが通ってしまうのを防ぐ。
+        freeCompilerArgs.add("-Xjdk-release=17")
     }
 }
 

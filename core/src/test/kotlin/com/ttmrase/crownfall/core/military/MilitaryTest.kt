@@ -111,7 +111,7 @@ class MilitaryTest {
         val job = Actions.startTraining(s, "infantry_t1", 7, data).ok().timers.single()
         val base = t1.trainSec * 7
         assertEquals(Buffs.speedSeconds(base, 3000), job.endEpochSec - job.startEpochSec)
-        assertEquals(Math.ceilDiv(base * 10_000, 13_000L), job.endEpochSec - job.startEpochSec)
+        assertEquals((base * 10_000 + 12_999) / 13_000, job.endEpochSec - job.startEpochSec)
     }
 
     // ───── upkeep ─────
