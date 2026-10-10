@@ -22,7 +22,7 @@ Director はここを唯一のバックログとして更新してよい（分�
 | T0.5 | README にビルド手順・APK 入手手順（Actions → Artifacts）を追記 |
 DoD: コンテナでテスト緑、CI で APK 生成確認（Debugger が `actions_list` で確認して報告）。
 
-## M1 コアシミュレーション — 実装済み・Director Approve 2026-10-10（HEAD d100d48、CI run 38029693916。Debugger の QA-OK 待ち。設計規則は 02 §7）
+## M1 コアシミュレーション — ✅ 完了 2026-10-10（HEAD d100d48 と小修正 31c92d0・65462b2、QA 795d5fe。CI run 38029693916。設計規則は 02 §7）
 | ID | 内容 |
 | --- | --- |
 | T1.1 | `model`: `Resources`, `Building`/`BuildingSlot`, `TimerJob`, `GameState`（最小構成）、`Clock`, `SeededRandom` |

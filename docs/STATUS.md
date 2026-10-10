@@ -1,6 +1,6 @@
 # STATUS（Director が更新）
 
-- 現在のマイルストーン: **M2 城内 UI**（発行済み）。M1 は実装済み・Director Approve・QA-OK 待ち。M0 は ✅ 完了
+- 現在のマイルストーン: **M2 城内 UI**（発行済み・実装中）。M0 と M1 は ✅ 完了
 - 統合ブランチ: `claude/4x-strategy-game-planning-oxo80w`
 - 最終更新: 2026-10-10 Director
 
@@ -8,15 +8,16 @@
 | マイルストーン | 完了 | 根拠 |
 | --- | --- | --- |
 | M0 基盤 | 2026-10-10 | HEAD 00f5f9b、CI run 38028345848（jvm と apk が緑、crownfall-debug-apk あり）、Debugger QA-OK、Director Approve |
+| M1 コアシミュレーション | 2026-10-10 | d100d48 + 小修正 31c92d0 / 65462b2、CI run 38029693916 が緑、kover の sim / economy が 100%、Debugger QA-OK（境界テスト 795d5fe、CI に koverVerify を追加）、Director Approve |
 
 ## 進行中チケット
 | ID | 担当 | 状態 | SHA |
 | --- | --- | --- | --- |
 | M0 後追い（下部ナビの popUpTo、:ai の api(core)） | Implementer | ✅ 完了 | f9d0162, 88b1f42 |
-| T1.1〜T1.7 | Implementer | Director Approve・QA-OK 待ち | 17d55b3〜d100d48 |
-| M1 小修正（addResources の負数、newGame.items の検証） | Implementer | 依頼済み | - |
+| T1.1〜T1.7 + 小修正 | Implementer | ✅ 完了 | 17d55b3〜d100d48, 31c92d0, 65462b2 |
 | T2.1〜T2.5 | Implementer | 発行済み（T2.1 は着手済み） | - |
-| CI に koverVerify を追加・M1/M2 の境界テスト | Debugger | 依頼済み | - |
+| CI に koverVerify を追加・M1 の境界テスト | Debugger | ✅ 完了 | 795d5fe |
+| M2 の境界テスト（GameSession） | Debugger | 依頼済み | - |
 
 ## 直近の決定事項
 - 技術構成: Kotlin / Compose。`:core` `:ai` は JVM、`:app` は CI でのみビルド（02 §0）
