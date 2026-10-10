@@ -300,6 +300,17 @@ class SimulationTest {
         assertEquals(ActionFailure.InvalidArgument, (Actions.addItems(s, "a", 0) as ActionResult.Failure).reason)
     }
 
+    @Test
+    fun tutorialStepOnlyMovesForward() {
+        val s = TestSupport.newGame()
+        assertEquals(1, Actions.setTutorialStep(s, 1).ok().tutorialStep)
+        val at2 = Actions.setTutorialStep(s, 2).ok()
+        assertEquals(2, Actions.setTutorialStep(at2, 1).ok().tutorialStep) // 後戻りしない
+        assertEquals(3, Actions.setTutorialStep(at2, Actions.TUTORIAL_DONE).ok().tutorialStep)
+        assertEquals(ActionFailure.InvalidArgument, (Actions.setTutorialStep(s, 4) as ActionResult.Failure).reason)
+        assertEquals(ActionFailure.InvalidArgument, (Actions.setTutorialStep(s, -1) as ActionResult.Failure).reason)
+    }
+
     // ───── R3: 分割不変性 ─────
 
     private fun prepared(): GameState {

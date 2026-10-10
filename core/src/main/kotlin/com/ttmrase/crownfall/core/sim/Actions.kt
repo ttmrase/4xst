@@ -49,6 +49,9 @@ sealed interface ActionResult {
 
 /** プレイヤー操作・報酬の受け口（すべて純関数）。 */
 object Actions {
+    /** チュートリアル完了を表すステップ番号。 */
+    const val TUTORIAL_DONE = 3
+
     /** スロット [slotId] のアップグレードを開始する。検査は宣言順で、最初の失敗を返す。 */
     fun startUpgrade(
         state: GameState,
@@ -132,6 +135,16 @@ object Actions {
         return ActionResult.Success(
             state.copy(items = state.items + (itemId to minOf(sum, Int.MAX_VALUE.toLong()).toInt())),
         )
+    }
+
+    /** チュートリアルの進行を [step]（0..3）へ進める。後戻りはしない（現在以下なら何も変えず成功）。 */
+    fun setTutorialStep(
+        state: GameState,
+        step: Int,
+    ): ActionResult {
+        if (step < 0 || step > TUTORIAL_DONE) return fail(ActionFailure.InvalidArgument)
+        if (step <= state.tutorialStep) return ActionResult.Success(state)
+        return ActionResult.Success(state.copy(tutorialStep = step))
     }
 
     /** 期限付きバフを追加する（同 id は置き換え）。 */
