@@ -1,6 +1,6 @@
 # STATUS（Director が更新）
 
-- 現在のマイルストーン: **M5 同盟・AI チャット**（発行済み）。M4 は実装済み・Director Approve（QA と要修正の待ち）。M0〜M3 は ✅ 完了
+- 現在のマイルストーン: **M5 同盟・AI チャット**（発行済み・実装中）。M0〜M4 は ✅ 完了
 - 統合ブランチ: `claude/4x-strategy-game-planning-oxo80w`
 - 最終更新: 2026-10-10 Director
 
@@ -8,6 +8,7 @@
 | マイルストーン | 完了 | 根拠 |
 | --- | --- | --- |
 | M0 基盤 | 2026-10-10 | HEAD 00f5f9b、CI run 38028345848（jvm と apk が緑、crownfall-debug-apk あり）、Debugger QA-OK、Director Approve |
+| M4 ワールドマップ・戦闘 | 2026-10-10 | 59f6176 + 修正 d5bfb9c / e316217、CI run 38036914082 が緑、Debugger QA-OK（QaWorldTest 10 本。兵の保存則、略奪、R3 を 6 シナリオ × 40 分割、b09c35e）、Director Approve |
 | M3 軍事・研究・英雄 | 2026-10-10 | d74a23d + 修正 d939afc、CI run 38033161525 が緑、kover の対象 7 パッケージが 98〜100%、Debugger QA-OK（QaMilitaryTest、OfflineSummary の負数を 81afd4f で修正）、Director Approve |
 | M2 城内 UI | 2026-10-10 | 7a3dcd4 + 修正 b22934e / 4924700 / 705ad2c、CI run 38030769719 が緑、Debugger QA-OK（QaSessionTest、GameSession の S3 不具合 2 件を 46cdc42 で修正）、Director Approve |
 | M1 コアシミュレーション | 2026-10-10 | d100d48 + 小修正 31c92d0 / 65462b2、CI run 38029693916 が緑、kover の sim / economy が 100%、Debugger QA-OK（境界テスト 795d5fe、CI に koverVerify を追加）、Director Approve |
@@ -19,15 +20,15 @@
 | T1.1〜T1.7 + 小修正 | Implementer | ✅ 完了 | 17d55b3〜d100d48, 31c92d0, 65462b2 |
 | T2.1〜T2.5 + 修正 | Implementer | ✅ 完了 | bd71065〜7a3dcd4, b22934e, 4924700, 705ad2c |
 | T3.1〜T3.5 + 修正 | Implementer | ✅ 完了 | 973f65e〜d74a23d, d939afc |
-| T4.1〜T4.4 | Implementer | Director Approve・QA 待ち | 6f3616f〜59f6176 |
-| M4 要修正 6 件（戦利品の cap、ラリー敗北時の報酬、盾の上限、キャッシュのスレッド安全性、二度押し、snackbar） | Implementer | 依頼済み | - |
+| T4.1〜T4.4 + 修正 | Implementer | ✅ 完了 | 6f3616f〜59f6176, d5bfb9c, e316217 |
 | T5.1〜T5.6 | Implementer | 発行済み | - |
 | CI に koverVerify を追加・M1 の境界テスト | Debugger | ✅ 完了 | 795d5fe |
 | M2 の QA・GameSession の境界テスト | Debugger | ✅ 完了 | 46cdc42 |
 | FileSaveStorage の :app ユニットテスト（CI に testDebugUnitTest を追加） | Debugger | ✅ 完了 | 425d9d5 |
 | M3 の QA | Debugger | ✅ 完了 | 81afd4f |
 | M4 の R3 拡張テストの準備 | Debugger | ✅ 完了 | 3c8942f |
-| M4 の QA・CI に :ai の koverVerify を追加 | Debugger | 依頼済み | - |
+| M4 の QA | Debugger | ✅ 完了 | b09c35e |
+| CI に :ai の koverVerify を追加・M5 の QA | Debugger | 依頼済み | - |
 
 ## 直近の決定事項
 - 技術構成: Kotlin / Compose。`:core` `:ai` は JVM、`:app` は CI でのみビルド（02 §0）
