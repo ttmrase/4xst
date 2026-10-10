@@ -1,3 +1,4 @@
+import kotlinx.kover.gradle.plugin.dsl.GroupingEntityType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -30,4 +31,22 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+// M1 DoD: sim / economy パッケージは「パッケージごとに」行カバレッジ 80% 以上（`./gradlew :core:koverVerify`）
+kover {
+    reports {
+        // 注意: filters は koverXmlReport / koverHtmlReport にも効く（M1 では sim / economy のみが対象）
+        filters {
+            includes {
+                packages("com.ttmrase.crownfall.core.sim", "com.ttmrase.crownfall.core.economy")
+            }
+        }
+        verify {
+            rule("sim / economy line coverage per package") {
+                groupBy = GroupingEntityType.PACKAGE
+                minBound(80)
+            }
+        }
+    }
 }
