@@ -98,6 +98,14 @@ class QaAiSecurityTest {
                 "http://0x7f.0.0.1/v1",
                 "http://localhost.evil.example/v1",
                 "http://evil.example/10.0.0.1",
+                "http://localhost@evil.example/v1",
+                "http://evil.example#@localhost/v1",
+                // 末尾ドットは別ホスト名として扱い、閉じる側に倒す
+                "http://localhost./v1",
+                // IPv6 はループバック以外（リンクローカル・ULA・未指定）を閉じる側に倒す
+                "http://[fe80::1]/v1",
+                "http://[fd00::1]/v1",
+                "http://[::]/v1",
             )
         for (u in refused) assertEquals("cleartext_not_allowed", UrlPolicy.reject(u), u)
     }

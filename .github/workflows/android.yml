@@ -23,6 +23,19 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Test, lint and coverage (:core, :ai)
         run: ./gradlew :core:test :ai:test ktlintCheck koverXmlReport :core:koverVerify :ai:koverVerify -PwithAndroid=false
+      # docs/04 §1: 実決済 SDK を持たない。依存グラフ（:core / :ai）とソース・マニフェスト・ビルド定義を検査する。
+      - name: No billing dependencies (:core, :ai)
+        run: |
+          .github/scripts/check-no-billing.sh :core runtimeClasspath -PwithAndroid=false
+          .github/scripts/check-no-billing.sh :ai runtimeClasspath -PwithAndroid=false
+      - name: No billing SDK or permission references
+        run: |
+          if grep -rIn -e "com.android.vending.BILLING" -e "com.android.billingclient" -e "play-billing" \
+            app/src gradle/libs.versions.toml build.gradle.kts settings.gradle.kts core/build.gradle.kts \
+            ai/build.gradle.kts app/build.gradle.kts; then
+            echo "::error::billing SDK or permission reference found"
+            exit 1
+          fi
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4
@@ -46,6 +59,10 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - uses: gradle/actions/setup-gradle@v4
+      - name: No billing dependencies (:app)
+        run: |
+          .github/scripts/check-no-billing.sh :app debugRuntimeClasspath -PwithAndroid=true
+          .github/scripts/check-no-billing.sh :app releaseRuntimeClasspath -PwithAndroid=true
       - name: Build debug APK, unit tests, lint and ktlint
         run: ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck -PwithAndroid=true
       - name: Upload APK
