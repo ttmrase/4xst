@@ -38,7 +38,6 @@ data class TriggerCtx(
 object OfferEngine {
     const val SHORTAGE_SKU = "shortage"
     private const val SECONDS_PER_DAY = 86_400L
-    private const val PERMILLE = 1000L
     private const val MIN_LOGIN_OFFER_SEC = 60L
     private val RESOURCE_KEYS = listOf("food", "wood", "stone", "gold")
 
@@ -87,11 +86,9 @@ object OfferEngine {
         val lv = (params["lv"]?.toInt() ?: ShopLogic.castleLevel(state)).coerceAtLeast(1)
         val scaled = if (pack.lvScale) ShopLogic.scale(pack.contents, lv) else pack.contents
         // 逆転パック: 1 位との差を埋めて少し上回るだけのイベントポイントを付ける（買えば 1 位を取れる）
-        val gap = params["gap"]
         val contents =
-            if (trigger == "rankingNear" && gap != null) {
-                val margin = gap * data.events.bonusMarginPermille / PERMILLE + 1
-                scaled.copy(eventPoints = satAdd(gap, margin))
+            if (trigger == "rankingNear" && state.event.weekId >= 0) {
+                scaled.copy(eventPoints = com.ttmrase.crownfall.core.event.WeeklyEvents.pointsToLead(state, data))
             } else {
                 scaled
             }

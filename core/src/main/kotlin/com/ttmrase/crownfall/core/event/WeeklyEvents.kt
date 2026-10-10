@@ -137,6 +137,23 @@ object WeeklyEvents {
         return ((state.nowEpochSec - start) * PERMILLE / WEEK_SEC).coerceIn(0L, PERMILLE)
     }
 
+    /** 週末（経過 100%）時点での NPC の最高スコア。リーダーの追従は今の自力で止まるものとして数える。 */
+    fun finalTop(
+        state: GameState,
+        data: GameData,
+    ): Long =
+        npcRows(state, data, state.event.weekId.coerceAtLeast(0), selfScore(state, data), PERMILLE)
+            .firstOrNull()?.score ?: 0L
+
+    /** 今買えば週末まで確実に 1 位になる逆転パックのポイント数（週末時点の最高 NPC との差 + 余裕）。 */
+    fun pointsToLead(
+        state: GameState,
+        data: GameData,
+    ): Long {
+        val gap = maxOf(0L, finalTop(state, data) - totalScore(state, data))
+        return satAdd(satAdd(gap, gap * data.events.bonusMarginPermille / PERMILLE), 1L)
+    }
+
     /** 現在の順位表（プレイヤーを含む降順。同点ならプレイヤーが上）。 */
     fun standings(
         state: GameState,

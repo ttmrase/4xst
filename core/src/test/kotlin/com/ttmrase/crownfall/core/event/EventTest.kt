@@ -246,4 +246,26 @@ class EventTest {
         assertTrue((a[0]["score"] ?: 0) > 30_000) // 採集ぶんが先週のスコアに入っている
         assertEquals(open.event, closed.event)
     }
+
+    @Test
+    fun comebackPackGuaranteesFirstPlaceEvenIfOwnScoreNeverGrowsAgain() {
+        var checked = 0
+        for (seed in 1L..60L) {
+            for (selfShare in listOf(2L, 3L, 5L)) {
+                val def = WeeklyEvents.definition(week, data)
+                val end = start + WeeklyEvents.WEEK_SEC
+                val s0 = withSelf(game(seed = seed), def.par * selfShare / 5)
+                val s1 = Simulation.tick(at(s0, end - data.events.warnBeforeEndSec - 10), 100, data).state
+                val offer = OfferEngine.active(s1).firstOrNull { it.trigger == "rankingNear" } ?: continue
+                val bought =
+                    Actions.fakePurchase(s1, com.ttmrase.crownfall.core.shop.ProductIds.offer(offer.id), data).ok()
+                // 自力は二度と伸びない。週末まで進めた結果が 1 位
+                val done = Simulation.tick(at(bought, end - 5), 3600, data).state
+                val rank = done.mails.last { it.systemCode == "event_result" }.params.getValue("rank")
+                assertEquals(1L, rank, "seed $seed share $selfShare")
+                checked++
+            }
+        }
+        assertTrue(checked > 20, "only $checked scenarios had a comeback offer")
+    }
 }

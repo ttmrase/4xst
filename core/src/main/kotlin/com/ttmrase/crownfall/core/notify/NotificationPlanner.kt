@@ -93,10 +93,13 @@ object NotificationPlanner {
         if (raid > now && raid != Long.MAX_VALUE) {
             val warn = raid - Raids.warnSec(state, data)
             if (!state.map.raidWarned && warn < raid && warn > now) {
-                add(warn, NoticeType.RAID_WARNING, NoticeChannel.RAID)
-            } else {
-                add(raid, NoticeType.RAID_ARRIVAL, NoticeChannel.RAID)
+                add(
+                    warn,
+                    NoticeType.RAID_WARNING,
+                    NoticeChannel.RAID,
+                )
             }
+            add(raid, NoticeType.RAID_ARRIVAL, NoticeChannel.RAID)
         }
         for (r in state.alliance.rallies) {
             add(r.joinDeadlineEpochSec - RALLY_LEAD_SEC, NoticeType.RALLY_DEADLINE, NoticeChannel.ALLIANCE)

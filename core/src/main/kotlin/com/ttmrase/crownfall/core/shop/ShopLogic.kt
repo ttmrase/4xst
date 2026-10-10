@@ -72,10 +72,12 @@ object ShopLogic {
             s = s.copy(heroShards = shards)
         }
         if (c.eventPoints > 0 && s.event.weekId >= 0) {
+            // 買った時点で、週末まで 1 位を保てる分に満たなければ足す（提示後に差が広がっていても保証する）
+            val points = maxOf(c.eventPoints, com.ttmrase.crownfall.core.event.WeeklyEvents.pointsToLead(s, data))
             val cap = com.ttmrase.crownfall.core.event.WeeklyEvents.selfScore(s, data)
             s =
                 s.copy(
-                    event = s.event.copy(bonusScore = satAdd(s.event.bonusScore, c.eventPoints), followCapSelf = cap),
+                    event = s.event.copy(bonusScore = satAdd(s.event.bonusScore, points), followCapSelf = cap),
                 )
         }
         if (c.secondBuilderDays > 0) {

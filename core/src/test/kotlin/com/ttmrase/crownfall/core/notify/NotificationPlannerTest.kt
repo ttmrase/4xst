@@ -103,4 +103,18 @@ class NotificationPlannerTest {
         assertTrue(p.size <= 60)
         assertEquals(p.sortedBy { it.epochSec }.map { it.epochSec }, p.map { it.epochSec })
     }
+
+    @Test
+    fun raidWarningAndArrivalAreBothPlannedWhenTheWarningIsAhead() {
+        val s = base().let { it.copy(map = it.map.copy(nextRaidEpochSec = now + 20 * 3600)) }
+        val raid = plan(s).filter { it.channel == NoticeChannel.RAID }
+        val types = raid.map { it.type }
+        assertEquals(listOf(NoticeType.RAID_ARRIVAL), types.filter { it == NoticeType.RAID_ARRIVAL })
+        assertEquals(now + 20 * 3600, raid.single { it.type == NoticeType.RAID_ARRIVAL }.epochSec)
+        val warned = s.copy(map = s.map.copy(raidWarned = true))
+        assertEquals(
+            listOf(NoticeType.RAID_ARRIVAL),
+            plan(warned).filter { it.channel == NoticeChannel.RAID }.map { it.type },
+        )
+    }
 }
