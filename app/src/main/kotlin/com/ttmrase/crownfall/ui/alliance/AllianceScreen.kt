@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -45,10 +46,12 @@ import com.ttmrase.crownfall.core.data.PersonaDef
 import com.ttmrase.crownfall.core.map.TileRef
 import com.ttmrase.crownfall.core.march.MarchKind
 import com.ttmrase.crownfall.core.model.AiRally
+import com.ttmrase.crownfall.core.model.ChatMessage
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.RequestKind
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.session.GameSession
+import com.ttmrase.crownfall.core.sim.ActionFailure
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.DurationFormat
@@ -92,12 +95,16 @@ fun AllianceScreen(
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var rallyId by rememberSaveable { mutableStateOf<Long?>(null) }
     var rallyError by rememberSaveable { mutableStateOf<String?>(null) }
+    var sendingRally by remember { mutableStateOf(false) }
     val s = state ?: return
 
     fun run(block: (GameState) -> ActionResult) {
         scope.launch {
             val r = session.dispatch(block)
-            if (r is ActionResult.Failure) snackbarHostState.showReplacing(failureMessage(context, r.reason))
+            // 押し直しで出る「ヘルプする相手がいない」は黙って無視する。
+            if (r is ActionResult.Failure && r.reason != ActionFailure.NothingToHelp) {
+                snackbarHostState.showReplacing(failureMessage(context, r.reason))
+            }
         }
     }
 
@@ -140,11 +147,19 @@ fun AllianceScreen(
             kind = MarchKind.RALLY,
             target = rally.target,
             error = rallyError,
-            sending = false,
+            sending = sendingRally,
             onSend = { troops, heroes ->
-                scope.launch {
-                    val r = session.dispatch { Actions.joinRally(it, rally.id, troops, heroes, data) }
-                    if (r is ActionResult.Failure) rallyError = failureMessage(context, r.reason) else rallyId = null
+                if (!sendingRally) {
+                    sendingRally = true
+                    scope.launch {
+                        val r = session.dispatch { Actions.joinRally(it, rally.id, troops, heroes, data) }
+                        if (r is ActionResult.Failure) {
+                            rallyError = failureMessage(context, r.reason)
+                        } else {
+                            rallyId = null
+                        }
+                        sendingRally = false
+                    }
                 }
             },
             onDismiss = { rallyId = null },
@@ -158,7 +173,8 @@ private fun Header(
     data: GameData,
     onOpenChat: () -> Unit,
 ) {
-    val unread = unreadTotal(s)
+    val unread =
+        remember(s.alliance.history, s.alliance.chatRead) { unreadTotal(s.alliance.history, s.alliance.chatRead) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -184,15 +200,19 @@ private fun Header(
 }
 
 /** 既読より新しい、プレイヤー以外の発言の総数。 */
-fun unreadTotal(s: GameState): Int = s.alliance.history.keys.sumOf { unreadIn(s, it) }
+fun unreadTotal(
+    history: Map<String, List<ChatMessage>>,
+    chatRead: Map<String, Long>,
+): Int = history.keys.sumOf { unreadIn(history, chatRead, it) }
 
 /** チャンネル [channel] の未読数。 */
 fun unreadIn(
-    s: GameState,
+    history: Map<String, List<ChatMessage>>,
+    chatRead: Map<String, Long>,
     channel: String,
 ): Int {
-    val read = s.alliance.chatRead[channel] ?: 0L
-    return s.alliance.history[channel].orEmpty().count { it.id > read && it.speaker != "player" }
+    val read = chatRead[channel] ?: 0L
+    return history[channel].orEmpty().count { it.id > read && it.speaker != "player" }
 }
 
 private fun hoursSinceActive(
@@ -504,7 +524,11 @@ private fun TechTab(
                                             stringResource(R.string.alliance_gems)
                                         }
                                     Text(
-                                        "$label ${ShortNumber.format(unit)}",
+                                        stringResource(
+                                            R.string.alliance_donate_button,
+                                            label,
+                                            ShortNumber.format(unit),
+                                        ),
                                         style = MaterialTheme.typography.labelSmall,
                                     )
                                 }
@@ -535,7 +559,7 @@ private fun TechTab(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("$name ×${e.count}")
+                    Text(stringResource(R.string.alliance_shop_item, name, e.count))
                     Text(
                         stringResource(R.string.alliance_shop_limit, bought, e.dailyLimit),
                         style = MaterialTheme.typography.bodySmall,

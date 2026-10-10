@@ -21,11 +21,19 @@ data class AiSettings(
     val dailyBudget: Int = RouterConfig.DEFAULT_DAILY,
     val revealAi: RevealAi = RevealAi.AMBIGUOUS,
 ) {
+    /** キーが空か、ヘッダに載せられる印字可能 ASCII か（例外メッセージにキーが載るのを防ぐ）。 */
+    fun keysValid(): Boolean = PRINTABLE.matches(geminiKey.trim()) && PRINTABLE.matches(openAiKey.trim())
+
+    /** キーを含めない（ログ・デバッガに出さない）。 */
+    override fun toString(): String =
+        "AiSettings(order=$order, disabled=$disabled, geminiModel=$geminiModel, openAiModel=$openAiModel, keys=***)"
+
     fun toRouterConfig(): RouterConfig =
         RouterConfig(order = order, disabled = disabled, hourlyBudget = hourlyBudget, dailyBudget = dailyBudget)
 
     companion object {
         val DEFAULT_ORDER = listOf(GeminiProvider.ID, "openai_compat")
         const val MAX_BUDGET = 100_000
+        private val PRINTABLE = Regex("[\\u0021-\\u007E]*")
     }
 }

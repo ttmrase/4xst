@@ -15,7 +15,7 @@ class OutputFilter(
         lines.mapNotNull { l ->
             val text = clean(l.text)
             if (text.isEmpty() || ngWords.any { text.contains(it, ignoreCase = true) }) return@mapNotNull null
-            val speaker = if (l.speaker in allowed || l.speaker.startsWith("world:")) l.speaker else fallback
+            val speaker = if (l.speaker in allowed) l.speaker else fallback
             SpokenLine(speaker, text)
         }.take(MAX_LINES)
 

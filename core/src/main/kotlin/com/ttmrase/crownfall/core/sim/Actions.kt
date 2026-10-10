@@ -556,6 +556,12 @@ object Actions {
         sec: Int,
     ): ActionResult = AllianceActions.setUtcOffset(state, sec)
 
+    /** 自由入力の最大文字数。 */
+    const val MAX_CHAT_TEXT = AllianceActions.MAX_TEXT
+
+    /** この種類のタイマーはヘルプを求められるか。 */
+    fun canRequestHelp(kind: com.ttmrase.crownfall.core.model.TimerKind): Boolean = AllianceActions.canRequestHelp(kind)
+
     /** タイマー [jobId] にヘルプを求める（同盟メンバーがヘルプしてくれる）。 */
     fun requestHelp(
         state: GameState,

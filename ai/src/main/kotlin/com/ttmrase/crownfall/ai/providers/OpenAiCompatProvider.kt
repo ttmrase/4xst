@@ -41,7 +41,14 @@ class OpenAiCompatProvider(
         val url = "$base/chat/completions"
         UrlPolicy.reject(url)?.let { return AiResult.Failure(it, false) }
         val builder = Request.Builder().url(url).post(body(request).toRequestBody(JSON))
-        apiKey()?.takeIf { it.isNotBlank() }?.let { builder.header("Authorization", "Bearer $it") }
+        val key = apiKey()?.takeIf { it.isNotBlank() }
+        if (key != null) {
+            try {
+                builder.header("Authorization", "Bearer $key")
+            } catch (e: IllegalArgumentException) {
+                return AiResult.Failure("invalid_key", false)
+            }
+        }
         return try {
             val res = client.noRedirects().newCall(builder.build()).awaitText()
             when {

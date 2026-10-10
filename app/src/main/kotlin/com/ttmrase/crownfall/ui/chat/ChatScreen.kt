@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -54,7 +55,6 @@ import java.text.DateFormat
 import java.util.Date
 
 private const val MILLIS = 1000L
-private const val MAX_INPUT = 200
 
 /**
  * チャット画面（T5.5）。同盟 / ワールド / ペルソナごとの DM のタブ、未読バッジ、入力中表示、
@@ -77,7 +77,11 @@ fun ChatScreen(
     val channels = listOf(ChatKeys.ALLIANCE, ChatKeys.WORLD) + data.personas.personas.map { ChatKeys.dm(it.id) }
     val messages = s.alliance.history[channel].orEmpty()
     val writable = channel != ChatKeys.WORLD
-    val timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT)
+    val timeFormat = remember { DateFormat.getTimeInstance(DateFormat.SHORT) }
+    val unreadByChannel =
+        remember(s.alliance.history, s.alliance.chatRead) {
+            channels.associateWith { unreadIn(s.alliance.history, s.alliance.chatRead, it) }
+        }
     val listState = rememberLazyListState()
 
     fun fail(r: ActionResult) {
@@ -90,6 +94,12 @@ fun ChatScreen(
         }
     }
 
+    val playerName = s.playerName
+    val onAnswer: (Long, Int) -> Unit =
+        remember(session, data) {
+            { id, option -> scope.launch { fail(session.dispatch { Actions.answerQuiz(it, id, option, data) }) } }
+        }
+
     // 開いている間は最新まで既読にし、新着が来たら末尾へ。
     LaunchedEffect(channel, messages.lastOrNull()?.id) {
         if (messages.isNotEmpty()) {
@@ -101,7 +111,7 @@ fun ChatScreen(
     Column(Modifier.fillMaxSize()) {
         ScrollableTabRow(selectedTabIndex = channels.indexOf(channel).coerceAtLeast(0), edgePadding = 8.dp) {
             channels.forEach { ch ->
-                val unread = if (ch == channel) 0 else unreadIn(s, ch)
+                val unread = if (ch == channel) 0 else unreadByChannel[ch] ?: 0
                 Tab(
                     selected = ch == channel,
                     onClick = { channel = ch },
@@ -121,11 +131,7 @@ fun ChatScreen(
         ) {
             if (messages.isEmpty()) item { Text(stringResource(R.string.chat_empty)) }
             items(messages, key = { it.id }) { m ->
-                MessageRow(
-                    m,
-                    speakerName(context, m.speaker, s.playerName),
-                    timeFormat.format(Date(m.epochSec * MILLIS)),
-                ) { option -> scope.launch { fail(session.dispatch { Actions.answerQuiz(it, m.id, option, data) }) } }
+                MessageRow(m, playerName, timeFormat, onAnswer)
             }
         }
         typingNow[channel]?.let { who ->
@@ -143,7 +149,7 @@ fun ChatScreen(
             ) {
                 OutlinedTextField(
                     value = input,
-                    onValueChange = { input = it.take(MAX_INPUT) },
+                    onValueChange = { input = it.take(Actions.MAX_CHAT_TEXT) },
                     modifier = Modifier.weight(1f),
                     placeholder = { Text(stringResource(R.string.chat_input_hint)) },
                     maxLines = 3,
@@ -170,10 +176,13 @@ fun ChatScreen(
 @Composable
 private fun MessageRow(
     m: ChatMessage,
-    name: String,
-    time: String,
-    onAnswer: (Int) -> Unit,
+    playerName: String,
+    timeFormat: DateFormat,
+    onAnswer: (Long, Int) -> Unit,
 ) {
+    val context = LocalContext.current
+    val name = speakerName(context, m.speaker, playerName)
+    val time = timeFormat.format(Date(m.epochSec * MILLIS))
     val mine = m.speaker == "player"
     Row(Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
         Card(
@@ -197,7 +206,7 @@ private fun MessageRow(
                     m.choices.forEachIndexed { i, label ->
                         if (m.answered < 0) {
                             OutlinedButton(
-                                onClick = { onAnswer(i) },
+                                onClick = { onAnswer(m.id, i) },
                                 modifier = Modifier.fillMaxWidth(),
                             ) { Text(label) }
                         } else {

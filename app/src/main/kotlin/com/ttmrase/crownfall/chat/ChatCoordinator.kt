@@ -20,6 +20,7 @@ import com.ttmrase.crownfall.data.Startup
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,9 +50,11 @@ class ChatCoordinator(
 
     /** 前景に来た。TZ を :core に伝え、文面づくりを始める。 */
     fun onForeground() {
-        if (job?.isActive == true) return
+        val previous = job
         job =
             scope.launch {
+                // 背景→前景へすぐ戻った場合、前のループの後始末（残り行の書き戻し）を待ってから始める。
+                previous?.cancelAndJoin()
                 val ready = repository.startup.first { it is Startup.Ready } as Startup.Ready
                 val tz = TimeZone.getDefault().getOffset(System.currentTimeMillis()) / MILLIS
                 ready.session.state.first { it != null }
@@ -64,7 +67,6 @@ class ChatCoordinator(
     /** 背景に来た。進行中の行は書き戻して止める。 */
     fun onBackground() {
         job?.cancel()
-        job = null
     }
 
     private suspend fun loop(
@@ -76,19 +78,27 @@ class ChatCoordinator(
         while (true) {
             val state = session.state.first { !it?.alliance?.pendingChat.isNullOrEmpty() } ?: continue
             val pending = state.alliance.pendingChat.first()
-            val request =
-                ChatRequestFactory.create(
-                    state,
-                    pending,
-                    data,
-                    recent = recentTexts(state, pending.channel),
-                    reveal = ai.settings.value?.revealAi ?: RevealAi.AMBIGUOUS,
-                )
-            val backlog = SystemClock.nowEpochSec() - pending.createdEpochSec > BACKLOG_SEC
-            if (backlog) {
-                append(session, data, pending, scripted.generate(request).map(::spoken), true, null, true)
-            } else {
-                reveal(session, data, pending, request, router)
+            try {
+                val request =
+                    ChatRequestFactory.create(
+                        state,
+                        pending,
+                        data,
+                        recent = recentTexts(state, pending.channel),
+                        reveal = ai.settings.value?.revealAi ?: RevealAi.AMBIGUOUS,
+                    )
+                val backlog = SystemClock.nowEpochSec() - pending.createdEpochSec > BACKLOG_SEC
+                if (backlog) {
+                    append(session, data, pending, scripted.generate(request).map(::spoken), true, null, true)
+                } else {
+                    reveal(session, data, pending, request, router)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // 文面づくりの失敗でアプリを落とさない。このきっかけは捨てる（無限に再試行しない）。
+                _typing.value = _typing.value - pending.channel
+                withContext(NonCancellable) { append(session, data, pending, emptyList(), true, null, true) }
             }
         }
     }

@@ -402,6 +402,15 @@ class AllianceActionsTest {
     // ───── チャットの書き戻し・自由入力・クイズ ─────
 
     @Test
+    fun helpableTimerKindsAndTextLimitArePublic() {
+        assertTrue(Actions.canRequestHelp(TimerKind.BUILD))
+        assertTrue(Actions.canRequestHelp(TimerKind.RESEARCH))
+        assertTrue(Actions.canRequestHelp(TimerKind.TRAIN))
+        assertEquals(false, Actions.canRequestHelp(TimerKind.HEAL))
+        assertEquals(200, Actions.MAX_CHAT_TEXT)
+    }
+
+    @Test
     fun appendChatKeepsPendingUntilDoneAndUsesGivenTime() {
         var s = at21()
         s = queued(s, ChatEvent.DailyGreeting, "kaede")

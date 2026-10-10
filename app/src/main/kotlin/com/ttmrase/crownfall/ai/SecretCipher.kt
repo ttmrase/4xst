@@ -26,12 +26,16 @@ class SecretCipher(private val alias: String = DEFAULT_ALIAS) {
         return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, PROVIDER).apply { init(spec) }.generateKey()
     }
 
-    /** [plain] を暗号化し、`Base64(iv + 暗号文)` を返す。空文字はそのまま空文字。 */
-    fun encrypt(plain: String): String {
+    /** [plain] を暗号化し、`Base64(iv + 暗号文)` を返す。空文字はそのまま空文字。Keystore の不具合なら null（保存しない）。 */
+    fun encrypt(plain: String): String? {
         if (plain.isEmpty()) return ""
-        val cipher = Cipher.getInstance(TRANSFORM).apply { init(Cipher.ENCRYPT_MODE, key()) }
-        val body = cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
-        return Base64.getEncoder().encodeToString(cipher.iv + body)
+        return try {
+            val cipher = Cipher.getInstance(TRANSFORM).apply { init(Cipher.ENCRYPT_MODE, key()) }
+            val body = cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
+            Base64.getEncoder().encodeToString(cipher.iv + body)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     /** [stored] を復号する。壊れている・鍵が違う場合は null。 */
@@ -45,9 +49,8 @@ class SecretCipher(private val alias: String = DEFAULT_ALIAS) {
                     init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(TAG_BITS, raw, 0, IV_BYTES))
                 }
             String(cipher.doFinal(raw, IV_BYTES, raw.size - IV_BYTES), Charsets.UTF_8)
-        } catch (e: java.security.GeneralSecurityException) {
-            null
-        } catch (e: IllegalArgumentException) {
+        } catch (e: Exception) {
+            // Keystore の例外は GeneralSecurityException 以外（ProviderException / IOException など）も飛ぶ。
             null
         }
     }

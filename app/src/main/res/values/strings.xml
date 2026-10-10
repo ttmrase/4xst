@@ -580,4 +580,8 @@
     <string name="shop_name_ally_wood">木材</string>
     <string name="shop_name_ally_stone">石材</string>
     <string name="shop_name_ally_gold">金貨</string>
+    <string name="alliance_donate_button">%1$s %2$s</string>
+    <string name="alliance_shop_item">%1$s ×%2$d</string>
+    <string name="settings_order_row">%1$d. %2$s</string>
+    <string name="settings_save_failed">保存できませんでした（キーは印字可能な半角文字のみ。Keystore の不具合の可能性もあります）</string>
 </resources>

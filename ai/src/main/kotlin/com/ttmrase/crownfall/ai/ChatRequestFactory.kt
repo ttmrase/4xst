@@ -28,7 +28,9 @@ object ChatRequestFactory {
             seed = Mix.mix(state.alliance.seed xor pending.id),
             recent = recent,
             vars = ChatContext.vars(state, pending.event, data),
-            knownSpeakers = data.personas.personas.map { it.id }.toSet(),
+            knownSpeakers =
+                data.personas.personas.map { it.id }.toSet() +
+                    data.personas.worldNpcNames.map { "world:$it" },
         )
     }
 

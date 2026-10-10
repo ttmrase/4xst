@@ -2,6 +2,7 @@ package com.ttmrase.crownfall.ai
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -39,21 +40,37 @@ class AppSettings(context: Context, private val cipher: SecretCipher = SecretCip
         )
     }
 
-    /** [transform] で現在の設定を書き換えて保存する。 */
-    suspend fun update(transform: (AiSettings) -> AiSettings) {
-        store.edit { p ->
-            val next = transform(read(p))
-            p[ORDER] = next.order.joinToString(",")
-            p[DISABLED] = next.disabled.joinToString(",")
-            p[GEMINI_KEY] = cipher.encrypt(next.geminiKey.trim())
-            p[GEMINI_MODEL] = next.geminiModel.trim()
-            p[OPENAI_URL] = next.openAiBaseUrl.trim()
-            p[OPENAI_MODEL] = next.openAiModel.trim()
-            p[OPENAI_KEY] = cipher.encrypt(next.openAiKey.trim())
-            p[HOURLY] = next.hourlyBudget.coerceIn(0, AiSettings.MAX_BUDGET)
-            p[DAILY] = next.dailyBudget.coerceIn(0, AiSettings.MAX_BUDGET)
-            p[REVEAL_ADMIT] = next.revealAi == RevealAi.ADMIT
+    /**
+     * [transform] で現在の設定を書き換えて保存する。キーを暗号化できない（Keystore の不具合）、
+     * またはキーが印字可能 ASCII でないときは何も保存せず false を返す。
+     */
+    suspend fun update(transform: (AiSettings) -> AiSettings): Boolean =
+        try {
+            store.edit { p -> write(p, transform(read(p))) }
+            true
+        } catch (e: SecretUnavailableException) {
+            false
         }
+
+    private class SecretUnavailableException : Exception()
+
+    private fun write(
+        p: MutablePreferences,
+        next: AiSettings,
+    ) {
+        if (!next.keysValid()) throw SecretUnavailableException()
+        val gemini = cipher.encrypt(next.geminiKey.trim()) ?: throw SecretUnavailableException()
+        val openAi = cipher.encrypt(next.openAiKey.trim()) ?: throw SecretUnavailableException()
+        p[ORDER] = next.order.joinToString(",")
+        p[DISABLED] = next.disabled.joinToString(",")
+        p[GEMINI_KEY] = gemini
+        p[GEMINI_MODEL] = next.geminiModel.trim()
+        p[OPENAI_URL] = next.openAiBaseUrl.trim()
+        p[OPENAI_MODEL] = next.openAiModel.trim()
+        p[OPENAI_KEY] = openAi
+        p[HOURLY] = next.hourlyBudget.coerceIn(0, AiSettings.MAX_BUDGET)
+        p[DAILY] = next.dailyBudget.coerceIn(0, AiSettings.MAX_BUDGET)
+        p[REVEAL_ADMIT] = next.revealAi == RevealAi.ADMIT
     }
 
     private companion object {

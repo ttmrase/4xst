@@ -78,12 +78,23 @@ internal suspend fun Call.awaitText(): HttpText =
                     response: Response,
                 ) {
                     try {
-                        val text = response.use { HttpText(it.code, it.body?.string().orEmpty()) }
+                        val text = response.use { HttpText(it.code, readCapped(it)) }
                         if (cont.isActive) cont.resume(text)
-                    } catch (e: IOException) {
-                        if (cont.isActive) cont.resumeWithException(e)
+                    } catch (e: Exception) {
+                        val failure = if (e is IOException) e else IOException("read_failed")
+                        if (cont.isActive) cont.resumeWithException(failure)
                     }
                 }
             },
         )
     }
+
+private const val MAX_BODY_BYTES = 64L * 1024
+
+/** 本文を [MAX_BODY_BYTES] までに制限して読む（超えたら IOException）。 */
+private fun readCapped(response: Response): String {
+    val source = response.body?.source() ?: return ""
+    source.request(MAX_BODY_BYTES + 1)
+    if (source.buffer.size > MAX_BODY_BYTES) throw IOException("body_too_large")
+    return source.buffer.readUtf8()
+}

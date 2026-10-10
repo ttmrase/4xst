@@ -178,6 +178,7 @@ class LlmProvidersTest {
                 "http://8.8.8.8/v1",
                 "http://localhost.evil.com/v1",
                 "http://10.0.0.1.evil.com/v1",
+                "http://010.0.0.1/v1",
             )
         for (u in refused) assertEquals("cleartext_not_allowed", UrlPolicy.reject(u), u)
         assertEquals("invalid_url", UrlPolicy.reject("ftp"))
@@ -193,7 +194,45 @@ class LlmProvidersTest {
                 "kaede",
             )
         assertEquals(listOf("kaede" to "a"), lines.map { it.speaker to it.text })
-        assertEquals("kaede", ResponseParser.parse("{\"lines\":[]}", "kaede").single().speaker)
+        assertTrue(ResponseParser.parse("{\"lines\":[]}", "kaede").isEmpty())
         assertEquals("plain", ResponseParser.parse("plain", "gen").single().text)
+    }
+
+    @Test
+    fun truncatedJsonKeepsOnlyCompleteTextsAndNeverShowsRawJson() {
+        val cut = "{\"lines\":[{\"speaker\":\"gen\",\"text\":\"ふむ\\\"よし\\\"\"},{\"speaker\":\"kaede\",\"text\":\"途中でき"
+        val lines = ResponseParser.parse(cut, "kaede")
+        assertEquals(listOf("gen" to "ふむ\"よし\""), lines.map { it.speaker to it.text })
+        assertTrue(ResponseParser.parse("{\"lines\":[{\"speaker\":\"gen\",\"te", "kaede").isEmpty())
+        assertTrue(ResponseParser.parse("[{\"x\":", "kaede").isEmpty())
+    }
+
+    @Test
+    fun redirectsAreNotFollowedAndOversizedBodiesFail() {
+        val other = MockWebServer().apply { start() }
+        try {
+            other.enqueue(MockResponse().setBody("{}"))
+            server.enqueue(MockResponse().setResponseCode(302).setHeader("Location", other.url("/leak").toString()))
+            assertEquals(AiResult.Failure("http_302", false), run(gemini()))
+            assertEquals(0, other.requestCount)
+            server.enqueue(MockResponse().setBody("x".repeat(70 * 1024)))
+            assertEquals(AiResult.Failure("network", true), run(gemini()))
+        } finally {
+            other.shutdown()
+        }
+    }
+
+    @Test
+    fun headerUnsafeKeysFailWithoutLeakingTheKey() {
+        val bad = "key\nwith-newline"
+        val r = run(gemini(apiKey = bad))
+        assertEquals(AiResult.Failure("invalid_key", false), r)
+        assertEquals(0, server.requestCount)
+        assertEquals(AiResult.Failure("invalid_key", false), run(openai(apiKey = bad)))
+    }
+
+    @Test
+    fun defaultGeminiModelIsTheGaFlashLite() {
+        assertEquals("gemini-3.1-flash-lite", GeminiProvider.DEFAULT_MODEL)
     }
 }

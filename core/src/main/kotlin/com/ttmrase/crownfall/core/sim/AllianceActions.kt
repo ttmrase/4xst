@@ -25,13 +25,16 @@ import com.ttmrase.crownfall.core.util.Mix
 /** 同盟まわりのアクション（検査は宣言順で、最初の失敗を返す）。 */
 internal object AllianceActions {
     private const val BP_ONE = 10_000L
-    private const val MAX_TEXT = 200
+    const val MAX_TEXT = 200
     private const val MAX_OFFSET = 14 * 3600
     private const val GIFT_SALT = 0x4749L
     private const val LEADER = "kaede"
     private const val ANALYST = "lin"
     private const val PONZU = "ponzu"
     private val HELPABLE = setOf(TimerKind.BUILD, TimerKind.RESEARCH, TimerKind.TRAIN)
+
+    /** この種類のタイマーはヘルプを求められるか。 */
+    fun canRequestHelp(kind: TimerKind): Boolean = kind in HELPABLE
 
     private fun fail(reason: ActionFailure) = ActionResult.Failure(reason)
 

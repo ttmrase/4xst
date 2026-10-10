@@ -119,16 +119,16 @@ fun SpeedupDialog(
                     }
                 }
                 HorizontalDivider()
-                if (job.kind == com.ttmrase.crownfall.core.model.TimerKind.HEAL) {
-                    // 治療はヘルプの対象外
-                } else if (job.helpRequested) {
-                    Text(
-                        stringResource(R.string.speedup_help_requested, job.helpCount),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                } else {
-                    OutlinedButton(onClick = onRequestHelp, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.speedup_ask_help))
+                if (Actions.canRequestHelp(job.kind)) {
+                    if (job.helpRequested) {
+                        Text(
+                            stringResource(R.string.speedup_help_requested, job.helpCount),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    } else {
+                        OutlinedButton(onClick = onRequestHelp, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.speedup_ask_help))
+                        }
                     }
                 }
                 Button(onClick = { confirmGems = true }, modifier = Modifier.fillMaxWidth()) {

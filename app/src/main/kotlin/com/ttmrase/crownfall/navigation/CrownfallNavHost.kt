@@ -68,6 +68,10 @@ fun CrownfallNavHost(
     val readySession = (startup as? Startup.Ready)?.session
     val noState = remember { MutableStateFlow<GameState?>(null) }
     val gameState by (readySession?.state ?: noState).collectAsStateWithLifecycle()
+    val unread =
+        remember(gameState?.alliance?.history, gameState?.alliance?.chatRead) {
+            gameState?.alliance?.let { unreadTotal(it.history, it.chatRead) } ?: 0
+        }
 
     // 全画面共通のトースト（ヘルプ受領・ギフト・行軍の帰還など）。
     LaunchedEffect(readySession) {
@@ -94,7 +98,7 @@ fun CrownfallNavHost(
                             },
                             icon = {
                                 val isAlliance = item == BottomDestination.Alliance
-                                val count = if (isAlliance) gameState?.let(::unreadTotal) ?: 0 else 0
+                                val count = if (isAlliance) unread else 0
                                 BadgedBox(badge = { if (count > 0) Badge { Text(count.toString()) } }) {
                                     Icon(item.icon, contentDescription = null)
                                 }

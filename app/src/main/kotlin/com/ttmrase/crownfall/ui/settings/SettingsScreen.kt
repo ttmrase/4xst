@@ -69,6 +69,7 @@ private fun SettingsForm(
     var stats by remember { mutableStateOf(ai.usageStats()) }
     val saved = stringResource(R.string.settings_saved)
     val badUrl = stringResource(R.string.settings_url_rejected)
+    val saveFailed = stringResource(R.string.settings_save_failed)
     val urlProblem = draft.openAiBaseUrl.isNotBlank() && UrlPolicy.reject(draft.openAiBaseUrl.trim()) != null
 
     Column(
@@ -86,7 +87,10 @@ private fun SettingsForm(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("${i + 1}. " + providerLabel(id), modifier = Modifier.weight(1f))
+                    Text(
+                        stringResource(R.string.settings_order_row, i + 1, providerLabel(id)),
+                        modifier = Modifier.weight(1f),
+                    )
                     OutlinedButton(
                         enabled = i > 0,
                         onClick = { draft = draft.copy(order = move(draft.order, i, i - 1)) },
@@ -168,9 +172,9 @@ private fun SettingsForm(
             enabled = !urlProblem,
             onClick = {
                 scope.launch {
-                    ai.settingsStore.update { draft }
+                    val ok = draft.keysValid() && ai.settingsStore.update { draft }
                     stats = ai.usageStats()
-                    snackbarHostState.showReplacing(saved)
+                    snackbarHostState.showReplacing(if (ok) saved else saveFailed)
                 }
             },
             modifier = Modifier.fillMaxWidth(),

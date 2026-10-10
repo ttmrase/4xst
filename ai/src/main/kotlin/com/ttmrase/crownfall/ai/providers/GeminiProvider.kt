@@ -39,8 +39,13 @@ class GeminiProvider(
         val url = "${baseUrl.trimEnd('/')}/v1beta/models/${model().trim()}:generateContent"
         UrlPolicy.reject(url)?.let { return AiResult.Failure(it, false) }
         val http =
-            Request.Builder().url(url).header("x-goog-api-key", key)
-                .post(body(request).toRequestBody(JSON)).build()
+            try {
+                Request.Builder().url(url).header("x-goog-api-key", key)
+                    .post(body(request).toRequestBody(JSON)).build()
+            } catch (e: IllegalArgumentException) {
+                // 例外メッセージにヘッダ値（キー）が載るので、メッセージは捨てる。
+                return AiResult.Failure("invalid_key", false)
+            }
         return try {
             val res = client.noRedirects().newCall(http).awaitText()
             when {
@@ -111,8 +116,8 @@ class GeminiProvider(
         const val ID = "gemini"
         const val DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com"
 
-        /** 既定モデル（公式の料金ページで無料枠対象の最新 Flash-Lite。プレビュー版なので設定画面で変更できる）。 */
-        const val DEFAULT_MODEL = "gemini-3.1-flash-lite-preview"
+        /** 既定モデル（GA 版 Flash-Lite。公式の料金ページで無料枠対象。設定画面で変更できる）。 */
+        const val DEFAULT_MODEL = "gemini-3.1-flash-lite"
         private const val DEFAULT_SPEAKER = "kaede"
         private const val HTTP_TOO_MANY = 429
         private const val HTTP_SERVER_ERROR = 500

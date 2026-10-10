@@ -210,14 +210,20 @@ class AiRouterTest {
                     SpokenLine("kaede", "見て https://evil.example/x と www.evil.com です"),
                     SpokenLine("stranger", "こんにちは"),
                     SpokenLine("world:Boris", "ワールドの人"),
+                    SpokenLine("world:運営", "名乗り"),
                     SpokenLine("kaede", "   "),
                     SpokenLine("kaede", "FUCK you"),
                 ),
-                setOf("kaede"),
+                setOf("kaede", "world:Boris"),
                 "kaede",
             )
         assertEquals(
-            listOf(SpokenLine("kaede", "見て と です"), SpokenLine("kaede", "こんにちは"), SpokenLine("world:Boris", "ワールドの人")),
+            listOf(
+                SpokenLine("kaede", "見て と です"),
+                SpokenLine("kaede", "こんにちは"),
+                SpokenLine("world:Boris", "ワールドの人"),
+                SpokenLine("kaede", "名乗り"),
+            ),
             lines,
         )
         val many = f.sanitize((1..10).map { SpokenLine("kaede", "行$it") }, setOf("kaede"), "kaede")
