@@ -24,6 +24,16 @@ object ProductIds {
     fun deal(packId: String) = "deal:$packId"
 }
 
+/** 決済シートに出す商品の見た目。[firstDoubleGems] が 0 でなければ初回 2 倍の追加ぶん（初回だけ）。 */
+data class ProductView(
+    val sku: String,
+    val priceYen: Long,
+    val contents: PackContents,
+    val trigger: String,
+    val listValueYen: Long,
+    val firstDoubleGems: Long,
+)
+
 /** 擬似購入（04 §5）。実通信なし。内容・初回 2 倍・VIP pt・台帳・レシート・連鎖を 1 回で原子的に行う。 */
 object FakePurchase {
     private const val SECONDS_PER_DAY = 86_400L
@@ -123,6 +133,19 @@ object FakePurchase {
         offerId,
         firstDoubleGems = if (g.firstDouble) g.gems else 0,
     )
+
+    /** 商品 [id] の表示用情報（買えない・見つからないときは null）。決済シートが使う。 */
+    fun describe(
+        state: GameState,
+        id: String,
+        data: GameData,
+    ): ProductView? {
+        val s = ShopLogic.rollDay(state)
+        val p = resolve(s, id, data) ?: return null
+        val first = if (p.kind == Kind.GEMS && p.sku !in s.shop.firstPurchased) p.firstDoubleGems else 0L
+        val list = data.offers.pack(p.sku)?.listValueYen ?: p.priceYen
+        return ProductView(p.sku, p.priceYen, p.contents, p.trigger, list, first)
+    }
 
     /** [id] の商品を擬似購入する（ID は [ProductIds] またはカタログの SKU）。 */
     fun purchase(

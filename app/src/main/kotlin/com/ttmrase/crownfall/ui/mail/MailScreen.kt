@@ -45,20 +45,25 @@ import com.ttmrase.crownfall.core.model.BattleKind
 import com.ttmrase.crownfall.core.model.BattleReport
 import com.ttmrase.crownfall.core.model.Mail
 import com.ttmrase.crownfall.core.model.MailKind
+import com.ttmrase.crownfall.core.model.Receipt
 import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.model.ScoutReport
 import com.ttmrase.crownfall.core.session.GameSession
+import com.ttmrase.crownfall.core.shop.FakePurchase
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.itemName
 import com.ttmrase.crownfall.ui.nameRes
+import com.ttmrase.crownfall.ui.shop.ContentsLines
+import com.ttmrase.crownfall.ui.shop.formatYen
+import com.ttmrase.crownfall.ui.shop.productName
 import com.ttmrase.crownfall.ui.troopNameById
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
-private val TABS = listOf(MailKind.BATTLE, MailKind.SCOUT, MailKind.SYSTEM)
+private val TABS = listOf(MailKind.BATTLE, MailKind.SCOUT, MailKind.SYSTEM, MailKind.RECEIPT)
 private const val MILLIS = 1000L
 
 /** メール画面（T4.4）。戦闘 / 偵察 / システムのタブ、未読表示、戦闘報告の表。 */
@@ -137,6 +142,7 @@ fun MailScreen(
                 HorizontalDivider()
                 open.battle?.let { BattleBody(it, data) }
                 open.scout?.let { ScoutBody(it) }
+                open.receipt?.let { ReceiptBody(it, data) }
                 if (open.kind == MailKind.SYSTEM) Text(systemText(context, open))
             }
         }
@@ -147,6 +153,7 @@ private fun tabName(kind: MailKind): Int =
     when (kind) {
         MailKind.BATTLE -> R.string.mail_tab_battle
         MailKind.SCOUT -> R.string.mail_tab_scout
+        MailKind.RECEIPT -> R.string.mail_tab_receipt
         else -> R.string.mail_tab_system
     }
 
@@ -188,6 +195,9 @@ private fun mailTitle(
         return context.getString(res, battleTarget(context, b))
     }
     mail.scout?.let { return context.getString(R.string.mail_title_scout, scoutTarget(context, it)) }
+    mail.receipt?.let {
+        return context.getString(R.string.mail_title_receipt, productName(context, it.sku), formatYen(it.priceYen))
+    }
     return systemText(context, mail)
 }
 
@@ -340,4 +350,20 @@ private fun ScoutBody(r: ScoutReport) {
             )
         }
     }
+}
+
+/** レシート（擬似）。商品・内容・価格・注文番号。「（擬似・実支払い ¥0）」は設定で付く。 */
+@Composable
+private fun ReceiptBody(
+    r: Receipt,
+    data: GameData,
+) {
+    val context = LocalContext.current
+    Text(productName(context, r.sku), style = MaterialTheme.typography.titleMedium)
+    ContentsLines(r.contents, data)
+    if (r.firstDouble) Text(stringResource(R.string.receipt_first_double), style = MaterialTheme.typography.bodySmall)
+    Text(stringResource(R.string.receipt_price, formatYen(r.priceYen)))
+    Text(stringResource(R.string.receipt_method))
+    Text(stringResource(R.string.billing_order, FakePurchase.orderNumber(r.orderA, r.orderB)))
+    if (r.note) Text(stringResource(R.string.receipt_note), style = MaterialTheme.typography.bodySmall)
 }

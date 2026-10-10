@@ -1,7 +1,9 @@
 package com.ttmrase.crownfall.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -11,10 +13,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -26,12 +34,18 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.ai.AiService
 import com.ttmrase.crownfall.chat.ChatCoordinator
 import com.ttmrase.crownfall.core.model.GameState
+import com.ttmrase.crownfall.core.shop.OfferEngine
+import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.data.GameRepository
+import com.ttmrase.crownfall.data.SessionCoordinator
 import com.ttmrase.crownfall.data.Startup
+import com.ttmrase.crownfall.offers.NoOpOfferHooks
 import com.ttmrase.crownfall.offers.OfferHooks
+import com.ttmrase.crownfall.offers.ShopOfferHooks
 import com.ttmrase.crownfall.ui.alliance.AllianceScreen
 import com.ttmrase.crownfall.ui.alliance.unreadTotal
 import com.ttmrase.crownfall.ui.barracks.BarracksScreen
@@ -47,6 +61,9 @@ import com.ttmrase.crownfall.ui.map.MapScreen
 import com.ttmrase.crownfall.ui.research.ResearchScreen
 import com.ttmrase.crownfall.ui.screens.StubScreen
 import com.ttmrase.crownfall.ui.settings.SettingsScreen
+import com.ttmrase.crownfall.ui.shop.FakeBillingSheet
+import com.ttmrase.crownfall.ui.shop.OfferPresenter
+import com.ttmrase.crownfall.ui.shop.ShopScreen
 import com.ttmrase.crownfall.ui.title.TitleScreen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -55,9 +72,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun CrownfallNavHost(
     repository: GameRepository,
-    hooks: OfferHooks,
     ai: AiService,
     chat: ChatCoordinator,
+    sessionCoordinator: SessionCoordinator,
 ) {
     val navController = rememberNavController()
     val startup by repository.startup.collectAsStateWithLifecycle()
@@ -68,6 +85,15 @@ fun CrownfallNavHost(
     val readySession = (startup as? Startup.Ready)?.session
     val noState = remember { MutableStateFlow<GameState?>(null) }
     val gameState by (readySession?.state ?: noState).collectAsStateWithLifecycle()
+    val uiScope = rememberCoroutineScope()
+    val ready = startup as? Startup.Ready
+    val hooks: OfferHooks =
+        remember(ready?.session) {
+            if (ready != null) ShopOfferHooks(ready.session, ready.data, uiScope) else NoOpOfferHooks
+        }
+    var billingId by rememberSaveable { mutableStateOf<String?>(null) }
+    // 退出前オファーの流れ: 0 = なし、1 = 「待って！」を出している、2 = 閉じ終えたのでタイトルへ戻る確認
+    var exitStage by rememberSaveable { mutableIntStateOf(0) }
     val unread =
         remember(gameState?.alliance?.history, gameState?.alliance?.chatRead) {
             gameState?.alliance?.let { unreadTotal(it.history, it.chatRead) } ?: 0
@@ -78,6 +104,17 @@ fun CrownfallNavHost(
         readySession?.events?.collect { event ->
             val message = eventMessage(context, event) ?: return@collect
             launch { snackbarHostState.showReplacing(message) }
+        }
+    }
+
+    BackHandler(enabled = exitStage == 0 && destination?.route == Screen.City.route && ready != null) {
+        val r = ready
+        if (r != null) {
+            uiScope.launch {
+                r.session.dispatch { Actions.exitOffer(it, r.data) }
+                val pending = r.session.state.value?.let { OfferEngine.next(it) }
+                exitStage = if (pending != null) 1 else 2
+            }
         }
     }
 
@@ -201,7 +238,14 @@ fun CrownfallNavHost(
                     val ready = startup as? Startup.Ready
                     if (ready != null) ChatScreen(ready.session, ready.data, chat.typing, snackbarHostState)
                 }
-                composable(Screen.Settings.route) { SettingsScreen(ai, snackbarHostState) }
+                composable(Screen.Shop.route) {
+                    val r = startup as? Startup.Ready
+                    if (r != null) ShopScreen(r.session, r.data, snackbarHostState) { billingId = it }
+                }
+                composable(Screen.Settings.route) {
+                    val r = startup as? Startup.Ready
+                    SettingsScreen(ai, r?.session, snackbarHostState)
+                }
                 val implemented =
                     setOf(
                         Screen.Title,
@@ -215,6 +259,7 @@ fun CrownfallNavHost(
                         Screen.Alliance,
                         Screen.Chat,
                         Screen.Settings,
+                        Screen.Shop,
                     )
                 Screen.entries
                     .filter { it !in implemented }
@@ -222,6 +267,41 @@ fun CrownfallNavHost(
                         composable(screen.route) { StubScreen(screen) }
                     }
             }
+        }
+    }
+
+    // オファーのポップアップ、決済シート、退出前の確認（Title では出さない）。
+    if (ready != null && destination != null && destination.route != Screen.Title.route) {
+        OfferPresenter(
+            session = ready.session,
+            data = ready.data,
+            coordinator = sessionCoordinator,
+            busy = billingId != null,
+            onBuy = { billingId = it },
+            onIdle = { if (exitStage == 1) exitStage = 2 },
+        )
+        billingId?.let { id ->
+            FakeBillingSheet(id, ready.session, ready.data, snackbarHostState) { billingId = null }
+        }
+        if (exitStage == 2) {
+            AlertDialog(
+                onDismissRequest = { exitStage = 0 },
+                title = { Text(stringResource(R.string.exit_title)) },
+                text = { Text(stringResource(R.string.exit_body)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            exitStage = 0
+                            navController.navigate(
+                                Screen.Title.route,
+                            ) { popUpTo(Screen.City.route) { inclusive = true } }
+                        },
+                    ) { Text(stringResource(R.string.common_ok)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { exitStage = 0 }) { Text(stringResource(R.string.common_cancel)) }
+                },
+            )
         }
     }
 }

@@ -37,6 +37,7 @@ import com.ttmrase.crownfall.ai.AiSettings
 import com.ttmrase.crownfall.ai.providers.GeminiProvider
 import com.ttmrase.crownfall.ai.providers.UrlPolicy
 import com.ttmrase.crownfall.core.chat.RevealAi
+import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.ui.common.showReplacing
 import kotlinx.coroutines.launch
 
@@ -47,6 +48,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     ai: AiService,
+    session: GameSession?,
     snackbarHostState: SnackbarHostState,
 ) {
     val loaded by ai.settings.collectAsStateWithLifecycle()
@@ -55,13 +57,14 @@ fun SettingsScreen(
         Text(stringResource(R.string.settings_loading), modifier = Modifier.padding(16.dp))
         return
     }
-    SettingsForm(ai, base, snackbarHostState)
+    SettingsForm(ai, base, session, snackbarHostState)
 }
 
 @Composable
 private fun SettingsForm(
     ai: AiService,
     base: AiSettings,
+    session: GameSession?,
     snackbarHostState: SnackbarHostState,
 ) {
     val scope = rememberCoroutineScope()
@@ -179,6 +182,16 @@ private fun SettingsForm(
             },
             modifier = Modifier.fillMaxWidth(),
         ) { Text(stringResource(R.string.settings_save)) }
+        if (session != null) {
+            HorizontalDivider()
+            ShopSettingsSection(session)
+        }
+        HorizontalDivider()
+        Text(
+            stringResource(R.string.settings_no_real_billing),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
     }
 }
 

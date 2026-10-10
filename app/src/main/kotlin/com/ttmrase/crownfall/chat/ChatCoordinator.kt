@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.TimeZone
 
 /**
  * チャットの文面づくりと表示（docs/02 §11）。**前景にいる間だけ**動く。
@@ -56,9 +55,7 @@ class ChatCoordinator(
                 // 背景→前景へすぐ戻った場合、前のループの後始末（残り行の書き戻し）を待ってから始める。
                 previous?.cancelAndJoin()
                 val ready = repository.startup.first { it is Startup.Ready } as Startup.Ready
-                val tz = TimeZone.getDefault().getOffset(System.currentTimeMillis()) / MILLIS
                 ready.session.state.first { it != null }
-                ready.session.dispatch { Actions.setUtcOffset(it, tz) }
                 ai.awaitLoaded()
                 loop(ready.session, ready.data)
             }
@@ -171,7 +168,6 @@ class ChatCoordinator(
     ): Long = (TYPING_BASE_MS + text.length * TYPING_PER_CHAR_MS + jitter).coerceAtMost(TYPING_MAX_MS)
 
     private companion object {
-        const val MILLIS = 1000
         const val BACKLOG_SEC = 120L
         const val THINK_MS = 1_200L
         const val AMBIENT_THINK_MS = 3_000L

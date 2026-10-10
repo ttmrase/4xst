@@ -6,6 +6,7 @@ import android.util.Log
 import com.ttmrase.crownfall.ai.AiService
 import com.ttmrase.crownfall.chat.ChatCoordinator
 import com.ttmrase.crownfall.data.GameRepository
+import com.ttmrase.crownfall.data.SessionCoordinator
 import com.ttmrase.crownfall.offers.NoOpOfferHooks
 import com.ttmrase.crownfall.offers.OfferHooks
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -27,6 +28,9 @@ class AppContainer(context: Context) {
 
     /** AI 設定・プロバイダ・ルーター（API キーが無くても Scripted で動く）。 */
     val ai = AiService(context.applicationContext, appScope)
+
+    /** 前景になったときのセッション開始（TZ、ログイン pt、本日限定オファー）。 */
+    val session = SessionCoordinator(repository, appScope)
 
     /** チャットの文面づくりと 1 行ずつの表示。前景の間だけ動く。 */
     val chat = ChatCoordinator(repository, ai, appScope)

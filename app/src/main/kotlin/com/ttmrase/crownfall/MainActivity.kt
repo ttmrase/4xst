@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CrownfallTheme {
-                CrownfallNavHost(container.repository, container.offerHooks, container.ai, container.chat)
+                CrownfallNavHost(container.repository, container.ai, container.chat, container.session)
             }
         }
     }
@@ -25,6 +25,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         container.repository.onForeground()
+        container.session.onForeground()
         container.chat.onForeground()
     }
 

@@ -1,0 +1,224 @@
+package com.ttmrase.crownfall.ui.shop
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ttmrase.crownfall.R
+import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.model.Offer
+import com.ttmrase.crownfall.core.session.GameSession
+import com.ttmrase.crownfall.core.shop.OfferEngine
+import com.ttmrase.crownfall.core.shop.ProductIds
+import com.ttmrase.crownfall.core.sim.Actions
+import com.ttmrase.crownfall.data.SessionCoordinator
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+private const val REFRESH_MS = 5_000L
+private const val CLOSE_DELAY_MS = 2_000L
+private const val CLOSE_ALPHA = 0.35f
+private const val STEP_NONE = 0
+private const val STEP_ANNOUNCE = 1
+private const val STEP_GIFT = 2
+
+/**
+ * 全画面のオファー表示（T6.4）。キューの先頭（閉じていない・期限内）を全画面ポップで出す。
+ * 閉じる「×」は小さく薄く、2 秒遅れて出る（04 §4 の確認優位 UI）。購入は [onBuy]（決済シート）へ。
+ * 1 日の最初のログインでは、本日限定 → イベント告知 → 同盟ギフトの 3 連ポップを出す。
+ * [busy] が true（決済シートが開いている）の間は出さない。
+ */
+@Composable
+fun OfferPresenter(
+    session: GameSession,
+    data: GameData,
+    coordinator: SessionCoordinator,
+    busy: Boolean,
+    onBuy: (String) -> Unit,
+    onIdle: () -> Unit,
+) {
+    val state by session.state.collectAsStateWithLifecycle()
+    val chain by coordinator.loginChain.collectAsStateWithLifecycle()
+    var step by remember { mutableIntStateOf(STEP_NONE) }
+    val scope = rememberCoroutineScope()
+    val s = state ?: return
+
+    LaunchedEffect(session) {
+        while (true) {
+            delay(REFRESH_MS)
+            session.dispatch { Actions.refreshOffers(it, data) }
+        }
+    }
+
+    val offer = OfferEngine.next(s)
+    // 閉じた直後に残りが無くなったら、ログインの連鎖の続きや退出の確認へ進める
+    LaunchedEffect(offer == null, chain, busy) {
+        if (offer == null && !busy) {
+            if (chain && step == STEP_NONE) step = STEP_ANNOUNCE
+            onIdle()
+        }
+    }
+
+    if (offer != null && !busy) {
+        OfferPopup(
+            offer = offer,
+            data = data,
+            nowEpochSec = s.nowEpochSec,
+            onBuy = { onBuy(ProductIds.offer(offer.id)) },
+            onClose = { scope.launch { session.dispatch { Actions.dismissOffer(it, offer.id) } } },
+        )
+    } else if (!busy) {
+        when (step) {
+            STEP_ANNOUNCE ->
+                AlertDialog(
+                    onDismissRequest = {},
+                    title = { Text(stringResource(R.string.login_event_title)) },
+                    text = { Text(stringResource(R.string.login_event_body)) },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                if (s.alliance.gifts.isNotEmpty()) {
+                                    step = STEP_GIFT
+                                } else {
+                                    step = STEP_NONE
+                                    coordinator.consumeLoginChain()
+                                }
+                            },
+                        ) { Text(stringResource(R.string.common_ok)) }
+                    },
+                )
+            STEP_GIFT ->
+                AlertDialog(
+                    onDismissRequest = {},
+                    title = { Text(stringResource(R.string.login_gift_title)) },
+                    text = { Text(stringResource(R.string.login_gift_body, s.alliance.gifts.size)) },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                s.alliance.gifts.firstOrNull()?.let { g ->
+                                    scope.launch { session.dispatch { Actions.openGift(it, g.id, data) } }
+                                }
+                                step = STEP_NONE
+                                coordinator.consumeLoginChain()
+                            },
+                        ) { Text(stringResource(R.string.login_gift_open)) }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                step = STEP_NONE
+                                coordinator.consumeLoginChain()
+                            },
+                        ) { Text(stringResource(R.string.login_gift_later)) }
+                    },
+                )
+        }
+    }
+}
+
+@Composable
+private fun OfferPopup(
+    offer: Offer,
+    data: GameData,
+    nowEpochSec: Long,
+    onBuy: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val context = LocalContext.current
+    var closeVisible by remember(offer.id) { mutableStateOf(false) }
+    LaunchedEffect(offer.id) {
+        delay(CLOSE_DELAY_MS)
+        closeVisible = true
+    }
+    val closeAlpha by animateFloatAsState(if (closeVisible) CLOSE_ALPHA else 0f, tween(400), label = "closeAlpha")
+    Dialog(
+        onDismissRequest = {},
+        properties =
+            DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false,
+                usePlatformDefaultWidth = false,
+            ),
+    ) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.92f)) {
+            Box(Modifier.fillMaxSize().padding(16.dp)) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center).fillMaxWidth().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        stringResource(headline(offer)),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.surface,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    val name = productName(context, offer.sku)
+                    OfferCard(
+                        title = if (offer.revived) stringResource(R.string.offer_revived, name) else name,
+                        tagline = offerTagline(context, offer),
+                        contents = offer.contents,
+                        data = data,
+                        priceYen = offer.priceYen,
+                        listValueYen = offer.listValueYen,
+                        badge = offer.badge,
+                        remainingSec = (offer.expiresEpochSec - nowEpochSec).coerceAtLeast(0),
+                        stockLeft = null,
+                        onBuy = onBuy,
+                    )
+                    Text(
+                        stringResource(R.string.offer_close_warning),
+                        color = MaterialTheme.colorScheme.surface,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                TextButton(
+                    onClick = onClose,
+                    enabled = closeVisible,
+                    modifier = Modifier.align(Alignment.TopEnd).alpha(closeAlpha),
+                ) { Text("×", color = MaterialTheme.colorScheme.surface) }
+            }
+        }
+    }
+}
+
+private fun headline(offer: Offer): Int =
+    when {
+        offer.revived -> R.string.headline_revived
+        offer.trigger == "exitIntent" -> R.string.headline_wait
+        offer.trigger == "login" -> R.string.headline_today
+        else -> R.string.headline_special
+    }

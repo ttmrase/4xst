@@ -89,6 +89,20 @@ class ShopPurchaseTest {
     }
 
     @Test
+    fun describeShowsWhatThePurchaseWouldGrant() {
+        val s = base()
+        val v = FakePurchase.describe(s, "gems_m", data)!!
+        assertEquals(610L, v.priceYen)
+        assertEquals(550L, v.contents.gems)
+        assertEquals(500L, v.firstDoubleGems)
+        val bought = buy(s, "gems_m").ok()
+        assertEquals(0L, FakePurchase.describe(bought, "gems_m", data)!!.firstDoubleGems)
+        val list = data.offers.pack("pack_growth")!!.listValueYen
+        assertEquals(list, FakePurchase.describe(s, "pack_growth", data)!!.listValueYen)
+        assertNull(FakePurchase.describe(s, "nope", data))
+    }
+
+    @Test
     fun failedPurchaseChangesNothing() {
         val s = base()
         for (id in listOf("nope", "offer:999", "deal:pack_growth", "pack_castle", "growth_fund_x")) {
