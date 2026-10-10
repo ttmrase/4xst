@@ -70,6 +70,57 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
           if-no-files-found: error
+      # リリース APK: Secrets（4 つ全て）がある時だけ本番鍵で署名。無ければ固定 debug 鍵の署名（名前も別にして取り違えを防ぐ）。
+      # Secret の値は出力しない（::add-mask:: とファイル経由。set -x を使わない）。
+      - name: Prepare release signing (only when all Secrets exist)
+        id: signing
+        env:
+          B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+          SP: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KA: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KP: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [[ -n "$B64" && -n "$SP" && -n "$KA" && -n "$KP" ]]; then
+            for v in "$SP" "$KA" "$KP"; do echo "::add-mask::$v"; done
+            ks="$RUNNER_TEMP/release.keystore"
+            printf '%s' "$B64" | base64 -d > "$ks"
+            chmod 600 "$ks"
+            {
+              echo "RELEASE_KEYSTORE_PATH=$ks"
+              echo "RELEASE_STORE_PASSWORD=$SP"
+              echo "RELEASE_KEY_ALIAS=$KA"
+              echo "RELEASE_KEY_PASSWORD=$KP"
+            } >> "$GITHUB_ENV"
+            echo "signed=release" >> "$GITHUB_OUTPUT"
+            echo "Release signing: production key is available"
+          else
+            echo "signed=debug" >> "$GITHUB_OUTPUT"
+            echo "Release signing: Secrets are absent; the release APK is signed with the fixed debug key"
+          fi
+      - name: Build release APK
+        run: ./gradlew :app:assembleRelease -PwithAndroid=true
+      - name: Name the release APK and check billing and signature
+        env:
+          SIGNED: ${{ steps.signing.outputs.signed }}
+        run: |
+          src=app/build/outputs/apk/release/app-release.apk
+          if [[ "$SIGNED" == "release" ]]; then out=crownfall-release.apk; else out=crownfall-release-debugsigned.apk; fi
+          mkdir -p dist
+          cp "$src" "dist/$out"
+          .github/scripts/check-apk-no-billing.sh "dist/$out"
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          echo "== debug APK certificate =="
+          "$apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk | grep -E 'SHA-256|Signer #1 certificate DN'
+          echo "== $out certificate =="
+          "$apksigner" verify --print-certs "dist/$out" | grep -E 'SHA-256|Signer #1 certificate DN'
+          "$apksigner" verify "dist/$out"
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: crownfall-release-apk
+          path: dist/crownfall-release*.apk
+          retention-days: 14
+          if-no-files-found: error
       - name: Upload lint reports
         if: always()
         uses: actions/upload-artifact@v4
