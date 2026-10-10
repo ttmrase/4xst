@@ -45,7 +45,7 @@ DoD: `sim` `economy` の kover 行カバレッジ 80% 以上。
 | T2.5 | 新規ゲーム開始フロー（名前入力、初期英雄 3 択）、タイトル画面 |
 DoD: CI の APK で Castle Lv1→5 が遊べる。Debugger がエミュレータ無しのためコードレビュー + ユニットテスト（ViewModel ロジック）で確認。
 
-## M3 軍事・研究・英雄 — 実装済み・Director Approve 2026-10-10（HEAD d74a23d、CI run 38033161525。QA と要修正 3 件の待ち。設計は 02 §9）
+## M3 軍事・研究・英雄 — ✅ 完了 2026-10-10（HEAD d74a23d と修正 d939afc、QA 81afd4f。CI run 38033161525。設計は 02 §9）
 | ID | 内容 |
 | --- | --- |
 | T3.1 | `troops.json` `research.json` `heroes.json` + model |
