@@ -347,9 +347,9 @@
     <string name="troop_stats">ATK %1$s / DEF %2$s / HP %3$s / SPD %4$s</string>
     <string name="tier_label">T%1$d</string>
     <string name="locked_label">🔒 %1$s</string>
-    <string name="hero_unknown_icon">?</string>
+    <string name="hero_unknown_icon">\?</string>
     <string name="hero_icon">⚔</string>
-    <string name="hero_unknown_name">???</string>
+    <string name="hero_unknown_name">\???</string>
     <string name="hero_star_level_cap">★%1$d  Lv %2$d / %3$d</string>
     <string name="hero_skill_up_button">+%1$d</string>
     <string name="research_running_node">Researching: %1$s Lv %2$d</string>
