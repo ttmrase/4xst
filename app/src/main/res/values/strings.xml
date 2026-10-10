@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Crownfall</string>
+    <string name="start_game">開始</string>
+    <string name="screen_title">タイトル</string>
+    <string name="screen_city">城内</string>
+    <string name="screen_world_map">ワールドマップ</string>
+    <string name="screen_alliance">同盟</string>
+    <string name="screen_chat">チャット</string>
+    <string name="screen_heroes">英雄</string>
+    <string name="screen_research">研究</string>
+    <string name="screen_barracks">兵舎</string>
+    <string name="screen_quests">クエスト</string>
+    <string name="screen_shop">ショップ</string>
+    <string name="screen_mail">メール</string>
+    <string name="screen_settings">設定</string>
+    <string name="nav_city">城内</string>
+    <string name="nav_map">マップ</string>
+    <string name="nav_alliance">同盟</string>
+    <string name="nav_heroes">英雄</string>
+    <string name="nav_shop">ショップ</string>
+    <string name="stub_coming_soon">（準備中）</string>
+    <string name="city_shortcuts">仮の導線</string>
+</resources>

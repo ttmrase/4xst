@@ -24,4 +24,28 @@ Android 向けの「量産型 4X ストラテジー」風ゲーム。**個人利
 | [docs/STATUS.md](docs/STATUS.md) | 現在の進捗（Director が更新） |
 
 ## ビルド
-M0 完了後に追記（`./gradlew :core:test :ai:test` はローカル、APK は GitHub Actions のアーティファクト）。
+### 前提
+- JDK 17 以上（CI は 17、開発コンテナは 21）。Gradle は `./gradlew`（wrapper 8.14.3）を使う。
+- 開発コンテナには Android SDK が無い。そのため `:app` は既定では Gradle に含まれず、`:core` / `:ai` のみビルドされる（[docs/02_ARCHITECTURE.md](docs/02_ARCHITECTURE.md) §0）。
+
+### ローカル（JVM モジュール）
+```bash
+./gradlew :core:test :ai:test ktlintCheck   # テストと静的解析
+./gradlew ktlintFormat                      # ktlint の自動整形
+./gradlew koverXmlReport                    # カバレッジレポート
+```
+
+### Android SDK がある環境
+`ANDROID_HOME`（または `ANDROID_SDK_ROOT`）が設定済みなら `:app` は自動で含まれる。明示する場合:
+```bash
+./gradlew :app:assembleDebug -PwithAndroid=true
+```
+`-PwithAndroid=false` を付けると SDK があっても `:app` を除外できる。
+
+### APK の入手（GitHub Actions）
+1. GitHub のリポジトリで **Actions** タブを開き、対象ブランチの最新 run（`android` ワークフロー）を選ぶ。
+2. 下部の **Artifacts** から `crownfall-debug-apk`（保持 14 日）をダウンロードし、zip を展開する。
+3. 展開した `app-debug.apk` を端末へ転送し、「提供元不明のアプリ」のインストールを許可してインストールする。
+
+### 配布について
+このアプリは個人利用のサイドロード専用で、**Google Play では配布しない**。理由は冒頭の「重要な注意」を参照。

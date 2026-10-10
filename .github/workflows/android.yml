@@ -35,8 +35,6 @@ jobs:
 
   apk:
     needs: jvm
-    # T0.3 が入るまでのガード（M0 完了時に外す）
-    if: hashFiles('app/build.gradle.kts') != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
