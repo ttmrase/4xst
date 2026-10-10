@@ -94,8 +94,7 @@ class BackPressTest {
         rule.waitForIdle()
     }
 
-    private fun popupShown() =
-        runCatching { rule.onNodeWithContentDescription(closeLabel()).assertExists() }.isSuccess
+    private fun popupShown() = runCatching { rule.onNodeWithContentDescription(closeLabel()).assertExists() }.isSuccess
 
     @Test
     fun systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups() {
