@@ -1,5 +1,11 @@
 package com.ttmrase.crownfall.ui.territory
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -14,7 +20,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -49,9 +54,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.repeatOnLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.model.BuildingSlot
 import com.ttmrase.crownfall.core.model.BuildingType
@@ -125,7 +127,7 @@ private class TextCache(private val measurer: TextMeasurer) {
 /**
  * 領地ビュー（T10.3）。城・区画・城壁・森・川を、ズームとパンができるアイソメトリック風の地図に描く。
  * 見た目の層だけを差し替える: スロットとレベルは [state] のまま、建物の見た目は Lv の段階（1–5 / 6–10 / …）で変わる。
- * アニメは描画フェーズの時計 [frame] で動かし、毎秒の state 更新とは分ける。スプライトはアプリ共通の [SpriteCache]。
+ * アニメは描画フェーズの時計 現在時刻（描画のたびに読む）で動かし、毎秒の state 更新とは分ける。スプライトはアプリ共通の [SpriteCache]。
  * [locks] は今は建設できない区画（未建設で前提未達）で、森と霧で覆って札を立てる。建設できる区画は覆わない。
  * [events] の [GameEvent.BuildingLevelUp] で完成のポップを出す（5 秒サンプリングの state に依存しない）。
  */
@@ -145,7 +147,6 @@ fun TerritoryView(
     val measurer = rememberTextMeasurer()
     val texts = remember(measurer) { TextCache(measurer) }
     val cam = remember { TerritoryCamera() }
-    val frame = remember { mutableLongStateOf(0L) }
     // 区画とタイマーは生の状態から取る（5 秒サンプリングの state だと、完成のポップが古い絵の上で出る）。
     // 区画の並びとジョブの集合が変わったときだけ再構図される。
     val slots by remember(live) { (live?.map { it?.slots } ?: flowOf(null)).filterNotNull().distinctUntilChanged() }
@@ -188,12 +189,15 @@ fun TerritoryView(
     val levelLabels = remember { HashMap<Int, String>() }
     val emptyMark = stringResource(R.string.territory_empty_mark)
 
-    val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            while (true) androidx.compose.ui.platform.withInfiniteAnimationFrameMillis { t -> frame.longValue = t }
-        }
-    }
+    // 毎フレームの再描画の合図。無限アニメーション（rememberInfiniteTransition）なので、Compose のテストは idle になれる
+    // （フレームを待つ無限ループを自前で回すと ComposeNotIdleException になる）。描画の中で読んで再描画を起こす。
+    val transition = rememberInfiniteTransition(label = "territoryTick")
+    val tick by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(TICK_MS, easing = LinearEasing), RepeatMode.Restart),
+        label = "tick",
+    )
     LaunchedEffect(Unit) {
         cache.preload(SpriteIds.ALL_BUILDINGS.filterIndexed { i, _ -> i % 5 == 0 } + SpriteIds.SITE)
     }
@@ -201,12 +205,12 @@ fun TerritoryView(
         if (band != anim.to) {
             anim.from = anim.to
             anim.to = band
-            anim.startMs = frame.longValue
+            anim.startMs = nowMs()
         }
     }
     LaunchedEffect(events, slotCount) {
         events?.collect { e ->
-            if (e is GameEvent.BuildingLevelUp && e.slotId in 0 until slotCount) popAt[e.slotId] = frame.longValue
+            if (e is GameEvent.BuildingLevelUp && e.slotId in 0 until slotCount) popAt[e.slotId] = nowMs()
         }
     }
 
@@ -264,7 +268,7 @@ fun TerritoryView(
                                 best?.let { hit ->
                                     val slot = currentSlots.firstOrNull { it.slotId == hit.slotId }
                                     if (slot != null) {
-                                        bounceAt[slot.slotId] = frame.longValue
+                                        bounceAt[slot.slotId] = nowMs()
                                         currentClick(slot)
                                     }
                                 }
@@ -272,7 +276,8 @@ fun TerritoryView(
                         )
                     },
         ) {
-            val nowMs = frame.longValue
+            if (tick < 0f) return@Canvas
+            val nowMs = nowMs()
             val loadTick = cache.version
             if (!cam.ready || loadTick < 0) return@Canvas
             val sc = cam.sc
@@ -350,6 +355,11 @@ private fun slotDescription(
 }
 
 private const val CAMERA_DROP = 14f
+private const val TICK_MS = 1000
+private const val NANOS_PER_MS = 1_000_000L
+
+private fun nowMs(): Long = System.nanoTime() / NANOS_PER_MS
+
 private const val HIT_HALF_W = 52f
 private const val HIT_UP = 98f
 private const val HIT_DOWN = 30f
