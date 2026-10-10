@@ -12,7 +12,7 @@ Director はここを唯一のバックログとして更新してよい（分�
 
 ---
 
-## M0 基盤（目標: 最初の 1〜2 時間）
+## M0 基盤（目標: 最初の 1〜2 時間）— ✅ 完了 2026-10-10（HEAD 00f5f9b、CI run 38028345848）
 | ID | 内容 |
 | --- | --- |
 | T0.1 | Gradle マルチモジュール骨格。`settings.gradle.kts`（`:core` `:ai` 常時、`:app` は `ANDROID_HOME`/`ANDROID_SDK_ROOT`/`-PwithAndroid=true` で条件 include）、`gradle/libs.versions.toml`、wrapper 8.14.3、ルート build は AGP 非参照 |
@@ -22,7 +22,7 @@ Director はここを唯一のバックログとして更新してよい（分�
 | T0.5 | README にビルド手順・APK 入手手順（Actions → Artifacts）を追記 |
 DoD: コンテナでテスト緑、CI で APK 生成確認（Debugger が `actions_list` で確認して報告）。
 
-## M1 コアシミュレーション
+## M1 コアシミュレーション — 発行済み 2026-10-10（設計規則は 02 §7）
 | ID | 内容 |
 | --- | --- |
 | T1.1 | `model`: `Resources`, `Building`/`BuildingSlot`, `TimerJob`, `GameState`（最小構成）、`Clock`, `SeededRandom` |

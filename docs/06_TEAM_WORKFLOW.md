@@ -5,7 +5,7 @@
 | --- | --- | --- | --- |
 | Planner | Fable 5.1（このドキュメントの作者） | 企画、最終エスカレーション先。ユーザー判断が必要な事項のみ受ける | `docs/`（初版） |
 | **Director** | Opus 5.5（効果: 非常に高） | 仕様の最終決定、チケット発行、全コミットのレビュー、受け入れ判定、`docs/STATUS.md` と `docs/05_MILESTONES.md` の更新、設計ドキュメントの改訂 | `docs/**`。コードは原則書かない（小修正の提案は diff で Implementer へ） |
-| **Implementer** | Sonnet 5.5（効果: 高） | チケットの実装、ユニットテスト同梱、push、報告 | `*/src/main/**`, `*/src/main/resources/**`, ビルドファイル, `app/src/main/res/**` |
+| **Implementer** | Sonnet 5.5（効果: 高） | チケットの実装、ユニットテスト同梱、push、報告 | `*/src/main/**`, `*/src/main/resources/**`, ビルドファイル, `app/src/main/res/**`, `tools/**` |
 | **Debugger / QA** | Sonnet 5.5（効果: 中） | テスト拡充、CI 監視、バグ再現、小規模修正、大規模は報告、スモークチェックリスト | `*/src/test/**`, `.github/**`, `docs/qa/**`。`src/main` の修正は 20 行以内の明確なバグ修正に限り、必ず Implementer へ通知 |
 
 ## 2. ブランチ・コミット

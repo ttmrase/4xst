@@ -136,3 +136,18 @@ jobs:
 - OfflineCatchUp 24h 分 < 300ms。
 - マップ描画 60fps（可視タイル 400 枚程度）。
 - セーブ JSON < 2MB。
+
+## 7. コアシミュレーション設計規則（M1 で Director が決定）
+- **R1 時間**: `GameState.nowEpochSec` がシミュレーション時刻。`Simulation.tick(state, dtSec, data)` はこれを dtSec 進める純関数で、Clock は見ない。Clock を参照するのは `OfflineCatchUp` の呼び出し側（`:app`）だけ。
+- **R2 タイマー**: `TimerJob.endEpochSec` は絶対時刻。`now >= end` で完了する。加速は end を減らすだけ。
+- **R3 分割不変性**: `tick(tick(s,a),b) == tick(s,a+b)`（state と、events の連結の両方）。tick の内部では、タイマー完了・Boost 期限・2 本目ビルダーの期限を境界にセグメントへ区切って処理する。
+- **R4 整数演算のみ**: 生産は「毎時レート × 秒」を 3600 で割り、余りを `productionRemainder` に繰り越す。バフは basis point（`rate*(10000+bp)/10000`）。
+- **R5 オーバーフロー**: Resources の加算・乗算は `Long.MAX_VALUE` で飽和させ、負数は作らない。
+- **R6 乱数**: 自前の SplitMix64 を使い、状態は `GameState.rngState` に保存する。`kotlin.random` は使わない。
+- **R7 アクション**: プレイヤー操作は純関数 `Actions.*` で、戻り値は `ActionResult = Success(state, events) | Failure(reason)`。例外は投げない。
+- **R8 セーブ互換**: デフォルト値付きのフィールド追加は版を上げなくてよい。削除・改名・意味の変更は version を上げて Migration を書き、Director の承認を取る。
+- **R9**: `:core` は ID と数値だけを返す（表示用の文字列は `:app`）。
+- 資源の上限（cap）= Castle の `storage_cap_base` + Warehouse の `storage_cap`。cap で止まるのは生産だけで、報酬や購入は cap を超えてよい。アップグレード中の建物も旧レベルで生産を続ける。
+- 2 本目ビルダーの期限が切れても、進行中のジョブは最後まで進む（新規の開始だけができなくなる）。
+- オフライン上限を超えた時間は、生産もタイマーも進めない。`nowEpochSec` だけを現在時刻にそろえる。
+- データ生成: 大きなテーブル（`buildings.json` など）は `tools/datagen/*.py`（標準ライブラリのみ）で生成し、JSON をコミットする。ゲームが読むのは JSON だけ。`tools/**` は Implementer の書き込み領域。
