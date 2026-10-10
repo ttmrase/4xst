@@ -20,7 +20,7 @@
 ## 進行中チケット
 | ID | 担当 | 状態 | SHA |
 | --- | --- | --- | --- |
-| README の細部修正（台帳の項目、頻度の表記、LAN の許可範囲）、Gemini モデルのヒント文言 | Implementer | 依頼済み | - |
+| README の細部修正（台帳の項目、頻度の表記、LAN の許可範囲）、Gemini モデルのヒント文言 | Implementer | ✅ 完了 | 403b52a |
 | 実機でのスモークチェック（docs/qa/SMOKE_CHECKLIST.md） | ユーザー | 未実施 | - |
 | M9（オンデバイス LLM、メンション通知の検討） | - | Planner と相談中 | - |
 
