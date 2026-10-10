@@ -213,4 +213,6 @@ data class QuizText(val question: String, val options: List<String>)
 data class TemplatesFile(
     val templates: Map<String, Map<String, List<String>>>,
     val quizzes: Map<String, QuizText>,
+    /** 表示名のテーブル（`resource.food`、`tech.<id>`、`sku.<id>`、`topic.<id>`、`call.default`）。 */
+    val labels: Map<String, String> = emptyMap(),
 )

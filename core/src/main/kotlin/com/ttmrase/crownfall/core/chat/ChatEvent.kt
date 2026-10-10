@@ -28,7 +28,7 @@ sealed interface ChatEvent {
     @Serializable
     @SerialName("player_joined_rally")
     data class PlayerJoinedRally(val rallyId: Long, val won: Boolean, val host: String) : ChatEvent {
-        override val key get() = ChatKeys.PLAYER_JOINED_RALLY
+        override val key get() = if (won) ChatKeys.PLAYER_JOINED_RALLY else ChatKeys.PLAYER_RALLY_LOST
     }
 
     @Serializable
@@ -86,7 +86,7 @@ sealed interface ChatEvent {
     @Serializable
     @SerialName("npc_thanks")
     data class NpcThanks(val persona: String, val requestKind: String, val amount: Long) : ChatEvent {
-        override val key get() = ChatKeys.NPC_THANKS
+        override val key get() = if (requestKind == "scout") ChatKeys.NPC_THANKS_SCOUT else ChatKeys.NPC_THANKS
     }
 
     @Serializable
@@ -149,6 +149,7 @@ object ChatKeys {
     const val PLAYER_HELPED = "player_helped"
     const val PLAYER_DONATED = "player_donated"
     const val PLAYER_JOINED_RALLY = "player_joined_rally"
+    const val PLAYER_RALLY_LOST = "player_rally_lost"
     const val PLAYER_CASTLE_UP = "player_castle_up"
     const val PLAYER_DEFEATED = "player_defeated"
     const val PLAYER_DEFENDED = "player_defended"
@@ -157,6 +158,7 @@ object ChatKeys {
     const val NPC_PURCHASED = "npc_purchased"
     const val NPC_CALLS_RALLY = "npc_calls_rally"
     const val NPC_THANKS = "npc_thanks"
+    const val NPC_THANKS_SCOUT = "npc_thanks_scout"
     const val AMBIENT = "ambient"
     const val WORLD_AMBIENT = "world_ambient"
     const val DAILY_GREETING = "daily_greeting"
@@ -174,9 +176,10 @@ object ChatKeys {
     /** 全テンプレキー（自由入力は分類ごと）。 */
     val ALL: List<String> =
         listOf(
-            PLAYER_HELPED, PLAYER_DONATED, PLAYER_JOINED_RALLY, PLAYER_CASTLE_UP, PLAYER_DEFEATED, PLAYER_DEFENDED,
-            NPC_NEEDS_HELP, NPC_ASKS_SCOUT, NPC_PURCHASED, NPC_CALLS_RALLY, NPC_THANKS, AMBIENT, WORLD_AMBIENT,
-            DAILY_GREETING, EVENT_RANKING, FAVOR_MILESTONE, PONZU_QUIZ, QUIZ_RIGHT, QUIZ_WRONG, YUKI_RETURN,
+            PLAYER_HELPED, PLAYER_DONATED, PLAYER_JOINED_RALLY, PLAYER_RALLY_LOST, PLAYER_CASTLE_UP,
+            PLAYER_DEFEATED, PLAYER_DEFENDED, NPC_NEEDS_HELP, NPC_ASKS_SCOUT, NPC_PURCHASED, NPC_CALLS_RALLY,
+            NPC_THANKS, NPC_THANKS_SCOUT, AMBIENT, WORLD_AMBIENT, DAILY_GREETING, EVENT_RANKING,
+            FAVOR_MILESTONE, PONZU_QUIZ, QUIZ_RIGHT, QUIZ_WRONG, YUKI_RETURN,
         ) + FREE_TEXT_CATEGORIES.map { "$PLAYER_FREE_TEXT.$it" }
 
     /** 同盟チャンネル。 */

@@ -1,0 +1,50 @@
+package com.ttmrase.crownfall.ai
+
+import com.ttmrase.crownfall.core.chat.ChatEvent
+import com.ttmrase.crownfall.core.chat.ChatVars
+
+/** 直近チャットの 1 行。 */
+data class ChatTurn(val speaker: String, val text: String)
+
+/**
+ * プロバイダへの依頼。LLM は [system] と [messages] を使い、Scripted は構造化された [event] / [speakers] / [vars] / [seed] を使う。
+ * [recent] は直近に出した文面（同じ文を避けるため）。
+ */
+data class ChatRequest(
+    val system: String,
+    val messages: List<ChatTurn>,
+    val maxTokens: Int = DEFAULT_MAX_TOKENS,
+    val temperature: Double = DEFAULT_TEMPERATURE,
+    val jsonSchemaHint: String? = null,
+    val event: ChatEvent,
+    val speakers: List<String>,
+    val seed: Long,
+    val recent: List<String> = emptyList(),
+    val vars: ChatVars,
+) {
+    companion object {
+        const val DEFAULT_MAX_TOKENS = 300
+        const val DEFAULT_TEMPERATURE = 0.9
+    }
+}
+
+/** 発話 1 行。[speaker] はペルソナ ID か `world:<名前>`。 */
+data class SpokenLine(val speaker: String, val text: String)
+
+data class ChatResponse(val lines: List<SpokenLine>)
+
+/** 失敗の理由。[retryable] が true なら次のプロバイダを試す価値がある。 */
+sealed interface AiResult {
+    data class Success(val response: ChatResponse) : AiResult
+
+    data class Failure(val reason: String, val retryable: Boolean) : AiResult
+}
+
+/** 文面を作るプロバイダ。 */
+interface AiProvider {
+    /** 設定・ログで使う ID（`gemini`、`openai_compat`、`scripted` など）。 */
+    val id: String
+
+    /** [request] に対する発話を返す。例外ではなく [AiResult.Failure] で失敗を表す。 */
+    suspend fun complete(request: ChatRequest): AiResult
+}
