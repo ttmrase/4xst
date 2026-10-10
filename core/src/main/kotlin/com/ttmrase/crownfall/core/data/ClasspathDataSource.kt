@@ -11,6 +11,7 @@ object ClasspathDataSource {
             GameDataLoader.TROOPS,
             GameDataLoader.RESEARCH,
             GameDataLoader.HEROES,
+            GameDataLoader.MAP_RULES,
         )
 
     /** 全データファイルを「ファイル名 → 本文」で読む。 */

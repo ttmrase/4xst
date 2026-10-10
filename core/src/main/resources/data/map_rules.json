@@ -1,0 +1,90 @@
+{
+ "size": 64,
+ "center": {"x": 32, "y": 32},
+ "terrain": {"forestPermille": 170, "mountainPermille": 90, "waterPermille": 70, "smoothingPasses": 2},
+ "allies": {"personaSlots": 8, "fillers": 22, "minRadius": 3, "maxRadius": 8},
+ "kingdoms": [
+  {"id": "kingdom_0", "x": 6, "y": 6, "power": 300000},
+  {"id": "kingdom_1", "x": 57, "y": 6, "power": 600000},
+  {"id": "kingdom_2", "x": 6, "y": 57, "power": 1200000},
+  {"id": "kingdom_3", "x": 57, "y": 57, "power": 2400000},
+  {"id": "kingdom_4", "x": 32, "y": 4, "power": 800000},
+  {"id": "kingdom_5", "x": 32, "y": 59, "power": 1600000}
+ ],
+ "forts": {
+  "levels": [1, 1, 2, 2, 3, 3, 4, 4, 5, 5],
+  "minDistanceByLevel": [10, 14, 18, 24, 30],
+  "maxDistanceByLevel": [18, 22, 28, 34, 42]
+ },
+ "holyLand": {"x": 32, "y": 14},
+ "nodes": {
+  "targetPerType": 14,
+  "bands": [
+   {"upToDistance": 8, "minLevel": 1, "maxLevel": 1},
+   {"upToDistance": 14, "minLevel": 1, "maxLevel": 2},
+   {"upToDistance": 22, "minLevel": 2, "maxLevel": 3},
+   {"upToDistance": 30, "minLevel": 3, "maxLevel": 4},
+   {"upToDistance": 40, "minLevel": 4, "maxLevel": 5},
+   {"upToDistance": 1000, "minLevel": 5, "maxLevel": 6}
+  ],
+  "remainingByLevel": [30000, 60000, 120000, 240000, 480000, 960000],
+  "gatherPerHourByLevel": [3000, 6000, 12000, 24000, 48000, 96000]
+ },
+ "barbarians": {
+  "target": 40,
+  "bands": [
+   {"upToDistance": 8, "minLevel": 1, "maxLevel": 3},
+   {"upToDistance": 14, "minLevel": 3, "maxLevel": 8},
+   {"upToDistance": 22, "minLevel": 8, "maxLevel": 14},
+   {"upToDistance": 30, "minLevel": 14, "maxLevel": 20},
+   {"upToDistance": 40, "minLevel": 20, "maxLevel": 26},
+   {"upToDistance": 1000, "minLevel": 24, "maxLevel": 30}
+  ],
+  "troopsPerLevelSq": 12,
+  "tierByLevel": [{"upTo": 8, "tier": 1}, {"upTo": 16, "tier": 2}, {"upTo": 24, "tier": 3}, {"upTo": 30, "tier": 4}],
+  "mix": {"infantry": 40, "cavalry": 30, "archer": 30},
+  "fortEquivLevels": [8, 14, 20, 26, 30],
+  "fortScalePct": 300,
+  "expPerLevel": 50
+ },
+ "refreshPeriodSec": 3600,
+ "march": {"baseSecPerTile": 30, "refSpeed": 10, "scoutSecPerTile": 10, "rallyWaitSec": 300, "maxHeroes": 2},
+ "scout": {"baseErrorPct": 40, "errorPctPerWatchtowerLevel": 2, "minErrorPct": 0},
+ "loot": {
+  "resourcesPerLevel": {"food": 200, "wood": 200, "stone": 150, "gold": 50},
+  "fortMultiplier": 5,
+  "items": [
+   {"item": "speedup_general_5m", "count": 1, "chancePct": 30},
+   {"item": "hero_exp_1k", "count": 1, "chancePct": 25},
+   {"item": "skill_book", "count": 1, "chancePct": 5}
+  ]
+ },
+ "rally": {
+  "allyTroopsByFortLevel": [150, 600, 1800, 4800, 12000],
+  "allyTier": 1,
+  "participationResourcesPerLevel": {"food": 100, "wood": 100, "stone": 75, "gold": 25}
+ },
+ "combat": {
+  "maxRounds": 10,
+  "advantageBp": 12000,
+  "disadvantageBp": 8000,
+  "siegeVsTroopsBp": 6000,
+  "siegeVsWallBp": 15000,
+  "defenseK": 100,
+  "wallAbsorbBp": 5000,
+  "woundedPct": 70,
+  "activeSkillRound": 3
+ },
+ "raid": {
+  "troopsBase": 200,
+  "troopsPerCastleLevel": 150,
+  "tierByCastleLevel": [{"upTo": 5, "tier": 1}, {"upTo": 10, "tier": 2}, {"upTo": 15, "tier": 3}, {"upTo": 25, "tier": 4}],
+  "mix": {"infantry": 50, "cavalry": 25, "archer": 25},
+  "loadCap": 200000,
+  "minIntervalSec": 302400,
+  "maxIntervalSec": 604800,
+  "firstDelaySec": 172800,
+  "warnSecPerWatchtowerLevel": 120,
+  "maxWarnSec": 3600
+ }
+}

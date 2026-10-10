@@ -192,6 +192,7 @@ data class GameData(
     val research: Map<String, ResearchNodeDef>,
     val heroes: Map<String, HeroDef>,
     val heroRules: HeroRules,
+    val mapRules: MapRules,
 ) {
     /** 建物種 [type] の定義。 */
     fun building(type: BuildingType): BuildingDef = buildings.getValue(type)

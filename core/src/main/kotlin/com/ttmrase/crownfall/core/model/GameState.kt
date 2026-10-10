@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall.core.model
 
+import com.ttmrase.crownfall.core.map.MapState
 import kotlinx.serialization.Serializable
 
 /**
@@ -30,6 +31,7 @@ data class GameState(
     val summonPity: Int = 0,
     val heroShards: Map<String, Int> = emptyMap(),
     val foodDepleted: Boolean = false,
+    val map: MapState = MapState(),
 )
 
 /** tick / アクションが出すイベント（UI・通知・チャットへの入力）。 */

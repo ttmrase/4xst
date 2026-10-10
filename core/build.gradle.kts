@@ -50,6 +50,9 @@ kover {
                     "com.ttmrase.crownfall.core.research",
                     "com.ttmrase.crownfall.core.military",
                     "com.ttmrase.crownfall.core.hero",
+                    "com.ttmrase.crownfall.core.map",
+                    "com.ttmrase.crownfall.core.march",
+                    "com.ttmrase.crownfall.core.combat",
                 )
             }
         }

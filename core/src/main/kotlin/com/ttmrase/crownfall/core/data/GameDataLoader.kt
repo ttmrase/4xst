@@ -169,11 +169,16 @@ object GameDataLoader {
     const val TROOPS = "troops.json"
     const val RESEARCH = "research.json"
     const val HEROES = "heroes.json"
+    const val MAP_RULES = "map_rules.json"
 
     private const val STARTER_HERO_COUNT = 3
     private const val TROOP_TIERS = 4
     private const val HERO_SKILLS = 3
     private const val BP_TOTAL = 10_000
+    private const val MIN_MAP = 8
+    private const val MAX_MAP = 256
+    private const val PERMILLE = 1000
+    private const val PERCENT = 100
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -186,6 +191,7 @@ object GameDataLoader {
         val troopsFile = decode<TroopsFile>(jsonByName, TROOPS)
         val researchFile = decode<ResearchFile>(jsonByName, RESEARCH)
         val heroesFile = decode<HeroesFile>(jsonByName, HEROES)
+        val mapRules = validateMapRules(decode<MapRules>(jsonByName, MAP_RULES))
         val defs = buildBuildings(buildings)
         val itemDefs = buildItems(items)
         val heroDefs = buildHeroes(heroesFile, itemDefs)
@@ -198,6 +204,7 @@ object GameDataLoader {
             research = buildResearch(researchFile),
             heroes = heroDefs.first,
             heroRules = heroDefs.second,
+            mapRules = mapRules,
         )
     }
 
@@ -332,6 +339,77 @@ object GameDataLoader {
             }
         }
         return out
+    }
+
+    private fun validateMapRules(m: MapRules): MapRules {
+        val where = "map_rules.json"
+        if (m.size !in MIN_MAP..MAX_MAP) fail("$where: size out of range")
+
+        fun inside(p: XY) = p.x in 0 until m.size && p.y in 0 until m.size
+        if (!inside(m.center) || !inside(m.holyLand)) fail("$where: center/holyLand is outside the map")
+        m.kingdoms.firstOrNull { it.x !in 0 until m.size || it.y !in 0 until m.size }?.let {
+            fail("$where: kingdom ${it.id} is outside the map")
+        }
+        if (m.kingdoms.map { it.id }.toSet().size != m.kingdoms.size) fail("$where: duplicate kingdom id")
+        val terrainSum = m.terrain.forestPermille + m.terrain.mountainPermille + m.terrain.waterPermille
+        val negativeShare =
+            listOf(
+                m.terrain.forestPermille,
+                m.terrain.mountainPermille,
+                m.terrain.waterPermille,
+            ).any { it < 0 }
+        if (negativeShare || terrainSum > PERMILLE) {
+            fail("$where: terrain permille values are invalid")
+        }
+        if (m.allies.minRadius < 1 || m.allies.maxRadius < m.allies.minRadius) fail("$where: ally radius is invalid")
+        val fortLevels = m.forts.levels.maxOrNull() ?: 0
+        if (m.forts.minDistanceByLevel.size < fortLevels || m.forts.maxDistanceByLevel.size < fortLevels) {
+            fail("$where: fort distance tables must cover every fort level")
+        }
+        if (m.rally.allyTroopsByFortLevel.size < fortLevels || m.barbarians.fortEquivLevels.size < fortLevels) {
+            fail("$where: fort tables must cover every fort level")
+        }
+        for ((name, bands) in listOf("nodes" to m.nodes.bands, "barbarians" to m.barbarians.bands)) {
+            if (bands.isEmpty() || bands.zipWithNext().any { (a, b) -> b.upToDistance <= a.upToDistance }) {
+                fail("$where: $name bands must be non-empty and increasing")
+            }
+            if (bands.any { it.minLevel < 1 || it.maxLevel < it.minLevel }) {
+                fail(
+                    "$where: $name band levels are invalid",
+                )
+            }
+        }
+        if (m.nodes.bands.maxOf { it.maxLevel } > m.nodes.remainingByLevel.size ||
+            m.nodes.bands.maxOf { it.maxLevel } > m.nodes.gatherPerHourByLevel.size ||
+            m.nodes.gatherPerHourByLevel.any { it <= 0 }
+        ) {
+            fail("$where: node tables must cover every node level")
+        }
+        if (m.march.baseSecPerTile <= 0 || m.march.refSpeed <= 0 || m.march.scoutSecPerTile <= 0) {
+            fail("$where: march times must be positive")
+        }
+        if (m.combat.maxRounds < 1 || m.combat.woundedPct !in 0..100 || m.combat.defenseK <= 0) {
+            fail(
+                "$where: combat rules are invalid",
+            )
+        }
+        if (m.refreshPeriodSec < 1) fail("$where: refreshPeriodSec must be >= 1")
+        if (m.raid.minIntervalSec < 1 || m.raid.maxIntervalSec < m.raid.minIntervalSec) {
+            fail(
+                "$where: raid intervals are invalid",
+            )
+        }
+        for (mix in listOf(m.barbarians.mix, m.raid.mix)) {
+            if (mix.isEmpty() || mix.values.sum() != PERCENT ||
+                mix.keys.any {
+                        k ->
+                    TroopType.entries.none { it.name.equals(k, true) }
+                }
+            ) {
+                fail("$where: troop mix must use known troop types and sum to 100")
+            }
+        }
+        return m
     }
 
     private fun troopType(
