@@ -61,7 +61,7 @@
 | Gemini API（Google AI Studio で発行） | 無料 tier（RPM/RPD 制限あり） | API キー、モデル名（既定 `gemini-3.1-flash-lite`（2026-10 時点で無料枠の対象。設定で変更可）） | **既定プロバイダ（ユーザー確定）**。設定画面の初期選択は Gemini。コンテナから疎通確認済 |
 | OpenAI 互換（Groq） | 無料 tier | base URL、API キー、モデル名 | llama 系。コンテナからは疎通不可だが端末からは可 |
 | OpenAI 互換（OpenRouter free モデル） | 無料モデル枠 | 同上 | |
-| OpenAI 互換（Ollama / LM Studio） | 完全無料 | LAN の base URL（例 `http://192.168.x.x:11434/v1`）、モデル名 | 自宅 PC で動かす場合。cleartext 許可は該当ホストのみ（`network_security_config`） |
+| OpenAI 互換（Ollama / LM Studio） | 完全無料 | LAN の base URL（例 `http://192.168.x.x:11434/v1`）、モデル名 | 自宅 PC で動かす場合。平文 HTTP は、アプリの UrlPolicy がプライベート IP・localhost・*.local のときだけ許可する（02 §11） |
 | オンデバイス（MediaPipe LLM Inference, Gemma 3 1B） | 完全無料 | モデルファイル DL（約 0.5GB） | **Phase 2**。端末 RAM 要件あり |
 | Scripted | 常時 | なし | 既定・オフライン・フォールバック |
 
@@ -70,10 +70,10 @@
 2. 予算: 毎時最大 20 リクエスト、日次 200（設定で変更）。超過時は Scripted。
 3. 応答がプレーンテキストなら、テキスト全体を発話者 1 名の 1 行にする。`{` で始まる途中で切れた JSON は "text" の値を抜き出し、できなければ失敗扱い（次のプロバイダへ）にする（M5 REVIEW で決定）。
 4. 全失敗 → Scripted。失敗はユーザーに見せない（ログのみ）。設定画面に「直近 24h の LLM 使用回数／失敗回数」を表示。
-5. Ambient は 1 回の呼び出しで 3〜5 行を生成し、キューに入れて数分おきに 1 行ずつ放出（人がぽつぽつ話す感）。
+5. 生成した複数行は、タイピング表示（最大 3.5 秒）と行間 1.5 秒の間隔をあけて 1 行ずつ出す。
 
 ## 6. Scripted フォールバックの質
-- `templates.json`: `event × persona` ごとに 5〜10 テンプレ。プレースホルダ `{player}` `{resource}` `{amount}` `{castleLv}` `{tile}` `{rank}` `{nickname}`。
+- `templates.json`: `event × persona` ごとに 5〜10 テンプレ。プレースホルダは `{nickname}`（呼び方。プレイヤー名もこれで表す）`{resource}` `{amount}` `{castleLv}` `{tile}` `{rank}` `{sku}` `{fortLevel}` `{vip}` `{count}` `{tech}` `{lv}` `{helpCount}`。実装は 30 イベントキー × 各 5〜12 テンプレ。
 - 口調差（語尾、句読点、絵文字頻度）をペルソナ属性から機械的に付与する `StyleApplier`。
 - 直近に使ったテンプレは一定回数回避（連続同文を防ぐ）。
 - フリーテキスト入力への Scripted 返答はキーワード分類（資源/戦闘/研究/雑談/感謝/質問）→ 分類別テンプレ。十分に「それっぽい」ことを目標にし、LLM があれば自然に置き換わる。
@@ -83,3 +83,8 @@
 - 出力の簡易フィルタ（NG ワード表、URL 除去）。
 - 「あなた AI？」への対応は設定 `revealAi`（既定: 否定せず曖昧にぼかす）。
 - LLM の応答でゲーム状態は変化しない（会話のみ）。ゲーム的効果は常に `:core` のイベントから生じる。
+
+## 8. 実装との同期メモ（M8 T8.3）
+- `ChatEvent`（`core/chat/ChatEvent.kt`）は §3 の表に加えて次を持つ: PlayerDefended、NpcCallsRally、NpcThanks、WorldAmbient、PonzuQuiz、QuizResult、VipUp、YukiReturn。
+- シグネチャの違い: PlayerJoinedRally(rallyId, won, host)、PlayerDonated(amount, tech)、PlayerFreeText(text, channel)。
+- 既定のプロバイダの順は gemini → openai_compat → Scripted。既定のモデルは `gemini-3.1-flash-lite`（§5）。

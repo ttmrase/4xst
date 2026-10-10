@@ -82,12 +82,12 @@ data class ChatResponse(val lines: List<SpokenLine>)      // speakerId + text
 
 ### 2.3 `:app`（`com.ttmrase.crownfall`）
 - `MainActivity` + `NavHost`。画面毎 `ViewModel`。
-- `GameRepository`: `StateFlow<GameState>` を保持。フォアグラウンドで 1 秒 tick。変更は `reduce { Simulation.apply(...) }` で一元化。保存は 5 秒 debounce + `onStop`。
+- `GameRepository`: `:core` の `GameSession`（§8）をライフサイクルにつなぐ薄い層。状態の変更は `GameSession.dispatch { Actions.* }` で一元化し、保存はスロットリング（§8）+ `onStop`。
 - `SaveStore`: `filesDir/save/slot0.json` を tmp → rename でアトミック書込、`slot0.bak` を 1 世代保持。破損時は bak へフォールバック。
 - `ChatCoordinator`: `GameEvent` → `ChatEvent` → `AiRouter` → `ChatMessage` 追加。タイピング表示用の遅延を挿入。
 - `OfferPresenter`: `OfferEngine` の出力をダイアログ／ボトムシートとして表示。連鎖キュー管理。
 - `FakeBillingSheet`: 擬似決済ボトムシート（04 参照）。**実決済 SDK 依存ゼロ**。`:app` の依存グラフに `billing` を含む artifact が無いことを CI でチェック（`./gradlew :app:dependencies | grep -i billing` が空）。
-- `NotificationScheduler`: WorkManager で次回タイマー完了・オファー期限の通知を予約。
+- `notify/NoticeScheduler`（+ `NotificationPermission` / `NotificationPrefs`）: `NotificationPlanner.plan` の結果を WorkManager で予約する（§13）。
 - マップ描画: `Canvas` + `Modifier.transformable`。可視範囲のみ描画。タイルは図形＋ベクターアイコン。
 - アセット: 自作ベクター（`res/drawable/*.xml`）。画像素材は使わない（著作権・容量）。
 
@@ -122,7 +122,7 @@ jobs:
 - ジョブレベルの `if:` で `hashFiles()` は使えない（workflow のパースに失敗する）。
 - KGP と AGP の読み込みは、各モジュールで alias を使って適用する方式（ルートでは何も読み込まない）。CI に出る「Kotlin plugin loaded multiple times」の警告は許容する（M0 で決定）。
 - コンテナから Maven Central（repo.maven.apache.org）が断続的に 429 を返す。キャッシュがあるので、再実行で進む。
-- 署名: 個人利用のため debug keystore で可。M8 で release 署名（リポジトリ内の専用 keystore + パスワードは Secrets）を検討。
+- 署名と release ビルドは §14 で決定済み。
 
 ## 5. コーディング規約
 - Kotlin 公式スタイル。ktlint 準拠。
@@ -258,3 +258,16 @@ jobs:
 - R8（minify）は無効（実機で検証できない環境での、シリアライズまわりの実行時クラッシュを避けるため）。
 - 1.0.0（versionCode 100）。CI のログに、両 APK の署名証明書の SHA-256 を出す。
 
+## 15. 実装との同期メモ（M8 T8.3）
+- **§1 の版**（`gradle/libs.versions.toml`）: Kotlin 2.1.21、AGP 8.9.3、Compose BOM 2025.05.01、Navigation 2.9.0、Lifecycle 2.9.0、DataStore 1.1.7、OkHttp 4.12.0、WorkManager 2.10.1、core-splashscreen 1.0.1、kover 0.9.1、ktlint-gradle 12.3.0、JUnit 5.13.4。
+- **§2.1 `:core` の実際のパッケージ**: model / data / sim / economy / session / buff / military / research / hero / map / march / combat / alliance / chat / shop / quest / event / notify / save / util。
+  - 主なモデル名: `BuildingSlot`、`HeroState`、`AllianceState`、`QuestState`、`EventState`、`ShopState`、`Ledger`、`Boost`。マップのモデルは `core/map/MapModels.kt`、`March` は `core/march`。
+  - データ JSON: buildings, rules, items, speedup, troops, research, heroes, map_rules, personas, alliance_rules, templates, offers, shop_rules, vip, quests, events。
+  - shop: OfferEngine / FakePurchase / FakeLedger / VipCalculator / ShopFeatures（DailyDeals・MonthPass・GrowthFund・PiggyBank・LuckyWheel）/ ShopHooks / ShopLogic。
+- **§2.2 `:ai`**: `ChatRequest` には event・speakers・seed・recent・vars・knownSpeakers も含まれる。ほかに ChatRequestFactory、router（AiRouter / OutputFilter / Usage）、providers（Gemini / OpenAiCompat / Scripted / StyleApplier / FreeTextClassifier / ResponseParser / UrlPolicy）がある。
+  - 既定のプロバイダの順は gemini → openai_compat（どちらもキーや URL が無ければスキップ）→ Scripted。
+- **§2.3 `:app` の主なパッケージ**: data（GameRepository、FileSaveStorage、SessionCoordinator）、ai（AiService、AppSettings、SecretCipher、PrefsUsageStore、ChatCoordinator）、offers（OfferHooks の実装）、notify、ui/*。
+- **§4 の CI（実際の構成）**:
+  - jvm ジョブ: `:core:test :ai:test ktlintCheck koverXmlReport :core:koverVerify :ai:koverVerify -PwithAndroid=false`、billing 依存の検査、check-no-billing-refs.sh、check-no-payment-brands.sh、失敗時のテストレポート。
+  - apk ジョブ: `:app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck`、billing 依存の検査、check-apk-no-billing.sh、release の署名の準備（Secrets）、`assembleRelease`、証明書の SHA-256 の照合、成果物 crownfall-debug-apk と crownfall-release-apk（14 日）、lint レポート。
+  - setup-android は使わず、ランナー同梱の SDK を使う。
