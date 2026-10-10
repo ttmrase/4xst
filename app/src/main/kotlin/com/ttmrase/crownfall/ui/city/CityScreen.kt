@@ -474,7 +474,7 @@ private fun QuickLinkColumn(
 
 /** HUD の背に敷く、上から透ける暗い帯（地図の上でも文字が読める）。 */
 private fun Modifier.hudScrim(): Modifier =
-    background(Brush.verticalGradient(listOf(Color(0xCC0B1020), Color(0x000B1020))))
+    this.background(Brush.verticalGradient(listOf(Color(0xCC0B1020), Color(0x000B1020))))
 
 /** 今すぐアップグレードを始められる区画（資源・前提・キューが足りている）。小さな印を出す対象。 */
 private fun upgradableSlots(
