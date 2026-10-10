@@ -191,7 +191,7 @@ fun TerritoryView(
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            while (true) androidx.compose.runtime.withFrameMillis { t -> frame.longValue = t }
+            while (true) androidx.compose.ui.platform.withInfiniteAnimationFrameMillis { t -> frame.longValue = t }
         }
     }
     LaunchedEffect(Unit) {

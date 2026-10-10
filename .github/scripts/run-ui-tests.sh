@@ -21,6 +21,20 @@ status=${PIPESTATUS[0]}
   grep -E '^e: ' "$out/logs/gradle.log" | sed 's|file:///home/runner/work/4xst/4xst/||' | head -40
   echo "--- failed tests ---"
   grep -E ' FAILED$|^> There were failing tests|Tests? .* failed|AssertionError|Exception:' "$out/logs/gradle.log" | head -40
+  echo "--- per test (androidTest-results xml) ---"
+  python3 - <<'PY'
+import glob, xml.etree.ElementTree as ET
+for f in sorted(glob.glob("app/build/outputs/androidTest-results/**/*.xml", recursive=True)):
+    for tc in ET.parse(f).getroot().iter("testcase"):
+        bad = tc.find("failure") if tc.find("failure") is not None else tc.find("error")
+        name = tc.get("classname", "").rsplit(".", 1)[-1] + "." + tc.get("name", "")
+        if bad is None:
+            print("PASS", name)
+        else:
+            print("FAIL", name)
+            for line in (bad.get("message") or bad.text or "").strip().splitlines()[:4]:
+                print("     ", line[:200])
+PY
   echo "--- instrumentation results ---"
   grep -hE 'Starting [0-9]+ tests|Finished [0-9]+ tests' "$out/logs/gradle.log" | head -10
 } > "$out/result.txt" 2>&1
