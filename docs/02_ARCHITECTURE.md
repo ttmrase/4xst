@@ -113,10 +113,15 @@ jobs:
   apk:
     needs: jvm
     runs-on: ubuntu-latest
-    steps: checkout → setup-java 17 → android-actions/setup-android → ./gradlew :app:assembleDebug -PwithAndroid=true → :app:lintDebug
+    steps: checkout → setup-java 17 → ランナー同梱 SDK（$ANDROID_HOME）のライセンス承認 → setup-gradle → ./gradlew :app:assembleDebug :app:lintDebug :app:ktlintCheck -PwithAndroid=true
            → actions/upload-artifact (app/build/outputs/apk/debug/app-debug.apk, retention 14 days)
 ```
 - `concurrency` でブランチ毎に古い実行をキャンセル。
+- jvm ジョブは `-PwithAndroid=false` を明示する（ubuntu ランナーには ANDROID_HOME があるため。AGP を解決させない）。
+- `android-actions/setup-android@v3` は `sdkmanager tools` で失敗したため使わない（M0 実測）。ubuntu-latest に同梱の SDK を使う。
+- ジョブレベルの `if:` で `hashFiles()` は使えない（workflow のパースに失敗する）。
+- KGP と AGP の読み込みは、各モジュールで alias を使って適用する方式（ルートでは何も読み込まない）。CI に出る「Kotlin plugin loaded multiple times」の警告は許容する（M0 で決定）。
+- コンテナから Maven Central（repo.maven.apache.org）が断続的に 429 を返す。キャッシュがあるので、再実行で進む。
 - 署名: 個人利用のため debug keystore で可。M8 で release 署名（リポジトリ内の専用 keystore + パスワードは Secrets）を検討。
 
 ## 5. コーディング規約
