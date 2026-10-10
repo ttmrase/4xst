@@ -132,10 +132,10 @@ jobs:
 - 1 コミット 1 目的。コミットメッセージ形式は 06 参照。
 
 ## 6. パフォーマンス目標
-- tick 1 回 < 2ms（JVM ベンチ）。
-- OfflineCatchUp 24h 分 < 300ms。
+- tick 1 回 < 2ms（JVM ベンチ）。M8 の実測は約 8µs。
+- OfflineCatchUp 24h 分 < 300ms。M8 の実測は約 24ms（マップ・行軍・同盟・イベントを含む）。
 - マップ描画 60fps（可視タイル 400 枚程度）。
-- セーブ JSON < 2MB。
+- セーブ JSON < 2MB。M8 の実測は約 19KB（encode 1.5ms / decode 2.7ms）。
 
 ## 7. コアシミュレーション設計規則（M1 で Director が決定）
 - **R1 時間**: `GameState.nowEpochSec` がシミュレーション時刻。`Simulation.tick(state, dtSec, data)` はこれを dtSec 進める純関数で、Clock は見ない。Clock を参照するのは `OfflineCatchUp` の呼び出し側（`:app`）だけ。
@@ -248,6 +248,7 @@ jobs:
 - kover の対象に quest / event / notify を追加する。
 - M7 で確定した実装上の判断:
   - 逆転パックを購入した後は、リーダーの追従を購入時点の自力スコアで固定する（`followCapSelf`。M7 REVIEW。購入後の自力の伸びはそのままリードになる）。
+  - 逆転パックのボーナスは、週末時点（frac=1000）の NPC の最高スコアとの差 + margin で計算する（購入後に自力が伸びなくても 1 位を保証する。M7 QA）。
   - ~~週をまたいだオフライン分のイベントは新しい週に計上する~~ → 撤回（M7 QA の S3）。Tracking は Simulation.tick のセグメントの内側で行い、週・日の境界の集計はその時点までのスコアで確定する。GameSession はアクションのイベントにだけ Tracking を適用する。
   - 戦力成長祭の自力スコアは、週の開始時からの戦力の増加分。
 
