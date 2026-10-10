@@ -152,16 +152,18 @@ fun CrownfallNavHost(
         remember(readySession) {
             readySession?.state
                 ?.map { s ->
-                    s?.mails?.filter { !it.read && it.battle?.kind == BattleKind.RAID }?.maxOfOrNull { it.id }
+                    s?.mails
+                        ?.filter { !it.read && it.battle?.kind == BattleKind.RAID }
+                        ?.maxByOrNull { it.id }
+                        ?.let { it.id to (it.battle?.attackerWon == false) }
                 }
                 ?.distinctUntilChanged() ?: flowOf(null)
         }
     val raidMail by raidMailFlow.collectAsStateWithLifecycle(null)
     var raidAlertSeen by rememberSaveable { mutableLongStateOf(0L) }
-    val alertId = raidMail
+    val alertId = raidMail?.first
     if (alertId != null && alertId > raidAlertSeen && destination?.route == Screen.City.route) {
-        val mails = ready?.session?.state?.value?.mails.orEmpty()
-        val defended = mails.firstOrNull { it.id == alertId }?.battle?.attackerWon == false
+        val defended = raidMail?.second == true
         AlertDialog(
             onDismissRequest = { raidAlertSeen = alertId },
             title = { Text(stringResource(R.string.raid_alert_title)) },
