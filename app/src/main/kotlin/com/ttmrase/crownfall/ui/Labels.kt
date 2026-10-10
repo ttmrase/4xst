@@ -243,6 +243,20 @@ fun failureMessage(
         ActionFailure.InvalidTarget -> context.getString(R.string.failure_invalid_target)
         ActionFailure.NoTroops -> context.getString(R.string.failure_no_troops)
         ActionFailure.MarchNotFound -> context.getString(R.string.failure_march_not_found)
+        ActionFailure.HelpAlreadyRequested -> context.getString(R.string.failure_help_already)
+        ActionFailure.NothingToHelp -> context.getString(R.string.failure_nothing_to_help)
+        ActionFailure.DailyLimit -> context.getString(R.string.failure_daily_limit)
+        ActionFailure.RequestNotFound -> context.getString(R.string.failure_request_not_found)
+        ActionFailure.TechNotFound -> context.getString(R.string.failure_invalid_argument)
+        ActionFailure.ShopItemNotFound -> context.getString(R.string.failure_invalid_argument)
+        is ActionFailure.NotEnoughAlliancePoints ->
+            context.getString(R.string.failure_not_enough_points, ShortNumber.format(failure.missing))
+        ActionFailure.GiftNotFound -> context.getString(R.string.failure_gift_not_found)
+        ActionFailure.RallyNotFound -> context.getString(R.string.failure_rally_not_found)
+        ActionFailure.ChatNotFound -> context.getString(R.string.failure_invalid_argument)
+        ActionFailure.QuizNotFound -> context.getString(R.string.failure_invalid_argument)
+        ActionFailure.QuizAlreadyAnswered -> context.getString(R.string.failure_quiz_answered)
+        ActionFailure.ChannelNotWritable -> context.getString(R.string.failure_channel_not_writable)
     }
 
 /** イベントの通知文言（量産型翻訳調）。表示しないイベントは null。 */
@@ -270,6 +284,9 @@ fun eventMessage(
         is GameEvent.RaidIncoming -> context.getString(R.string.event_raid_incoming)
         is GameEvent.PlayerDefendedRaid -> context.getString(R.string.event_raid_defended)
         is GameEvent.PlayerDefeated -> context.getString(R.string.event_raid_defeated)
+        is GameEvent.HelpReceived ->
+            context.getString(R.string.event_help_received, personaName(context, event.persona))
+        is GameEvent.GiftOpened -> context.getString(R.string.event_gift_opened)
         is GameEvent.TimerCompleted,
         is GameEvent.BoostExpired,
         is GameEvent.HeroSummoned,
@@ -302,6 +319,15 @@ fun Terrain.nameRes(): Int =
         Terrain.MOUNTAIN -> R.string.terrain_mountain
         Terrain.WATER -> R.string.terrain_water
     }
+
+/** ペルソナの表示名（ID に対応する文字列リソース）。名前だけのメンバー（フィラー）はそのまま返す。 */
+fun personaName(
+    context: Context,
+    id: String,
+): String {
+    val resId = context.resources.getIdentifier("persona_name_$id", "string", context.packageName)
+    return if (resId != 0) context.getString(resId) else id
+}
 
 /** 兵種 ID（例 `infantry_t2`）から表示名を作る。未知の ID はそのまま返す。 */
 fun troopNameById(

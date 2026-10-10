@@ -465,4 +465,26 @@
     <string name="troop_count_line">%1$s ×%2$s</string>
     <string name="resource_plus">%1$s +%2$s</string>
     <string name="scout_node_line">%1$s — %2$s</string>
+    <string name="failure_help_already">Help has already been requested for this timer</string>
+    <string name="failure_nothing_to_help">No help requests right now</string>
+    <string name="failure_daily_limit">Daily limit reached</string>
+    <string name="failure_request_not_found">That request has ended</string>
+    <string name="failure_not_enough_points">%1$s more alliance points needed</string>
+    <string name="failure_gift_not_found">That gift is no longer available</string>
+    <string name="failure_rally_not_found">That rally has ended</string>
+    <string name="failure_quiz_answered">Already answered</string>
+    <string name="failure_channel_not_writable">You cannot post in this channel</string>
+    <string name="event_help_received">%1$s helped you!</string>
+    <string name="event_gift_opened">Gift opened!</string>
+    <string name="persona_name_kaede">Kaede</string>
+    <string name="persona_name_marcus">Marcus_DE</string>
+    <string name="persona_name_ponzu">Ponzu</string>
+    <string name="persona_name_sato">Sato_Farm</string>
+    <string name="persona_name_lin">Lin</string>
+    <string name="persona_name_johnny">Johnny</string>
+    <string name="persona_name_yuki">Yuki</string>
+    <string name="persona_name_gen">Old Soldier Gen</string>
+    <string name="offline_alliance">Alliance</string>
+    <string name="offline_help_received">Helps received: %1$d</string>
+    <string name="offline_chats_received">Chats received: %1$d</string>
 </resources>

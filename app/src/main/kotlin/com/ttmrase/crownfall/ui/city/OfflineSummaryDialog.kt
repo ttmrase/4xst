@@ -43,6 +43,9 @@ fun OfflineSummaryDialog(
                         Text("+" + ShortNumber.format(summary.produced[type]))
                     }
                 }
+                Text(stringResource(R.string.offline_alliance), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.offline_help_received, summary.helpReceived))
+                Text(stringResource(R.string.offline_chats_received, summary.chatsReceived))
                 Text(stringResource(R.string.offline_completed), style = MaterialTheme.typography.titleSmall)
                 if (summary.completedJobs.isEmpty()) {
                     Text(stringResource(R.string.offline_none))

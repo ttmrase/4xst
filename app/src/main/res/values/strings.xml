@@ -465,4 +465,26 @@
     <string name="troop_count_line">%1$s ×%2$s</string>
     <string name="resource_plus">%1$s +%2$s</string>
     <string name="scout_node_line">%1$s — %2$s</string>
+    <string name="failure_help_already">このタイマーはすでにヘルプを求めています</string>
+    <string name="failure_nothing_to_help">ヘルプできる要請はありません</string>
+    <string name="failure_daily_limit">今日の上限に達しました</string>
+    <string name="failure_request_not_found">その要請は終了しました</string>
+    <string name="failure_not_enough_points">同盟ポイントがあと %1$s 足りません</string>
+    <string name="failure_gift_not_found">そのギフトは受け取れません</string>
+    <string name="failure_rally_not_found">そのラリーは終了しました</string>
+    <string name="failure_quiz_answered">すでに答えています</string>
+    <string name="failure_channel_not_writable">このチャンネルには書き込めません</string>
+    <string name="event_help_received">%1$s がヘルプしてくれました！</string>
+    <string name="event_gift_opened">ギフトを開けました！</string>
+    <string name="persona_name_kaede">Kaede</string>
+    <string name="persona_name_marcus">Marcus_DE</string>
+    <string name="persona_name_ponzu">ぽんず</string>
+    <string name="persona_name_sato">Sato_Farm</string>
+    <string name="persona_name_lin">Lin</string>
+    <string name="persona_name_johnny">ジョニー</string>
+    <string name="persona_name_yuki">Yuki</string>
+    <string name="persona_name_gen">老兵ゲン</string>
+    <string name="offline_alliance">同盟</string>
+    <string name="offline_help_received">ヘルプされた回数：%1$d 回</string>
+    <string name="offline_chats_received">受信したチャット：%1$d 件</string>
 </resources>
