@@ -13,6 +13,9 @@ adb logcat -c || true
 # テストの開始・終了を logcat で追う（固まったとき「どのテストか」を result.txt に出すため）
 adb logcat -v time -s TestRunner:I > "$out/logs/testrunner.txt" 2>&1 &
 logcat_pid=$!
+# 性能の行（PerfUiTest）は、あとのテストの logcat に押し流されないよう、流れてくるそばからファイルに残す
+adb logcat -v time -s CrownfallPerf:I > "$out/logs/perf.txt" 2>&1 &
+perf_pid=$!
 # gradle はバックグラウンドで動かし、20 分で見切る（pipe で tee に繋ぐと、固まったときに timeout が効かず job の上限まで待つ）
 ./gradlew :app:connectedDebugAndroidTest -PwithAndroid=true \
   -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
@@ -42,7 +45,7 @@ wait "$gradle_pid"
 status=$?
 [[ $hung -eq 1 ]] && status=124
 kill "$tail_pid" 2>/dev/null || true
-kill "$logcat_pid" 2>/dev/null || true
+kill "$logcat_pid" "$perf_pid" 2>/dev/null || true
 
 # 結果の要約（コンパイルエラー、失敗したテスト）。ジョブのサマリと qa-screenshots の summary に出す
 {
@@ -68,7 +71,7 @@ PY
   echo "--- TestRunner (started / finished / failed) ---"
   grep -E 'started:|finished:|failed:' "$out/logs/testrunner.txt" | sed -E 's/^([0-9-]+ [0-9:.]+) .*TestRunner.*: /\1 /' | tail -40
   echo "--- perf (logcat CrownfallPerf) ---"
-  adb logcat -d -s CrownfallPerf:I | grep -v '^---' | sed -E 's/^[0-9-]+ [0-9:.]+ +[0-9]+ +[0-9]+ I CrownfallPerf: //' | tail -8
+  grep 'CrownfallPerf' "$out/logs/perf.txt" | sed -E 's/^[0-9-]+ [0-9:.]+ +[A-Z]\/CrownfallPerf\([ 0-9]+\): //' | tail -8
   echo "--- instrumentation results ---"
   grep -hE 'Starting [0-9]+ tests|Finished [0-9]+ tests' "$out/logs/gradle.log" | head -10
 } > "$out/result.txt" 2>&1
