@@ -289,4 +289,24 @@ class AllianceSchedulerTest {
         assertEquals(data.mapRules.allies.personaSlots, data.personas.personas.size)
         assertEquals(data.mapRules.allies.fillers, data.personas.fillerMembers.size)
     }
+
+    @Test
+    fun ponzuAsksQuizzesInRotationWithAMinimumInterval() {
+        var s = fresh()
+        val seen = ArrayList<Pair<String, Long>>()
+        repeat(40 * 24) {
+            s = tick(s, hour).state
+            s.alliance.pendingChat.filter { it.event is ChatEvent.PonzuQuiz }
+                .forEach { seen += (it.event as ChatEvent.PonzuQuiz).quizId to it.createdEpochSec }
+            s = s.copy(alliance = s.alliance.copy(pendingChat = emptyList()))
+        }
+        assertTrue(seen.size >= 4, "quizzes=${seen.size}")
+        val order = data.allianceRules.quizzes.map { it.id }
+        seen.forEachIndexed { i, (id, _) -> assertEquals(order[i % order.size], id) }
+        seen.zipWithNext().forEach {
+                (a, b) ->
+            assertTrue(b.second - a.second >= data.allianceRules.quiz.minIntervalSec)
+        }
+        assertEquals(seen.size, s.alliance.quizIndex)
+    }
 }

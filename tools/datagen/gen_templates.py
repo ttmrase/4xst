@@ -32,7 +32,7 @@ path.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", encoding="
 personas = ["kaede", "marcus", "ponzu", "sato", "lin", "johnny", "yuki", "gen"]
 bad = 0
 for key, per in templates.items():
-    if key in ("world_ambient", "yuki_return", "ponzu_quiz"):
+    if key in ("world_ambient", "yuki_return", "yuki_return_none", "ponzu_quiz"):
         continue
     for p in personas:
         n = len(per.get(p, []))

@@ -94,7 +94,8 @@ class ScriptedProviderTest {
             "player nickname resource amount castleLv tile rank count lv fortLevel tech sku helpCount host".split(
                 " ",
             ).toSet()
-        val special = setOf(ChatKeys.WORLD_AMBIENT, ChatKeys.YUKI_RETURN, ChatKeys.PONZU_QUIZ)
+        val special =
+            setOf(ChatKeys.WORLD_AMBIENT, ChatKeys.YUKI_RETURN, ChatKeys.YUKI_RETURN_NONE, ChatKeys.PONZU_QUIZ)
         for (key in ChatKeys.ALL) {
             val per = data.templates.templates[key] ?: error("missing key $key")
             if (key in special) {
@@ -211,5 +212,18 @@ class ScriptedProviderTest {
         val texts = ids.map { p -> run(request(ChatEvent.PlayerHelped(3), listOf(p), seed = 3)).first().text }
         assertEquals(ids.size, texts.toSet().size)
         assertNotEquals(texts[0], texts[1])
+    }
+
+    @Test
+    fun yukiThanksWithTheRealHelpCountOrJustGreetsWhenThereWasNone() {
+        for (seed in 1L..60L) {
+            val withHelp = run(request(ChatEvent.YukiReturn(6), listOf("yuki"), seed = seed))
+            assertEquals("yuki", withHelp.first().speaker)
+            assertTrue(withHelp.first().text.contains("6回"), withHelp.first().text)
+            val none = run(request(ChatEvent.YukiReturn(0), listOf("yuki"), seed = seed))
+            assertFalse(none.first().text.contains("回") && none.first().text.contains("ヘルプ"), none.first().text)
+        }
+        assertEquals(ChatKeys.YUKI_RETURN_NONE, ChatEvent.YukiReturn(0).key)
+        assertEquals(ChatKeys.YUKI_RETURN, ChatEvent.YukiReturn(2).key)
     }
 }

@@ -140,7 +140,7 @@ sealed interface ChatEvent {
     @Serializable
     @SerialName("yuki_return")
     data class YukiReturn(val helpCount: Int) : ChatEvent {
-        override val key get() = ChatKeys.YUKI_RETURN
+        override val key get() = if (helpCount > 0) ChatKeys.YUKI_RETURN else ChatKeys.YUKI_RETURN_NONE
     }
 }
 
@@ -169,6 +169,7 @@ object ChatKeys {
     const val QUIZ_RIGHT = "quiz_right"
     const val QUIZ_WRONG = "quiz_wrong"
     const val YUKI_RETURN = "yuki_return"
+    const val YUKI_RETURN_NONE = "yuki_return_none"
 
     /** 自由入力の分類（キーは `player_free_text.<分類>`）。 */
     val FREE_TEXT_CATEGORIES = listOf("resource", "battle", "research", "chat", "thanks", "question")
@@ -179,7 +180,7 @@ object ChatKeys {
             PLAYER_HELPED, PLAYER_DONATED, PLAYER_JOINED_RALLY, PLAYER_RALLY_LOST, PLAYER_CASTLE_UP,
             PLAYER_DEFEATED, PLAYER_DEFENDED, NPC_NEEDS_HELP, NPC_ASKS_SCOUT, NPC_PURCHASED, NPC_CALLS_RALLY,
             NPC_THANKS, NPC_THANKS_SCOUT, AMBIENT, WORLD_AMBIENT, DAILY_GREETING, EVENT_RANKING,
-            FAVOR_MILESTONE, PONZU_QUIZ, QUIZ_RIGHT, QUIZ_WRONG, YUKI_RETURN,
+            FAVOR_MILESTONE, PONZU_QUIZ, QUIZ_RIGHT, QUIZ_WRONG, YUKI_RETURN, YUKI_RETURN_NONE,
         ) + FREE_TEXT_CATEGORIES.map { "$PLAYER_FREE_TEXT.$it" }
 
     /** 同盟チャンネル。 */
