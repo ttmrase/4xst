@@ -1,0 +1,78 @@
+run: 26
+commit: b86759772bc611797a854f43d753576ac4250b10
+job status: failure
+images: 24
+bytes: 1498350
+actions: https://github.com/ttmrase/4xst/actions/runs/38076433687
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 2/11 completed. (0 skipped) (0 failed)
+	androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 20000 ms
+emulator-5554 - 14 Tests 3/11 completed. (0 skipped) (1 failed)
+	java.lang.IllegalStateException: the purchase must raise the VIP level (before=(5, 3049) after=(5, 3209): level to points)
+emulator-5554 - 14 Tests 4/11 completed. (0 skipped) (2 failed)
+emulator-5554 - 14 Tests 5/11 completed. (0 skipped) (2 failed)
+	androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 30000 ms
+emulator-5554 - 14 Tests 6/11 completed. (0 skipped) (3 failed)
+emulator-5554 - 14 Tests 7/11 completed. (0 skipped) (3 failed)
+emulator-5554 - 14 Tests 10/11 completed. (0 skipped) (3 failed)
+Tests on emulator-5554 - 14 failed: There was 3 failure(s).
+> Task :app:connectedDebugAndroidTest FAILED
+> There were failing tests. See the report at: file:///home/runner/work/4xst/4xst/app/build/reports/androidTests/connected/debug/index.html
+--- per test (androidTest-results xml) ---
+PASS LaunchSmokeTest.titleScreenAppearsAndCanBeCaptured
+PASS SeederSmokeTest.seededRichCastleReachesTheSession
+FAIL ShopVipUiTest.offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured
+      androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 20000 ms
+      at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:504)
+      at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:339)
+      at com.ttmrase.crownfall.AppHarness.waitText(AppHarness.kt:57)
+FAIL ShopVipUiTest.vipCinematicAndRewardDialogCloseWithBack
+      java.lang.IllegalStateException: the purchase must raise the VIP level (before=(5, 3049) after=(5, 3209): level to points)
+      at com.ttmrase.crownfall.ShopVipUiTest.vipCinematicAndRewardDialogCloseWithBack$lambda$0(ShopVipUiTest.kt:97)
+      at com.ttmrase.crownfall.ShopVipUiTest.$r8$lambda$f3NEvogDUZ8v7F5_mFTZ1p_JItg(Unknown Source:0)
+      at com.ttmrase.crownfall.ShopVipUiTest$$ExternalSyntheticLambda5.invoke(D8$$SyntheticClass:0)
+PASS ShopVipUiTest.raidBannerAndSettingsAreCaptured
+FAIL SummonUiTest.ritualStagesAndTheTenRollListAreCaptured
+      androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 30000 ms
+      at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:504)
+      at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:339)
+      at com.ttmrase.crownfall.AppHarness.waitText(AppHarness.kt:57)
+PASS SummonUiTest.tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce
+PASS TerritoryUiTest.territoryScreenshotsForRichLateAndBuildingStates
+PASS TerritoryUiTest.panAndPinchOnTheTerritoryDoNotCrash
+PASS BackPressInstrumentedTest.systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups
+PASS BackPressInstrumentedTest.systemBackClosesTheBillingSheetBeforeAnyPayment
+--- TestRunner (started / finished / failed) ---
+10-10 18:44:58.645 11 tests
+10-10 18:44:58.652 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+10-10 18:45:03.168 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+10-10 18:45:03.241 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+10-10 18:45:05.607 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+10-10 18:45:05.608 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-10 18:45:26.730 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-10 18:45:26.733 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-10 18:45:26.785 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+10-10 18:45:36.782 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+10-10 18:45:36.785 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+10-10 18:45:37.181 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-10 18:45:40.720 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-10 18:45:41.067 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+10-10 18:46:13.931 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+10-10 18:46:13.935 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+10-10 18:46:14.622 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+10-10 18:46:20.731 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+10-10 18:46:21.125 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+10-10 18:46:29.769 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+10-10 18:46:30.146 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+10-10 18:46:34.602 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+10-10 18:46:34.871 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-10 18:46:36.945 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-10 18:46:36.946 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-10 18:46:39.218 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-10 18:46:39.232 11 tests, 3 failed, 0 ignored
+--- instrumentation results ---
+Starting 11 tests on emulator-5554 - 14
+Finished 11 tests on emulator-5554 - 14
