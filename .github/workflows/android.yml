@@ -114,7 +114,7 @@ jobs:
           echo "== $out certificate =="
           "$apksigner" verify --print-certs "dist/$out" | grep -E 'SHA-256|Signer #1 certificate DN'
           "$apksigner" verify "dist/$out"
-          sha() { "$apksigner" verify --print-certs "$1" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1; }
+          sha() { "$apksigner" verify --print-certs "$1" | sed -n 's/.*certificate SHA-256 digest: //p' | head -1; }
           d="$(sha app/build/outputs/apk/debug/app-debug.apk)"
           r="$(sha "dist/$out")"
           echo "::notice title=APK signing certificates::debug=$d / $out=$r"
