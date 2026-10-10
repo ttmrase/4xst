@@ -302,3 +302,12 @@ jobs:
 - 下部ナビの「城内」は、saveState と restoreState を使わずに城内まで戻す（popBackStack(City)）。他のタブを再選択したら、そのタブのルートへ戻す。
 - 戻るを繰り返すと、子画面 → タブのルート → 城内 → 退出の確認、の順になる。
 
+- 実装（1.0.1）: `navigation/NavActions.kt` の `navigateBottom` / `openPendingRoute`、`OfferEngine.nextPopup`、`ShopState.lastPopupClosedEpochSec` / `popupsStopped`（beginSession で解除）。退出待ち（exitStage 1）でも城内の BackHandler は有効で、戻るで退出の確認へ進む（オファーの Dialog が出ている間は Dialog が先に戻るを受け取る）。決済シートには処理中の 9 秒ガード（進まなくなっても閉じられる）。
+
+## 18. M10: 見た目と演出（Director が決定）
+- 見た目の層だけを差し替える。GameState・スロット・レベル・決定論（R1〜R9）は変えない。演出の分岐は :core の結果から決め、演出用の乱数は結果に影響させない。
+- アニメは描画フェーズの時計で動かし、毎秒の state 更新と分ける（§15 の LocalClock の方式）。スプライトはアトラス化して事前にラスタライズし、Path を毎フレーム組み立てない。中級機で 60fps が目標。
+- 新しい全画面の演出（召喚、VIP 昇格、テイクオーバー、購入完了）も §17 に従う。戻るでいつでもスキップできるか閉じられる。
+- ガチャのフェイクアウト（昇格演出、惜しい演出）の割合は heroes.json の presentation に置き、Summoner の結果だけから決定論的に分岐する。確率表示と天井は変えない。
+- 検証: CI の `ui` ジョブ（エミュレータ API 34、x86_64）で androidTest とスクリーンショット（artifact `ui-screenshots` / `ui-logs`）を取る。状態は debug 専用の `DebugStateSeeder`（src/debug）で用意する。x86_64 は debug の abiFilters にだけ追加し、release は arm64-v8a のみのまま。
+- アセットはすべて自作（docs/ASSETS.md）。APK の増加は 20MB 程度までを目安にし、超える場合は Director に相談する。

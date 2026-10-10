@@ -1,12 +1,13 @@
 # STATUS（Director が更新）
 
-- 現在のマイルストーン: **1.0.1 ホットフィックス（S1 × 2）** → 次に M10（見た目と演出の大幅強化）。M0〜M9 は ✅ 完了
+- 現在のマイルストーン: **M10 見た目と演出の大幅強化**（T10.1 から）。M0〜M9 と 1.0.1 ホットフィックスは ✅ 完了
 - 統合ブランチ: `claude/4x-strategy-game-planning-oxo80w`
-- 最終更新: 2026-10-10 Director
+- 最終更新: 2026-10-10 Director（1.0.1 完了、M10 発行）
 
 ## 完了
 | マイルストーン | 完了 | 根拠 |
 | --- | --- | --- |
+| 1.0.1 ホットフィックス（S1 × 2: ポップアップから戻れない、城内へ戻れない） | 2026-10-10 | e85e283 / d2b41e4 + レビュー修正 ac75fb4（退出待ちでも戻るが効く）、HEAD 4986231 で CI run 111 が緑（jvm / apk）、Debugger QA-OK（QaPopupTest 4、NavActionsTest 9、BackPressTest 4。Robolectric を導入）、Director Approve |
 | M0 基盤 | 2026-10-10 | HEAD 00f5f9b、CI run 38028345848（jvm と apk が緑、crownfall-debug-apk あり）、Debugger QA-OK、Director Approve |
 | M9 拡張（オンデバイス LLM・うるさい通知） | 2026-10-10 | 7d5ed68 + 修正 ec6bcc3、CI run 93 が緑（LiteRT-LM 0.18.0、Kotlin 2.4.0、APK は debug 36.5MB / release 32.5MB）、Debugger QA-OK（先読みと実際の catch-up の一致、通知の選別、襲撃の段階の R3、48h 先読み 28ms）、Director Approve |
 | M8 QA・リリース | 2026-10-10 | f3261e6、CI run 78 が緑（debug と release（debugsigned）の APK、証明書の照合、billing の検査）、Debugger QA-OK（スモークチェックリスト、M1〜M7 のセーブ互換、ベンチ）、docs の同期（T8.3）、Director Approve |
@@ -23,9 +24,9 @@
 | --- | --- | --- | --- |
 | README の細部修正（台帳の項目、頻度の表記、LAN の許可範囲）、Gemini モデルのヒント文言 | Implementer | ✅ 完了 | 403b52a |
 | 実機でのスモークチェック | ユーザー | ✅ 実施済み（S1 × 2 と見た目への不満） | - |
-| 1.0.1 ホットフィックス（ポップアップから戻れない、城内へ戻れない） | Implementer | 発行済み（最優先） | - |
-| 1.0.1 の回帰テスト（NavController の遷移、ポップアップの戻る）・SMOKE に戻るの原則 | Debugger | 発行済み | - |
-| M10（見た目と演出） | Director | 1.0.1 の後に発行 | - |
+| M10 T10.1〜T10.8（見た目と演出） | Implementer | 発行済み（T10.1 から） | - |
+| M10 T10.1 のエミュレータ CI（`ui` ジョブ）・androidTest・SMOKE 第 12 章 | Debugger | 発行済み | - |
+| 1.0.1 ホットフィックスと回帰テスト | Implementer / Debugger | ✅ 完了 | e85e283〜4986231 |
 | T9.1・T9.2a・T9.2b + 修正 | Implementer | ✅ 完了 | 6857b81〜7d5ed68, ec6bcc3 |
 | M9 の QA・SMOKE_CHECKLIST 第 11 章・CI での APK サイズの出力 | Debugger | ✅ 完了（:core の QA-OK。実機の項目は未実施） | ec79280, c96fb0e ほか |
 
@@ -43,7 +44,7 @@
 - コアシミュレーションの設計規則 R1〜R9（02 §7）。M2 のセッションと UI の設計（02 §8: GameSession を :core に置く、保存はスロットリング、TooNew は上書きしない）。M3 の設計（02 §9: バフは加算で集約、キューは種類ごとに独立、維持費は正味レート、召喚の確率と天井）。M4 の設計（02 §10: マップは静的部分 + 動的オーバーレイ、行軍と襲撃も tick の境界、戦闘は整数演算）。M7 の設計（02 §13: クエストはイベント駆動、NPC ランキングの追従とボーナスの除外、通知は予測できるものだけ）。M6 の設計（02 §12: オファーのキュー、頻度の制御、購入の原子性、台帳は参照しない）。M5 の設計（02 §11: チャットのきっかけまでを :core が決定論的に生成、分のグリッドのスケジューラ、Keystore に暗号化したキー、平文 HTTP はプライベート IP だけ）。`tools/**` を Implementer の書き込み領域に追加
 
 ## ユーザー確認待ち（Planner 経由）
-- 実機でのスモークチェック（docs/qa/SMOKE_CHECKLIST.md）
+- 1.0.1 の APK での再スモーク（戻るの原則、SMOKE_CHECKLIST の共通章）
 
 ## ユーザー決定（2026-10-10）
 - M9 に進む（オンデバイス LLM + 量産型にうるさい通知・警報）
@@ -51,6 +52,6 @@
 - オファー頻度の既定は量産型のまま
 
 ## 既知の問題
-- S1: オファーと擬似決済のポップアップから戻れない、チャットなどから城内へ戻れない（1.0.1 で修正中）
+- 実機でのみ確認できる戻るの項目（予測型の戻るジェスチャー、通知タップからの復帰）は、M10 T10.1 のエミュレータ CI で一部を自動化する
 - 未来の AI のメンション・DM の通知は、M9 の T9.2 の先読み計画で対応中
 - コンテナから Maven Central が断続的に 429 を返す。再実行で進む（S4・環境要因）
