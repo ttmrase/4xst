@@ -112,11 +112,12 @@ class ShopVipUiTest {
             h.clearPopups()
             h.click(h.str(R.string.shop_tab_vip))
             h.click(h.str(R.string.vip_chest_claim))
-            h.waitText(h.str(R.string.reward_chest_title), timeoutMs = 20_000)
+            // 報酬ダイアログの見出しは種類ごとに違う（VIP の箱は「VIP の日替わり箱」）。共通の OK ボタンで見る
+            h.waitText(h.str(R.string.common_ok), timeoutMs = 20_000)
             Screenshots.save("reward_dialog")
             Espresso.pressBack()
             rule.waitForIdle()
-            assertFalse("back must close the reward dialog", h.hasText(h.str(R.string.reward_chest_title)))
+            assertFalse("back must close the reward dialog", h.hasText(h.str(R.string.common_ok)))
         }
     }
 
