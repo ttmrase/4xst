@@ -56,7 +56,11 @@ class TerritoryUiTest {
             zoom(0.08f, 0.3f)
             rule.waitForIdle()
             Screenshots.save("city_${preset.name}_zoom_in")
+            // 1 回のピンチで戻るか（_zoom_out_1）と、続けて縮めた最小倍率（_zoom_out）の両方を撮る
             zoom(0.3f, 0.06f)
+            rule.waitForIdle()
+            Screenshots.save("city_${preset.name}_zoom_out_1")
+            repeat(2) { zoom(0.3f, 0.06f) }
             rule.waitForIdle()
             Screenshots.save("city_${preset.name}_zoom_out")
         }
@@ -68,6 +72,21 @@ class TerritoryUiTest {
         shootCity(h, Preset.RICH_CASTLE)
         shootCity(h, Preset.LATE_GAME)
         shootCity(h, Preset.BUILDING_NOW)
+    }
+
+    @Test
+    fun tutorialBannerSteps() {
+        val h = AppHarness(rule)
+        h.seed(Preset.RICH_CASTLE)
+        h.launchToCity()
+        h.step("tutorial") {
+            for (step in 0..2) {
+                h.update { it.copy(tutorialStep = step) }
+                rule.waitForIdle()
+                Thread.sleep(500)
+                Screenshots.save("city_tutorial_step_$step")
+            }
+        }
     }
 
     @Test
