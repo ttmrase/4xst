@@ -43,9 +43,9 @@ import com.ttmrase.crownfall.core.alliance.Personas
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.PersonaDef
 import com.ttmrase.crownfall.core.map.TileRef
+import com.ttmrase.crownfall.core.march.MarchKind
 import com.ttmrase.crownfall.core.model.AiRally
 import com.ttmrase.crownfall.core.model.GameState
-import com.ttmrase.crownfall.core.model.MarchKind
 import com.ttmrase.crownfall.core.model.RequestKind
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.session.GameSession
