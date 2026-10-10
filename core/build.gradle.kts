@@ -55,6 +55,7 @@ kover {
                     "com.ttmrase.crownfall.core.combat",
                     "com.ttmrase.crownfall.core.alliance",
                     "com.ttmrase.crownfall.core.chat",
+                    "com.ttmrase.crownfall.core.shop",
                 )
             }
         }

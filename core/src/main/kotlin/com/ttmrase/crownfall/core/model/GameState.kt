@@ -40,6 +40,7 @@ data class GameState(
     val nextMarchId: Long = 1,
     val alliance: AllianceState = AllianceState(),
     val settings: Settings = Settings(),
+    val shop: ShopState = ShopState(),
 )
 
 /** tick / アクションが出すイベント（UI・通知・チャットへの入力）。 */
@@ -98,4 +99,20 @@ sealed interface GameEvent {
 
     /** 襲撃に敗れ、資源を奪われた。 */
     data class PlayerDefeated(val mailId: Long) : GameEvent
+
+    /** 擬似購入が完了した。[mailId] はレシートメール。 */
+    data class Purchased(
+        val sku: String,
+        val priceYen: Long,
+        val mailId: Long,
+        val gems: Long,
+        val orderA: Int,
+        val orderB: Int,
+    ) : GameEvent
+
+    /** VIP が [lv] に上がった。 */
+    data class VipLevelUp(val lv: Int) : GameEvent
+
+    /** ラッキーホイールの結果。[segment] は当たり、[tease] は「惜しい」演出で先に見せる位置（無ければ -1）。 */
+    data class WheelResult(val segment: Int, val tease: Int, val segmentId: String) : GameEvent
 }

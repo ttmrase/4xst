@@ -6,6 +6,8 @@ import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.model.TimerJob
+import com.ttmrase.crownfall.core.shop.ShopHooks
+import com.ttmrase.crownfall.core.shop.VipCalculator
 
 /** 不在サマリー（表示は M2）。[produced] は資源ごとの増加分で、減少した資源は 0。 */
 data class OfflineSummary(
@@ -34,7 +36,7 @@ object OfflineCatchUp {
         state: GameState,
         nowEpochSec: Long,
         data: GameData,
-        capSec: Long = data.rules.offlineCapSec,
+        capSec: Long = data.rules.offlineCapSec + VipCalculator.offlineBonusSec(state, data),
     ): OfflineResult {
         val elapsed = nowEpochSec - state.nowEpochSec
         if (elapsed <= 0) return OfflineResult(state, OfflineSummary(0, 0, Resources.ZERO, emptyList(), 0), emptyList())
@@ -52,6 +54,7 @@ object OfflineCatchUp {
         }
         val skipped = elapsed - applied
         if (skipped > 0) s = shift(s, skipped)
+        s = ShopHooks.onReturn(s, elapsed, data)
         // 維持費で Food が減った場合などは増加分 0 とする（UI は "+" 付きで表示するため負数にしない。R5）
         val produced =
             Resources(
@@ -89,6 +92,11 @@ object OfflineCatchUp {
             boosts = s.boosts.map { it.copy(untilEpochSec = it.untilEpochSec + sec) },
             secondBuilderUntilEpochSec =
                 if (s.secondBuilderUntilEpochSec > 0) s.secondBuilderUntilEpochSec + sec else 0,
+            shop =
+                s.shop.copy(
+                    monthPassUntilEpochSec =
+                        if (s.shop.monthPassUntilEpochSec > 0) s.shop.monthPassUntilEpochSec + sec else 0,
+                ),
             marches =
                 s.marches.map {
                     it.copy(

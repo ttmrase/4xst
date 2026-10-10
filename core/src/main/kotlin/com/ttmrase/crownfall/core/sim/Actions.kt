@@ -22,11 +22,14 @@ import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Prereq
 import com.ttmrase.crownfall.core.model.Resources
+import com.ttmrase.crownfall.core.model.ShopSettings
 import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.model.satAdd
 import com.ttmrase.crownfall.core.model.satMul
 import com.ttmrase.crownfall.core.research.ResearchRules
+import com.ttmrase.crownfall.core.shop.ShopHooks
+import com.ttmrase.crownfall.core.shop.VipCalculator
 
 /** アクション失敗の理由（ID と数値のみ。表示文言は :app）。 */
 sealed interface ActionFailure {
@@ -105,6 +108,24 @@ sealed interface ActionFailure {
     /** そのチャンネルには書き込めない。 */
     data object ChannelNotWritable : ActionFailure
 
+    /** オファー / 商品が見つからない・期限切れ・今日のディールに無い。 */
+    data object OfferUnavailable : ActionFailure
+
+    /** 今日の残数が無い。 */
+    data object SoldOut : ActionFailure
+
+    /** すでに持っている（成長ファンドなど）。 */
+    data object AlreadyOwned : ActionFailure
+
+    /** 今日はもう受け取った。 */
+    data object AlreadyClaimed : ActionFailure
+
+    /** まだ持っていない（月パスなど）。 */
+    data object NotOwned : ActionFailure
+
+    /** 受け取れるものが無い。 */
+    data object NothingToClaim : ActionFailure
+
     /** 行軍の枠が埋まっている。 */
     data object NoMarchSlot : ActionFailure
 
@@ -148,6 +169,15 @@ object Actions {
     /** スキル強化に使うアイテム ID。 */
     const val SKILL_BOOK = "skill_book"
 
+    private fun started(
+        next: GameState,
+        job: TimerJob,
+        data: GameData,
+    ): ActionResult {
+        val withOffers = ShopHooks.onTimerStarted(next, job.endEpochSec - job.startEpochSec, data)
+        return ActionResult.Success(Simulation.syncStorageFlags(withOffers, data))
+    }
+
     /** スロット [slotId] のアップグレードを開始する。検査は宣言順で、最初の失敗を返す。 */
     fun startUpgrade(
         state: GameState,
@@ -186,7 +216,7 @@ object Actions {
                 endEpochSec = satAdd(state.nowEpochSec, duration),
             )
         val next = state.copy(resources = rest, timers = state.timers + job, nextJobId = state.nextJobId + 1)
-        return ActionResult.Success(Simulation.syncStorageFlags(next, data))
+        return started(next, job, data)
     }
 
     /** 研究ノード [nodeId] を 1 レベル上げる研究を始める（Academy の研究キューは 1 本）。 */
@@ -223,7 +253,7 @@ object Actions {
                 researchId = nodeId,
             )
         val next = state.copy(resources = rest, timers = state.timers + job, nextJobId = state.nextJobId + 1)
-        return ActionResult.Success(Simulation.syncStorageFlags(next, data))
+        return started(next, job, data)
     }
 
     /**
@@ -270,7 +300,7 @@ object Actions {
                 count = count,
             )
         val next = state.copy(resources = rest, timers = state.timers + job, nextJobId = state.nextJobId + 1)
-        return ActionResult.Success(Simulation.syncStorageFlags(next, data))
+        return started(next, job, data)
     }
 
     /**
@@ -317,7 +347,7 @@ object Actions {
                 timers = state.timers + job,
                 nextJobId = state.nextJobId + 1,
             )
-        return ActionResult.Success(Simulation.syncStorageFlags(next, data))
+        return started(next, job, data)
     }
 
     /** 2 本目ビルダーを [durationSec] 秒付与する（期限が残っていれば延長）。 */
@@ -516,7 +546,12 @@ object Actions {
         data: GameData,
     ): ActionResult {
         val job = state.timers.firstOrNull { it.id == jobId } ?: return fail(ActionFailure.JobNotFound)
-        val cost = GemSkip.cost(maxOf(0L, job.endEpochSec - state.nowEpochSec), data)
+        val cost =
+            VipCalculator.discountedGemCost(
+                GemSkip.cost(maxOf(0L, job.endEpochSec - state.nowEpochSec), data),
+                state,
+                data,
+            )
         if (state.gems < cost) return fail(ActionFailure.NotEnoughGems(cost - state.gems))
         val next =
             state.copy(
@@ -647,6 +682,96 @@ object Actions {
         state: GameState,
         channel: String,
     ): ActionResult = AllianceActions.markChannelRead(state, channel)
+
+    /** 新しいセッションを始める（前景になったとき）。ログイン pt と本日限定。 */
+    fun beginSession(
+        state: GameState,
+        data: GameData,
+    ): ActionResult = ShopActions.beginSession(state, data)
+
+    /** 期限切れのオファーを片付ける（量産型は一度だけ「復活」）。 */
+    fun refreshOffers(
+        state: GameState,
+        data: GameData,
+    ): ActionResult = ShopActions.refreshOffers(state, data)
+
+    /** オファー [offerId] を閉じる（期限までは棚に残る）。 */
+    fun dismissOffer(
+        state: GameState,
+        offerId: Long,
+    ): ActionResult = ShopActions.dismissOffer(state, offerId)
+
+    /** 資源不足のタップ。不足ちょうどのパックを積む。 */
+    fun offerForShortage(
+        state: GameState,
+        missing: Resources,
+        data: GameData,
+    ): ActionResult = ShopActions.offerForShortage(state, missing, data)
+
+    /** ジェム不足のタップ。不足以上で最小の SKU を積む。 */
+    fun offerForGemShortage(
+        state: GameState,
+        missing: Long,
+        data: GameData,
+    ): ActionResult = ShopActions.offerForGemShortage(state, missing, data)
+
+    /** 2 本目ビルダー枠のタップ。 */
+    fun offerForSecondBuilder(
+        state: GameState,
+        data: GameData,
+    ): ActionResult = ShopActions.offerForSecondBuilder(state, data)
+
+    /** イベント集計で 2〜4 位（1 位との差 [gapPt]）。 */
+    fun offerForRanking(
+        state: GameState,
+        rank: Int,
+        gapPt: Long,
+        data: GameData,
+    ): ActionResult = ShopActions.offerForRanking(state, rank, gapPt, data)
+
+    /** 退出前の「待って！」を 1 日 1 回積む。 */
+    fun exitOffer(
+        state: GameState,
+        data: GameData,
+    ): ActionResult = ShopActions.exitOffer(state, data)
+
+    /** 擬似購入。[offerId] は [com.ttmrase.crownfall.core.shop.ProductIds] かカタログの SKU。実通信なし。 */
+    fun fakePurchase(
+        state: GameState,
+        offerId: String,
+        data: GameData,
+    ): ActionResult = ShopActions.fakePurchase(state, offerId, data)
+
+    /** VIP デイリーチェストを受け取る。 */
+    fun claimVipChest(
+        state: GameState,
+        data: GameData,
+    ): ActionResult = ShopActions.claimVipChest(state, data)
+
+    /** 月パスの今日の分を受け取る。 */
+    fun claimMonthPass(
+        state: GameState,
+        data: GameData,
+    ): ActionResult = ShopActions.claimMonthPass(state, data)
+
+    /** 成長ファンドの到達済みの分をまとめて受け取る。 */
+    fun claimGrowthFund(
+        state: GameState,
+        data: GameData,
+    ): ActionResult = ShopActions.claimGrowthFund(state, data)
+
+    /** ラッキーホイールを回す（無料 → 追加分 → [payGems] ならジェム）。 */
+    fun spinWheel(
+        state: GameState,
+        payGems: Boolean,
+        data: GameData,
+    ): ActionResult = ShopActions.spinWheel(state, payGems, data)
+
+    /** ショップの設定を保存する。 */
+    fun setShopSettings(
+        state: GameState,
+        settings: ShopSettings,
+    ): ActionResult = ShopActions.setShopSettings(state, settings)
 
     /** すべてのメールを既読にする。 */
     fun markAllMailRead(state: GameState): ActionResult = ActionResult.Success(MailBox.markAllRead(state))

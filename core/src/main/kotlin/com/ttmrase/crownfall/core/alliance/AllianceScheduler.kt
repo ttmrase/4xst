@@ -33,7 +33,6 @@ object AllianceScheduler {
     private const val SECONDS_PER_DAY = 86_400L
     private const val SCOUT_WEIGHT = 3
     private val AMBIENT_TOPICS = listOf("weather", "event", "ranking", "life", "game")
-    private val SKUS = listOf("pack_starter", "pack_growth", "pack_war", "pack_gems", "pack_monthly")
 
     private const val K_AMBIENT = 100L
     private const val K_NEEDS = 200L
@@ -296,7 +295,8 @@ object AllianceScheduler {
         data: GameData,
     ): GameState {
         if (s0.alliance.gifts.size >= data.allianceRules.caps.gifts) return s0
-        val sku = SKUS[roll(s0, minute, K_PICK + K_PURCHASE + idx, SKUS.size)]
+        val skus = data.shopRules.socialProofSkus
+        val sku = skus[roll(s0, minute, K_PICK + K_PURCHASE + idx, skus.size)]
         val (id, a) = AllianceLogic.nextId(s0.alliance)
         val gift = GiftBox(id, p.id, sku, t, t + data.allianceRules.durationsSec.gift)
         val b =

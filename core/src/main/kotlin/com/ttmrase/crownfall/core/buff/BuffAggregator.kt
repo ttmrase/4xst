@@ -5,6 +5,7 @@ import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.model.BoostKind
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
+import com.ttmrase.crownfall.core.shop.VipCalculator
 
 /** バフの集計結果（[BuffKey] → bp 合計）。 */
 class BuffSet(private val bp: Map<BuffKey, Long>) {
@@ -84,6 +85,8 @@ object BuffAggregator {
             add(l.effectKey, l.effectBp)
         }
         for ((key, bp) in AllianceTech.buffs(state, data)) add(key, bp)
+        val vipGather = VipCalculator.gatherBp(state, data)
+        if (vipGather > 0) add(BuffKey.GATHER_SPEED, vipGather)
         return BuffSet(sum)
     }
 

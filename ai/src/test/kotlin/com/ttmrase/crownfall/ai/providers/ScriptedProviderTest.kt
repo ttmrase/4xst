@@ -91,7 +91,7 @@ class ScriptedProviderTest {
     @Test
     fun everyKeyHasAtLeastFiveTemplatesPerPersonaAndKnownPlaceholders() {
         val allowed =
-            "player nickname resource amount castleLv tile rank count lv fortLevel tech sku helpCount host".split(
+            "player nickname resource amount castleLv tile rank count lv fortLevel tech sku helpCount host vip".split(
                 " ",
             ).toSet()
         val special =

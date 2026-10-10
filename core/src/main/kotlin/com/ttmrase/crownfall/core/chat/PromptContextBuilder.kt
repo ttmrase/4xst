@@ -185,6 +185,7 @@ object PromptContextBuilder {
                 is ChatEvent.FavorMilestone -> "${e.persona}がプレイヤーとの絆がLv${e.lv}になり、個別にお礼を言う（DM）。"
                 is ChatEvent.PonzuQuiz -> "ぽんずが初心者らしい質問をする（クイズID: ${e.quizId}）。"
                 is ChatEvent.QuizResult -> "プレイヤーがぽんずの質問に${if (e.correct) "正しく" else "間違って"}答えた。反応する。"
+                is ChatEvent.VipUp -> "プレイヤーのVIPがVIP${e.lv}に上がった。祝福する。"
                 is ChatEvent.YukiReturn ->
                     if (e.helpCount > 0) {
                         "Yuki が久しぶりにログインした。不在の間にプレイヤーがYukiのタイマーに${e.helpCount}回ヘルプしてくれていたと気づき、感謝する。"

@@ -9,7 +9,7 @@ import com.ttmrase.crownfall.core.util.ShortNumber
 /**
  * テンプレのプレースホルダの値。[values] は共通の値、[nicknames] はペルソナごとの呼び方（好感度で変わる）。
  * プレースホルダ: {player} {resource} {amount} {castleLv} {tile} {rank} {nickname} {count} {lv} {fortLevel}
- * {tech} {sku} {helpCount} {host}。
+ * {tech} {sku} {helpCount} {host} {vip}。
  */
 data class ChatVars(
     val values: Map<String, String>,
@@ -63,6 +63,7 @@ object ChatContext {
             is ChatEvent.EventRanking -> v["rank"] = event.rank.toString()
             is ChatEvent.FavorMilestone -> v["lv"] = event.lv.toString()
             is ChatEvent.YukiReturn -> v["helpCount"] = event.helpCount.toString()
+            is ChatEvent.VipUp -> v["vip"] = event.lv.toString()
             else -> Unit
         }
         return ChatVars(v, nicknames, default)

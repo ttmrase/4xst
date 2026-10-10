@@ -9,6 +9,7 @@ import com.ttmrase.crownfall.core.data.ResearchNodeDef
 import com.ttmrase.crownfall.core.data.ResearchPrereq
 import com.ttmrase.crownfall.core.data.TroopDef
 import com.ttmrase.crownfall.core.data.TroopType
+import com.ttmrase.crownfall.core.economy.GemSkip
 import com.ttmrase.crownfall.core.military.Military
 import com.ttmrase.crownfall.core.model.BuildingSlot
 import com.ttmrase.crownfall.core.model.BuildingType
@@ -19,6 +20,7 @@ import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.research.ResearchRules
+import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.sim.ActionFailure
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
@@ -275,6 +277,13 @@ object UiQueries {
         val need = (remainingSec - 1) / itemSec + 1
         return minOf(need, owned.toLong()).toInt()
     }
+
+    /** ジェムスキップの実コスト（VIP の割引後）。 */
+    fun gemSkipCost(
+        state: GameState,
+        remainingSec: Long,
+        data: GameData,
+    ): Long = VipCalculator.discountedGemCost(GemSkip.cost(remainingSec, data), state, data)
 
     /** [job] の残り秒（0 以上）。 */
     fun remainingSec(

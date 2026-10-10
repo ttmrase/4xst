@@ -2,10 +2,10 @@
 """templates.json を tpl/part_*.py から組み立てる。実行: python3 tools/datagen/gen_templates.py"""
 import json, pathlib, re, sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent / "tpl"))
-import part_a, part_b, part_c, part_d
+import part_a, part_b, part_c, part_d, part_e
 
 templates = {}
-for part in (part_a, part_b, part_c, part_d):
+for part in (part_a, part_b, part_c, part_d, part_e):
     templates.update(part.T)
 
 quizzes = {
@@ -18,8 +18,8 @@ quizzes = {
 labels = {
  "resource.food": "食料", "resource.wood": "木材", "resource.stone": "石", "resource.gold": "金",
  "tech.tech_production": "生産テック", "tech.tech_gather": "採集テック", "tech.tech_attack": "攻撃テック", "tech.tech_hp": "体力テック",
- "sku.pack_starter": "スターターパック", "sku.pack_growth": "成長パック", "sku.pack_war": "戦争パック",
- "sku.pack_gems": "ジェムパック", "sku.pack_monthly": "月間パス",
+ "sku.pack_daily": "本日限定パック", "sku.pack_growth": "成長パック", "sku.pack_speed": "加速パック",
+ "sku.pack_hero": "英雄パック", "sku.pack_res_l": "資源パック",
  "sku.favor_1": "お礼の品", "sku.favor_2": "お礼の品", "sku.favor_3": "お礼の品", "sku.favor_4": "お礼の品",
  "topic.weather": "天気", "topic.event": "イベント", "topic.ranking": "ランキング", "topic.life": "日常", "topic.game": "ゲーム",
  "call.default": "領主さん",
@@ -38,7 +38,7 @@ for key, per in templates.items():
         n = len(per.get(p, []))
         if n < 5:
             print("short:", key, p, n); bad += 1
-allowed = set("player nickname resource amount castleLv tile rank count lv fortLevel tech sku helpCount host".split())
+allowed = set("player nickname resource amount castleLv tile rank count lv fortLevel tech sku helpCount host vip".split())
 for key, per in templates.items():
     for p, lines in per.items():
         for t in lines:

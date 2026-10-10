@@ -257,6 +257,12 @@ fun failureMessage(
         ActionFailure.QuizNotFound -> context.getString(R.string.failure_invalid_argument)
         ActionFailure.QuizAlreadyAnswered -> context.getString(R.string.failure_quiz_answered)
         ActionFailure.ChannelNotWritable -> context.getString(R.string.failure_channel_not_writable)
+        ActionFailure.OfferUnavailable -> context.getString(R.string.failure_offer_unavailable)
+        ActionFailure.SoldOut -> context.getString(R.string.failure_sold_out)
+        ActionFailure.AlreadyOwned -> context.getString(R.string.failure_already_owned)
+        ActionFailure.AlreadyClaimed -> context.getString(R.string.failure_already_claimed)
+        ActionFailure.NotOwned -> context.getString(R.string.failure_not_owned)
+        ActionFailure.NothingToClaim -> context.getString(R.string.failure_nothing_to_claim)
     }
 
 /** イベントの通知文言（量産型翻訳調）。表示しないイベントは null。 */
@@ -287,6 +293,9 @@ fun eventMessage(
         is GameEvent.HelpReceived ->
             context.getString(R.string.event_help_received, personaName(context, event.persona))
         is GameEvent.GiftOpened -> context.getString(R.string.event_gift_opened)
+        is GameEvent.VipLevelUp -> context.getString(R.string.event_vip_up, event.lv)
+        is GameEvent.Purchased,
+        is GameEvent.WheelResult,
         is GameEvent.TimerCompleted,
         is GameEvent.BoostExpired,
         is GameEvent.HeroSummoned,

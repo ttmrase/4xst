@@ -15,6 +15,9 @@ object ClasspathDataSource {
             GameDataLoader.PERSONAS,
             GameDataLoader.ALLIANCE_RULES,
             GameDataLoader.TEMPLATES,
+            GameDataLoader.OFFERS,
+            GameDataLoader.SHOP_RULES,
+            GameDataLoader.VIP,
         )
 
     /** 全データファイルを「ファイル名 → 本文」で読む。 */

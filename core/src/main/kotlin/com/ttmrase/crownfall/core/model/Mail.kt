@@ -62,4 +62,5 @@ data class Mail(
     val scout: ScoutReport? = null,
     val systemCode: String? = null,
     val params: Map<String, Long> = emptyMap(),
+    val receipt: Receipt? = null,
 )

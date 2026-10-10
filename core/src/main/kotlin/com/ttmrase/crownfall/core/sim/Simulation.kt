@@ -13,6 +13,9 @@ import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.model.satAdd
 import com.ttmrase.crownfall.core.model.satMul
+import com.ttmrase.crownfall.core.shop.MonthPass
+import com.ttmrase.crownfall.core.shop.ShopHooks
+import com.ttmrase.crownfall.core.shop.VipCalculator
 
 /** [Simulation.tick] / アクションの結果。 */
 data class TickResult(val state: GameState, val events: List<GameEvent>)
@@ -86,7 +89,15 @@ object Simulation {
     fun buildQueueCapacity(
         state: GameState,
         data: GameData,
-    ): Int = data.rules.baseBuildQueues + if (state.secondBuilderUntilEpochSec > state.nowEpochSec) 1 else 0
+    ): Int = data.rules.baseBuildQueues + if (hasSecondBuilder(state, data)) 1 else 0
+
+    /** 2 本目のビルダーが使えるか（購入した期間・月パスの期間中・VIP6 以上の常設）。 */
+    fun hasSecondBuilder(
+        state: GameState,
+        data: GameData,
+    ): Boolean =
+        state.secondBuilderUntilEpochSec > state.nowEpochSec || MonthPass.active(state) ||
+            VipCalculator.hasSecondBuilder(state, data)
 
     private fun nextBoundary(
         s: GameState,
@@ -106,6 +117,7 @@ object Simulation {
         events: MutableList<GameEvent>,
     ): GameState {
         var s = state
+        val firstEvent = events.size
         val expired = s.boosts.filter { it.untilEpochSec <= s.nowEpochSec }
         if (expired.isNotEmpty()) {
             s = s.copy(boosts = s.boosts.filter { it.untilEpochSec > s.nowEpochSec })
@@ -159,7 +171,8 @@ object Simulation {
             s = syncStorageFlags(s, data)
             for (lv in castleUps) s = AllianceHooks.onCastleUp(s, lv, data)
         }
-        return WorldSim.settle(s, data, events)
+        val settled = WorldSim.settle(s, data, events)
+        return ShopHooks.onEvents(settled, events.subList(firstEvent, events.size).toList(), data)
     }
 
     /**

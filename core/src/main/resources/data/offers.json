@@ -1,0 +1,717 @@
+{
+ "gemSkus": [
+  {
+   "sku": "gems_s",
+   "priceYen": 160,
+   "gems": 100,
+   "bonus": 0,
+   "firstDouble": true
+  },
+  {
+   "sku": "gems_m",
+   "priceYen": 610,
+   "gems": 500,
+   "bonus": 50,
+   "firstDouble": true
+  },
+  {
+   "sku": "gems_l",
+   "priceYen": 1220,
+   "gems": 1000,
+   "bonus": 150,
+   "firstDouble": true
+  },
+  {
+   "sku": "gems_xl",
+   "priceYen": 3060,
+   "gems": 2500,
+   "bonus": 500,
+   "firstDouble": true
+  },
+  {
+   "sku": "gems_xxl",
+   "priceYen": 6100,
+   "gems": 5000,
+   "bonus": 1200,
+   "firstDouble": true
+  },
+  {
+   "sku": "gems_max",
+   "priceYen": 12000,
+   "gems": 10000,
+   "bonus": 3000,
+   "firstDouble": true
+  }
+ ],
+ "packs": [
+  {
+   "id": "pack_daily",
+   "priceYen": 610,
+   "listValueYen": 4800,
+   "badge": "RECOMMENDED",
+   "durationSec": 86400,
+   "dailyStock": 1,
+   "cooldownSec": 3600,
+   "contents": {
+    "gems": 300,
+    "resources": {
+     "food": 20000,
+     "wood": 20000,
+     "stone": 10000,
+     "gold": 10000
+    },
+    "items": {
+     "speedup_general_60m": 3
+    },
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "trigger": {
+    "when": "login"
+   }
+  },
+  {
+   "id": "pack_castle",
+   "priceYen": 1220,
+   "listValueYen": 12800,
+   "badge": "BEST_VALUE",
+   "durationSec": 172800,
+   "dailyStock": 1,
+   "cooldownSec": 3600,
+   "contents": {
+    "gems": 40,
+    "resources": {
+     "food": 8000,
+     "wood": 8000,
+     "stone": 4000,
+     "gold": 4000
+    },
+    "items": {
+     "speedup_build_60m": 1
+    },
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": true,
+   "tier": 0,
+   "trigger": {
+    "when": "castleUp",
+    "minLv": 2
+   }
+  },
+  {
+   "id": "pack_growth",
+   "priceYen": 1220,
+   "listValueYen": 9800,
+   "badge": "POPULAR",
+   "durationSec": 259200,
+   "dailyStock": 3,
+   "cooldownSec": 1800,
+   "contents": {
+    "gems": 250,
+    "resources": {
+     "food": 30000,
+     "wood": 30000,
+     "stone": 15000,
+     "gold": 15000
+    },
+    "items": {
+     "speedup_build_3h": 2
+    },
+    "heroShards": {}
+   },
+   "shelf": true,
+   "lvScale": false,
+   "tier": 0
+  },
+  {
+   "id": "pack_res_s",
+   "priceYen": 160,
+   "listValueYen": 980,
+   "badge": "NONE",
+   "durationSec": 86400,
+   "dailyStock": 5,
+   "cooldownSec": 1800,
+   "contents": {
+    "gems": 0,
+    "resources": {
+     "food": 6000,
+     "wood": 6000,
+     "stone": 3000,
+     "gold": 3000
+    },
+    "items": {},
+    "heroShards": {}
+   },
+   "shelf": true,
+   "lvScale": false,
+   "tier": 0
+  },
+  {
+   "id": "pack_res_l",
+   "priceYen": 610,
+   "listValueYen": 4900,
+   "badge": "RECOMMENDED",
+   "durationSec": 86400,
+   "dailyStock": 3,
+   "cooldownSec": 1800,
+   "contents": {
+    "gems": 0,
+    "resources": {
+     "food": 40000,
+     "wood": 40000,
+     "stone": 20000,
+     "gold": 20000
+    },
+    "items": {},
+    "heroShards": {}
+   },
+   "shelf": true,
+   "lvScale": false,
+   "tier": 0
+  },
+  {
+   "id": "pack_speed",
+   "priceYen": 610,
+   "listValueYen": 5400,
+   "badge": "POPULAR",
+   "durationSec": 86400,
+   "dailyStock": 3,
+   "cooldownSec": 1800,
+   "contents": {
+    "gems": 0,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "speedup_general_3h": 3,
+     "speedup_general_60m": 4
+    },
+    "heroShards": {}
+   },
+   "shelf": true,
+   "lvScale": false,
+   "tier": 0
+  },
+  {
+   "id": "pack_speed_bundle",
+   "priceYen": 1220,
+   "listValueYen": 15800,
+   "badge": "BEST_VALUE",
+   "durationSec": 14400,
+   "dailyStock": 2,
+   "cooldownSec": 3600,
+   "contents": {
+    "gems": 0,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "speedup_general_8h": 2,
+     "speedup_general_3h": 4
+    },
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "trigger": {
+    "when": "longTimer",
+    "minSec": 28800
+   }
+  },
+  {
+   "id": "pack_hero",
+   "priceYen": 1220,
+   "listValueYen": 9800,
+   "badge": "POPULAR",
+   "durationSec": 259200,
+   "dailyStock": 3,
+   "cooldownSec": 1800,
+   "contents": {
+    "gems": 0,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "summon_ticket_premium": 2
+    },
+    "heroShards": {
+     "hero_valeria": 10,
+     "hero_aldric": 10
+    }
+   },
+   "shelf": true,
+   "lvScale": false,
+   "tier": 0
+  },
+  {
+   "id": "pack_revenge",
+   "priceYen": 610,
+   "listValueYen": 7800,
+   "badge": "RECOMMENDED",
+   "durationSec": 21600,
+   "dailyStock": 2,
+   "cooldownSec": 1800,
+   "contents": {
+    "gems": 100,
+    "resources": {
+     "food": 15000,
+     "wood": 15000,
+     "stone": 8000,
+     "gold": 8000
+    },
+    "items": {
+     "speedup_train_3h": 3,
+     "speedup_heal_60m": 3
+    },
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "trigger": {
+    "when": "defeated"
+   }
+  },
+  {
+   "id": "pack_ranking",
+   "priceYen": 1220,
+   "listValueYen": 16800,
+   "badge": "BEST_VALUE",
+   "durationSec": 14400,
+   "dailyStock": 1,
+   "cooldownSec": 3600,
+   "contents": {
+    "gems": 300,
+    "resources": {
+     "food": 20000,
+     "wood": 20000,
+     "stone": 10000,
+     "gold": 10000
+    },
+    "items": {
+     "speedup_general_3h": 3
+    },
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "trigger": {
+    "when": "rankingNear"
+   }
+  },
+  {
+   "id": "pack_comeback",
+   "priceYen": 610,
+   "listValueYen": 8800,
+   "badge": "RECOMMENDED",
+   "durationSec": 172800,
+   "dailyStock": 1,
+   "cooldownSec": 3600,
+   "contents": {
+    "gems": 200,
+    "resources": {
+     "food": 30000,
+     "wood": 30000,
+     "stone": 15000,
+     "gold": 15000
+    },
+    "items": {
+     "speedup_build_3h": 2,
+     "summon_ticket_normal": 5
+    },
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "trigger": {
+    "when": "comeback",
+    "minAwaySec": 172800
+   }
+  },
+  {
+   "id": "pack_vip",
+   "priceYen": 610,
+   "listValueYen": 3600,
+   "badge": "RECOMMENDED",
+   "durationSec": 21600,
+   "dailyStock": 2,
+   "cooldownSec": 3600,
+   "contents": {
+    "gems": 60,
+    "resources": {
+     "food": 10000,
+     "wood": 10000,
+     "stone": 5000,
+     "gold": 5000
+    },
+    "items": {},
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "trigger": {
+    "when": "vipNear",
+    "withinPt": 700
+   }
+  },
+  {
+   "id": "pack_wait",
+   "priceYen": 160,
+   "listValueYen": 4200,
+   "badge": "BEST_VALUE",
+   "durationSec": 3600,
+   "dailyStock": 1,
+   "cooldownSec": 1800,
+   "contents": {
+    "gems": 150,
+    "resources": {
+     "food": 10000,
+     "wood": 10000,
+     "stone": 5000,
+     "gold": 5000
+    },
+    "items": {},
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "trigger": {
+    "when": "exitIntent"
+   }
+  },
+  {
+   "id": "pack_builder",
+   "priceYen": 610,
+   "listValueYen": 3800,
+   "badge": "RECOMMENDED",
+   "durationSec": 259200,
+   "dailyStock": 3,
+   "cooldownSec": 1800,
+   "contents": {
+    "gems": 100,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "speedup_build_60m": 3
+    },
+    "heroShards": {},
+    "secondBuilderDays": 7
+   },
+   "shelf": true,
+   "lvScale": false,
+   "tier": 0
+  },
+  {
+   "id": "pack_chain_1",
+   "priceYen": 160,
+   "listValueYen": 1800,
+   "badge": "NONE",
+   "durationSec": 1800,
+   "dailyStock": 1,
+   "cooldownSec": 600,
+   "contents": {
+    "gems": 80,
+    "resources": {
+     "food": 5000,
+     "wood": 5000,
+     "stone": 2500,
+     "gold": 2500
+    },
+    "items": {},
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 1,
+   "trigger": {
+    "when": "afterPurchase",
+    "chainOf": "any"
+   }
+  },
+  {
+   "id": "pack_chain_2",
+   "priceYen": 610,
+   "listValueYen": 6800,
+   "badge": "POPULAR",
+   "durationSec": 1800,
+   "dailyStock": 1,
+   "cooldownSec": 600,
+   "contents": {
+    "gems": 250,
+    "resources": {
+     "food": 20000,
+     "wood": 20000,
+     "stone": 10000,
+     "gold": 10000
+    },
+    "items": {
+     "speedup_general_60m": 3
+    },
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 2,
+   "trigger": {
+    "when": "afterPurchase",
+    "chainOf": "pack_chain_1"
+   }
+  },
+  {
+   "id": "pack_chain_3",
+   "priceYen": 1220,
+   "listValueYen": 15800,
+   "badge": "BEST_VALUE",
+   "durationSec": 1800,
+   "dailyStock": 1,
+   "cooldownSec": 600,
+   "contents": {
+    "gems": 600,
+    "resources": {
+     "food": 40000,
+     "wood": 40000,
+     "stone": 20000,
+     "gold": 20000
+    },
+    "items": {
+     "speedup_general_3h": 3
+    },
+    "heroShards": {
+     "hero_valeria": 5
+    }
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 3,
+   "trigger": {
+    "when": "afterPurchase",
+    "chainOf": "pack_chain_2"
+   }
+  },
+  {
+   "id": "pack_piggy_nudge",
+   "priceYen": 160,
+   "listValueYen": 980,
+   "badge": "NONE",
+   "durationSec": 7200,
+   "dailyStock": 1,
+   "cooldownSec": 3600,
+   "contents": {
+    "gems": 50,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {},
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "trigger": {
+    "when": "piggyFull"
+   }
+  },
+  {
+   "id": "deal_gems",
+   "priceYen": 610,
+   "listValueYen": 9800,
+   "badge": "POPULAR",
+   "durationSec": 86400,
+   "dailyStock": 1,
+   "cooldownSec": 0,
+   "contents": {
+    "gems": 1200,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {},
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "deal": "normal"
+  },
+  {
+   "id": "deal_res",
+   "priceYen": 610,
+   "listValueYen": 7800,
+   "badge": "NONE",
+   "durationSec": 86400,
+   "dailyStock": 1,
+   "cooldownSec": 0,
+   "contents": {
+    "gems": 0,
+    "resources": {
+     "food": 60000,
+     "wood": 60000,
+     "stone": 30000,
+     "gold": 30000
+    },
+    "items": {},
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "deal": "normal"
+  },
+  {
+   "id": "deal_speed",
+   "priceYen": 1220,
+   "listValueYen": 18800,
+   "badge": "BEST_VALUE",
+   "durationSec": 86400,
+   "dailyStock": 1,
+   "cooldownSec": 0,
+   "contents": {
+    "gems": 0,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "speedup_general_8h": 2,
+     "speedup_general_60m": 6
+    },
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "deal": "normal"
+  },
+  {
+   "id": "deal_hero",
+   "priceYen": 1220,
+   "listValueYen": 14800,
+   "badge": "NONE",
+   "durationSec": 86400,
+   "dailyStock": 1,
+   "cooldownSec": 0,
+   "contents": {
+    "gems": 0,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "summon_ticket_premium": 3
+    },
+    "heroShards": {
+     "hero_thorne": 10
+    }
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "deal": "normal"
+  },
+  {
+   "id": "deal_super_a",
+   "priceYen": 120,
+   "listValueYen": 12000,
+   "badge": "BEST_VALUE",
+   "durationSec": 86400,
+   "dailyStock": 1,
+   "cooldownSec": 0,
+   "contents": {
+    "gems": 300,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {},
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "deal": "super"
+  },
+  {
+   "id": "deal_super_b",
+   "priceYen": 120,
+   "listValueYen": 12000,
+   "badge": "BEST_VALUE",
+   "durationSec": 86400,
+   "dailyStock": 1,
+   "cooldownSec": 0,
+   "contents": {
+    "gems": 0,
+    "resources": {
+     "food": 40000,
+     "wood": 40000,
+     "stone": 20000,
+     "gold": 20000
+    },
+    "items": {},
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "deal": "super"
+  },
+  {
+   "id": "deal_super_c",
+   "priceYen": 120,
+   "listValueYen": 12000,
+   "badge": "BEST_VALUE",
+   "durationSec": 86400,
+   "dailyStock": 1,
+   "cooldownSec": 0,
+   "contents": {
+    "gems": 0,
+    "resources": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    },
+    "items": {
+     "speedup_general_8h": 1,
+     "speedup_general_3h": 2
+    },
+    "heroShards": {}
+   },
+   "shelf": false,
+   "lvScale": false,
+   "tier": 0,
+   "deal": "super"
+  }
+ ]
+}

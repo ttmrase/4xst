@@ -173,6 +173,9 @@ object GameDataLoader {
     const val PERSONAS = "personas.json"
     const val ALLIANCE_RULES = "alliance_rules.json"
     const val TEMPLATES = "templates.json"
+    const val OFFERS = "offers.json"
+    const val SHOP_RULES = "shop_rules.json"
+    const val VIP = "vip.json"
 
     private const val STARTER_HERO_COUNT = 3
     private const val TROOP_TIERS = 4
@@ -198,6 +201,9 @@ object GameDataLoader {
         val personas = decode<PersonasFile>(jsonByName, PERSONAS)
         val allianceRules = decode<AllianceRules>(jsonByName, ALLIANCE_RULES)
         val templates = decode<TemplatesFile>(jsonByName, TEMPLATES)
+        val offers = decode<OffersFile>(jsonByName, OFFERS)
+        val shopRules = decode<ShopRules>(jsonByName, SHOP_RULES)
+        val vip = decode<VipFile>(jsonByName, VIP)
         val defs = buildBuildings(buildings)
         val itemDefs = buildItems(items)
         val heroDefs = buildHeroes(heroesFile, itemDefs)
@@ -214,7 +220,13 @@ object GameDataLoader {
             personas = personas,
             allianceRules = allianceRules,
             templates = templates,
-        ).also { AllianceValidator.validate(it) }
+            offers = offers,
+            shopRules = shopRules,
+            vip = vip,
+        ).also {
+            AllianceValidator.validate(it)
+            ShopValidator.validate(it)
+        }
     }
 
     private inline fun <reified T> decode(

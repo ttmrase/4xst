@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
-import com.ttmrase.crownfall.core.economy.GemSkip
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.session.UiQueries
@@ -66,7 +65,7 @@ fun SpeedupDialog(
     if (job == null) return
     val context = LocalContext.current
     val remaining = UiQueries.remainingSec(state, job)
-    val gemCost = GemSkip.cost(remaining, data)
+    val gemCost = UiQueries.gemSkipCost(state, remaining, data)
     val items = UiQueries.usableItems(state, job, data)
     var confirmGems by remember { mutableStateOf(false) }
 

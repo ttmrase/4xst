@@ -1,0 +1,189 @@
+{
+ "yenPerVipPoint": 1,
+ "frequency": {
+  "sessionCapLow": 2,
+  "sessionCapStandard": 5,
+  "defaultCooldownSec": 1800,
+  "chainMax": 3,
+  "queueCap": 12,
+  "reviveDurationSec": 3600,
+  "reviveLabelMass": true
+ },
+ "login": {
+  "pointsByStreak": [
+   50,
+   100,
+   150,
+   200,
+   250,
+   300
+  ]
+ },
+ "loginPackSku": "pack_daily",
+ "exitPackSku": "pack_wait",
+ "socialProofSkus": [
+  "pack_daily",
+  "pack_growth",
+  "pack_speed",
+  "pack_hero",
+  "pack_res_l"
+ ],
+ "shortage": {
+  "resourceYenTable": [
+   [
+    3000,
+    120
+   ],
+   [
+    10000,
+    160
+   ],
+   [
+    40000,
+    610
+   ],
+   [
+    150000,
+    1220
+   ],
+   [
+    600000,
+    3060
+   ],
+   [
+    2500000,
+    6100
+   ],
+   [
+    10000000,
+    12000
+   ]
+  ],
+  "durationSec": 7200,
+  "cooldownSec": 600
+ },
+ "dailyDeals": {
+  "normalCount": 2,
+  "superCount": 1,
+  "superOffPct": 99
+ },
+ "monthPass": {
+  "sku": "month_pass",
+  "priceYen": 610,
+  "days": 30,
+  "dailyGems": 100,
+  "dailyItems": {
+   "speedup_general_60m": 2
+  },
+  "listValueYen": 6800
+ },
+ "growthFund": {
+  "sku": "growth_fund",
+  "priceYen": 1220,
+  "listValueYen": 9800,
+  "milestones": [
+   [
+    3,
+    100
+   ],
+   [
+    5,
+    200
+   ],
+   [
+    8,
+    300
+   ],
+   [
+    10,
+    400
+   ],
+   [
+    15,
+    600
+   ],
+   [
+    20,
+    800
+   ]
+  ]
+ },
+ "piggy": {
+  "sku": "piggy_open",
+  "openYen": 610,
+  "cap": 1000,
+  "gemsPerBuild": 8,
+  "gemsPerResearch": 8,
+  "gemsPerDefense": 5,
+  "gemsPerMarch": 3
+ },
+ "wheel": {
+  "freePerDay": 1,
+  "extraSku": "wheel_extra",
+  "extraYen": 120,
+  "extraGems": 100,
+  "segments": [
+   {
+    "id": "gems_small",
+    "weight": 22,
+    "gems": 10
+   },
+   {
+    "id": "food",
+    "weight": 18,
+    "resources": {
+     "food": 5000,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0
+    }
+   },
+   {
+    "id": "wood",
+    "weight": 14,
+    "resources": {
+     "food": 0,
+     "wood": 5000,
+     "stone": 0,
+     "gold": 0
+    }
+   },
+   {
+    "id": "speedup",
+    "weight": 14,
+    "items": {
+     "speedup_general_5m": 3
+    }
+   },
+   {
+    "id": "gems_mid",
+    "weight": 12,
+    "gems": 50
+   },
+   {
+    "id": "shard_ssr",
+    "weight": 3,
+    "heroShards": {
+     "hero_valeria": 5
+    },
+    "tease": true
+   },
+   {
+    "id": "ticket",
+    "weight": 9,
+    "items": {
+     "summon_ticket_normal": 1
+    }
+   },
+   {
+    "id": "gems_big",
+    "weight": 8,
+    "gems": 200
+   }
+  ]
+ },
+ "ledgerCap": 5000,
+ "stats": {
+  "vipNearWithinPt": 700
+ }
+}
