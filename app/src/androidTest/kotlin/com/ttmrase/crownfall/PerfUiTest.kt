@@ -46,61 +46,97 @@ class PerfUiTest {
             window = it.window
             it.window.addOnFrameMetricsAvailableListener(listener, Handler(Looper.getMainLooper()))
         }
-        h.step("perf_pan") {
+
+        // 区間 [label] の間 [action] を繰り返して、その間のフレーム時間だけを数字にする（起動と初回の読み込みは除く）
+        fun measure(
+            label: String,
+            durationNs: Long,
+            action: (Int) -> Unit,
+        ): Int {
             rule.waitForIdle()
-            frameMs.clear() // 起動と初回のスプライト読み込みは除き、操作中だけを測る
+            frameMs.clear()
             val start = System.nanoTime()
             var k = 0
-            while (System.nanoTime() - start < MEASURE_NS) {
-                val dir = if (k % 2 == 0) 1f else -1f
-                rule.onRoot().performTouchInput {
-                    swipe(
-                        Offset(width * (0.5f - 0.25f * dir), height * 0.5f),
-                        Offset(width * (0.5f + 0.25f * dir), height * (0.5f + 0.1f * dir)),
-                        durationMillis = SWIPE_MS,
-                    )
-                }
-                if (k % 4 == 3) {
+            while (System.nanoTime() - start < durationNs) action(k++)
+            val sorted = synchronized(frameMs) { frameMs.sorted() }
+
+            fun pct(p: Double) = sorted.getOrElse(((sorted.size - 1) * p).toInt()) { Double.NaN }
+            val janky = sorted.count { it > JANK_MS }
+            Log.i(
+                "CrownfallPerf",
+                "$label ${durationNs / NANOS_PER_MS.toLong() / 1000}s: frames=${sorted.size} " +
+                    "p50=%.1fms p95=%.1fms p99=%.1fms max=%.1fms janky(>16.7ms)=%d (%.1f%%)".format(
+                        pct(0.5),
+                        pct(0.95),
+                        pct(0.99),
+                        sorted.lastOrNull() ?: Double.NaN,
+                        janky,
+                        if (sorted.isEmpty()) 0.0 else 100.0 * janky / sorted.size,
+                    ),
+            )
+            return sorted.size
+        }
+
+        h.step("perf_city") {
+            // 触らない城内（24Hz の再描画だけ）
+            measure("city LATE_GAME idle", IDLE_NS) { Thread.sleep(IDLE_STEP_MS) }
+            val frames =
+                measure("city LATE_GAME pan+pinch", MEASURE_NS) { k ->
+                    val dir = if (k % 2 == 0) 1f else -1f
                     rule.onRoot().performTouchInput {
-                        val c = Offset(width * 0.5f, height * 0.45f)
-                        pinch(
-                            Offset(c.x - width * 0.1f, c.y),
-                            Offset(c.x - width * 0.25f, c.y),
-                            Offset(c.x + width * 0.1f, c.y),
-                            Offset(c.x + width * 0.25f, c.y),
+                        swipe(
+                            Offset(width * (0.5f - 0.25f * dir), height * 0.5f),
+                            Offset(width * (0.5f + 0.25f * dir), height * (0.5f + 0.1f * dir)),
                             durationMillis = SWIPE_MS,
                         )
                     }
+                    if (k % 4 == 3) {
+                        rule.onRoot().performTouchInput {
+                            val c = Offset(width * 0.5f, height * 0.45f)
+                            pinch(
+                                Offset(c.x - width * 0.1f, c.y),
+                                Offset(c.x - width * 0.25f, c.y),
+                                Offset(c.x + width * 0.1f, c.y),
+                                Offset(c.x + width * 0.25f, c.y),
+                                durationMillis = SWIPE_MS,
+                            )
+                        }
+                    }
                 }
-                k++
-            }
-        }
-        scenario.onActivity { window?.removeOnFrameMetricsAvailableListener(listener) }
-        val sorted = synchronized(frameMs) { frameMs.sorted() }
-        val cache = SpriteCache.shared(h.context)
-        val mem = Debug.MemoryInfo().also { Debug.getMemoryInfo(it) }
-
-        fun pct(p: Double) = sorted.getOrElse(((sorted.size - 1) * p).toInt()) { Double.NaN }
-        val janky = sorted.count { it > JANK_MS }
-        val line =
-            "city LATE_GAME pan ${MEASURE_NS / NANOS_PER_MS.toLong() / 1000}s: frames=${sorted.size} " +
-                "p50=%.1fms p95=%.1fms p99=%.1fms max=%.1fms janky(>16.7ms)=%d (%.1f%%) ".format(
-                    pct(0.5), pct(0.95), pct(0.99), sorted.lastOrNull() ?: Double.NaN, janky,
-                    if (sorted.isEmpty()) 0.0 else 100.0 * janky / sorted.size,
-                ) +
-                "spriteCache=%.1fMB/%d sprites pss=%.0fMB javaHeap=%.0fMB".format(
+            val cache = SpriteCache.shared(h.context)
+            val mem = Debug.MemoryInfo().also { Debug.getMemoryInfo(it) }
+            Log.i(
+                "CrownfallPerf",
+                "memory: spriteCache=%.1fMB/%d sprites pss=%.0fMB javaHeap=%.0fMB".format(
                     cache.usedBytes / MB,
                     cache.spriteCount,
                     mem.totalPss / KB,
                     (mem.getMemoryStat("summary.java-heap")?.toDoubleOrNull() ?: Double.NaN) / KB,
-                )
-        Log.i("CrownfallPerf", line)
-        assertTrue("frames measured: ${sorted.size}", sorted.size > MIN_FRAMES)
+                ),
+            )
+            // 基準: 城内ではない画面（ショップ一覧のスクロール）。エミュレータ（ソフトウェア描画）自体の重さを見る
+            h.open("shop")
+            measure("shop list scroll", BASELINE_NS) { k ->
+                val dir = if (k % 2 == 0) 1f else -1f
+                rule.onRoot().performTouchInput {
+                    swipe(
+                        Offset(width * 0.5f, height * (0.5f + 0.2f * dir)),
+                        Offset(width * 0.5f, height * (0.5f - 0.2f * dir)),
+                        durationMillis = SWIPE_MS,
+                    )
+                }
+            }
+            assertTrue("frames measured: $frames", frames > MIN_FRAMES)
+        }
+        scenario.onActivity { window?.removeOnFrameMetricsAvailableListener(listener) }
     }
 
     private companion object {
         const val NANOS_PER_MS = 1_000_000.0
         const val MEASURE_NS = 10_000_000_000L
+        const val IDLE_NS = 5_000_000_000L
+        const val BASELINE_NS = 5_000_000_000L
+        const val IDLE_STEP_MS = 250L
         const val SWIPE_MS = 700L
         const val JANK_MS = 16.7
         const val MIN_FRAMES = 30
