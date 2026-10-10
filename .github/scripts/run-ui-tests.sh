@@ -10,9 +10,15 @@ rm -rf "$out"
 mkdir -p "$out/screenshots" "$out/logs"
 adb logcat -c || true
 
-./gradlew :app:connectedDebugAndroidTest -PwithAndroid=true \
-  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true 2>&1 | tee "$out/logs/gradle.log"
+# テストの開始・終了を logcat で追う（固まったとき「どのテストか」を result.txt に出すため）
+adb logcat -v time -s TestRunner:I > "$out/logs/testrunner.txt" 2>&1 &
+logcat_pid=$!
+# 1 テスト 4 分で打ち切る（AndroidJUnitRunner の timeout_msec）。全体も 22 分で打ち切る
+timeout 22m ./gradlew :app:connectedDebugAndroidTest -PwithAndroid=true \
+  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
+  -Pandroid.testInstrumentationRunnerArguments.timeout_msec=240000 2>&1 | tee "$out/logs/gradle.log"
 status=${PIPESTATUS[0]}
+kill "$logcat_pid" 2>/dev/null || true
 
 # 結果の要約（コンパイルエラー、失敗したテスト）。ジョブのサマリと qa-screenshots の summary に出す
 {
@@ -35,6 +41,8 @@ for f in sorted(glob.glob("app/build/outputs/androidTest-results/**/*.xml", recu
             for line in (bad.get("message") or bad.text or "").strip().splitlines()[:4]:
                 print("     ", line[:200])
 PY
+  echo "--- TestRunner (started / finished / failed) ---"
+  grep -E 'started:|finished:|failed:' "$out/logs/testrunner.txt" | sed -E 's/^([0-9-]+ [0-9:.]+) .*TestRunner.*: /\1 /' | tail -40
   echo "--- instrumentation results ---"
   grep -hE 'Starting [0-9]+ tests|Finished [0-9]+ tests' "$out/logs/gradle.log" | head -10
 } > "$out/result.txt" 2>&1
