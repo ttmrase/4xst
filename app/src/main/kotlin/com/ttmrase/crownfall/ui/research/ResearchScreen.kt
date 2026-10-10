@@ -131,7 +131,7 @@ fun ResearchScreen(
                 Card(
                     modifier =
                         Modifier.fillMaxWidth().alpha(
-                            if (preview.locked) 0.6f else 1f,
+                            if (row.locked) 0.6f else 1f,
                         ).clickable { selected = node.id },
                     shape = RoundedCornerShape(12.dp),
                 ) {
