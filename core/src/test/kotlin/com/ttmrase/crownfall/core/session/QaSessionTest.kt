@@ -193,4 +193,39 @@ class QaSessionTest {
             assertEquals(1L, saved.save.seed)
             assertTrue(s.dispatch { Actions.addGems(it, 1) }.ok().gems > 0)
         }
+
+    @Test
+    fun missingPrimaryWithBackupOnlyRecoversAndNextSaveRestoresPrimary() =
+        runTest {
+            val clock = FixedClock(T0)
+            val seedStorage = FlakyStorage()
+            session(seedStorage, clock).newGame("A", "hero_aldric", 3)
+            // primary → bak へ回した直後・置換前にクラッシュした状態
+            val storage =
+                FlakyStorage().also {
+                    it.primary = null
+                    it.backup = seedStorage.primary
+                }
+            val s = session(storage, clock)
+            assertEquals(LoadResult.RecoveredFromBackup, s.load())
+            assertEquals("A", s.state.value?.playerName)
+            s.flush()
+            assertEquals(1, storage.writes)
+            assertIs<DecodeResult.Success>(SaveCodec.decode(assertNotNull(storage.primary)))
+        }
+
+    @Test
+    fun freshlyLoadedSessionIsDirtyAndFlushWritesOnce() =
+        runTest {
+            val clock = FixedClock(T0)
+            val storage = FlakyStorage()
+            session(storage, clock).newGame("A", "hero_aldric", 1)
+            val s = session(storage, clock)
+            assertEquals(LoadResult.Loaded, s.load())
+            val before = storage.writes
+            s.flush()
+            assertEquals(before + 1, storage.writes)
+            s.flush()
+            assertEquals(before + 1, storage.writes)
+        }
 }

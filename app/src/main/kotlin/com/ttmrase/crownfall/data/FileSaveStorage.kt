@@ -33,8 +33,12 @@ class FileSaveStorage(private val dir: File) : SaveStorage {
 
     override fun quarantinePrimary() {
         if (!primary.exists()) return
-        val target = File(dir, "slot0.corrupt-${System.currentTimeMillis() / MILLIS}.json")
-        Files.move(primary.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        // 同一秒に複数回退避しても先の破損ファイルを上書きしない（連番サフィックスで衝突を避ける）
+        val stamp = System.currentTimeMillis() / MILLIS
+        var target = File(dir, "slot0.corrupt-$stamp.json")
+        var n = 1
+        while (target.exists()) target = File(dir, "slot0.corrupt-$stamp-${n++}.json")
+        Files.move(primary.toPath(), target.toPath())
     }
 
     private companion object {
