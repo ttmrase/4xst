@@ -922,6 +922,15 @@
     <string name="on_device_io_prompt">User message</string>
     <string name="on_device_io_raw">Model output</string>
     <string name="on_device_io_rejected">(rejected)</string>
+    <string name="on_device_test_info">Profile: %1$s · Backend: %2$s</string>
+    <string name="on_device_profile_title">Prompt type</string>
+    <string name="on_device_profile_auto">Auto</string>
+    <string name="on_device_profile_standard">Standard (E2B / E4B)</string>
+    <string name="on_device_profile_tiny">Tiny (1B / 270m)</string>
+    <string name="on_device_backend_title">Backend</string>
+    <string name="on_device_backend_auto">Auto (GPU → CPU)</string>
+    <string name="on_device_backend_cpu">CPU</string>
+    <string name="on_device_backend_gpu">GPU</string>
     <string name="on_device_charging_only">Use only while charging</string>
     <string name="on_device_timeout">Timeout (seconds)</string>
     <string name="on_device_advice_ram">RAM is low. It may be slow or the app may be closed (warning only; you can still use it)</string>

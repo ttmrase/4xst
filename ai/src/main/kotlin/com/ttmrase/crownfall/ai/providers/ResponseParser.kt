@@ -80,6 +80,8 @@ object ResponseParser {
         locale: String,
         prompt: String = "",
         previous: List<String> = emptyList(),
+        maxSentences: Int = MAX_SENTENCES,
+        maxChars: Int = MAX_CHARS,
     ): String? {
         if ('{' in text || '}' in text || text.contains("speaker", ignoreCase = true)) return null
         val first =
@@ -87,15 +89,18 @@ object ResponseParser {
                 .firstOrNull { it.isNotEmpty() && !it.startsWith("```") } ?: return null
         var line = first.replace(LEADING_MARKUP, "")
         line = line.replace(NAME_LABEL, "").replace(OPEN_QUOTES, "").replace(MARKUP_INSIDE, "").trim()
-        line = firstSentences(line).replace(CLOSE_QUOTES, "").trim()
+        line = firstSentences(line, maxSentences).replace(CLOSE_QUOTES, "").trim()
         val chars = if (locale == "en") EN_CHARS else JA_CHARS
         val bad =
-            line.length < MIN_CHARS || line.length > MAX_CHARS || !chars.containsMatchIn(line) ||
+            line.length < MIN_CHARS || line.length > maxChars || !chars.containsMatchIn(line) ||
                 echoesPrompt(line, prompt) || previous.any { same(it, line) }
         return if (bad) null else line
     }
 
-    private fun firstSentences(s: String): String {
+    private fun firstSentences(
+        s: String,
+        maxSentences: Int,
+    ): String {
         var count = 0
         var i = 0
         while (i < s.length) {
@@ -107,7 +112,7 @@ object ResponseParser {
             }
             var j = i + 1
             while (j < s.length && (s[j] in SENTENCE_ENDS || s[j] in CLOSERS)) j++
-            if (++count == MAX_SENTENCES) return s.substring(0, j)
+            if (++count == maxSentences) return s.substring(0, j)
             i = j
         }
         return s
@@ -130,5 +135,41 @@ object ResponseParser {
         val p = normalize(prompt)
         if (n.length < ECHO_WINDOW) return false
         return (0..n.length - ECHO_WINDOW).any { p.contains(n.substring(it, it + ECHO_WINDOW)) }
+    }
+
+    private val SPEAKER_LABEL = Regex("^(.{1,24}?)\\s*[:：]\\s*(.*)$")
+    private const val MAX_MULTI_LINES = 3
+
+    /**
+     * 複数話者の出力 `表示名: セリフ`（最大 3 行）を読む。[names] は表示名 → ペルソナ ID。
+     * 既知の表示名で始まる行だけを採り、知らない名前の行・整えられない行は捨てる。1 行も採れなければ空（呼び出し側が
+     * 1 人ずつの生成に切り替える）。各行は [plain] と同じ規則で整える。
+     */
+    fun multiLine(
+        text: String,
+        locale: String,
+        names: Map<String, String>,
+        prompt: String = "",
+        previous: List<String> = emptyList(),
+        maxSentences: Int = MAX_SENTENCES,
+        maxChars: Int = MAX_CHARS,
+    ): List<SpokenLine> {
+        val byName = names.mapKeys { it.key.lowercase() }
+        val out = ArrayList<SpokenLine>()
+        for (raw in text.lineSequence()) {
+            if (out.size == MAX_MULTI_LINES) break
+            val line = raw.trim().replace(LEADING_MARKUP, "")
+            val m = SPEAKER_LABEL.find(line) ?: continue
+            val label =
+                m.groupValues[1].replace(
+                    MARKUP_INSIDE,
+                    "",
+                ).replace(OPEN_QUOTES, "").replace(CLOSE_QUOTES, "").trim()
+            val id = byName[label.lowercase()] ?: continue
+            val before = previous + out.map { it.text }
+            val said = plain(m.groupValues[2], locale, prompt, before, maxSentences, maxChars) ?: continue
+            out += SpokenLine(id, said)
+        }
+        return out
     }
 }

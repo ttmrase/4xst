@@ -1,6 +1,7 @@
 package com.ttmrase.crownfall.ai
 
 import com.ttmrase.crownfall.ai.providers.GeminiProvider
+import com.ttmrase.crownfall.ai.providers.OnDeviceProfile
 import com.ttmrase.crownfall.ai.router.RouterConfig
 import com.ttmrase.crownfall.core.chat.RevealAi
 
@@ -24,6 +25,10 @@ data class AiSettings(
     val onDeviceChargingOnly: Boolean = false,
     /** 端末内 LLM のタイムアウト（秒）。 */
     val onDeviceTimeoutSec: Int = DEFAULT_ON_DEVICE_TIMEOUT_SEC,
+    /** 端末内 LLM のプロンプトの種類（`auto` / `standard` / `tiny`）。自動はモデルのファイル名で決める。 */
+    val onDeviceProfile: String = OnDeviceProfile.AUTO,
+    /** 端末内 LLM のバックエンド（`auto` / `cpu` / `gpu`）。自動は GPU を試し、失敗したら CPU。 */
+    val onDeviceBackend: String = BACKEND_AUTO,
 ) {
     /** キーが空か、ヘッダに載せられる印字可能 ASCII か（例外メッセージにキーが載るのを防ぐ）。 */
     fun keysValid(): Boolean = PRINTABLE.matches(geminiKey.trim()) && PRINTABLE.matches(openAiKey.trim())
@@ -46,6 +51,9 @@ data class AiSettings(
     companion object {
         val DEFAULT_ORDER = listOf(GeminiProvider.ID, OnDeviceProvider.ID, "openai_compat")
         const val DEFAULT_ON_DEVICE_TIMEOUT_SEC = 30
+        const val BACKEND_AUTO = "auto"
+        const val BACKEND_CPU = "cpu"
+        const val BACKEND_GPU = "gpu"
         const val MIN_ON_DEVICE_TIMEOUT_SEC = 5
         const val MAX_ON_DEVICE_TIMEOUT_SEC = 300
         private const val MILLIS = 1000L

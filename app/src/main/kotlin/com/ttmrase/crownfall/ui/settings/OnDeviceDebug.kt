@@ -56,7 +56,19 @@ fun OnDeviceDebugSection(
             modifier = Modifier.fillMaxWidth(),
         ) { Text(stringResource(R.string.on_device_test_utterance)) }
         if (running) Text(stringResource(R.string.on_device_test_running), style = MaterialTheme.typography.bodySmall)
-        result?.let { Text(testText(it), style = MaterialTheme.typography.bodyMedium) }
+        result?.let {
+            Text(testText(it), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                stringResource(
+                    R.string.on_device_test_info,
+                    it.profile,
+                    it.backend.ifEmpty {
+                        "-"
+                    },
+                ),
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
         OutlinedButton(onClick = { showIo = !showIo }, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(if (showIo) R.string.on_device_hide_io else R.string.on_device_show_io))
         }

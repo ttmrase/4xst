@@ -160,6 +160,10 @@ private fun SettingsForm(
             timeoutSec = draft.onDeviceTimeoutSec,
             onChargingOnly = { draft = draft.copy(onDeviceChargingOnly = it) },
             onTimeoutSec = { draft = draft.copy(onDeviceTimeoutSec = it) },
+            profile = draft.onDeviceProfile,
+            backend = draft.onDeviceBackend,
+            onProfile = { draft = draft.copy(onDeviceProfile = it) },
+            onBackend = { draft = draft.copy(onDeviceBackend = it) },
         )
         OnDeviceDebugSection(ai, data)
         HorizontalDivider()

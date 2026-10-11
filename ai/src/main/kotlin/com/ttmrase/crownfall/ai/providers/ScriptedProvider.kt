@@ -88,6 +88,23 @@ class ScriptedProvider(private val data: GameData) : AiProvider {
         return lines
     }
 
+    /**
+     * 標準プロファイルの few-shot 用に、同じペルソナ × 同じイベントの定型文を [count] 本返す（プレースホルダは埋める。
+     * 定型文が無いイベントは空）。乱数は [seed] から決定論的に引く。
+     */
+    fun examples(
+        event: ChatEvent,
+        persona: String,
+        vars: ChatVars,
+        count: Int,
+        seed: Long,
+    ): List<String> {
+        val list = candidates(templateKey(event), persona)
+        if (list.isEmpty()) return emptyList()
+        val start = Mix.roll(seed, SALT_EXAMPLE, persona.hashCode().toLong(), list.size)
+        return (0 until minOf(count, list.size)).map { fill(list[(start + it) % list.size], vars, persona) }
+    }
+
     private fun candidates(
         key: String,
         persona: String,
@@ -168,6 +185,7 @@ class ScriptedProvider(private val data: GameData) : AiProvider {
         private const val SALT_COUNT = 11L
         private const val SALT_PICK = 200L
         private const val SALT_STYLE = 300L
+        private const val SALT_EXAMPLE = 500L
         private const val SALT_WORLD_NAME = 400L
         private const val WORLD_SALT = 77L
         private val PLACEHOLDER = Regex("\\{(\\w+)\\}")

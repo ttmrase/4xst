@@ -1,6 +1,8 @@
 package com.ttmrase.crownfall.ai
 
+import com.ttmrase.crownfall.ai.providers.ScriptedProvider
 import com.ttmrase.crownfall.core.chat.ChatContext
+import com.ttmrase.crownfall.core.chat.ChatVars
 import com.ttmrase.crownfall.core.chat.PromptContextBuilder
 import com.ttmrase.crownfall.core.chat.RevealAi
 import com.ttmrase.crownfall.core.data.GameData
@@ -20,15 +22,17 @@ object ChatRequestFactory {
         locale: String = "ja",
     ): ChatRequest {
         val prompt = PromptContextBuilder.build(state, pending, data, reveal)
+        val vars = ChatContext.vars(state, pending.event, data)
+        val seed = Mix.mix(state.alliance.seed xor pending.id)
         return ChatRequest(
             system = prompt.system,
             messages = prompt.turns.map { ChatTurn(it.speaker, it.text) },
             jsonSchemaHint = SCHEMA_HINT,
             event = pending.event,
             speakers = pending.speakers,
-            seed = Mix.mix(state.alliance.seed xor pending.id),
+            seed = seed,
             recent = recent,
-            vars = ChatContext.vars(state, pending.event, data),
+            vars = vars,
             knownSpeakers =
                 data.personas.personas.map { it.id }.toSet() +
                     data.personas.worldNpcNames.map { "world:$it" },
@@ -36,8 +40,24 @@ object ChatRequestFactory {
             names = PromptContextBuilder.names(state, data),
             situation = PromptContextBuilder.situation(state, pending, data),
             locale = locale,
+            allianceLine = PromptContextBuilder.worldLine(data),
+            status = PromptContextBuilder.statusLine(state, data),
+            fewShot = fewShot(pending, data, vars, seed),
         )
     }
 
+    /** 発言者ごとに、同じイベントの定型文を最大 2 本（標準プロファイルの few-shot）。 */
+    private fun fewShot(
+        pending: PendingChat,
+        data: GameData,
+        vars: ChatVars,
+        seed: Long,
+    ): Map<String, List<String>> {
+        val scripted = ScriptedProvider(data)
+        return pending.speakers.associateWith { scripted.examples(pending.event, it, vars, FEW_SHOT, seed) }
+            .filterValues { it.isNotEmpty() }
+    }
+
+    private const val FEW_SHOT = 2
     private const val SCHEMA_HINT = "{\"lines\":[{\"speaker\":\"<id>\",\"text\":\"<text>\"}]}"
 }

@@ -75,3 +75,37 @@ class ResponseParserPlainTest {
         assertEquals("ほな、また後でな", ja("ほな、また後でな", previous = prev))
     }
 }
+
+class ResponseParserMultiLineTest {
+    private val names = mapOf("Kaede" to "kaede", "老兵ゲン" to "gen", "Yuki" to "yuki")
+
+    private fun multi(text: String) = ResponseParser.multiLine(text, "ja", names)
+
+    @Test
+    fun onlyLinesStartingWithAKnownNameAreKept() {
+        val out = multi("Kaede: おはよう、よう来たな\n老兵ゲン：焦るな、ゆっくりでよい\n見知らぬ人: こんにちは\nただの文章です")
+        assertEquals(listOf("kaede" to "おはよう、よう来たな", "gen" to "焦るな、ゆっくりでよい"), out.map { it.speaker to it.text })
+    }
+
+    @Test
+    fun markdownLabelsAndAtMostThreeLinesAreHandled() {
+        val out = multi("**Kaede**: こんにちは、元気やった？\n- yuki: こんにちは！\n老兵ゲン: ふむ、よい天気だ\nKaede: 四行目はいらない")
+        assertEquals(listOf("kaede", "yuki", "gen"), out.map { it.speaker })
+    }
+
+    @Test
+    fun jsonGarbageAndUnlabelledTextGiveNothing() {
+        assertEquals(emptyList(), multi("""{"lines":[{"speaker":"kaede","text":"こんにちは"}]}"""))
+        assertEquals(emptyList(), multi("こんにちは、今日はいい天気ですね"))
+        assertEquals(emptyList(), multi(""))
+    }
+
+    @Test
+    fun aRepeatedLineIsDroppedAndTheLimitsFollowTheProfile() {
+        val out = ResponseParser.multiLine("Kaede: おはよう、よう来たな\n老兵ゲン: おはよう、よう来たな", "ja", names)
+        assertEquals(listOf("kaede"), out.map { it.speaker }, "the second line repeats the first")
+        val long = ResponseParser.multiLine("Kaede: ${"あ".repeat(130)}", "ja", names, maxChars = 160)
+        assertEquals(1, long.size)
+        assertEquals(emptyList(), ResponseParser.multiLine("Kaede: ${"あ".repeat(130)}", "ja", names, maxChars = 120))
+    }
+}

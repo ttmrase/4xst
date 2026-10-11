@@ -921,6 +921,15 @@
     <string name="on_device_io_prompt">ユーザー側</string>
     <string name="on_device_io_raw">モデルの出力</string>
     <string name="on_device_io_rejected">（弾かれた）</string>
+    <string name="on_device_test_info">プロファイル: %1$s ・ バックエンド: %2$s</string>
+    <string name="on_device_profile_title">プロンプトの種類</string>
+    <string name="on_device_profile_auto">自動</string>
+    <string name="on_device_profile_standard">標準（E2B / E4B）</string>
+    <string name="on_device_profile_tiny">小型（1B / 270m）</string>
+    <string name="on_device_backend_title">バックエンド</string>
+    <string name="on_device_backend_auto">自動（GPU → CPU）</string>
+    <string name="on_device_backend_cpu">CPU</string>
+    <string name="on_device_backend_gpu">GPU</string>
     <string name="on_device_charging_only">充電中だけ使う</string>
     <string name="on_device_timeout">タイムアウト（秒）</string>
     <string name="on_device_advice_ram">RAM が少なめです。動作が遅い、またはアプリが終了することがあります（警告のみ・使えます）</string>

@@ -7,6 +7,7 @@ import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.SamplerConfig
+import com.ttmrase.crownfall.ai.providers.OnDeviceProfile
 import kotlinx.coroutines.CompletableDeferred
 import java.io.File
 import java.util.concurrent.Executors
@@ -22,6 +23,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 class LiteRtLmEngine(
     context: Context,
     private val store: OnDeviceModelStore,
+    /** 設定の「バックエンド」（`auto` / `cpu` / `gpu`）。生成のたびに最新を読む。 */
+    private val backendPref: () -> String = { "auto" },
 ) : OnDeviceLlmEngine {
     private val app = context.applicationContext
     private val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "ondevice-llm") }
@@ -34,11 +37,27 @@ class LiteRtLmEngine(
 
     @Volatile private var failedKey: String? = null
 
+    /** GPU での読み込みに失敗した（例外、またはプロセスごと落ちた）モデル。自動のときは CPU を使う。 */
+    @Volatile private var failedGpuKey: String? = null
+
+    @Volatile override var activeBackend: String = ""
+        private set
+
     init {
-        // 前回、読み込み中に落ちたモデルは失敗扱いにする（ネイティブのクラッシュで毎回落ちるのを防ぐ）
+        // 前回、読み込み中に落ちたモデルは失敗扱いにする（ネイティブのクラッシュで毎回落ちるのを防ぐ）。
+        // GPU で落ちたなら、そのモデルは GPU だけを失敗扱いにして、CPU では読めるようにする。
         val crashed = prefs.getString(KEY_LOADING, null)
-        if (crashed != null) prefs.edit().putString(KEY_FAILED, crashed).remove(KEY_LOADING).commit()
+        if (crashed != null) {
+            val edit = prefs.edit().remove(KEY_LOADING)
+            if (crashed.endsWith(GPU_SUFFIX)) {
+                edit.putString(KEY_FAILED_GPU, crashed.removeSuffix(GPU_SUFFIX))
+            } else {
+                edit.putString(KEY_FAILED, crashed.removeSuffix(CPU_SUFFIX))
+            }
+            edit.commit()
+        }
         failedKey = prefs.getString(KEY_FAILED, null)
+        failedGpuKey = prefs.getString(KEY_FAILED_GPU, null)
     }
 
     override fun isModelReady(): Boolean {
@@ -49,6 +68,7 @@ class LiteRtLmEngine(
     override suspend fun generate(
         system: String,
         prompt: String,
+        profile: OnDeviceProfile,
     ): String {
         check(busy.compareAndSet(false, true)) { "busy" }
         val result = CompletableDeferred<String>()
@@ -60,7 +80,12 @@ class LiteRtLmEngine(
                         e.createConversation(
                             ConversationConfig(
                                 systemInstruction = Contents.of(system),
-                                samplerConfig = SamplerConfig(topK = TOP_K, topP = TOP_P, temperature = TEMPERATURE),
+                                samplerConfig =
+                                    SamplerConfig(
+                                        topK = profile.topK,
+                                        topP = profile.topP,
+                                        temperature = profile.temperature,
+                                    ),
                             ),
                         ).use { c -> c.sendMessage(prompt).toString() }
                     result.complete(text)
@@ -80,21 +105,58 @@ class LiteRtLmEngine(
     private fun ensureEngine(): Engine {
         val file = store.current() ?: error("no_model")
         val key = keyOf(file)
-        engine?.let { if (loadedKey == key) return it }
+        val pref = backendPref()
+        engine?.let { if (loadedKey == key && backendMatches(pref)) return it }
         closeEngine()
-        prefs.edit().putString(KEY_LOADING, key).commit()
+        // 自動: GPU を先に試し、例外（またはクラッシュの記録）があれば CPU。GPU 指定は記録を無視してもう一度試す。
+        val tryGpu = pref == "gpu" || (pref == "auto" && failedGpuKey != key)
+        if (tryGpu) {
+            try {
+                return load(file, key, gpu = true)
+            } catch (t: Throwable) {
+                failedGpuKey = key
+                prefs.edit().putString(KEY_FAILED_GPU, key).remove(KEY_LOADING).commit()
+                if (pref == "gpu") throw t
+            }
+        }
+        return load(file, key, gpu = false)
+    }
+
+    private fun backendMatches(pref: String): Boolean =
+        when (pref) {
+            "gpu" -> activeBackend == "gpu"
+            "cpu" -> activeBackend == "cpu"
+            else -> true
+        }
+
+    private fun load(
+        file: File,
+        key: String,
+        gpu: Boolean,
+    ): Engine {
+        prefs.edit().putString(KEY_LOADING, key + if (gpu) GPU_SUFFIX else CPU_SUFFIX).commit()
         return try {
-            val config = EngineConfig(modelPath = file.path, backend = Backend.CPU(), cacheDir = app.cacheDir.path)
+            val backend = if (gpu) Backend.GPU() else Backend.CPU()
+            val config =
+                EngineConfig(
+                    modelPath = file.path,
+                    backend = backend,
+                    maxNumTokens = MAX_NUM_TOKENS,
+                    cacheDir = app.cacheDir.path,
+                )
             Engine(config).also {
                 it.initialize()
                 engine = it
                 loadedKey = key
+                activeBackend = if (gpu) "gpu" else "cpu"
                 prefs.edit().remove(KEY_LOADING).commit()
             }
         } catch (t: Throwable) {
-            // OOM や UnsatisfiedLinkError も含めて、このモデルは失敗扱いにする
-            failedKey = key
-            prefs.edit().putString(KEY_FAILED, key).remove(KEY_LOADING).commit()
+            // GPU の失敗は呼び出し側が CPU に戻す。CPU の失敗（OOM や UnsatisfiedLinkError も含む）はモデルを失敗扱いにする
+            if (!gpu) {
+                failedKey = key
+                prefs.edit().putString(KEY_FAILED, key).remove(KEY_LOADING).commit()
+            }
             throw t
         }
     }
@@ -110,6 +172,7 @@ class LiteRtLmEngine(
         runCatching { engine?.close() }
         engine = null
         loadedKey = null
+        activeBackend = ""
     }
 
     private companion object {
@@ -117,10 +180,11 @@ class LiteRtLmEngine(
         const val KEY_LOADING = "loading_model"
         const val KEY_FAILED = "failed_model"
 
-        /** 小型モデルは、既定のままだと決まり文句に偏る。少しばらつかせ、突飛な語は切る。 */
-        const val TOP_K = 40
-        const val TOP_P = 0.95
-        const val TEMPERATURE = 0.85
+        /** 読み込み時の KV キャッシュなどの上限（プロンプト 600〜700 トークン + 生成 96 トークンが収まる大きさ）。 */
+        const val MAX_NUM_TOKENS = 1280
+        const val KEY_FAILED_GPU = "failed_gpu_model"
+        const val GPU_SUFFIX = "|gpu"
+        const val CPU_SUFFIX = "|cpu"
     }
 
     private fun keyOf(file: File): String = "${file.name}:${file.length()}:${file.lastModified()}"

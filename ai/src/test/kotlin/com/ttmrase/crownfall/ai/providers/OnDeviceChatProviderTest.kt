@@ -50,8 +50,18 @@ class OnDeviceChatProviderTest {
         charging: Boolean = true,
         interval: Long = 0,
         debug: OnDeviceDebugLog? = null,
+        profile: OnDeviceProfile = OnDeviceProfile.TINY,
         generator: OnDeviceGenerator,
-    ) = OnDeviceChatProvider({ ready }, generator, { chargingOnly }, { charging }, interval, { now }, debug)
+    ) = OnDeviceChatProvider(
+        { ready },
+        generator,
+        { chargingOnly },
+        { charging },
+        interval,
+        { now },
+        debug,
+        { profile },
+    )
 
     private fun run(
         p: OnDeviceChatProvider,
@@ -140,6 +150,67 @@ class OnDeviceChatProviderTest {
         assertEquals("テスト7回目の返事です", recent.first().raw)
         assertEquals("テスト7回目の返事です", recent.first().cleaned)
         assertTrue(recent.first().system.isNotEmpty() && recent.first().prompt.isNotEmpty())
+    }
+
+    // ───── 標準プロファイル ─────
+
+    private fun standard(generator: OnDeviceGenerator) =
+        provider(
+            profile = OnDeviceProfile.STANDARD,
+            generator = generator,
+        )
+
+    @Test
+    fun standardTriesOneGenerationForSeveralSpeakersAndKeepsOnlyKnownNames() {
+        var calls = 0
+        val p =
+            standard { _, _ ->
+                calls++
+                "Kaede: おはよう、よう来たな\n老兵ゲン: 焦るな、ゆっくりでよい\n見知らぬ人: こんにちは\nYuki: おはようございます！"
+            }
+        val res = run(p) as AiResult.Success
+        assertEquals(1, calls)
+        assertEquals(listOf("kaede", "gen", "yuki"), res.response.lines.map { it.speaker })
+    }
+
+    @Test
+    fun standardFallsBackToOneAtATimeWhenTheMultiLineOutputCannotBeRead() {
+        val calls = mutableListOf<Pair<String, String>>()
+        val p =
+            standard { system, prompt ->
+                calls += system to prompt
+                if (calls.size == 1) "ラベルのない文章だけが返ってきた" else "うん、${calls.size}回目の返事やで"
+            }
+        val res = run(p) as AiResult.Success
+        assertEquals(3, calls.size, "one multi attempt, then two single generations (interval is exempt in a request)")
+        assertEquals(listOf("kaede", "gen"), res.response.lines.map { it.speaker })
+        assertTrue("【人物】" in calls[1].first && "【登場人物】" in calls[0].first)
+    }
+
+    @Test
+    fun standardUsesTheNaturalLanguageSystemInstructionForASingleSpeaker() {
+        var system = ""
+        val p =
+            standard { s, _ ->
+                system = s
+                "そうなんや、それは楽しそうやな"
+            }
+        val res = run(p, request(listOf("kaede"))) as AiResult.Success
+        assertEquals("kaede", res.response.lines.single().speaker)
+        assertTrue(
+            system.length in StandardPrompt.MIN_SYSTEM_CHARS..StandardPrompt.MAX_SYSTEM_CHARS,
+            "system ${system.length}",
+        )
+        assertTrue("【人物】" in system && "【文体】" in system && "「Kaede」" in system)
+    }
+
+    @Test
+    fun standardAllowsThreeSentencesWhereTinyAllowsTwo() {
+        val text = "それはええなあ。うちも行きたいわ。今度誘ってな。四つ目はいらん。"
+        val s = run(standard { _, _ -> text }, request(listOf("kaede"))) as AiResult.Success
+        assertEquals("それはええなあ。うちも行きたいわ。今度誘ってな。", s.response.lines.single().text)
+        val t = run(provider { _, _ -> text }, request(listOf("kaede"))) as AiResult.Success
+        assertEquals("それはええなあ。うちも行きたいわ。", t.response.lines.single().text)
     }
 
     private fun router(

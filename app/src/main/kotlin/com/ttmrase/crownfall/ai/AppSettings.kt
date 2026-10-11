@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.ttmrase.crownfall.ai.providers.OnDeviceProfile
 import com.ttmrase.crownfall.core.chat.RevealAi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -39,6 +40,8 @@ class AppSettings(context: Context, private val cipher: SecretCipher = SecretCip
             revealAi = if (p[REVEAL_ADMIT] == true) RevealAi.ADMIT else RevealAi.AMBIGUOUS,
             onDeviceChargingOnly = p[ON_DEVICE_CHARGING] ?: base.onDeviceChargingOnly,
             onDeviceTimeoutSec = p[ON_DEVICE_TIMEOUT] ?: base.onDeviceTimeoutSec,
+            onDeviceProfile = p[ON_DEVICE_PROFILE]?.takeIf { it in PROFILES } ?: base.onDeviceProfile,
+            onDeviceBackend = p[ON_DEVICE_BACKEND]?.takeIf { it in BACKENDS } ?: base.onDeviceBackend,
         )
     }
 
@@ -76,6 +79,8 @@ class AppSettings(context: Context, private val cipher: SecretCipher = SecretCip
         p[ON_DEVICE_CHARGING] = next.onDeviceChargingOnly
         p[ON_DEVICE_TIMEOUT] =
             next.onDeviceTimeoutSec.coerceIn(AiSettings.MIN_ON_DEVICE_TIMEOUT_SEC, AiSettings.MAX_ON_DEVICE_TIMEOUT_SEC)
+        p[ON_DEVICE_PROFILE] = next.onDeviceProfile.takeIf { it in PROFILES } ?: OnDeviceProfile.AUTO
+        p[ON_DEVICE_BACKEND] = next.onDeviceBackend.takeIf { it in BACKENDS } ?: AiSettings.BACKEND_AUTO
     }
 
     private companion object {
@@ -91,5 +96,9 @@ class AppSettings(context: Context, private val cipher: SecretCipher = SecretCip
         val REVEAL_ADMIT = booleanPreferencesKey("reveal_ai_admit")
         val ON_DEVICE_CHARGING = booleanPreferencesKey("on_device_charging_only")
         val ON_DEVICE_TIMEOUT = intPreferencesKey("on_device_timeout_sec")
+        val ON_DEVICE_PROFILE = stringPreferencesKey("on_device_profile")
+        val ON_DEVICE_BACKEND = stringPreferencesKey("on_device_backend")
+        val PROFILES = setOf(OnDeviceProfile.AUTO) + OnDeviceProfile.entries.map { it.id }
+        val BACKENDS = setOf(AiSettings.BACKEND_AUTO, AiSettings.BACKEND_CPU, AiSettings.BACKEND_GPU)
     }
 }

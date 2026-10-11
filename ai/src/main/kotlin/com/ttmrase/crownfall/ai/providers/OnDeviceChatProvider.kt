@@ -30,6 +30,7 @@ class OnDeviceChatProvider(
     private val minIntervalMs: Long = MIN_INTERVAL_MS,
     private val nowMs: () -> Long = System::currentTimeMillis,
     private val debug: OnDeviceDebugLog? = null,
+    private val profile: () -> OnDeviceProfile = { OnDeviceProfile.STANDARD },
 ) : OnDeviceProvider {
     private var lastFinishedMs = Long.MIN_VALUE / 2
 
@@ -40,10 +41,22 @@ class OnDeviceChatProvider(
         if (chargingOnly() && !charging()) return AiResult.Failure("not_charging", false)
         // 連続生成の間隔を空ける（発熱・電池への配慮）。同じリクエストの 2 人目以降は免除する
         if (nowMs() - lastFinishedMs < minIntervalMs) return AiResult.Failure("cooldown", true)
-        val speakers = request.speakers.take(MAX_SPEAKERS).ifEmpty { listOf(DEFAULT_SPEAKER) }
+        val prof = profile()
+        val all = request.speakers.ifEmpty { listOf(DEFAULT_SPEAKER) }
+        // 標準: まず 1 回の生成で複数話者の「表示名: セリフ」を試す。読めなければ 1 人ずつ（小型と同じ経路）へ
+        if (prof == OnDeviceProfile.STANDARD && all.size >= 2) {
+            val lines = tryMulti(request, all, prof)
+            if (lines != null) return AiResult.Success(ChatResponse(lines))
+        }
+        val speakers = all.take(MAX_SPEAKERS)
         val spoken = ArrayList<SpokenLine>()
         for (speaker in speakers) {
-            val built = SmallModelPrompt.build(request, speaker, spoken)
+            val built =
+                if (prof == OnDeviceProfile.STANDARD) {
+                    StandardPrompt.single(request, speaker, spoken)
+                } else {
+                    SmallModelPrompt.build(request, speaker, spoken)
+                }
             val started = nowMs()
             val raw =
                 try {
@@ -57,7 +70,15 @@ class OnDeviceChatProvider(
                     lastFinishedMs = nowMs()
                 }
             val previous = request.recent + request.messages.map { it.text } + spoken.map { it.text }
-            val cleaned = ResponseParser.plain(raw, request.locale, built.system + "\n" + built.prompt, previous)
+            val cleaned =
+                ResponseParser.plain(
+                    raw,
+                    request.locale,
+                    built.system + "\n" + built.prompt,
+                    previous,
+                    prof.maxSentences,
+                    prof.maxChars,
+                )
             debug?.record(OnDeviceDebugLog.Entry(speaker, built.system, built.prompt, raw, cleaned, nowMs() - started))
             if (cleaned == null) {
                 if (spoken.isEmpty()) return AiResult.Failure("bad_output", true)
@@ -66,6 +87,40 @@ class OnDeviceChatProvider(
             spoken += SpokenLine(speaker, cleaned)
         }
         return AiResult.Success(ChatResponse(spoken))
+    }
+
+    /** 標準プロファイルの複数話者: 1 回の生成で最大 3 行。読めた行が無ければ null（1 人ずつにフォールバック）。 */
+    private suspend fun tryMulti(
+        request: ChatRequest,
+        speakers: List<String>,
+        prof: OnDeviceProfile,
+    ): List<SpokenLine>? {
+        val built = StandardPrompt.multi(request, speakers)
+        val started = nowMs()
+        val raw =
+            try {
+                generator.generate(built.system, built.prompt)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                return null
+            } finally {
+                lastFinishedMs = nowMs()
+            }
+        val previous = request.recent + request.messages.map { it.text }
+        val lines =
+            ResponseParser.multiLine(
+                raw,
+                request.locale,
+                StandardPrompt.nameTable(request, speakers),
+                built.system + "\n" + built.prompt,
+                previous,
+                prof.maxSentences,
+                prof.maxChars,
+            )
+        val joined = lines.joinToString(" / ") { it.text }.ifEmpty { null }
+        debug?.record(OnDeviceDebugLog.Entry("multi", built.system, built.prompt, raw, joined, nowMs() - started))
+        return lines.ifEmpty { null }
     }
 
     companion object {

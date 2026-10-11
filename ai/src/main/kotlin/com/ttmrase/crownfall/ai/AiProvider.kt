@@ -30,8 +30,14 @@ data class ChatRequest(
     val names: Map<String, String> = emptyMap(),
     /** 小型モデル向け: きっかけの説明（1 文）。空なら書かない。 */
     val situation: String = "",
-    /** アプリの言語（`ja` / `en`）。小型モデルは、この言語で返事をする。 */
+    /** アプリの言語（`ja` / `en`）。端末内の LLM は、この言語で返事をする。 */
     val locale: String = "ja",
+    /** 標準プロファイル向け: 同盟の 1 行（「[TAG] 名前（メンバー 30 名）」）。 */
+    val allianceLine: String = "",
+    /** 標準プロファイル向け: 状況の材料（城 Lv、不足・満杯の資源、直近のできごと）。 */
+    val status: String = "",
+    /** 標準プロファイル向け: ペルソナ ID → 同じイベントの定型文（few-shot の例。最大 2 本）。 */
+    val fewShot: Map<String, List<String>> = emptyMap(),
 ) {
     companion object {
         const val DEFAULT_MAX_TOKENS = 300

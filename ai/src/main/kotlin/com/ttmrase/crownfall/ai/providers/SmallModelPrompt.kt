@@ -53,9 +53,10 @@ object SmallModelPrompt {
             speakers = listOf(kaede.id),
             seed = 0,
             vars = ChatVars(emptyMap(), emptyMap(), call),
-            personas = listOf(PromptContextBuilder.brief(kaede, call)),
+            personas = listOf(PromptContextBuilder.brief(kaede, call, TEST_FAVOR)),
             names = mapOf("player" to call, kaede.id to kaede.displayName),
             locale = locale,
+            allianceLine = PromptContextBuilder.worldLine(data),
         )
     }
 
@@ -144,4 +145,5 @@ object SmallModelPrompt {
 
     private const val DEFAULT_NAME = "メンバー"
     private const val TEST_SPEAKER = "kaede"
+    private const val TEST_FAVOR = 2
 }

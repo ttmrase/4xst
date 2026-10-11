@@ -5,10 +5,12 @@ import android.os.BatteryManager
 import com.ttmrase.crownfall.ai.providers.GeminiProvider
 import com.ttmrase.crownfall.ai.providers.OnDeviceChatProvider
 import com.ttmrase.crownfall.ai.providers.OnDeviceDebugLog
+import com.ttmrase.crownfall.ai.providers.OnDeviceProfile
 import com.ttmrase.crownfall.ai.providers.OpenAiCompatProvider
 import com.ttmrase.crownfall.ai.providers.ResponseParser
 import com.ttmrase.crownfall.ai.providers.ScriptedProvider
 import com.ttmrase.crownfall.ai.providers.SmallModelPrompt
+import com.ttmrase.crownfall.ai.providers.StandardPrompt
 import com.ttmrase.crownfall.ai.router.AiRouter
 import com.ttmrase.crownfall.ai.router.UsageLog
 import com.ttmrase.crownfall.core.data.GameData
@@ -42,7 +44,7 @@ class AiService(
     val modelStore = OnDeviceModelStore(context, scope)
 
     /** 端末内 LLM の実行エンジン（ランタイムはここに閉じ込める）。 */
-    private val onDeviceEngine: OnDeviceLlmEngine = LiteRtLmEngine(context, modelStore)
+    private val onDeviceEngine: OnDeviceLlmEngine = LiteRtLmEngine(context, modelStore) { current().onDeviceBackend }
 
     /** 端末内 LLM の直近の入出力（設定のデバッグ表示用。メモリ上だけで、保存しない）。 */
     val debugLog = OnDeviceDebugLog()
@@ -82,10 +84,11 @@ class AiService(
                     GeminiProvider(client, { current().geminiKey }, { current().geminiModel }),
                     OnDeviceChatProvider(
                         ready = onDeviceEngine::isModelReady,
-                        generator = { system, prompt -> onDeviceEngine.generate(system, prompt) },
+                        generator = { system, prompt -> onDeviceEngine.generate(system, prompt, onDeviceProfile()) },
                         chargingOnly = { current().onDeviceChargingOnly },
                         charging = ::isCharging,
                         debug = debugLog,
+                        profile = ::onDeviceProfile,
                     ),
                     OpenAiCompatProvider(
                         client,
@@ -99,35 +102,55 @@ class AiService(
             usage = usage,
         )
 
+    /** いまのプロンプトの種類（設定が自動ならモデルのファイル名で決める）。 */
+    fun onDeviceProfile(): OnDeviceProfile =
+        OnDeviceProfile.resolve(
+            current().onDeviceProfile,
+            modelStore.current()?.name,
+        )
+
     /** 設定の「テスト発話」の結果。[text] が null なら失敗（[error] に理由）。[millis] は生成にかかった時間。 */
     data class TestUtterance(
         val text: String?,
         val millis: Long,
         val error: String? = null,
+        val profile: String = "",
+        val backend: String = "",
     )
 
     /** いまのモデルで Kaede に一言言わせる（ルーターも予算も通さない）。生成時間も返す。 */
     suspend fun testUtterance(data: GameData): TestUtterance {
         if (!onDeviceEngine.isModelReady()) return TestUtterance(null, 0, "no_model")
         val locale = Locale.getDefault().language
+        val profile = onDeviceProfile()
         val request = SmallModelPrompt.testRequest(data, locale)
         val speaker = request.speakers.first()
-        val built = SmallModelPrompt.build(request, speaker)
+        val built =
+            if (profile == OnDeviceProfile.STANDARD) {
+                StandardPrompt.single(request, speaker)
+            } else {
+                SmallModelPrompt.build(request, speaker)
+            }
         val started = System.nanoTime()
         return try {
-            val raw = onDeviceEngine.generate(built.system, built.prompt)
+            val raw = onDeviceEngine.generate(built.system, built.prompt, profile)
             val millis = (System.nanoTime() - started) / NANOS_PER_MS
-            val cleaned = ResponseParser.plain(raw, locale, built.system + "\n" + built.prompt)
+            val prompt = built.system + "\n" + built.prompt
+            val cleaned = ResponseParser.plain(raw, locale, prompt, emptyList(), profile.maxSentences, profile.maxChars)
             debugLog.record(OnDeviceDebugLog.Entry(speaker, built.system, built.prompt, raw, cleaned, millis))
+            val shown = cleaned ?: raw.trim().take(RAW_PREVIEW_CHARS)
             TestUtterance(
-                cleaned ?: raw.trim().take(RAW_PREVIEW_CHARS),
+                shown,
                 millis,
                 if (cleaned == null) "rejected" else null,
+                profile.id,
+                onDeviceEngine.activeBackend,
             )
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            TestUtterance(null, (System.nanoTime() - started) / NANOS_PER_MS, e::class.simpleName ?: "error")
+            val millis = (System.nanoTime() - started) / NANOS_PER_MS
+            TestUtterance(null, millis, e::class.simpleName ?: "error", profile.id, onDeviceEngine.activeBackend)
         }
     }
 

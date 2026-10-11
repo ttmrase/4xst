@@ -33,6 +33,12 @@ data class PersonaBrief(
     val callName: String,
     val voice: String,
     val examples: List<String>,
+    /** 役職と得意分野（例「R5・同盟のリーダー」）。標準プロファイルで使う。 */
+    val role: String = "",
+    /** 性格の 5 軸を言葉にしたもの（例「社交的、面倒見がよい」）。 */
+    val traits: String = "",
+    /** プレイヤーとの関係を言葉にしたもの（初対面 / 顔なじみ / 親しい / 相棒）。 */
+    val relation: String = "",
 )
 
 /**
@@ -46,7 +52,12 @@ object PromptContextBuilder {
     private const val HIGH_PCT = 80
     private const val PERCENT = 100
     private const val SECONDS_PER_DAY = 86_400L
-    private const val BRIEF_EXAMPLES = 3
+    private const val BRIEF_EXAMPLES_MAX = 5
+    private const val STATUS_EVENTS = 2
+    private const val ALLIANCE_SIZE = 30
+    private const val AXIS_HIGH = 650
+    private const val AXIS_LOW = 350
+    private const val FAVOR_MAX = 4
     private const val BRIEF_ENDINGS = 3
     private const val BRIEF_TRAITS = 2
     private const val TRAIT_HIGH = 700
@@ -74,22 +85,105 @@ object PromptContextBuilder {
         val default = data.templates.labels["call.default"] ?: "領主さん"
         return pending.speakers.mapNotNull { data.personas.persona(it) }.map { p ->
             val lv = state.alliance.favorLevel[p.id] ?: 0
-            brief(p, Personas.callName(p, lv, state.playerName, default))
+            brief(p, Personas.callName(p, lv, state.playerName, default), lv)
         }
     }
 
-    /** [p] の要約。[callName] はプレイヤーの呼び方。 */
+    /** [p] の要約。[callName] はプレイヤーの呼び方、[favorLv] は好感度レベル（0..4）。 */
     fun brief(
         p: PersonaDef,
         callName: String,
+        favorLv: Int = 0,
     ): PersonaBrief =
         PersonaBrief(
             id = p.id,
             displayName = p.displayName,
             callName = callName,
             voice = voiceOf(p),
-            examples = p.speechStyle.samples.sortedBy { it.length }.take(BRIEF_EXAMPLES),
+            examples = p.speechStyle.samples.sortedBy { it.length }.take(BRIEF_EXAMPLES_MAX),
+            role = roleOf(p),
+            traits = traitsOf(p),
+            relation = relationOf(favorLv),
         )
+
+    /** 同盟の 1 行（標準プロファイルの「世界」）。 */
+    fun worldLine(data: GameData): String =
+        "[${data.personas.allianceTag}] ${data.personas.allianceName}（メンバー ${ALLIANCE_SIZE} 名）"
+
+    /**
+     * 標準プロファイルの「状況」の材料: 城 Lv、不足・満杯近い資源だけ、直近のできごと（最大 2 件）。
+     * 普通の資源は書かない（毎回ゲームの状況に触れさせないため）。
+     */
+    fun statusLine(
+        state: GameState,
+        data: GameData,
+    ): String {
+        val cap = Simulation.storageCap(state, data)
+        val notable =
+            ResourceType.entries.mapNotNull {
+                val pct = if (cap > 0) (state.resources[it] * PERCENT / cap).toInt() else 0
+                val label = data.templates.labels["resource.${it.name.lowercase()}"] ?: it.name
+                when {
+                    pct < LOW_PCT -> "${label}が不足"
+                    pct > HIGH_PCT -> "${label}が満杯近い"
+                    else -> null
+                }
+            }
+        val events = recentEvents(state).take(STATUS_EVENTS)
+        return buildString {
+            append("城Lv${Marching.castleLevel(state)}。")
+            if (notable.isNotEmpty()) append(notable.joinToString("、")).append("。")
+            if (events.isNotEmpty()) append("直近: ").append(events.joinToString("、")).append("。")
+        }
+    }
+
+    private fun roleOf(p: PersonaDef): String {
+        val job =
+            when (p.specialty) {
+                "leader" -> "同盟のリーダー"
+                "war" -> "戦闘担当"
+                "newbie" -> "初心者"
+                "gather" -> "採集担当"
+                "analyst" -> "分析担当"
+                "spender" -> "課金が大好きなメンバー"
+                "returner" -> "久しぶりに戻ってきたメンバー"
+                "veteran" -> "古参のメンバー"
+                else -> "メンバー"
+            }
+        return "R${p.rank}の$job"
+    }
+
+    private fun traitsOf(p: PersonaDef): String {
+        val t = p.personality
+        val words =
+            listOfNotNull(
+                axis(t.extraversion, "社交的", "控えめ"),
+                axis(t.caring, "面倒見がよい", "ドライ"),
+                axis(t.aggression, "好戦的", "穏やか"),
+                axis(t.meticulous, "几帳面", "おおらか"),
+                axis(t.humor, "ユーモアがある", "真面目"),
+            )
+        return words.joinToString("、")
+    }
+
+    private fun axis(
+        v: Int,
+        high: String,
+        low: String,
+    ): String? =
+        when {
+            v >= AXIS_HIGH -> high
+            v <= AXIS_LOW -> low
+            else -> null
+        }
+
+    private fun relationOf(favorLv: Int): String =
+        when {
+            favorLv <= 0 -> "初対面"
+            favorLv == 1 -> "顔なじみ"
+            favorLv < FAVOR_MAX -> "親しい"
+            else -> "相棒"
+        }
 
     /** 会話履歴の発言者 ID から表示名を引く表（ペルソナ、プレイヤー、ワールドの NPC）。 */
     fun names(

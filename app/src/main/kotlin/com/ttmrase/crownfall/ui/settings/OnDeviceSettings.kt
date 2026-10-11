@@ -3,15 +3,20 @@ package com.ttmrase.crownfall.ui.settings
 import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,10 +29,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
+import com.ttmrase.crownfall.ai.AiSettings
 import com.ttmrase.crownfall.ai.ondevice.ModelTransfer
+import com.ttmrase.crownfall.ai.providers.OnDeviceProfile
 import com.ttmrase.crownfall.ondevice.DeviceInfo
 import com.ttmrase.crownfall.ondevice.OnDeviceModelStore
 import com.ttmrase.crownfall.ondevice.TransferState
@@ -43,8 +51,12 @@ fun OnDeviceSettingsSection(
     store: OnDeviceModelStore,
     chargingOnly: Boolean,
     timeoutSec: Int,
+    profile: String,
+    backend: String,
     onChargingOnly: (Boolean) -> Unit,
     onTimeoutSec: (Int) -> Unit,
+    onProfile: (String) -> Unit,
+    onBackend: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val state by store.state.collectAsStateWithLifecycle()
@@ -156,6 +168,57 @@ fun OnDeviceSettingsSection(
             Switch(checked = chargingOnly, onCheckedChange = onChargingOnly)
         }
         NumberField(R.string.on_device_timeout, timeoutSec, onTimeoutSec)
+        ChoiceGroup(
+            title = R.string.on_device_profile_title,
+            options =
+                listOf(
+                    OnDeviceProfile.AUTO to R.string.on_device_profile_auto,
+                    OnDeviceProfile.STANDARD.id to R.string.on_device_profile_standard,
+                    OnDeviceProfile.TINY.id to R.string.on_device_profile_tiny,
+                ),
+            selected = profile,
+            onSelect = onProfile,
+        )
+        ChoiceGroup(
+            title = R.string.on_device_backend_title,
+            options =
+                listOf(
+                    AiSettings.BACKEND_AUTO to R.string.on_device_backend_auto,
+                    AiSettings.BACKEND_CPU to R.string.on_device_backend_cpu,
+                    AiSettings.BACKEND_GPU to R.string.on_device_backend_gpu,
+                ),
+            selected = backend,
+            onSelect = onBackend,
+        )
+    }
+}
+
+/** ラジオボタンの選択肢（値 → 表示文言）。 */
+@Composable
+private fun ChoiceGroup(
+    @StringRes title: Int,
+    options: List<Pair<String, Int>>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    Column(modifier = Modifier.selectableGroup()) {
+        Text(stringResource(title), style = MaterialTheme.typography.labelLarge)
+        options.forEach { (value, label) ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = selected == value,
+                            role = Role.RadioButton,
+                            onClick = { onSelect(value) },
+                        ),
+            ) {
+                RadioButton(selected = selected == value, onClick = null)
+                Text(stringResource(label), modifier = Modifier.padding(start = 8.dp))
+            }
+        }
     }
 }
 
