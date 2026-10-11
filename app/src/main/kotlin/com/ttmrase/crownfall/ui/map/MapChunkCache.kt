@@ -80,7 +80,7 @@ internal class MapChunkCache(
                 }
             }
         }
-        return synchronized(images) { LEVELS.firstNotNullOfOrNull { images[key(cx, cy, it)] } }
+        return synchronized(images) { LEVELS.asSequence().mapNotNull { images[key(cx, cy, it)] }.firstOrNull() }
     }
 
     private fun trim() {
