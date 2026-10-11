@@ -1,0 +1,20 @@
+run: 81
+commit: 601b6071223e19aecd076ec9ddd6817915579f64
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38121917852
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+e: app/src/main/kotlin/com/ttmrase/crownfall/ui/shop/OfferVisuals.kt:63:19 Conflicting declarations:
+e: app/src/main/kotlin/com/ttmrase/crownfall/ui/shop/OfferVisuals.kt:109:29 Overload resolution ambiguity between candidates:
+e: app/src/main/kotlin/com/ttmrase/crownfall/ui/shop/OfferVisuals.kt:110:27 Overload resolution ambiguity between candidates:
+e: app/src/main/kotlin/com/ttmrase/crownfall/ui/shop/OfferVisuals.kt:376:88 Overload resolution ambiguity between candidates:
+e: app/src/main/kotlin/com/ttmrase/crownfall/ui/shop/OfferVisuals.kt:443:19 Conflicting declarations:
+--- failed tests ---
+> Task :app:compileDebugKotlin FAILED
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
