@@ -5,7 +5,7 @@
   {"id": "castle_ice", "category": "castle", "theme": "ice", "rarity": "SR", "priceYen": 1220, "bag": true},
   {"id": "castle_gold", "category": "castle", "theme": "gold", "rarity": "SSR", "priceYen": 3060, "bag": true},
   {"id": "castle_sakura", "category": "castle", "theme": "sakura", "rarity": "SR", "priceYen": 1840, "limited": true},
-  {"id": "castle_dragon", "category": "castle", "theme": "gold", "rarity": "SSR", "priceYen": 6100, "limited": true},
+  {"id": "castle_dragon", "category": "castle", "theme": "dragon", "rarity": "SSR", "priceYen": 6100, "limited": true},
   {"id": "territory_ice", "category": "territory", "theme": "ice", "rarity": "R", "priceYen": 1220, "bag": true},
   {"id": "territory_gold", "category": "territory", "theme": "gold", "rarity": "SR", "priceYen": 2440, "bag": true},
   {"id": "territory_sakura", "category": "territory", "theme": "sakura", "rarity": "R", "priceYen": 1220, "limited": true},

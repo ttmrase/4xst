@@ -1040,6 +1040,9 @@
     <string name="settings_bgm_own_title">自分の曲を使う</string>
     <string name="settings_bgm_own_note">端末の音楽ファイルを選ぶと、BGM の代わりに流します（全体用と、場面ごとの指定ができます。ファイルはこのアプリの中にコピーされます）。</string>
     <string name="settings_bgm_import_failed">この曲は読み込めませんでした。</string>
+    <string name="settings_bgm_import_too_big">この曲は大きすぎます（30MB まで）。</string>
+    <string name="settings_bgm_import_no_space">端末の空き容量が足りません。</string>
+    <string name="settings_bgm_importing">曲をコピーしています… %1$.1f MB</string>
     <string name="settings_bgm_all">すべての場面</string>
     <string name="settings_bgm_default">標準の曲</string>
     <string name="settings_bgm_choose">選ぶ</string>
@@ -1087,10 +1090,12 @@
     <string name="skin_bag_sub">何が出るかは福袋次第。提供割合は下のとおりです。</string>
     <string name="skin_bag_rate">%1$s  %2$.1f%%  %3$s</string>
     <string name="skin_bag_pity">あと %1$d 回以内に SR 以上が必ず出ます（天井）</string>
-    <string name="skin_bag_dup">持っているスキンが出ると欠片になります（R なら %1$d 個）。欠片は下で交換できます。</string>
+    <string name="skin_bag_dup">持っているスキンが出ると欠片になります（N %1$d・R %2$d・SR %3$d・SSR %4$d 個）。欠片は下で交換できます。</string>
     <string name="skin_bag_one">1 回 💎%1$d</string>
     <string name="skin_bag_ten">10 回 💎%1$d</string>
     <string name="skin_bag_result_title">福袋の結果（新規 %1$d 個）</string>
+    <string name="skin_bag_item_new">NEW</string>
+    <string name="skin_bag_item_dup">重複 → 欠片 %1$d</string>
     <string name="skin_exchange_title">欠片の交換（所持 %1$d）</string>
     <string name="skin_exchange_cost">欠片 %1$d</string>
     <string name="skin_wardrobe_title">着せ替え</string>

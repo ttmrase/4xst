@@ -34,6 +34,7 @@ import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.quest.condText
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 
 private const val SHOW_MS = 3200L
@@ -54,24 +55,19 @@ fun AchievementToastHost(
     val state by session.collectCalmState()
     val context = LocalContext.current
     var known by remember { mutableStateOf<Set<String>?>(null) }
-    var queue by remember { mutableStateOf(listOf<QuestDef>()) }
     var current by remember { mutableStateOf<QuestDef?>(null) }
+    // 達成の通知は Channel に積み、1 本のループで順番に出す（自分の状態を鍵にした効果を作らない）
+    val queue = remember { Channel<QuestDef>(Channel.UNLIMITED) }
     val s = state
     val ids = if (s == null) emptyList() else QuestLogic.claimableOneShots(s, data).map { it.id }
-    LaunchedEffect(ids) {
-        val seen = known
-        if (seen == null) {
-            if (s != null) known = ids.toSet()
-        } else {
-            val fresh = data.quests.achievements.filter { it.id in ids && it.id !in seen }
-            known = seen + ids
-            if (fresh.isNotEmpty()) queue = queue + fresh
-        }
+    LaunchedEffect(ids, s != null) {
+        val (nextKnown, fresh) = freshAchievementIds(known, ids, s != null)
+        known = nextKnown
+        data.quests.achievements.filter { it.id in fresh }.forEach { queue.trySend(it) }
     }
-    LaunchedEffect(queue, current) {
-        if (current == null && queue.isNotEmpty()) {
-            current = queue.first()
-            queue = queue.drop(1)
+    LaunchedEffect(queue) {
+        for (def in queue) {
+            current = def
             Sfx.play(context, SfxId.NOTIFY)
             delay(SHOW_MS)
             current = null
@@ -103,3 +99,17 @@ fun AchievementToastHost(
         }
     }
 }
+
+/**
+ * 新しく達成された実績の判定（純粋関数）。最初に状態が読めた時点で達成済みのものは「既知」にして出さず、
+ * 以降に増えた分だけを返す。戻り値は（更新後の既知の集合, 新しい実績の ID）。
+ */
+internal fun freshAchievementIds(
+    known: Set<String>?,
+    ids: List<String>,
+    ready: Boolean,
+): Pair<Set<String>?, List<String>> =
+    when {
+        known == null -> (if (ready) ids.toSet() else null) to emptyList()
+        else -> (known + ids) to ids.filter { it !in known }
+    }

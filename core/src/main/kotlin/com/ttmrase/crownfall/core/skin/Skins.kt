@@ -4,6 +4,7 @@ import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.SkinCategory
 import com.ttmrase.crownfall.core.data.SkinDef
 import com.ttmrase.crownfall.core.data.SkinRarity
+import com.ttmrase.crownfall.core.event.WeeklyEvents
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.util.SeededRandom
@@ -15,7 +16,6 @@ data class BagResult(val skinId: String, val rarity: SkinRarity, val isNew: Bool
  * スキン（M11 T11.4）。所持・装備・週替わりの限定・福袋・欠片の交換。すべて純関数で決定論的（乱数は `rngState`）。
  */
 object Skins {
-    private const val WEEK_SEC = 7 * 24 * 3600L
     private const val BP = 10_000
 
     fun def(
@@ -40,8 +40,8 @@ object Skins {
         return state.shop.skins.owned + derived
     }
 
-    /** 今週の週番号（現地時間の暦に合わせる）。 */
-    fun week(state: GameState): Long = Math.floorDiv(state.nowEpochSec + state.settings.utcOffsetSec, WEEK_SEC)
+    /** 今週の週番号（週替わりイベントと同じ、現地の月曜始まり）。 */
+    fun week(state: GameState): Long = WeeklyEvents.weekId(state.nowEpochSec, state.settings.utcOffsetSec)
 
     /** [week] 週に買える限定スキン（並び順どおりに巡回する。同じ週は常に同じ。数週で一巡して復刻する）。 */
     fun featured(

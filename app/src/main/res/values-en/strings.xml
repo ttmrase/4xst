@@ -1041,6 +1041,9 @@
     <string name="settings_bgm_own_title">Use my own music</string>
     <string name="settings_bgm_own_note">Pick a music file on your device to play instead of the built-in BGM (for all scenes, or per scene). The file is copied into this app.</string>
     <string name="settings_bgm_import_failed">Could not load that file.</string>
+    <string name="settings_bgm_import_too_big">That file is too large (30 MB max).</string>
+    <string name="settings_bgm_import_no_space">Not enough free space on the device.</string>
+    <string name="settings_bgm_importing">Copying the track… %1$.1f MB</string>
     <string name="settings_bgm_all">All scenes</string>
     <string name="settings_bgm_default">Built-in track</string>
     <string name="settings_bgm_choose">Choose</string>
@@ -1088,10 +1091,12 @@
     <string name="skin_bag_sub">What you get is up to the bag. The rates are listed below.</string>
     <string name="skin_bag_rate">%1$s  %2$.1f%%  %3$s</string>
     <string name="skin_bag_pity">An SR or better is guaranteed within %1$d pulls (pity)</string>
-    <string name="skin_bag_dup">A skin you already own becomes shards (%1$d for an R). Exchange shards below.</string>
+    <string name="skin_bag_dup">A skin you already own becomes shards (N %1$d, R %2$d, SR %3$d, SSR %4$d). Exchange shards below.</string>
     <string name="skin_bag_one">1 pull 💎%1$d</string>
     <string name="skin_bag_ten">10 pulls 💎%1$d</string>
     <string name="skin_bag_result_title">Bag result (%1$d new)</string>
+    <string name="skin_bag_item_new">NEW</string>
+    <string name="skin_bag_item_dup">Duplicate → %1$d shards</string>
     <string name="skin_exchange_title">Shard exchange (you have %1$d)</string>
     <string name="skin_exchange_cost">%1$d shards</string>
     <string name="skin_wardrobe_title">Wardrobe</string>

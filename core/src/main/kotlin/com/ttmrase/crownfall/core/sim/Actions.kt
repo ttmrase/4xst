@@ -28,6 +28,7 @@ import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Prereq
 import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.model.ShopSettings
+import com.ttmrase.crownfall.core.model.SkinBagEntry
 import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.model.satAdd
@@ -816,10 +817,8 @@ object Actions {
             } else {
                 val paid = state.copy(gems = state.gems - cost)
                 val (next, results) = Skins.pullBag(paid, if (ten) TEN_ROLL else 1, data)
-                ActionResult.Success(
-                    next,
-                    listOf(GameEvent.SkinBag(results.map { it.skinId }, results.count { it.isNew })),
-                )
+                val entries = results.map { SkinBagEntry(it.skinId, it.rarity.name, it.isNew, it.shards) }
+                ActionResult.Success(next, listOf(GameEvent.SkinBag(entries)))
             }
         }
 

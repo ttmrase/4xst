@@ -33,6 +33,7 @@ import com.ttmrase.crownfall.core.data.SkinCategory
 import com.ttmrase.crownfall.core.data.SkinDef
 import com.ttmrase.crownfall.core.data.SkinRarity
 import com.ttmrase.crownfall.core.model.GameState
+import com.ttmrase.crownfall.core.model.SkinBagEntry
 import com.ttmrase.crownfall.core.shop.ProductIds
 import com.ttmrase.crownfall.core.skin.Skins
 import com.ttmrase.crownfall.ui.rarityColor
@@ -63,6 +64,7 @@ fun skinThemeColor(theme: String): Color =
         "gold" -> Color(0xFFE8B730)
         "sakura" -> Color(0xFFF08CAB)
         "flame" -> Color(0xFFEF6C3A)
+        "dragon" -> Color(0xFFB0243A)
         else -> Color(0xFF9AA0A6)
     }
 
@@ -77,6 +79,7 @@ fun LazyListScope.skinTab(
     onEquip: (SkinCategory, String?) -> Unit,
     onBag: (Boolean) -> Unit,
     onExchange: (String) -> Unit,
+    bagBusy: Boolean = false,
 ) {
     val owned = Skins.owned(s, data)
     val featured = Skins.featured(data, Skins.week(s))
@@ -90,7 +93,7 @@ fun LazyListScope.skinTab(
         item(key = "r_" + skin.id) { SkinCard(skin, s, data, owned, onBuy, onPreview, onEquip) }
     }
     item { Text(stringResource(R.string.skin_bag_title), style = MaterialTheme.typography.titleMedium) }
-    item { SkinBagCard(s, data, onBag) }
+    item { SkinBagCard(s, data, bagBusy, onBag) }
     item {
         Text(
             stringResource(R.string.skin_exchange_title, s.shop.skins.shards),
@@ -197,6 +200,7 @@ private fun SkinCard(
 private fun SkinBagCard(
     s: GameState,
     data: GameData,
+    busy: Boolean,
     onBag: (Boolean) -> Unit,
 ) {
     val rules = data.skins.bag
@@ -220,16 +224,26 @@ private fun SkinBagCard(
             }
             Text(stringResource(R.string.skin_bag_pity, pity), style = MaterialTheme.typography.labelMedium)
             Text(
-                stringResource(R.string.skin_bag_dup, rules.dupShards.getValue(SkinRarity.R)),
+                stringResource(
+                    R.string.skin_bag_dup,
+                    rules.dupShards.getValue(SkinRarity.N),
+                    rules.dupShards.getValue(SkinRarity.R),
+                    rules.dupShards.getValue(SkinRarity.SR),
+                    rules.dupShards.getValue(SkinRarity.SSR),
+                ),
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = {
                     onBag(false)
-                }, enabled = s.gems >= rules.gems) { Text(stringResource(R.string.skin_bag_one, rules.gems)) }
+                }, enabled = !busy && s.gems >= rules.gems) { Text(stringResource(R.string.skin_bag_one, rules.gems)) }
                 Button(onClick = {
                     onBag(true)
-                }, enabled = s.gems >= rules.tenGems) { Text(stringResource(R.string.skin_bag_ten, rules.tenGems)) }
+                }, enabled = !busy && s.gems >= rules.tenGems) {
+                    Text(
+                        stringResource(R.string.skin_bag_ten, rules.tenGems),
+                    )
+                }
             }
         }
     }
@@ -333,10 +347,10 @@ fun SkinPreviewDialog(
     )
 }
 
-/** 福袋の結果の一覧。 */
+/** 福袋の結果の一覧。1 つごとに「NEW」か「重複 → 欠片 n」を出す。 */
 @Composable
 fun SkinBagResultDialog(
-    ids: List<String>,
+    entries: List<SkinBagEntry>,
     newCount: Int,
     data: GameData,
     onDismiss: () -> Unit,
@@ -348,10 +362,16 @@ fun SkinBagResultDialog(
         title = { Text(stringResource(R.string.skin_bag_result_title, newCount)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                ids.forEach { id ->
-                    val d = Skins.def(data, id)
+                entries.forEach { e ->
+                    val d = Skins.def(data, e.skinId)
+                    val tail =
+                        if (e.isNew) {
+                            stringResource(R.string.skin_bag_item_new)
+                        } else {
+                            stringResource(R.string.skin_bag_item_dup, e.shards)
+                        }
                     Text(
-                        "${d?.rarity?.name.orEmpty()}  ${skinName(context, id)}",
+                        "${e.rarity}  ${skinName(context, e.skinId)}  $tail",
                         color = d?.let { rarityColor(rarityOf(it.rarity)) } ?: Color.Unspecified,
                     )
                 }

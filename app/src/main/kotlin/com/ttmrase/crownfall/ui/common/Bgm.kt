@@ -1,6 +1,9 @@
 package com.ttmrase.crownfall.ui.common
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.res.AssetFileDescriptor
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -9,9 +12,14 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.widget.Toast
 import androidx.annotation.RawRes
 import com.ttmrase.crownfall.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.coroutines.coroutineContext
 
 /** BGM の場面。曲は [res]（tools/bgmgen が生成した MIDI）。 */
 enum class BgmScene(
@@ -42,6 +50,8 @@ object Bgm {
     private const val STEP_MS = 40L
     private const val DIR = "bgm"
     private const val GLOBAL = "all"
+    private const val COPY_BUFFER = 64 * 1024
+    private const val SPACE_MARGIN = 8L * 1024 * 1024
 
     private class Slot(val player: MediaPlayer, val key: String) {
         var level = 0f
@@ -53,6 +63,16 @@ object Bgm {
     private var wantedScene: BgmScene? = null
     private var inForeground = false
     private var fadeTicker: Runnable? = null
+
+    /** フェードアウト中の曲。途中で切り替わっても取りこぼさず、cancelFade / stop でまとめて解放する。 */
+    private val fading = mutableListOf<Slot>()
+    private var externalMusic = false
+    private var ringerReceiver: BroadcastReceiver? = null
+
+    const val MAX_IMPORT_BYTES = 30L * 1024 * 1024
+
+    /** 取り込みの結果。 */
+    enum class ImportResult { OK, TOO_BIG, NO_SPACE, FAILED }
 
     // ---- 設定 ----
     fun isEnabled(context: Context): Boolean = prefs(context).getBoolean(KEY_ENABLED, true)
@@ -72,6 +92,8 @@ object Bgm {
         percent: Int,
     ) {
         prefs(context).edit().putInt(KEY_VOLUME, percent.coerceIn(0, 100)).apply()
+        // 0 なら止めてフォーカスも手放す。上げ直したら（止まっていれば）鳴らし始める
+        apply(context)
         current?.let { setLevel(context, it, it.level) }
     }
 
@@ -81,25 +103,58 @@ object Bgm {
         scene: BgmScene?,
     ): String? = prefs(context).getString(KEY_CUSTOM + (scene?.name ?: GLOBAL), null)
 
-    /** 自分の曲を [uri]（ACTION_OPEN_DOCUMENT の結果）から filesDir/bgm/ にコピーして登録する。成功なら true。 */
-    fun importCustom(
+    /**
+     * 自分の曲を [uri]（ACTION_OPEN_DOCUMENT の結果）から filesDir/bgm/ にコピーして登録する。
+     * IO スレッドで読む（呼び出し側は coroutine から）。30MB まで・空き容量を確認・一時ファイルに書いてから置き換える。
+     * キャンセルされたら一時ファイルを消して CancellationException を投げる。[onProgress] は読んだバイト数。
+     */
+    suspend fun importCustom(
         context: Context,
         scene: BgmScene?,
         uri: Uri,
         displayName: String,
-    ): Boolean =
-        try {
+        onProgress: (Long) -> Unit = {},
+    ): ImportResult =
+        withContext(Dispatchers.IO) {
             val dir = File(context.filesDir, DIR).apply { mkdirs() }
             val key = scene?.name ?: GLOBAL
+            val tmp = File(dir, "$key.tmp")
             val target = File(dir, "$key.dat")
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                target.outputStream().use { input.copyTo(it) }
-            } ?: error("no stream")
-            prefs(context).edit().putString(KEY_CUSTOM + key, displayName).apply()
-            apply(context)
-            true
-        } catch (e: Exception) {
-            false
+            try {
+                val size =
+                    context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: -1L
+                if (size > MAX_IMPORT_BYTES) return@withContext ImportResult.TOO_BIG
+                if (size > 0 && dir.usableSpace < size + SPACE_MARGIN) return@withContext ImportResult.NO_SPACE
+                val input = context.contentResolver.openInputStream(uri) ?: return@withContext ImportResult.FAILED
+                input.use { src ->
+                    tmp.outputStream().use { out ->
+                        val buf = ByteArray(COPY_BUFFER)
+                        var total = 0L
+                        while (true) {
+                            coroutineContext.ensureActive()
+                            val n = src.read(buf)
+                            if (n < 0) break
+                            total += n
+                            if (total > MAX_IMPORT_BYTES) return@withContext ImportResult.TOO_BIG
+                            out.write(buf, 0, n)
+                            onProgress(total)
+                        }
+                    }
+                }
+                if (!tmp.renameTo(target)) {
+                    tmp.copyTo(target, overwrite = true)
+                }
+                target.setLastModified(System.currentTimeMillis())
+                prefs(context).edit().putString(KEY_CUSTOM + key, displayName).apply()
+                withContext(Dispatchers.Main) { apply(context) }
+                ImportResult.OK
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                ImportResult.FAILED
+            } finally {
+                tmp.delete()
+            }
         }
 
     /** 自分の曲の登録を外し、元の曲に戻す。 */
@@ -130,7 +185,41 @@ object Bgm {
         foreground: Boolean,
     ) {
         inForeground = foreground
-        if (foreground) apply(context) else stop(context)
+        if (foreground) {
+            // 他のアプリの音楽が鳴っているかは、自分の音を出す前のこの一度だけ確かめる（自分の再生を誤検出しない）
+            if (current == null) externalMusic = audioManager(context).isMusicActive
+            watchRinger(context)
+            apply(context)
+        } else {
+            unwatchRinger(context)
+            stop(context)
+        }
+    }
+
+    private fun watchRinger(context: Context) {
+        if (ringerReceiver != null) return
+        val app = context.applicationContext
+        val r =
+            object : BroadcastReceiver() {
+                override fun onReceive(
+                    c: Context?,
+                    intent: Intent?,
+                ) {
+                    apply(app)
+                }
+            }
+        app.registerReceiver(r, IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION))
+        ringerReceiver = r
+    }
+
+    private fun unwatchRinger(context: Context) {
+        val r = ringerReceiver ?: return
+        ringerReceiver = null
+        try {
+            context.applicationContext.unregisterReceiver(r)
+        } catch (e: IllegalArgumentException) {
+            // 登録されていない
+        }
     }
 
     /** すぐ止める（フォーカスも手放す）。 */
@@ -149,11 +238,20 @@ object Bgm {
         }
         val key = sourceKey(context, scene)
         if (current?.key == key) return
-        val audio = audioManager(context)
-        // 他のアプリが音楽を流しているときは割り込まない（自分の曲を流している最中は対象外）
-        if (current == null && audio.isMusicActive) return
-        if (!requestFocus(context)) return
-        val next = open(context, scene, key) ?: return
+        // 他のアプリが音楽を流しているときは割り込まない（前景に来た時点の確認。自分の再生中は見ない）
+        if (current == null && externalMusic) return
+        var next = open(context, scene, key)
+        if (next == null && key.startsWith("custom")) {
+            // 自分の曲が開けない。標準の曲に戻して、読み込めなかったことを伝える
+            Toast.makeText(context.applicationContext, R.string.settings_bgm_import_failed, Toast.LENGTH_SHORT).show()
+            next = open(context, scene, "raw:${scene.name}")
+        }
+        if (next == null) return
+        // 音声フォーカスは、曲が開けてから取る
+        if (!requestFocus(context)) {
+            release(next)
+            return
+        }
         val old = current
         current = next
         next.player.start()
@@ -165,8 +263,10 @@ object Bgm {
         scene: BgmScene,
     ): String =
         when {
-            customName(context, scene) != null -> "custom:${scene.name}:${customName(context, scene)}"
-            customName(context, null) != null -> "custom:all:${customName(context, null)}"
+            customName(context, scene) != null ->
+                "custom:${scene.name}:${customName(context, scene)}:${customFile(context, scene)?.lastModified()}"
+            customName(context, null) != null ->
+                "custom:all:${customName(context, null)}:${customFile(context, null)?.lastModified()}"
             else -> "raw:${scene.name}"
         }
 
@@ -174,9 +274,10 @@ object Bgm {
         context: Context,
         scene: BgmScene,
         key: String,
-    ): Slot? =
-        try {
-            val mp = MediaPlayer()
+    ): Slot? {
+        var mp: MediaPlayer? = null
+        return try {
+            mp = MediaPlayer()
             mp.setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_GAME)
@@ -184,7 +285,8 @@ object Bgm {
                     .build(),
             )
             val custom = customFile(context, scene)
-            if (custom != null && key.startsWith("custom")) {
+            if (key.startsWith("custom")) {
+                if (custom == null) error("no custom file")
                 mp.setDataSource(custom.absolutePath)
             } else {
                 val afd: AssetFileDescriptor = context.resources.openRawResourceFd(scene.res)
@@ -192,25 +294,35 @@ object Bgm {
                 afd.close()
             }
             mp.isLooping = true
-            mp.setOnErrorListener { p, _, _ ->
+            val player = mp
+            player.setOnErrorListener { p, _, _ ->
                 handler.post { if (current?.player === p) stop(context) }
                 true
             }
-            mp.prepare()
-            val slot = Slot(mp, key)
+            player.prepare()
+            val slot = Slot(player, key)
             setLevel(context, slot, 0f)
             slot
         } catch (e: Exception) {
+            // prepare に失敗したプレーヤーは解放する
+            mp?.let {
+                try {
+                    it.release()
+                } catch (ignored: Exception) {
+                    // 解放済み
+                }
+            }
             null
         }
+    }
 
     private fun customFile(
         context: Context,
-        scene: BgmScene,
+        scene: BgmScene?,
     ): File? {
         val dir = File(context.filesDir, DIR)
-        val perScene = File(dir, "${scene.name}.dat")
-        if (customName(context, scene) != null && perScene.exists()) return perScene
+        val perScene = File(dir, "${scene?.name}.dat")
+        if (scene != null && customName(context, scene) != null && perScene.exists()) return perScene
         val all = File(dir, "$GLOBAL.dat")
         return if (customName(context, null) != null && all.exists()) all else null
     }
@@ -235,6 +347,7 @@ object Bgm {
         next: Slot,
     ) {
         cancelFade()
+        old?.let { fading.add(it) }
         val steps = (FADE_MS / STEP_MS).toInt()
         var i = 0
         val ticker =
@@ -245,7 +358,7 @@ object Bgm {
                     setLevel(context, next, u)
                     old?.let { setLevel(context, it, 1f - u) }
                     if (i >= steps) {
-                        old?.let { release(it) }
+                        releaseFading()
                         fadeTicker = null
                     } else {
                         handler.postDelayed(this, STEP_MS)
@@ -260,6 +373,7 @@ object Bgm {
         val slot = current ?: return
         cancelFade()
         current = null
+        fading.add(slot)
         val steps = (FADE_MS / STEP_MS).toInt()
         var i = 0
         val start = slot.level
@@ -269,7 +383,7 @@ object Bgm {
                     i++
                     setLevel(context, slot, start * (1f - i.toFloat() / steps))
                     if (i >= steps) {
-                        release(slot)
+                        releaseFading()
                         abandonFocus(context)
                         fadeTicker = null
                     } else {
@@ -281,9 +395,16 @@ object Bgm {
         handler.post(ticker)
     }
 
+    /** フェードを打ち切る。フェードアウト中だった曲は、取りこぼさずここで解放する。 */
     private fun cancelFade() {
         fadeTicker?.let { handler.removeCallbacks(it) }
         fadeTicker = null
+        releaseFading()
+    }
+
+    private fun releaseFading() {
+        fading.forEach { release(it) }
+        fading.clear()
     }
 
     private fun release(slot: Slot) {
@@ -327,8 +448,9 @@ object Bgm {
         focusRequest = null
     }
 
+    /** BGM はマナー（バイブ）でも鳴らし、サイレントでだけ止める。 */
     private fun silentRinger(context: Context): Boolean =
-        audioManager(context).ringerMode != AudioManager.RINGER_MODE_NORMAL
+        audioManager(context).ringerMode == AudioManager.RINGER_MODE_SILENT
 
     private fun audioManager(context: Context): AudioManager =
         context.applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager

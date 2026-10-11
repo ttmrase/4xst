@@ -78,7 +78,7 @@ internal object MapLive {
         theme: String?,
     ): Color =
         when (theme) {
-            "flame" -> Color(0xFFFF7043)
+            "flame", "dragon" -> Color(0xFFFF7043)
             "ice" -> Color(0xFF80DEEA)
             "sakura" -> Color(0xFFF48FB1)
             else -> kindColor(k)
@@ -89,6 +89,7 @@ internal object MapLive {
             "ice" -> Color(0xFF9FD8FF)
             "gold" -> Color(0xFFFFD54F)
             "sakura" -> Color(0xFFFF9EC0)
+            "dragon" -> Color(0xFFE03A4E)
             else -> null
         }
 
@@ -111,6 +112,8 @@ internal object MapLive {
             when (theme) {
                 "sakura" -> drawCircle(Color(0xCCFFC1D3), tile * 0.07f, p + Offset(0f, (seconds * 14f + i * 11f) % 12f))
                 "ice" -> drawCircle(Color(0xCCFFFFFF), tile * 0.05f, p + Offset(0f, (seconds * 10f + i * 7f) % 10f))
+                // 竜: 火の粉が昇る
+                "dragon" -> drawCircle(Color(0xCCFF8A2A), tile * 0.05f, p - Offset(0f, (seconds * 16f + i * 9f) % 14f))
                 else -> drawCircle(Color(0xCCFFE082), tile * 0.05f * (0.6f + 0.4f * sin(seconds * 3f + i)), p)
             }
         }

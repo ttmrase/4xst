@@ -119,6 +119,10 @@ object VipCalculator {
                 out = AllianceLogic.enqueueReactive(out, ChatEvent.VipUp(lv), listOf("johnny", "kaede"), data)
             }
         }
+        // 段階解放: ショップが解放されるまで VIP の演出は出さない（祝った Lv を黙って追従させる）
+        if (!FeatureGate.unlocked(out, data, Feature.SHOP) && out.shop.vipCelebrated >= 0) {
+            out = out.copy(shop = out.shop.copy(vipCelebrated = maxOf(out.shop.vipCelebrated, after)))
+        }
         return out
     }
 }

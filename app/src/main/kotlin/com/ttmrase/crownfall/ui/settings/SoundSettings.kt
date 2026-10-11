@@ -20,6 +20,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +33,8 @@ import com.ttmrase.crownfall.ui.common.Bgm
 import com.ttmrase.crownfall.ui.common.BgmScene
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 /** 設定の効果音（演出の音。既定は ON。端末がマナー/サイレントのときは ON でも鳴らさない）。 */
 @Composable
@@ -92,15 +96,36 @@ private fun BgmSettings() {
     var enabled by remember { mutableStateOf(Bgm.isEnabled(context)) }
     var volume by remember { mutableStateOf(Bgm.volume(context).toFloat()) }
     var version by remember { mutableStateOf(0) }
-    var pickFor by remember { mutableStateOf<BgmScene?>(null) }
-    var pickAll by remember { mutableStateOf(false) }
-    var failed by remember { mutableStateOf(false) }
+    // 回転しても選択中の場面を忘れない（"" は全体用、それ以外は BgmScene の名前）
+    var pickKey by rememberSaveable { mutableStateOf("") }
+    var failedRes by remember { mutableStateOf<Int?>(null) }
+    var importedBytes by remember { mutableStateOf<Long?>(null) }
+    var importJob by remember { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) {
                 val name = displayName(context, uri)
-                failed = !Bgm.importCustom(context, if (pickAll) null else pickFor, uri, name)
-                version++
+                val scene = BgmScene.entries.firstOrNull { it.name == pickKey }
+                failedRes = null
+                importedBytes = 0L
+                importJob =
+                    scope.launch {
+                        try {
+                            val result = Bgm.importCustom(context, scene, uri, name) { importedBytes = it }
+                            failedRes =
+                                when (result) {
+                                    Bgm.ImportResult.OK -> null
+                                    Bgm.ImportResult.TOO_BIG -> R.string.settings_bgm_import_too_big
+                                    Bgm.ImportResult.NO_SPACE -> R.string.settings_bgm_import_no_space
+                                    Bgm.ImportResult.FAILED -> R.string.settings_bgm_import_failed
+                                }
+                        } finally {
+                            importedBytes = null
+                            importJob = null
+                            version++
+                        }
+                    }
             }
         }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -126,12 +151,20 @@ private fun BgmSettings() {
         )
         Text(stringResource(R.string.settings_bgm_own_title), style = MaterialTheme.typography.titleSmall)
         Text(stringResource(R.string.settings_bgm_own_note), style = MaterialTheme.typography.bodySmall)
-        if (failed) Text(stringResource(R.string.settings_bgm_import_failed), color = MaterialTheme.colorScheme.error)
+        failedRes?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
+        importedBytes?.let { bytes ->
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.settings_bgm_importing, bytes / BYTES_PER_MB_TENTH / TENTH),
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { importJob?.cancel() }) { Text(stringResource(R.string.common_cancel)) }
+            }
+        }
         // version を読んで、登録・解除のあとに表示を更新する
         key(version) {
             OwnBgmRow(stringResource(R.string.settings_bgm_all), Bgm.customName(context, null), {
-                pickAll = true
-                pickFor = null
+                pickKey = ""
                 picker.launch(arrayOf("audio/*"))
             }, {
                 Bgm.clearCustom(context, null)
@@ -139,8 +172,7 @@ private fun BgmSettings() {
             })
             BgmScene.entries.forEach { scene ->
                 OwnBgmRow(stringResource(sceneLabel(scene)), Bgm.customName(context, scene), {
-                    pickAll = false
-                    pickFor = scene
+                    pickKey = scene.name
                     picker.launch(arrayOf("audio/*"))
                 }, {
                     Bgm.clearCustom(context, scene)
@@ -195,3 +227,6 @@ private fun displayName(
             if (c.moveToFirst()) c.getString(0) else null
         }
     }.getOrNull() ?: uri.lastPathSegment.orEmpty()
+
+private const val BYTES_PER_MB_TENTH = 104_858L
+private const val TENTH = 10.0

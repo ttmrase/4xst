@@ -68,6 +68,7 @@ private fun skinFrameColor(theme: String): Color =
         "gold" -> Color(0xFFFFD54F)
         "flame" -> Color(0xFFFF7043)
         "sakura" -> Color(0xFFFF9EC0)
+        "dragon" -> Color(0xFFE03A4E)
         else -> Color(0xFFB0B6BE)
     }
 

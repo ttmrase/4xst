@@ -109,7 +109,8 @@ fun ShopScreen(
     var previewSkin by remember { mutableStateOf<SkinDef?>(null) }
     var bagResult by remember { mutableStateOf<GameEvent.SkinBag?>(null) }
     previewSkin?.let { SkinPreviewDialog(it) { previewSkin = null } }
-    bagResult?.let { SkinBagResultDialog(it.skinIds, it.newCount, data) { bagResult = null } }
+    var bagBusy by remember { mutableStateOf(false) }
+    bagResult?.let { SkinBagResultDialog(it.entries, it.newCount, data) { bagResult = null } }
 
     fun act(
         shown: Triple<Int, PackContents, Boolean>? = null,
@@ -184,15 +185,25 @@ fun ShopScreen(
                         onPreview = { previewSkin = it },
                         onEquip = { cat, id -> act { st -> Actions.equipSkin(st, cat.id, id, data) } },
                         onBag = { ten ->
-                            scope.launch {
-                                val r = session.dispatch { Actions.pullSkinBag(it, ten, data) }
-                                if (r is ActionResult.Success) {
-                                    r.events.filterIsInstance<GameEvent.SkinBag>().firstOrNull()?.let { bagResult = it }
-                                } else if (r is ActionResult.Failure) {
-                                    snackbarHostState.showReplacing(failureMessage(context, r.reason))
+                            // 連打で 2 回引かない: 結果が出るまで、そして結果ダイアログを閉じるまで押せない
+                            if (!bagBusy && bagResult == null) {
+                                bagBusy = true
+                                scope.launch {
+                                    try {
+                                        val r = session.dispatch { Actions.pullSkinBag(it, ten, data) }
+                                        if (r is ActionResult.Success) {
+                                            r.events.filterIsInstance<GameEvent.SkinBag>().firstOrNull()
+                                                ?.let { bagResult = it }
+                                        } else if (r is ActionResult.Failure) {
+                                            snackbarHostState.showReplacing(failureMessage(context, r.reason))
+                                        }
+                                    } finally {
+                                        bagBusy = false
+                                    }
                                 }
                             }
                         },
+                        bagBusy = bagBusy || bagResult != null,
                         onExchange = { id -> act { st -> Actions.exchangeSkin(st, id, data) } },
                     )
             }

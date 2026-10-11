@@ -192,6 +192,10 @@ fun TerritoryView(
     val lockLabels = remember(slotCount) { arrayOfNulls<String>(slotCount) }
     lockLabels.fill(null)
     locks.forEach { (id, info) -> if (id < slotCount) lockLabels[id] = lockText(context, info) }
+    // 札を出すのは「次に開く」区画だけ（城 Lv の最小のものを 1 段ずつ）。それ以外は霧と森だけで、タップすれば案内が出る
+    val pillLabels = remember(slotCount) { arrayOfNulls<String>(slotCount) }
+    val shown = lockPillSlots(locks)
+    for (i in 0 until slotCount) pillLabels[i] = lockLabels[i]?.let { if (i in shown) it else "" }
     val castleLevel = slots.firstOrNull { it.type == BuildingType.CASTLE }?.level ?: 1
     val band = PlotLayout.bandOfCastle(castleLevel)
     currentBandState.intValue = band
@@ -336,7 +340,7 @@ fun TerritoryView(
                 levels,
                 jobs,
                 levelLabels,
-                lockLabels,
+                pillLabels,
                 emptyMark,
                 upgradeFlags,
                 sc * BADGE_SPAN >= size.width,
@@ -380,6 +384,17 @@ fun TerritoryView(
             )
         }
     }
+}
+
+/**
+ * 札を出す区画。城 Lv が前提の区画は、最小の Lv のものだけ（初期の街で札が重ならないように）。
+ * 城以外が前提の区画は、城前提の区画が無いときだけ出す。
+ */
+internal fun lockPillSlots(locks: Map<Int, Prereq>): Set<Int> {
+    val castle = locks.filterValues { it.type == BuildingType.CASTLE }
+    if (castle.isEmpty()) return locks.keys
+    val min = castle.values.minOf { it.level }
+    return castle.filterValues { it.level == min }.keys
 }
 
 private fun lockText(
@@ -970,7 +985,7 @@ private class TerritoryPainter {
             val job = jobs[ent.slotId]
             val lock = locks[ent.slotId]
             when {
-                lock != null -> drawPill(lock, px, py, active = false, empty = true)
+                lock != null -> if (lock.isNotEmpty()) drawPill(lock, px, py, active = false, empty = true)
                 job != null ->
                     drawPill(
                         timerLabel((job.endEpochSec - nowSec).coerceAtLeast(0)),

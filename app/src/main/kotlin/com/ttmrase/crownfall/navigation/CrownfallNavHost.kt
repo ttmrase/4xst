@@ -55,6 +55,7 @@ import com.ttmrase.crownfall.core.feature.Feature
 import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.BattleKind
 import com.ttmrase.crownfall.core.quest.QuestLogic
+import com.ttmrase.crownfall.core.shop.Entitlements
 import com.ttmrase.crownfall.core.shop.OfferEngine
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.data.GameRepository
@@ -177,6 +178,16 @@ fun CrownfallNavHost(
             } ?: flowOf(0)
         }
     val claimable by claimFlow.collectAsStateWithLifecycle(0)
+    // 購入済みの権利（月パス・VIP チェスト・成長ファンド）が受け取れるか。ショップが未解放でも請求画面へ入れる
+    val entitlementFlow =
+        remember(ready?.session) {
+            ready?.let { r ->
+                r.session.calmStateFlow(CLAIM_PERIOD_MS)
+                    .map { s -> s != null && Entitlements.claimable(s, r.data) }
+                    .distinctUntilChanged()
+            } ?: flowOf(false)
+        }
+    val hasEntitlement by entitlementFlow.collectAsStateWithLifecycle(false)
     val clock = readySession?.collectClock()
 
     // 段階解放: 城 Lv と、タップで開くロックのダイアログ、城のアップグレードを開く要求
@@ -295,7 +306,11 @@ fun CrownfallNavHost(
                                 NavigationBarItem(
                                     selected = destination.hierarchy.any { it.route == item.screen.route },
                                     onClick = {
-                                        if (locked) lockedFeature = item.feature else navController.navigateBottom(item)
+                                        if (locked && !(item == BottomDestination.Shop && hasEntitlement)) {
+                                            lockedFeature = item.feature
+                                        } else {
+                                            navController.navigateBottom(item)
+                                        }
                                     },
                                     modifier = Modifier.alpha(if (locked) LOCKED_ALPHA else 1f),
                                     icon = {
@@ -505,18 +520,20 @@ fun CrownfallNavHost(
             },
             onIdle = { if (exitStage == 1) exitStage = 2 },
         )
-        VipCinematicHost(ready.session, ready.data, hold = billingId != null, onActive = { vipActive = it })
-        CastleCeremonyHost(ready.session, ready.data) { ceremonyActive = it }
-        SoundEvents(ready.session)
-        AchievementToastHost(ready.session, ready.data, Modifier.fillMaxSize().statusBarsPadding())
-        FeatureOverlays(
-            session = ready.session,
-            data = ready.data,
-            target = { f -> BottomDestination.entries.indexOfFirst { it.feature == f }.takeIf { it >= 0 } },
-            modifier = Modifier.fillMaxSize().statusBarsPadding(),
-            onActive = { featureActive = it },
-            hold = ceremonyActive,
-        )
+        CompositionLocalProvider(LocalRewardFly provides flyState) {
+            VipCinematicHost(ready.session, ready.data, hold = billingId != null, onActive = { vipActive = it })
+            CastleCeremonyHost(ready.session, ready.data) { ceremonyActive = it }
+            SoundEvents(ready.session)
+            AchievementToastHost(ready.session, ready.data, Modifier.fillMaxSize().statusBarsPadding())
+            FeatureOverlays(
+                session = ready.session,
+                data = ready.data,
+                target = { f -> BottomDestination.entries.indexOfFirst { it.feature == f }.takeIf { it >= 0 } },
+                modifier = Modifier.fillMaxSize().statusBarsPadding(),
+                onActive = { featureActive = it },
+                hold = ceremonyActive,
+            )
+        }
         lockedFeature?.let { f ->
             LockedFeatureDialog(
                 feature = f,

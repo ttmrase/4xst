@@ -11,7 +11,7 @@ object SpriteIds {
         tier: Int,
     ): Int = BUILDINGS.getValue(type)[(tier - 1).coerceIn(0, 4)]
 
-    /** 城のスキン（[theme] は ice / gold / sakura）の見た目 [tier]（1..5）。知らないテーマは標準の城。 */
+    /** 城のスキン（[theme] は ice / gold / sakura / dragon）の見た目 [tier]（1..5）。知らないテーマは標準の城。 */
     fun castleSkin(
         theme: String,
         tier: Int,
@@ -21,10 +21,19 @@ object SpriteIds {
             "ice" -> CASTLE_ICE[i]
             "gold" -> CASTLE_GOLD[i]
             "sakura" -> CASTLE_SAKURA[i]
+            "dragon" -> CASTLE_DRAGON[i]
             else -> building(BuildingType.CASTLE, tier)
         }
     }
 
+    private val CASTLE_DRAGON =
+        intArrayOf(
+            R.drawable.bld_castle_dragon_t1,
+            R.drawable.bld_castle_dragon_t2,
+            R.drawable.bld_castle_dragon_t3,
+            R.drawable.bld_castle_dragon_t4,
+            R.drawable.bld_castle_dragon_t5,
+        )
     private val CASTLE_ICE =
         intArrayOf(
             R.drawable.bld_castle_ice_t1,

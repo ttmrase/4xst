@@ -184,3 +184,17 @@ object LuckyWheel {
         return SpinOutcome(idx, seg, if (seg.tease) -1 else teaseIdx, s)
     }
 }
+
+/** 購入済みの権利（月パスの今日の分・VIP チェスト・成長ファンド）で、いま受け取れるものがあるか。ショップが未解放でも受け取れる。 */
+object Entitlements {
+    fun claimable(
+        state: GameState,
+        data: GameData,
+    ): Boolean {
+        val s = ShopLogic.rollDay(state)
+        val chest = VipCalculator.chest(s, data)
+        return MonthPass.canClaim(s) ||
+            (!chest.isEmpty && s.shop.vipChestDay != ShopLogic.localDay(s)) ||
+            (s.shop.growthFundOwned && GrowthFund.claimable(s, data).isNotEmpty())
+    }
+}

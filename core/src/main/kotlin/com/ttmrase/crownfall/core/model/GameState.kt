@@ -154,9 +154,15 @@ sealed interface GameEvent {
     /** 城 Lv の上昇で機能 [feature] が解放された。 */
     data class FeatureUnlocked(val feature: Feature) : GameEvent
 
-    /** スキン福袋を引いた（[skinIds] は排出順、[newCount] は新しく得た数）。 */
-    data class SkinBag(val skinIds: List<String>, val newCount: Int) : GameEvent
+    /** スキン福袋を引いた。[entries] は排出順（新規か、重複なら欠片がいくつか）。 */
+    data class SkinBag(val entries: List<SkinBagEntry>) : GameEvent {
+        val skinIds: List<String> get() = entries.map { it.skinId }
+        val newCount: Int get() = entries.count { it.isNew }
+    }
 
     /** ラッキーホイールの結果。[segment] は当たり、[tease] は「惜しい」演出で先に見せる位置（無ければ -1）。 */
     data class WheelResult(val segment: Int, val tease: Int, val segmentId: String) : GameEvent
 }
+
+/** 福袋 1 回ぶんの結果。[rarity] は N / R / SR / SSR、[shards] は重複で得た欠片（新規なら 0）。 */
+data class SkinBagEntry(val skinId: String, val rarity: String, val isNew: Boolean, val shards: Int)

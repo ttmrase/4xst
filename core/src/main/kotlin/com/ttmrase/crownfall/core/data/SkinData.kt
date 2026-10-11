@@ -29,7 +29,7 @@ data class SkinUnlock(val type: String, val lv: Int = 0, val id: String = "")
 
 /**
  * スキン 1 件。[priceYen] が 0 でなければ ¥ で買える（擬似購入）。[limited] は週替わりで出る限定（毎週決まった順で巡り、
- * 復刻される）。[bag] が true なら福袋の排出に含まれる。[theme] は見た目の系統（ice / gold / sakura など）。
+ * 復刻される）。[bag] が true なら福袋の排出に含まれる。[theme] は見た目の系統（ice / gold / sakura / dragon など）。
  */
 @Serializable
 data class SkinDef(

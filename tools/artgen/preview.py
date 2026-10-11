@@ -65,7 +65,21 @@ def portraits_sheet(out):
     print("wrote", out, sheet.size)
 
 
+def skins_sheet(out):
+    """城のスキン見本: 行 = 標準 / ice / gold / sakura / dragon、列 = 段階 1..5。"""
+    rows = [None] + list(gen_buildings.SKIN_PALETTES)
+    cw, ch = iso.W_VP * 2, iso.H_VP * 2
+    sheet = Image.new("RGB", (5 * cw, len(rows) * ch), "#444444")
+    for r, skin in enumerate(rows):
+        for t in range(1, 6):
+            sheet.paste(render(gen_buildings.build("castle", t, skin)), ((t - 1) * cw, r * ch))
+    sheet.save(out)
+    print("wrote", out, sheet.size)
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "skins":
+        return skins_sheet(sys.argv[2] if len(sys.argv) > 2 else "/tmp/castle_skins.png")
     if len(sys.argv) > 1 and sys.argv[1] == "portraits":
         return portraits_sheet(sys.argv[2] if len(sys.argv) > 2 else "/tmp/portraits.png")
     if len(sys.argv) > 1 and sys.argv[1] == "decor":

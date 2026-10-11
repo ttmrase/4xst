@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
@@ -100,6 +101,9 @@ class RewardFlyState {
     /** false なら [fly] は何もしない（「アニメーションを削除」）。 */
     var enabled: Boolean = true
 
+    /** 描画層（[RewardFlyLayer]）が組み込まれているときだけ true。無いのに飛ばすと溜まり続けるので無視する。 */
+    internal var layerAttached: Boolean = false
+
     /** 最後にタップされた位置（ウィンドウ座標）。受け取りボタンから飛ばすときの出発点。 */
     var lastTap: Offset = Offset.Unspecified
 
@@ -109,7 +113,7 @@ class RewardFlyState {
         target: FlyTarget,
         count: Int = DEFAULT_COUNT,
     ) {
-        if (!enabled || count <= 0) return
+        if (!enabled || !layerAttached || count <= 0) return
         val now = System.currentTimeMillis()
         val n = count.coerceIn(MIN_ICONS, MAX_ICONS)
         repeat(n) { i ->
@@ -181,6 +185,7 @@ fun Modifier.flyTarget(target: FlyTarget): Modifier {
     val fly = LocalRewardFly.current
     val scale = remember { Animatable(1f) }
     val arrived = fly.arrivals[target] ?: 0L
+    DisposableEffect(fly, target) { onDispose { fly.targets.remove(target) } }
     LaunchedEffect(arrived) {
         if (arrived > 0L) {
             scale.animateTo(BOUNCE, tween(BOUNCE_UP_MS))
@@ -212,6 +217,13 @@ fun RewardFlyLayer(state: RewardFlyState) {
     var origin by remember { mutableStateOf(Offset.Zero) }
     var frame by remember { mutableLongStateOf(0L) }
     state.enabled = animationsEnabled()
+    DisposableEffect(state) {
+        state.layerAttached = true
+        onDispose {
+            state.layerAttached = false
+            state.flights.clear()
+        }
+    }
     val active = state.flights.isNotEmpty()
     LaunchedEffect(active) {
         while (state.flights.isNotEmpty()) {

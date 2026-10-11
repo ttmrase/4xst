@@ -122,8 +122,128 @@ def tower(sc, m, t, xc, yc, r, h, cone_h, flag=True, cone=None):
 
 # ---- 各建物 -------------------------------------------------------------------
 
+def _star(sc, x, y, r, c, alpha=0.95):
+    """四方向にとがった小さな星（きらめき・雪の結晶）。(x, y) は画面座標。"""
+    k = r * 0.28
+    sc.poly([(x, y - r), (x + k, y - k), (x + r, y), (x + k, y + k), (x, y + r), (x - k, y + k), (x - r, y),
+             (x - k, y - k)], c, None, 0.0, alpha)
+
+
+def _dots(sc, pts, c, rx, ry, alpha=0.9):
+    for (x, y) in pts:
+        sc.ellipse(x, y, rx, ry, c, None, 0, alpha, 8)
+
+
+def skin_back(sc, m, t, skin):
+    """スキン専用の装飾（建物より奥に置くもの）。氷: 水晶の尖塔 / 桜: 桜の木 / 竜: 竜の翼。"""
+    kh = [26, 34, 44, 52, 62][t - 1]
+    if skin == "ice":
+        for (x, y, h) in ((3.75, 0.25, 22 + t * 4), (0.25, 0.9, 16 + t * 3)):
+            sc.cone(x, y, 0.2, 0, h, "#BFE8FF", 0.0)
+            sc.cone(x + 0.2, y + 0.15, 0.12, 0, h * 0.6, "#8FD0F5", 0.0)
+    elif skin == "sakura":
+        for (x, y) in ((0.35, 3.55), (3.65, 0.4)):
+            sc.cylinder(x, y, 0.1, 0, 12 + t, "#6B4A3A")
+            cx, cy = P(x, y, 18 + t * 2)
+            sc.ellipse(cx, cy, 13, 9, "#F29BB5", "#B96A83", 0.4, 1.0, 14)
+            sc.ellipse(cx - 6, cy - 3, 8, 6, "#F7B6CA", None, 0, 1.0, 12)
+            sc.ellipse(cx + 6, cy + 1, 8, 6, "#E987A6", None, 0, 1.0, 12)
+    elif skin == "dragon":
+        # 主塔の左右に広がる竜の翼（暗い紅の膜と骨）
+        for sgn in (-1, 1):
+            a = P(2.0, 2.0, kh * 0.7)
+            ax = a[0] + sgn * 8
+            tip = (ax + sgn * (26 + t * 3), a[1] - 18 - t * 4)
+            mid = (ax + sgn * (22 + t * 2), a[1] + 8)
+            low = (ax + sgn * 10, a[1] + 14)
+            sc.poly([(ax, a[1]), tip, (ax + sgn * 17, a[1] - 2), mid, (ax + sgn * 8, a[1] + 8), low], "#7A1626",
+                    "#2A0E14", 0.7)
+            sc.line([(ax, a[1]), tip], "#2A0E14", 1.4)
+            sc.line([(ax, a[1]), mid], "#2A0E14", 1.0)
+
+
+def skin_front(sc, m, t, skin):
+    """スキン専用の装飾（建物より手前に置くもの）。"""
+    kh = [26, 34, 44, 52, 62][t - 1]
+    rh = 8 + t * 3
+    if skin == "ice":
+        # 軒のつらら（壁・主塔の縁から下がる）
+        if t >= 2:
+            edges = [(x, 3.6, 12) for x in (0.6, 1.0, 1.4, 1.8, 2.2, 2.6, 3.0, 3.4)]
+            edges += [(3.6, y, 12) for y in (0.6, 1.0, 1.4, 1.8, 2.2, 2.6, 3.0)]
+        else:
+            edges = [(x, 2.9, kh) for x in (1.3, 1.7, 2.1, 2.5)]
+        for i, (x, y, z) in enumerate(edges):
+            ln = 5 + (i * 7) % 5
+            sc.poly([P(x - 0.07, y, z), P(x + 0.07, y, z), P(x, y, z - ln)], "#E8F6FF", "#9CCBE6", 0.3)
+        # 屋根の雪（主塔と塔の頂）
+        top = P(2.0, 2.0, kh + (rh * 0.55 if t >= 2 else 5))
+        sc.ellipse(top[0], top[1], 11, 4.2, "#FFFFFF", "#CFE4F2", 0.4, 0.95, 14)
+        if t >= 2:
+            for (x, y) in ((0.55, 0.55), (3.45, 0.55), (0.55, 3.45), (3.45, 3.45)):
+                p = P(x, y, [0, 30, 38, 46, 56][t - 1] + 5)
+                sc.ellipse(p[0], p[1], 6, 2.6, "#FFFFFF", None, 0, 0.95, 10)
+        # 手前の水晶の尖塔と、舞う雪の結晶
+        for (x, y, h) in ((3.8, 3.7, 20 + t * 3), (0.2, 3.9, 14 + t * 2)):
+            sc.cone(x, y, 0.22, 0, h, "#CFF0FF", 0.0)
+            sc.cone(x - 0.22, y + 0.1, 0.12, 0, h * 0.55, "#9AD6F7", 0.0)
+        for (x, y, r) in ((14, 36, 3.2), (112, 52, 2.6), (22, 84, 2.2), (104, 18, 2.4)):
+            _star(sc, x, y, r, "#FFFFFF", 0.9)
+    elif skin == "gold":
+        # 金の帯と宝石、塔の金の旗
+        sc.box(1.08, 1.08, 2.92, 2.92, kh - 4, kh - 1, m["gold"], outline=False)
+        for (x, y, z, c) in ((1.9, 2.92, kh * 0.55, "#7FE0F5"), (1.4, 2.92, kh * 0.55, "#F58FB0"),
+                             (2.5, 2.92, kh * 0.55, "#9BE79B")):
+            p = P(x, y, z)
+            sc.poly([(p[0], p[1] - 3), (p[0] + 2.4, p[1]), (p[0], p[1] + 3), (p[0] - 2.4, p[1])], c, "#7A5A10", 0.3)
+        if t >= 2:
+            for (x, y) in ((0.55, 0.55), (3.45, 0.55), (0.55, 3.45), (3.45, 3.45)):
+                sc.flag(x, y, [0, 30, 38, 46, 56][t - 1] + 10 + t * 2, 10, m["gold"], 6.0, "#8A6A1A")
+        # 手前の金貨の山ときらめき
+        for (x, y) in ((0.7, 3.8), (3.4, 3.8)):
+            p = P(x, y, 0)
+            sc.ellipse(p[0], p[1], 6, 2.8, "#E8B93A", "#8A6A1A", 0.4, 1.0, 10)
+            sc.ellipse(p[0], p[1] - 2, 4.2, 2, "#FFE27A", None, 0, 1.0, 10)
+        for (x, y, r) in ((18, 40, 4.2), (110, 46, 3.4), (28, 92, 2.8), (100, 84, 3.0), (64, 24, 3.4)):
+            _star(sc, x, y, r, "#FFF3B0", 0.95)
+    elif skin == "sakura":
+        # 門の提灯と、そり上がった軒先
+        for x in (1.55, 2.45):
+            p = P(x, 3.75, 15)
+            sc.line([(p[0], p[1] - 5), (p[0], p[1])], "#5A3A2A", 0.8)
+            sc.box(x - 0.1, 3.7, x + 0.1, 3.9, 8, 14, "#E0405A", outline=True)
+            sc.box(x - 0.12, 3.68, x + 0.12, 3.92, 14, 15, "#5A3A2A", outline=False)
+        for (x, y) in ((1.1 - 0.25, 2.9 + 0.25), (2.9 + 0.25, 2.9 + 0.25), (2.9 + 0.25, 1.1 - 0.25)):
+            p = P(x, y, kh)
+            sc.poly([p, (p[0] + (4 if x > 2 else -4), p[1] - 6), (p[0], p[1] - 2)], m["roof"], shade(m["roof"], 0.5), 0.4)
+        # 舞う花びら
+        _dots(sc, [(20, 52), (36, 96), (96, 40), (108, 88), (76, 30), (50, 70), (88, 104)], "#FFC4D6", 2.4, 1.5)
+        _dots(sc, [(26, 66), (100, 66), (60, 38)], "#F58FB0", 2.0, 1.3)
+    elif skin == "dragon":
+        # 屋根の竜の像（首をもたげた影）と、立ちのぼる火の粉
+        ax, ay = P(2.0, 2.0, kh + (rh if t >= 2 else 9))
+        sc.poly([(ax - 6, ay), (ax - 4, ay - 6), (ax - 5, ay - 12), (ax - 1, ay - 17), (ax + 3, ay - 16),
+                 (ax + 7, ay - 18), (ax + 3, ay - 13), (ax + 1, ay - 9), (ax + 5, ay - 4), (ax + 7, ay)],
+                "#1E1218", "#C0283A", 0.5)
+        sc.poly([(ax - 2, ay - 8), (ax - 12, ay - 16), (ax - 8, ay - 6)], "#7A1626", "#2A0E14", 0.4)
+        sc.poly([(ax + 1, ay - 8), (ax + 11, ay - 17), (ax + 7, ay - 6)], "#7A1626", "#2A0E14", 0.4)
+        sc.poly([(ax + 3, ay - 16), (ax + 4, ay - 21), (ax + 5, ay - 16)], "#E8A33C", None, 0.0)
+        sc.ellipse(ax + 4.5, ay - 15, 0.9, 0.9, "#FF5A3C", None, 0, 1.0, 6)
+        if t >= 2:
+            for (x, y) in ((0.55, 0.55), (3.45, 0.55), (0.55, 3.45), (3.45, 3.45)):
+                p = P(x, y, [0, 30, 38, 46, 56][t - 1] + 4)
+                sc.poly([(p[0] - 2.2, p[1]), (p[0], p[1] - 9), (p[0] + 2.2, p[1])], "#C0283A", "#2A0E14", 0.4)
+        for (x, y, r, c) in ((18, 70, 1.7, "#FF8A2A"), (30, 40, 1.3, "#FFB84A"), (100, 56, 1.8, "#FF8A2A"),
+                             (110, 90, 1.3, "#FFB84A"), (82, 26, 1.5, "#FF5A3C"), (46, 102, 1.4, "#FF8A2A"),
+                             (92, 110, 1.2, "#FFB84A")):
+            sc.ellipse(x, y, r, r, c, None, 0, 0.95, 6)
+
+
 def castle(sc, m, t):
     base_pad(sc, m, t)
+    skin = m.get("skin")
+    if skin:
+        skin_back(sc, m, t, skin)
     towers = [0, 2, 4, 4, 4][t - 1]
     th = [0, 30, 38, 46, 56][t - 1]
     kh = [26, 34, 44, 52, 62][t - 1]
@@ -157,6 +277,8 @@ def castle(sc, m, t):
         tower(sc, m, t, 3.45, 3.45, 0.5, th - 4, 10 + t * 2)
     if t == 1:
         sc.flag(2.0, 2.0, kh + 8, 11, m["banner"])
+    if skin:
+        skin_front(sc, m, t, skin)
 
 
 def farm(sc, m, t):
@@ -517,6 +639,8 @@ SKIN_PALETTES = {
             "pad": "#B9CCDC", "base": "#9FB4C8"},
     "gold": {"wall": "#E6D3A0", "roof": "#C9A227", "trim": "#B08A1E", "banner": "#B8222B", "gold": "#FFD84A",
              "pad": "#D8C48A", "base": "#B79E5E"},
+    "dragon": {"wall": "#2E2630", "roof": "#9A1B2E", "trim": "#C0283A", "banner": "#C0283A", "gold": "#E8A33C",
+               "pad": "#3A3238", "base": "#4A4048"},
     "sakura": {"wall": "#F3DDE3", "roof": "#E58FA8", "trim": "#C97A92", "banner": "#F06292", "gold": "#FFC1D3",
                "pad": "#E8CFD6", "base": "#C9A9B3"},
 }
@@ -527,6 +651,7 @@ def build(name, tier, skin=None):
     m = dict(MAT[tier])
     if skin:
         m.update({k: v for k, v in SKIN_PALETTES[skin].items() if k in m})
+        m["skin"] = skin
     BUILDERS[name](sc, m, tier)
     return sc
 
