@@ -1,0 +1,16 @@
+run: 64
+commit: 89a6811fb2eebcf1dd25abaee598d4ed4f67dfaf
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38116157983
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+e: app/src/main/kotlin/com/ttmrase/crownfall/ui/Labels.kt:293:5 'when' expression must be exhaustive. Add the 'is FeatureUnlocked' branch or an 'else' branch.
+--- failed tests ---
+> Task :app:compileDebugKotlin FAILED
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
