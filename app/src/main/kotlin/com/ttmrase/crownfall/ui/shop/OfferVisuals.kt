@@ -49,6 +49,7 @@ import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.core.model.HeroRarity
 import com.ttmrase.crownfall.core.model.ResourceType
+import com.ttmrase.crownfall.ui.glyph
 import com.ttmrase.crownfall.ui.heroNameRes
 import com.ttmrase.crownfall.ui.rarityColor
 import com.ttmrase.crownfall.ui.theme.CrownFonts
@@ -235,9 +236,8 @@ private class IconSpec(
 private fun iconSpecs(contents: PackContents): List<IconSpec> {
     val list = mutableListOf<IconSpec>()
     if (contents.gems > 0) list += IconSpec("💎", HeroRarity.SR, "gems")
-    val resGlyph = listOf("🌾", "🌲", "⛰️", "💰")
-    ResourceType.entries.forEachIndexed { i, type ->
-        if (contents.resources[type] > 0) list += IconSpec(resGlyph[i], HeroRarity.R, type.name)
+    ResourceType.entries.forEach { type ->
+        if (contents.resources[type] > 0) list += IconSpec(type.glyph(), HeroRarity.R, type.name)
     }
     contents.items.forEach { (id, _) -> list += IconSpec("🎁", HeroRarity.R, id) }
     contents.heroShards.forEach { (id, _) -> list += IconSpec("⭐", HeroRarity.SSR, id) }

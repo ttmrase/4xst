@@ -107,11 +107,21 @@ fun CrownfallNavHost(
     val readySession = (startup as? Startup.Ready)?.session
     val uiScope = rememberCoroutineScope()
     val ready = startup as? Startup.Ready
+    var billingId by rememberSaveable { mutableStateOf<String?>(null) }
     val hooks: OfferHooks =
         remember(ready?.session) {
-            if (ready != null) ShopOfferHooks(ready.session, ready.data, uiScope) else NoOpOfferHooks
+            if (ready != null) {
+                ShopOfferHooks(
+                    session = ready.session,
+                    data = ready.data,
+                    scope = uiScope,
+                    openProduct = { billingId = it },
+                    notify = { res -> uiScope.launch { snackbarHostState.showReplacing(context.getString(res)) } },
+                )
+            } else {
+                NoOpOfferHooks
+            }
         }
-    var billingId by rememberSaveable { mutableStateOf<String?>(null) }
     var vipActive by remember { mutableStateOf(false) }
     // 退出前オファーの流れ: 0 = なし、1 = 「待って！」を出している、2 = 閉じ終えたのでタイトルへ戻る確認
     var exitStage by rememberSaveable { mutableIntStateOf(0) }

@@ -25,8 +25,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ttmrase.crownfall.core.data.PackContents
+import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
+import com.ttmrase.crownfall.ui.glyph
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.sin
@@ -119,10 +121,7 @@ fun PurchaseCelebration(
 private fun flyingGlyphs(contents: PackContents): List<String> {
     val list = mutableListOf<String>()
     if (contents.gems > 0) list += "💎"
-    if (contents.resources.food > 0) list += "🌾"
-    if (contents.resources.wood > 0) list += "🌲"
-    if (contents.resources.stone > 0) list += "⛰️"
-    if (contents.resources.gold > 0) list += "💰"
+    ResourceType.entries.forEach { if (contents.resources[it] > 0) list += it.glyph() }
     if (contents.items.isNotEmpty()) list += "🎁"
     if (contents.heroShards.isNotEmpty()) list += "⭐"
     return list.take(6)

@@ -645,6 +645,7 @@
     <string name="ribbon_first_double">2x first time!</string>
     <string name="ribbon_gem_bonus">Bonus +%1$d</string>
     <string name="offer_sold_out">Sold out</string>
+    <string name="offer_sold_out_today">Sold out for today</string>
     <string name="offer_revived">Back again! %1$s</string>
     <string name="billing_title">Payment</string>
     <string name="billing_first_double">First-time double - just for you!</string>

@@ -78,6 +78,15 @@ fun ResourceType.nameRes(): Int =
         ResourceType.GOLD -> R.string.res_gold
     }
 
+/** 資源の絵文字。表示は必ずこれを使う（entries の添字で別の表から引かない）。 */
+fun ResourceType.glyph(): String =
+    when (this) {
+        ResourceType.FOOD -> "🌾"
+        ResourceType.WOOD -> "🌲"
+        ResourceType.STONE -> "⛰️"
+        ResourceType.GOLD -> "💰"
+    }
+
 @StringRes
 fun BuildingSection.titleRes(): Int =
     when (this) {
@@ -161,6 +170,15 @@ fun TroopType.nameRes(): Int =
         TroopType.CAVALRY -> R.string.troop_type_cavalry
         TroopType.ARCHER -> R.string.troop_type_archer
         TroopType.SIEGE -> R.string.troop_type_siege
+    }
+
+/** 兵種の絵文字。表示は必ずこれを使う（entries の順と別の表を添字で引くと取り違える）。 */
+fun TroopType.glyph(): String =
+    when (this) {
+        TroopType.INFANTRY -> "⚔"
+        TroopType.CAVALRY -> "🐎"
+        TroopType.ARCHER -> "🏹"
+        TroopType.SIEGE -> "🛠"
     }
 
 /** 兵の表示名（例「歩兵 T2」）。 */

@@ -67,6 +67,7 @@ import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.remainingUntil
 import com.ttmrase.crownfall.ui.event.eventNameRes
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.glyph
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.territory.TerritoryView
 import com.ttmrase.crownfall.ui.theme.AnimatedNumber
@@ -351,7 +352,7 @@ private fun QueueRow(
             val job = slot?.let { UiQueries.trainJob(state, it.slotId) }
             QueueChip(
                 label = stringResource(R.string.timers_train_slot, stringResource(type.nameRes())),
-                glyph = TROOP_GLYPHS.getOrElse(index) { "⚔" },
+                glyph = type.glyph(),
                 job = job,
                 session = session,
                 modifier = Modifier.weight(1f),
@@ -360,8 +361,6 @@ private fun QueueRow(
         }
     }
 }
-
-private val TROOP_GLYPHS = listOf("⚔", "🏹", "🐎", "🛠")
 
 /** タイマー 1 本の小さなチップ。稼働中は金の枠と残り時間。毎秒ここだけが再構図される。 */
 @Composable

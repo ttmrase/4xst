@@ -214,7 +214,7 @@ object OfferEngine {
                 contents = q.contents,
                 params = params + ("main" to main.index.toLong()) + ("total" to q.totalMissing),
             )
-        return replaceOrEnqueue(state, offer, data)
+        return request(state, offer, data)
     }
 
     /** ジェム不足のタップ。不足以上で最小の SKU を積む。 */
@@ -238,30 +238,62 @@ object OfferEngine {
                 contents = PackContents(gems = sku.gems + sku.bonus),
                 params = mapOf("missing" to missing, "yen" to sku.priceYen),
             )
-        return replaceOrEnqueue(state, offer, data)
+        return request(state, offer, data)
     }
 
-    /** 同じ SKU が期限内に残っていれば中身だけ最新に差し替えて再表示し、無ければ通常どおり積む（不足は押すたびに変わるため）。 */
-    private fun replaceOrEnqueue(
+    /**
+     * プレイヤーが自分でタップして呼んだオファー（不足・2 本目ビルダー）。自動ポップアップの抑制（間隔・停止・クールダウン・
+     * セッション上限）を受けず、必ずそのものが [nextPopup] で最優先に返る。
+     * 同じ SKU が期限内に（閉じた状態でも）残っていれば、それを開き直して中身を最新にする。無ければ上限の対象外で積む。
+     * [stock] を使い切っていれば何もしない（呼び出し側が別の導線へ切り替える）。
+     */
+    fun request(
         state: GameState,
         offer: Offer,
         data: GameData,
+        stock: Int = Int.MAX_VALUE,
     ): GameState {
-        val existing =
-            active(state).firstOrNull { it.sku == offer.sku }
-                ?: return enqueue(state, offer, data.shopRules.shortage.cooldownSec, data)
-        val updated = offer.copy(id = existing.id, createdEpochSec = existing.createdEpochSec, dismissed = false)
-        val queue = state.shop.offerQueue.map { if (it.id == existing.id) updated else it }
-        return state.copy(shop = state.shop.copy(offerQueue = queue))
+        val s0 = ShopLogic.rollDay(state)
+        val existing = active(s0).firstOrNull { it.sku == offer.sku }
+        if (existing != null) {
+            val updated =
+                offer.copy(
+                    id = existing.id,
+                    createdEpochSec = existing.createdEpochSec,
+                    expiresEpochSec = maxOf(existing.expiresEpochSec, offer.expiresEpochSec),
+                    dismissed = false,
+                )
+            val queue = s0.shop.offerQueue.map { if (it.id == existing.id) updated else it }
+            return s0.copy(shop = s0.shop.copy(offerQueue = queue, requestedOfferId = existing.id))
+        }
+        if ((s0.shop.stockUsed[offer.sku] ?: 0) >= stock) return s0
+        val queued = enqueue(s0, offer, 0, data, bypass = true)
+        val id = queued.shop.nextOfferId - 1
+        return queued.copy(shop = queued.shop.copy(requestedOfferId = id))
     }
 
-    /** 2 本目ビルダー枠のタップ。ビルダー付きパックを積む。 */
+    /** いま [request] で呼ばれていて、表示すべきオファー（無ければ null）。 */
+    fun requested(state: GameState): Offer? {
+        val id = state.shop.requestedOfferId ?: return null
+        return active(state).firstOrNull { it.id == id && !it.dismissed }
+    }
+
+    /** 2 本目ビルダーのパックを今日まだ出せるか（1 日の在庫）。 */
+    fun canRequestSecondBuilder(
+        state: GameState,
+        data: GameData,
+    ): Boolean {
+        val pack = data.offers.packs.firstOrNull { it.contents.secondBuilderDays > 0 } ?: return false
+        return (ShopLogic.rollDay(state).shop.stockUsed[pack.id] ?: 0) < pack.dailyStock
+    }
+
+    /** 2 本目ビルダー枠のタップ。ビルダー付きパックを呼ぶ（在庫切れなら何もしない。呼び出し側が月パスへ切り替える）。 */
     fun onSecondBuilderLocked(
         state: GameState,
         data: GameData,
     ): GameState {
         val pack = data.offers.packs.firstOrNull { it.contents.secondBuilderDays > 0 } ?: return state
-        return enqueue(state, makeOffer(state, pack, "secondBuilder", data), pack.cooldownSec, data, pack.dailyStock)
+        return request(state, makeOffer(state, pack, "secondBuilder", data), data, pack.dailyStock)
     }
 
     /** 退出前（戻る → タイトル確認の前）。1 日 1 回、「待って！」を積む。積めたら true を返す側で扱う。 */
@@ -349,12 +381,14 @@ object OfferEngine {
     /**
      * 自動で全画面に出してよいオファー（なければ null）。閉じた直後から [FrequencyRules.popupGapSec] の間は出さない。
      * 「戻る」で閉じられていたら、セッションが変わるまで出さない。棚とバッジは [active] / [next] で別に出る。
+     * ただし、プレイヤーがタップして [request] したオファーは、これらの抑制に関係なく最優先で返す。
      */
     fun nextPopup(
         state: GameState,
         data: GameData,
     ): Offer? {
         val shop = state.shop
+        requested(state)?.let { return it }
         if (shop.popupsStopped) return null
         if (state.nowEpochSec - shop.lastPopupClosedEpochSec < data.shopRules.frequency.popupGapSec) return null
         return next(state)
@@ -362,7 +396,8 @@ object OfferEngine {
 
     /**
      * オファーを閉じる（期限までは棚に残る）。[byBack] は「戻る」で閉じたとき。閉じた時刻を覚え、
-     * 「戻る」ならこのセッションの残りの自動ポップアップを止める。
+     * 「戻る」ならこのセッションの残りの自動ポップアップを止める。ただし [request] で呼ばれたものを閉じても止めない
+     * （プレイヤーが自分で呼んだものなので）。
      */
     fun dismiss(
         state: GameState,
@@ -379,15 +414,18 @@ object OfferEngine {
         state: GameState,
         offerId: Long,
         byBack: Boolean,
-    ): GameState =
-        state.copy(
+    ): GameState {
+        val wasRequested = state.shop.requestedOfferId == offerId
+        return state.copy(
             shop =
                 state.shop.copy(
                     offerQueue = state.shop.offerQueue.map { if (it.id == offerId) it.copy(dismissed = true) else it },
                     lastPopupClosedEpochSec = state.nowEpochSec,
-                    popupsStopped = state.shop.popupsStopped || byBack,
+                    popupsStopped = state.shop.popupsStopped || (byBack && !wasRequested),
+                    requestedOfferId = if (wasRequested) null else state.shop.requestedOfferId,
                 ),
         )
+    }
 
     /** 新しいセッション。上限カウンタを戻し、期限切れを片付け、ログイン時の本日限定を積む。 */
     fun beginSession(
@@ -396,7 +434,15 @@ object OfferEngine {
     ): GameState {
         val s0 = ShopLogic.rollDay(state)
         val s1: GameState =
-            s0.copy(shop = s0.shop.copy(sessionOffers = 0, popupsStopped = false, lastPopupClosedEpochSec = 0))
+            s0.copy(
+                shop =
+                    s0.shop.copy(
+                        sessionOffers = 0,
+                        popupsStopped = false,
+                        lastPopupClosedEpochSec = 0,
+                        requestedOfferId = null,
+                    ),
+            )
         val s2 = refresh(s1, data)
         val day = ShopLogic.localDay(s2)
         if (s2.shop.loginPopupDay == day) return s2

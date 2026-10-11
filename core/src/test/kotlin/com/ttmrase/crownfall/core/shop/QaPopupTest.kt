@@ -1,5 +1,8 @@
 package com.ttmrase.crownfall.core.shop
 
+import com.ttmrase.crownfall.core.model.BuildingType
+import com.ttmrase.crownfall.core.model.GameEvent
+import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.ok
 import com.ttmrase.crownfall.core.save.DecodeResult
 import com.ttmrase.crownfall.core.save.SaveCodec
@@ -18,8 +21,13 @@ class QaPopupTest {
     private val data = ShopTestSupport.data
     private val gap = data.shopRules.frequency.popupGapSec
 
-    private fun twoOffers() =
-        Actions.offerForGemShortage(Actions.offerForGemShortage(ShopTestSupport.base(), 80, data).ok(), 3000, data).ok()
+    /** 自動のトリガー（城 Lv アップ・敗北）で積まれた 2 つ。タップで呼ぶ request は抑制の対象外なので、ここでは使わない。 */
+    private fun twoOffers(): GameState {
+        val s0 = ShopTestSupport.base()
+        val castle = s0.slots.first { it.type == BuildingType.CASTLE }.slotId
+        val events = listOf(GameEvent.BuildingLevelUp(castle, BuildingType.CASTLE, 3), GameEvent.PlayerDefeated(1))
+        return ShopHooks.onEvents(s0, events, data)
+    }
 
     @Test
     fun theGapIsAtLeastTwentySecondsAndAppliesToTheNextPopupOnly() {

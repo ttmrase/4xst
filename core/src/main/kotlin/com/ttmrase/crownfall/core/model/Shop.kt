@@ -85,6 +85,8 @@ data class ShopState(
     val lastPopupClosedEpochSec: Long = 0,
     /** 「戻る」で閉じられたので、このセッションの残りの自動ポップアップを止める（棚とバッジには残る）。 */
     val popupsStopped: Boolean = false,
+    /** プレイヤーがタップして呼んだオファーの id。自動ポップアップの抑制を受けず、最優先で出す（閉じたら null）。 */
+    val requestedOfferId: Long? = null,
     /** 連鎖の現在の段（直近の購入が連鎖パックならその tier、それ以外は 0）。 */
     val chainRun: Int = 0,
     val nextOfferId: Long = 1,
