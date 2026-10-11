@@ -47,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.bubble.HarvestBubble
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.data.SkinCategory
 import com.ttmrase.crownfall.core.data.TroopType
 import com.ttmrase.crownfall.core.economy.PowerCalculator
 import com.ttmrase.crownfall.core.event.WeeklyEvents
@@ -64,6 +65,7 @@ import com.ttmrase.crownfall.core.sim.ActionFailure
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.sim.Simulation
+import com.ttmrase.crownfall.core.skin.Skins
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.navigation.Screen
@@ -173,6 +175,7 @@ fun CityScreen(
             live = session.state,
             tutorialSlotId = tutorialTargetSlotId(s),
             bubbles = bubbleKinds,
+            castleSkin = Skins.equipped(s, data)[SkinCategory.CASTLE]?.theme,
             onBubbleTap = { slotId, pos ->
                 scope.launch {
                     val before = session.state.value

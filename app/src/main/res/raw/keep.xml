@@ -2,4 +2,4 @@
 <!-- ポートレート（pt_<id>）と称号の名前（title_<id>）は名前で引くので、リソース縮小で消されないようにする。 -->
 <resources
     xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/pt_*,@string/title_*" />
+    tools:keep="@drawable/pt_*,@string/title_*,@string/skin_*,@drawable/bld_castle_*" />

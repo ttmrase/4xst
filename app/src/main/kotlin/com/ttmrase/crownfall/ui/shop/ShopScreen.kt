@@ -35,8 +35,10 @@ import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.PackContents
+import com.ttmrase.crownfall.core.data.SkinDef
 import com.ttmrase.crownfall.core.feature.Feature
 import com.ttmrase.crownfall.core.feature.FeatureGate
+import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.DailyDeals
@@ -65,6 +67,7 @@ private val TABS =
         R.string.shop_tab_deals,
         R.string.shop_tab_vip,
         R.string.shop_tab_pass,
+        R.string.shop_tab_skins,
     )
 
 /** 今日の残数を使った分を除いた残り（日付が変わっていれば全部残っている）。 */
@@ -103,6 +106,10 @@ fun ShopScreen(
     }
 
     var reward by remember { mutableStateOf<Triple<Int, PackContents, Boolean>?>(null) }
+    var previewSkin by remember { mutableStateOf<SkinDef?>(null) }
+    var bagResult by remember { mutableStateOf<GameEvent.SkinBag?>(null) }
+    previewSkin?.let { SkinPreviewDialog(it) { previewSkin = null } }
+    bagResult?.let { SkinBagResultDialog(it.skinIds, it.newCount, data) { bagResult = null } }
 
     fun act(
         shown: Triple<Int, PackContents, Boolean>? = null,
@@ -150,7 +157,7 @@ fun ShopScreen(
                             Actions.claimVipChest(st, data)
                         }
                     }
-                else ->
+                5 ->
                     passTab(
                         s,
                         data,
@@ -168,6 +175,25 @@ fun ShopScreen(
                                 Actions.claimGrowthFund(st, data)
                             }
                         },
+                    )
+                else ->
+                    skinTab(
+                        s,
+                        data,
+                        onBuy,
+                        onPreview = { previewSkin = it },
+                        onEquip = { cat, id -> act { st -> Actions.equipSkin(st, cat.id, id, data) } },
+                        onBag = { ten ->
+                            scope.launch {
+                                val r = session.dispatch { Actions.pullSkinBag(it, ten, data) }
+                                if (r is ActionResult.Success) {
+                                    r.events.filterIsInstance<GameEvent.SkinBag>().firstOrNull()?.let { bagResult = it }
+                                } else if (r is ActionResult.Failure) {
+                                    snackbarHostState.showReplacing(failureMessage(context, r.reason))
+                                }
+                            }
+                        },
+                        onExchange = { id -> act { st -> Actions.exchangeSkin(st, id, data) } },
                     )
             }
         }

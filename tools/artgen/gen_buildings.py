@@ -511,9 +511,23 @@ BUILDERS = {
 }
 
 
-def build(name, tier):
+# M11 T11.4: 城のスキン（配色の差し替え。形は同じ）。キーは MAT と同じ。
+SKIN_PALETTES = {
+    "ice": {"wall": "#DCEAF5", "roof": "#5F9BD0", "trim": "#BFD6EA", "banner": "#5AA8E8", "gold": "#CFE8F8",
+            "pad": "#B9CCDC", "base": "#9FB4C8"},
+    "gold": {"wall": "#E6D3A0", "roof": "#C9A227", "trim": "#B08A1E", "banner": "#B8222B", "gold": "#FFD84A",
+             "pad": "#D8C48A", "base": "#B79E5E"},
+    "sakura": {"wall": "#F3DDE3", "roof": "#E58FA8", "trim": "#C97A92", "banner": "#F06292", "gold": "#FFC1D3",
+               "pad": "#E8CFD6", "base": "#C9A9B3"},
+}
+
+
+def build(name, tier, skin=None):
     sc = Scene()
-    BUILDERS[name](sc, MAT[tier], tier)
+    m = dict(MAT[tier])
+    if skin:
+        m.update({k: v for k, v in SKIN_PALETTES[skin].items() if k in m})
+    BUILDERS[name](sc, m, tier)
     return sc
 
 
@@ -525,6 +539,11 @@ def main():
             sc = build(name, t)
             f = OUT / ("bld_%s_t%d.xml" % (name, t))
             f.write_text(sc.to_xml("%s tier %d" % (name, t)), encoding="utf-8")
+            n += 1
+    for skin in SKIN_PALETTES:
+        for t in range(1, 6):
+            f = OUT / ("bld_castle_%s_t%d.xml" % (skin, t))
+            f.write_text(build("castle", t, skin).to_xml("castle %s tier %d" % (skin, t)), encoding="utf-8")
             n += 1
     print("wrote %d drawables to %s" % (n, OUT))
 

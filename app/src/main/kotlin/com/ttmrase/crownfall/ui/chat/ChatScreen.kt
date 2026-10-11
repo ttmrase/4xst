@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall.ui.chat
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
@@ -40,11 +42,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.chat.ChatKeys
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.data.SkinCategory
 import com.ttmrase.crownfall.core.model.ChatMessage
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
+import com.ttmrase.crownfall.core.skin.Skins
 import com.ttmrase.crownfall.core.title.Titles
 import com.ttmrase.crownfall.ui.alliance.unreadIn
 import com.ttmrase.crownfall.ui.channelName
@@ -53,6 +57,7 @@ import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.portrait.PortraitKeys
 import com.ttmrase.crownfall.ui.portrait.PortraitView
+import com.ttmrase.crownfall.ui.shop.skinThemeColor
 import com.ttmrase.crownfall.ui.speakerName
 import com.ttmrase.crownfall.ui.titleLabel
 import com.ttmrase.crownfall.ui.vip.VipBadge
@@ -62,6 +67,8 @@ import java.text.DateFormat
 import java.util.Date
 
 private const val MILLIS = 1000L
+private const val BUBBLE_ALPHA = 0.4f
+private const val PLATE_ALPHA = 0.55f
 
 /**
  * チャット画面（T5.5）。同盟 / ワールド / ペルソナごとの DM のタブ、未読バッジ、入力中表示、
@@ -166,7 +173,17 @@ fun ChatScreen(
                     } else {
                         data.personas.personas.firstOrNull { it.id == m.speaker }?.title?.ifEmpty { null }
                     }
-                MessageRow(m, playerName, vip, portraitKey(m.speaker, s.avatar), title, timeFormat, onAnswer)
+                val skins = if (m.speaker == "player") Skins.equipped(s, data) else emptyMap()
+                MessageRow(
+                    m,
+                    playerName,
+                    vip,
+                    portraitKey(m.speaker, s.avatar),
+                    title,
+                    skins.mapValues { it.value.theme },
+                    timeFormat,
+                    onAnswer,
+                )
             }
         }
         typingNow[channel]?.let { who ->
@@ -221,6 +238,7 @@ private fun MessageRow(
     vip: Int,
     portrait: String,
     title: String?,
+    skinThemes: Map<SkinCategory, String>,
     timeFormat: DateFormat,
     onAnswer: (Long, Int) -> Unit,
 ) {
@@ -234,7 +252,8 @@ private fun MessageRow(
                 CardDefaults.cardColors(
                     containerColor =
                         if (mine) {
-                            MaterialTheme.colorScheme.primaryContainer
+                            skinThemes[SkinCategory.BUBBLE]?.let { skinThemeColor(it).copy(alpha = BUBBLE_ALPHA) }
+                                ?: MaterialTheme.colorScheme.primaryContainer
                         } else {
                             MaterialTheme.colorScheme.surfaceVariant
                         },
@@ -245,8 +264,23 @@ private fun MessageRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    PortraitView(portrait, name, 32.dp, vip = vip)
-                    Text(name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                    PortraitView(portrait, name, 32.dp, vip = vip, frameTheme = skinThemes[SkinCategory.FRAME])
+                    val plate = skinThemes[SkinCategory.NAMEPLATE]
+                    Text(
+                        name,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier =
+                            if (plate != null) {
+                                Modifier.background(
+                                    skinThemeColor(plate).copy(alpha = PLATE_ALPHA),
+                                    RoundedCornerShape(50),
+                                )
+                                    .padding(horizontal = 8.dp, vertical = 1.dp)
+                            } else {
+                                Modifier
+                            },
+                    )
                     title?.let { id ->
                         titleLabel(context, id)?.let {
                             Text(

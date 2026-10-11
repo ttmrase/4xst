@@ -60,6 +60,16 @@ private const val FRAME_RATIO = 0.24f
 private val FRAME_WIDTH = 2.5.dp
 private val VIP_WIDTH = 2.5.dp
 private const val SHINE_MS = 2400
+private val SKIN_WIDTH = 2.dp
+
+private fun skinFrameColor(theme: String): Color =
+    when (theme) {
+        "ice" -> Color(0xFF8FD3FF)
+        "gold" -> Color(0xFFFFD54F)
+        "flame" -> Color(0xFFFF7043)
+        "sakura" -> Color(0xFFFF9EC0)
+        else -> Color(0xFFB0B6BE)
+    }
 
 /**
  * ポートレート（M11 T11.5）。レアリティの枠（N 灰 / R 青 / SR 紫 / SSR 金＋流れる光）と、VIP の枠（外側の細いリング）を
@@ -73,11 +83,14 @@ fun PortraitView(
     modifier: Modifier = Modifier,
     rarity: HeroRarity? = null,
     vip: Int = 0,
+    /** 装備中のアバター枠のスキンのテーマ（ice / gold / flame / sakura。null は無し）。 */
+    frameTheme: String? = null,
 ) {
     val context = LocalContext.current
     val resId = remember(key) { context.resources.getIdentifier("pt_$key", "drawable", context.packageName) }
     val shape = RoundedCornerShape(size * FRAME_RATIO)
-    val pad = (if (vip > 0) VIP_WIDTH + 1.dp else 0.dp) + (if (rarity != null) FRAME_WIDTH else 0.dp)
+    val skinPad = if (frameTheme != null) SKIN_WIDTH + 1.dp else 0.dp
+    val pad = skinPad + (if (vip > 0) VIP_WIDTH + 1.dp else 0.dp) + (if (rarity != null) FRAME_WIDTH else 0.dp)
     val shine = rarity == HeroRarity.SSR && animationsEnabled()
     val phase =
         if (shine) {
@@ -99,18 +112,29 @@ fun PortraitView(
                 .drawWithContent {
                     drawContent()
                     val r = size.toPx() * FRAME_RATIO
-                    if (vip > 0) {
-                        val w = VIP_WIDTH.toPx()
+                    if (frameTheme != null) {
+                        val w = SKIN_WIDTH.toPx()
                         drawRoundRect(
-                            Brush.sweepGradient(vipBrush + vipBrush.first(), center),
+                            skinFrameColor(frameTheme),
                             Offset(w / 2, w / 2),
                             Size(this.size.width - w, this.size.height - w),
+                            CornerRadius(r + w * 2),
+                            style = Stroke(w),
+                        )
+                    }
+                    if (vip > 0) {
+                        val w = VIP_WIDTH.toPx()
+                        val skinIn = skinPad.toPx()
+                        drawRoundRect(
+                            Brush.sweepGradient(vipBrush + vipBrush.first(), center),
+                            Offset(w / 2 + skinIn, w / 2 + skinIn),
+                            Size(this.size.width - w - 2 * skinIn, this.size.height - w - 2 * skinIn),
                             CornerRadius(r + w),
                             style = Stroke(w),
                         )
                     }
                     if (rarity != null) {
-                        val inset = if (vip > 0) (VIP_WIDTH + 1.dp).toPx() else 0f
+                        val inset = skinPad.toPx() + (if (vip > 0) (VIP_WIDTH + 1.dp).toPx() else 0f)
                         val w = FRAME_WIDTH.toPx()
                         val base = rarityColor(rarity)
                         val brush =

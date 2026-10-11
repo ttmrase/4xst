@@ -151,6 +151,8 @@ fun TerritoryView(
     /** いま出ている収穫バブル（スロット ID → 中身の資源）。タップは [onBubbleTap]（画面上の位置つき）。 */
     bubbles: Map<Int, ResourceType> = emptyMap(),
     onBubbleTap: (slotId: Int, windowPos: Offset) -> Unit = { _, _ -> },
+    /** 装備中の城のスキンのテーマ（ice / gold / sakura。null は標準）。 */
+    castleSkin: String? = null,
 ) {
     val context = LocalContext.current
     val cache = remember { SpriteCache.shared(context) }
@@ -241,6 +243,7 @@ fun TerritoryView(
         }
     }
     val painter = remember { TerritoryPainter() }
+    painter.castleSkin = castleSkin
     val res = context.resources
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -441,6 +444,9 @@ private class TerritoryPainter {
     private var ease = 1f
     private var settled = true
     private var seconds = 0f
+
+    /** 装備中の城のスキン（theme。無ければ標準）。M11 T11.4。 */
+    var castleSkin: String? = null
     private val iso = Matrix()
     private val ringPath = Path()
     private val arrowPath = Path()
@@ -724,7 +730,15 @@ private class TerritoryPainter {
             val ghost = if (job == null) 0.3f else 0.55f
             drawSprite(SpriteIds.building(type, 1), ent.gx, ent.gy, ghost, scale, dy)
         } else {
-            drawSprite(SpriteIds.building(type, PlotLayout.tierOfLevel(level)), ent.gx, ent.gy, 1f, scale, dy)
+            val tier = PlotLayout.tierOfLevel(level)
+            val skin = castleSkin
+            val sprite =
+                if (type == BuildingType.CASTLE && skin != null) {
+                    SpriteIds.castleSkin(skin, tier)
+                } else {
+                    SpriteIds.building(type, tier)
+                }
+            drawSprite(sprite, ent.gx, ent.gy, 1f, scale, dy)
         }
         if (job != null) drawConstruction(ent)
         if (pop < 1f) drawBurst(ent, pop)

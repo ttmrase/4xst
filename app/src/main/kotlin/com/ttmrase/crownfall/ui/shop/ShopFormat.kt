@@ -66,7 +66,15 @@ fun offPercent(
 fun productName(
     context: Context,
     sku: String,
-): String = namedString(context, "offer_name_", sku)
+): String =
+    if (sku.startsWith(
+            "skin:",
+        )
+    ) {
+        skinName(context, sku.removePrefix("skin:"))
+    } else {
+        namedString(context, "offer_name_", sku)
+    }
 
 /** オファーの一言（「あと n 石で建設可能！」など。トリガーごと）。無ければ null。 */
 fun offerTagline(

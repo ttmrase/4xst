@@ -1,5 +1,11 @@
 package com.ttmrase.crownfall.ui.map
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -14,6 +20,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -31,32 +38,38 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawImage
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.data.SkinCategory
 import com.ttmrase.crownfall.core.map.MapGenerator
-import com.ttmrase.crownfall.core.map.StructureType
 import com.ttmrase.crownfall.core.map.Terrain
 import com.ttmrase.crownfall.core.map.TileRef
 import com.ttmrase.crownfall.core.map.WorldMap
 import com.ttmrase.crownfall.core.march.MailBox
 import com.ttmrase.crownfall.core.march.MarchKind
-import com.ttmrase.crownfall.core.march.MarchViews
 import com.ttmrase.crownfall.core.march.Marching
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
+import com.ttmrase.crownfall.core.skin.Skins
 import com.ttmrase.crownfall.ui.common.LocalClock
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.glyph
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -67,23 +80,9 @@ private const val BASE_TILE_DP = 28
 private const val MIN_SCALE = 0.4f
 private const val MAX_SCALE = 4f
 private const val HALF = 0.5f
-private const val NODE_RADIUS = 0.28f
-private const val BARB_RADIUS = 0.3f
-private const val MARCH_RADIUS = 0.2f
 private const val GRID_MIN_TILE_PX = 40f
 private const val GRID_ALPHA = 0.12f
-private const val LINE_ALPHA = 0.35f
 
-private val PLAIN = Color(0xFF6FA35A)
-private val FOREST = Color(0xFF2F6B3A)
-private val MOUNTAIN = Color(0xFF8A8579)
-private val WATER = Color(0xFF3F7FBF)
-private val CASTLE = Color(0xFFE8B730)
-private val ALLY = Color(0xFF4F9DDE)
-private val NPC = Color(0xFFC0392B)
-private val FORT = Color(0xFF6B1F1F)
-private val HOLY = Color(0xFFF5F0DC)
-private val BARBARIAN = Color(0xFFB03A2E)
 private val SELECT = Color(0xFFFFEB3B)
 
 /** ワールドマップ画面（T4.4）。ズーム / パンできる Canvas。可視範囲のタイルだけ描き、タップでタイル詳細を開く。 */
@@ -164,6 +163,28 @@ private fun MapContent(
         }
     }
 
+    // 地面のキャッシュ（マップ画面を閉じたら捨てる）と、毎フレームの再描画の合図
+    val cacheScope = remember { MapChunkCache.newScope() }
+    DisposableEffect(cacheScope) { onDispose { cacheScope.cancel() } }
+    val chunks = remember(world) { MapChunkCache(world, s.map.seed, cacheScope) }
+    val tickTransition = rememberInfiniteTransition(label = "mapTick")
+    val tick by tickTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(TICK_MS, easing = LinearEasing), RepeatMode.Restart),
+        label = "tick",
+    )
+    val measurer = rememberTextMeasurer()
+    val glyphs = remember(measurer) { HashMap<ResourceType, TextLayoutResult>() }
+    val equipped = Skins.equipped(s, data)
+    val style =
+        MapStyle(
+            castleTheme = equipped[SkinCategory.CASTLE]?.theme,
+            territoryTheme = equipped[SkinCategory.TERRITORY]?.theme,
+            trailTheme = equipped[SkinCategory.TRAIL]?.theme,
+        )
+    val dayNight = DayNight.of(MapPrefs.dayNight(context))
+
     Box(Modifier.fillMaxSize()) {
         Canvas(
             modifier =
@@ -172,8 +193,12 @@ private fun MapContent(
                     .transformable(transformState)
                     .pointerInput(Unit) { detectTapGestures { onTap(it) } },
         ) {
+            if (tick < 0f || chunks.version < 0) return@Canvas
             if (!offX.isNaN() && !offY.isNaN()) {
-                drawWorld(world, s, data, basePx * scale, offX, offY, selected) {
+                drawWorld(
+                    world, chunks, s, data, basePx * scale, offX, offY, selected, style, dayNight,
+                    { t -> glyphs.getOrPut(t) { measurer.measure(t.glyph(), GLYPH_STYLE) } },
+                ) {
                     clock?.value ?: s.nowEpochSec
                 }
             }
@@ -254,128 +279,114 @@ private fun MapContent(
     }
 }
 
-private fun terrainColor(t: Terrain): Color =
-    when (t) {
-        Terrain.PLAIN -> PLAIN
-        Terrain.FOREST -> FOREST
-        Terrain.MOUNTAIN -> MOUNTAIN
-        Terrain.WATER -> WATER
-    }
-
-private fun nodeColor(t: ResourceType): Color =
-    when (t) {
-        ResourceType.FOOD -> Color(0xFFE6D84F)
-        ResourceType.WOOD -> Color(0xFF8B5A2B)
-        ResourceType.STONE -> Color(0xFFD0D0D0)
-        ResourceType.GOLD -> Color(0xFFFFC107)
-    }
-
-private fun kindColor(k: MarchKind): Color =
-    when (k) {
-        MarchKind.GATHER -> Color(0xFF66BB6A)
-        MarchKind.ATTACK -> Color(0xFFEF5350)
-        MarchKind.SCOUT -> Color(0xFF29B6F6)
-        MarchKind.RALLY -> Color(0xFFAB47BC)
-    }
-
-/** 可視範囲のタイルだけを描く（64×64 全体は描かない）。 */
+/** 可視範囲だけを描く: キャッシュ済みの地面 → 領土 → 霧 → 拠点・資源・野営地・行軍 → 雲 → 昼夜の色味。 */
 private fun DrawScope.drawWorld(
     world: WorldMap,
+    chunks: MapChunkCache,
     s: GameState,
     data: GameData,
     tile: Float,
     offX: Float,
     offY: Float,
     selected: TileRef?,
+    style: MapStyle,
+    dayNight: DayNight,
+    glyph: (ResourceType) -> TextLayoutResult?,
     nowEpochSec: () -> Long,
 ) {
     val now = nowEpochSec()
+    val seconds = (System.currentTimeMillis() % LOOP_MS) / 1000f
     val x0 = floor(-offX / tile).toInt().coerceAtLeast(0)
     val y0 = floor(-offY / tile).toInt().coerceAtLeast(0)
     val x1 = ceil((size.width - offX) / tile).toInt().coerceAtMost(world.size - 1)
     val y1 = ceil((size.height - offY) / tile).toInt().coerceAtMost(world.size - 1)
 
-    fun px(x: Float) = offX + x * tile
-
-    fun py(y: Float) = offY + y * tile
-
     fun visible(
         x: Int,
         y: Int,
     ) = x in x0..x1 && y in y0..y1
-    for (y in y0..y1) {
-        for (x in x0..x1) {
-            drawRect(
-                terrainColor(world.terrainAt(x, y)),
-                Offset(px(x.toFloat()), py(y.toFloat())),
-                Size(tile + 1f, tile + 1f),
-            )
+
+    // 地面（8×8 のチャンク。焼けていないあいだは地形の平らな色）
+    val hi = tile >= MapChunkCache.HI_MIN_TILE_PX
+    val chunkPx = tile * MapArt.CHUNK
+    for (cy in (y0 / MapArt.CHUNK)..(y1 / MapArt.CHUNK)) {
+        for (cx in (x0 / MapArt.CHUNK)..(x1 / MapArt.CHUNK)) {
+            val dst = Offset(offX + cx * chunkPx, offY + cy * chunkPx)
+            val img = chunks.get(cx, cy, hi)
+            if (img != null) {
+                drawImage(
+                    img,
+                    srcOffset = IntOffset.Zero,
+                    srcSize = IntSize(img.width, img.height),
+                    dstOffset = IntOffset(dst.x.toInt(), dst.y.toInt()),
+                    dstSize = IntSize(ceil(chunkPx).toInt() + 1, ceil(chunkPx).toInt() + 1),
+                )
+            } else {
+                for (ty in 0 until MapArt.CHUNK) for (tx in 0 until MapArt.CHUNK) {
+                    val x = cx * MapArt.CHUNK + tx
+                    val y = cy * MapArt.CHUNK + ty
+                    if (world.inBounds(x, y)) {
+                        drawRect(
+                            flatColor(world.terrainAt(x, y)),
+                            Offset(offX + x * tile, offY + y * tile),
+                            Size(tile + 1f, tile + 1f),
+                        )
+                    }
+                }
+            }
         }
     }
     if (tile >= GRID_MIN_TILE_PX) {
         for (x in x0..x1 + 1) drawLine(
             Color.Black.copy(alpha = GRID_ALPHA),
-            Offset(px(x.toFloat()), py(y0.toFloat())),
-            Offset(px(x.toFloat()), py(y1 + 1f)),
+            Offset(offX + x * tile, offY + y0 * tile),
+            Offset(offX + x * tile, offY + (y1 + 1f) * tile),
         )
         for (y in y0..y1 + 1) drawLine(
             Color.Black.copy(alpha = GRID_ALPHA),
-            Offset(px(x0.toFloat()), py(y.toFloat())),
-            Offset(px(x1 + 1f), py(y.toFloat())),
+            Offset(offX + x0 * tile, offY + y * tile),
+            Offset(offX + (x1 + 1f) * tile, offY + y * tile),
         )
     }
-    for (st in world.structures) {
-        if (!visible(st.x, st.y)) continue
-        val color =
-            when (st.type) {
-                StructureType.PLAYER_CASTLE -> CASTLE
-                StructureType.ALLY_CASTLE -> ALLY
-                StructureType.NPC_CASTLE -> NPC
-                StructureType.BARBARIAN_FORT -> FORT
-                StructureType.HOLY_LAND -> HOLY
-            }
-        val inset = tile * 0.12f
-        drawRect(
-            color,
-            Offset(px(st.x.toFloat()) + inset, py(st.y.toFloat()) + inset),
-            Size(tile - inset * 2, tile - inset * 2),
-        )
-        drawRect(
-            Color.Black,
-            Offset(px(st.x.toFloat()) + inset, py(st.y.toFloat()) + inset),
-            Size(tile - inset * 2, tile - inset * 2),
-            style = Stroke(width = 2f),
-        )
-    }
-    for (n in s.map.nodes) {
-        if (visible(n.x, n.y)) drawCircle(nodeColor(n.type), tile * NODE_RADIUS, Offset(px(n.x + HALF), py(n.y + HALF)))
-    }
-    for (b in s.map.barbarians) {
-        if (!visible(b.x, b.y)) continue
-        val c = Offset(px(b.x + HALF), py(b.y + HALF))
-        drawCircle(BARBARIAN, tile * BARB_RADIUS, c)
-        drawCircle(Color.Black, tile * BARB_RADIUS, c, style = Stroke(width = 2f))
-    }
-    val castle = Offset(px(data.mapRules.center.x + HALF), py(data.mapRules.center.y + HALF))
-    for (m in s.marches) {
-        val color = kindColor(m.kind)
-        drawLine(
-            color.copy(alpha = LINE_ALPHA),
-            castle,
-            Offset(px(m.target.x + HALF), py(m.target.y + HALF)),
-            strokeWidth = 3f,
-        )
-        val (mx, my) = MarchViews.position(m, now, data)
-        val c = Offset(px(mx + HALF), py(my + HALF))
-        drawCircle(Color.White, tile * MARCH_RADIUS + 2f, c)
-        drawCircle(color, tile * MARCH_RADIUS, c)
+    val center = data.mapRules.center
+    val castleCenter = Offset(offX + (center.x + HALF) * tile, offY + (center.y + HALF) * tile)
+    with(MapLive) {
+        drawTerritory(castleCenter, tile, style.territoryTheme, seconds)
+        drawFog(world, center.x to center.y, FOG_BASE + FOG_PER_LV * castleLevel(s), x0, y0, x1, y1, tile, offX, offY)
+        drawStructures(world, tile, offX, offY, style.castleTheme, ::visible)
+        drawNodes(s, tile, offX, offY, seconds, glyph, ::visible)
+        drawCamps(s, tile, offX, offY, seconds, ::visible)
+        drawMarches(s, data, tile, offX, offY, now, seconds, style.trailTheme)
     }
     if (selected != null && visible(selected.x, selected.y)) {
         drawRect(
             SELECT,
-            Offset(px(selected.x.toFloat()), py(selected.y.toFloat())),
+            Offset(offX + selected.x * tile, offY + selected.y * tile),
             Size(tile, tile),
             style = Stroke(width = 4f),
         )
     }
+    with(MapLive) {
+        drawClouds(offX, offY, seconds, tile)
+        drawDayNight(dayNight, (((now + s.settings.utcOffsetSec) / SECONDS_PER_HOUR) % HOURS_PER_DAY).toInt())
+    }
 }
+
+private fun castleLevel(s: GameState): Float =
+    (s.slots.firstOrNull { it.type == com.ttmrase.crownfall.core.model.BuildingType.CASTLE }?.level ?: 1).toFloat()
+
+private fun flatColor(t: Terrain): Color =
+    when (t) {
+        Terrain.PLAIN -> Color(0xFF6FA35A)
+        Terrain.FOREST -> Color(0xFF2F6B3A)
+        Terrain.MOUNTAIN -> Color(0xFF8A8579)
+        Terrain.WATER -> Color(0xFF3F7FBF)
+    }
+
+private const val LOOP_MS = 600_000L
+private const val TICK_MS = 1000
+private val GLYPH_STYLE = androidx.compose.ui.text.TextStyle(fontSize = 14.sp)
+private const val FOG_BASE = 24f
+private const val FOG_PER_LV = 1.5f
+private const val SECONDS_PER_HOUR = 3600L
+private const val HOURS_PER_DAY = 24L

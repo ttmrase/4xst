@@ -227,6 +227,8 @@ private fun SettingsForm(
             if (data != null) TitleSettingsSection(session, data)
         }
         HorizontalDivider()
+        MapSettingsSection()
+        HorizontalDivider()
         SoundSettingsSection()
         HorizontalDivider()
         NotificationSettingsSection(session)
