@@ -1,6 +1,6 @@
 package com.ttmrase.crownfall
 
-import androidx.compose.ui.test.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
