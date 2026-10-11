@@ -1,0 +1,16 @@
+run: 82
+commit: 92571b200843adb19012fb80990292ae911e07d4
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38122311684
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+e: app/src/androidTest/kotlin/com/ttmrase/crownfall/HarvestSoundUiTest.kt:56:59 Unresolved reference 'click'.
+--- failed tests ---
+> Task :app:compileDebugAndroidTestKotlin FAILED
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
