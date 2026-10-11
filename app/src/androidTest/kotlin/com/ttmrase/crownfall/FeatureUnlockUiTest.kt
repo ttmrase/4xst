@@ -1,6 +1,9 @@
 package com.ttmrase.crownfall
 
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ttmrase.crownfall.core.data.ClasspathDataSource
@@ -169,8 +172,16 @@ class FeatureUnlockUiTest {
                 h.click(h.str(id))
                 rule.waitForIdle()
                 Screenshots.save("feat_shop_lv4_tab_${i + 1}")
+                // 鍵のカードは一覧の下の方にあるので、見つかるところまでスクロールする
                 val short = h.str(R.string.feature_locked_short).substringBefore("%1")
-                if (h.hasText(short, true)) sawLockCard = true
+                runCatching {
+                    rule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(short, substring = true))
+                }
+                rule.waitForIdle()
+                if (h.hasText(short, true)) {
+                    sawLockCard = true
+                    Screenshots.save("feat_shop_lock_cards_tab_${i + 1}")
+                }
             }
             assertTrue("some shop tab must show a lock card (wheel / piggy bank unlock at Lv6)", sawLockCard)
         }
