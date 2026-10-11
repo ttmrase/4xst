@@ -36,6 +36,13 @@ def main():
         if placeholders(ja[k]) != placeholders(en[k]):
             print(f"placeholder mismatch: {k}: {placeholders(ja[k])} vs {placeholders(en[k])}")
             bad += 1
+    # aapt は未エスケープの ' を含む文言を落とす（\\' と書く）。両方の言語の生のテキストを見る
+    for lang in ("values", "values-en"):
+        for n, line in enumerate(open(f"{BASE}/{lang}/strings.xml", encoding="utf-8"), 1):
+            m = re.search(r"<string [^>]*>(.*)</string>", line)
+            if m and re.search(r"(?<!\\)'", m.group(1)) and not m.group(1).strip().startswith('"'):
+                print(f"unescaped apostrophe: {lang}/strings.xml:{n}")
+                bad += 1
     print(f"checked {len(ja)} ja / {len(en)} en keys, {bad} problem(s)")
     return 1 if bad else 0
 
