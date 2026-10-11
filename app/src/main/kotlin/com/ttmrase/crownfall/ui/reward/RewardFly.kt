@@ -104,6 +104,9 @@ class RewardFlyState {
     /** 描画層（[RewardFlyLayer]）が組み込まれているときだけ true。無いのに飛ばすと溜まり続けるので無視する。 */
     internal var layerAttached: Boolean = false
 
+    /** HUD の行き先が無い画面（城以外）で、代わりに飛んでいく先（下のナビの「城」タブの中心。ウィンドウ座標）。 */
+    var fallbackTarget: Offset? = null
+
     /** 最後にタップされた位置（ウィンドウ座標）。受け取りボタンから飛ばすときの出発点。 */
     var lastTap: Offset = Offset.Unspecified
 
@@ -250,7 +253,7 @@ fun RewardFlyLayer(state: RewardFlyState) {
             val t = ((now - f.startMs).toFloat() / f.durationMs).coerceIn(0f, 1f)
             val e = t * t * (3f - 2f * t)
             val from = f.from - origin
-            val to = (state.targets[f.target] ?: (fallback + origin)) - origin
+            val to = (state.targets[f.target] ?: state.fallbackTarget ?: (fallback + origin)) - origin
             val ctrl = Offset((from.x + to.x) / 2f + f.sway * density, min(from.y, to.y) - f.lift * density)
             val u = 1f - e
             val p =

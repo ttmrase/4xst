@@ -36,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
@@ -94,6 +95,7 @@ import com.ttmrase.crownfall.ui.map.MapScreen
 import com.ttmrase.crownfall.ui.quest.QuestScreen
 import com.ttmrase.crownfall.ui.research.ResearchScreen
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
+import com.ttmrase.crownfall.ui.reward.RewardEvents
 import com.ttmrase.crownfall.ui.reward.RewardFlyLayer
 import com.ttmrase.crownfall.ui.reward.RewardFlyState
 import com.ttmrase.crownfall.ui.reward.trackTaps
@@ -312,7 +314,18 @@ fun CrownfallNavHost(
                                             navController.navigateBottom(item)
                                         }
                                     },
-                                    modifier = Modifier.alpha(if (locked) LOCKED_ALPHA else 1f),
+                                    modifier =
+                                        Modifier
+                                            .alpha(if (locked) LOCKED_ALPHA else 1f)
+                                            .then(
+                                                if (item == BottomDestination.City) {
+                                                    Modifier.onGloballyPositioned {
+                                                        flyState.fallbackTarget = it.boundsInWindow().center
+                                                    }
+                                                } else {
+                                                    Modifier
+                                                },
+                                            ),
                                     icon = {
                                         val isAlliance = item == BottomDestination.Alliance
                                         val isCity = item == BottomDestination.City
@@ -524,6 +537,7 @@ fun CrownfallNavHost(
             VipCinematicHost(ready.session, ready.data, hold = billingId != null, onActive = { vipActive = it })
             CastleCeremonyHost(ready.session, ready.data) { ceremonyActive = it }
             SoundEvents(ready.session)
+            RewardEvents(ready.session)
             AchievementToastHost(ready.session, ready.data, Modifier.fillMaxSize().statusBarsPadding())
             FeatureOverlays(
                 session = ready.session,

@@ -148,7 +148,10 @@ sealed interface GameEvent {
     data class HuntWon(val fort: Boolean, val level: Int) : GameEvent
 
     /** 採集隊が戻った（[loot] は持ち帰った資源の合計）。 */
-    data class GatherCompleted(val loot: Long) : GameEvent
+    data class GatherCompleted(
+        val loot: Long,
+        val resources: Resources = Resources.ZERO,
+    ) : GameEvent
 
     /** VIP が [lv] に上がった。 */
     data class VipLevelUp(val lv: Int) : GameEvent

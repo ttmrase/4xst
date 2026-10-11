@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -49,6 +50,7 @@ import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -256,6 +258,17 @@ private fun DoneBody(
     gemsAfter: Long,
     onClose: () -> Unit,
 ) {
+    val fly = LocalRewardFly.current
+    val metrics = LocalContext.current.resources.displayMetrics
+    // 閉じたら、買った中身の資源とジェムが HUD（城以外なら下のナビの「城」）へ飛ぶ
+    val close = {
+        fly.flyAll(
+            Offset(metrics.widthPixels / 2f, metrics.heightPixels * BILLING_FLY_FROM_Y),
+            view.contents.resources,
+            view.contents.gems,
+        )
+        onClose()
+    }
     AnimatedCheck(color = MaterialTheme.colorScheme.primary)
     PurchaseCelebration(view.contents)
     Text(
@@ -276,7 +289,9 @@ private fun DoneBody(
     }
     Text(stringResource(R.string.billing_receipt_sent), style = MaterialTheme.typography.bodySmall)
     OutlinedButton(
-        onClick = onClose,
+        onClick = close,
         modifier = Modifier.fillMaxWidth(),
     ) { Text(stringResource(R.string.common_close)) }
 }
+
+private const val BILLING_FLY_FROM_Y = 0.55f

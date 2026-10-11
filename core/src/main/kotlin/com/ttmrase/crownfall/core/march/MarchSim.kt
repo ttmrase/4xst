@@ -298,7 +298,7 @@ internal object MarchSim {
             s = MailBox.system(s, m.phaseEndEpochSec, "gather_done", params, events)
         }
         if (m.kind == MarchKind.GATHER) {
-            events.add(GameEvent.GatherCompleted(m.loot.food + m.loot.wood + m.loot.stone + m.loot.gold))
+            events.add(GameEvent.GatherCompleted(m.loot.food + m.loot.wood + m.loot.stone + m.loot.gold, m.loot))
         }
         events.add(GameEvent.MarchReturned(m.id, m.kind))
         return Simulation.syncStorageFlags(s, data)

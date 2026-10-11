@@ -50,6 +50,8 @@ import com.ttmrase.crownfall.core.shop.ProductIds
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.data.SessionCoordinator
 import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.reward.LocalRewardFly
+import com.ttmrase.crownfall.ui.reward.dispatchFly
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -80,6 +82,7 @@ fun OfferPresenter(
     val chain by coordinator.loginChain.collectAsStateWithLifecycle()
     var step by remember { mutableIntStateOf(STEP_NONE) }
     val scope = rememberCoroutineScope()
+    val fly = LocalRewardFly.current
     val s = state ?: return
 
     // 前景（STARTED）の間だけ期限切れを片付ける。背景では dispatch（進行と保存）を走らせない。
@@ -163,7 +166,7 @@ fun OfferPresenter(
                         TextButton(
                             onClick = {
                                 s.alliance.gifts.firstOrNull()?.let { g ->
-                                    scope.launch { session.dispatch { Actions.openGift(it, g.id, data) } }
+                                    scope.launch { session.dispatchFly(fly) { Actions.openGift(it, g.id, data) } }
                                 }
                                 step = STEP_NONE
                                 coordinator.consumeLoginChain()
