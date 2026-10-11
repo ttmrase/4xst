@@ -373,7 +373,7 @@ fun TreasureChest(modifier: Modifier = Modifier) {
     val t = remember { Animatable(0f) }
     LaunchedEffect(Unit) { t.animateTo(1f, tween(CHEST_MS, easing = LinearEasing)) }
     val p = t.value
-    val shake = if (p < SHAKE_END) sin(p * SHAKE_FREQ) * (1f - 0.3f * p / SHAKE_END) * SHAKE_DEG else 0f
+    val shake = if (p < SHAKE_END) sin(p * SHAKE_FREQ) * (1f - 0.3f * p / SHAKE_END) * CHEST_SHAKE_DEG else 0f
     val crack = ((p - SHAKE_END) / (OPEN_START - SHAKE_END)).coerceIn(0f, 1f)
     val open = ((p - OPEN_START) / (1f - OPEN_START)).coerceIn(0f, 1f)
     Canvas(
@@ -440,5 +440,5 @@ private const val CHEST_MS = 1500
 private const val SHAKE_END = 0.4f
 private const val OPEN_START = 0.6f
 private const val SHAKE_FREQ = 55f
-private const val SHAKE_DEG = 7f
+private const val CHEST_SHAKE_DEG = 7f
 private const val RAYS = 12
