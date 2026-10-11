@@ -208,6 +208,16 @@ class SkinMapUiTest {
                 Screenshots.save("t114_city_$castle")
             }
         }
+        h.step("seasonal_themes") {
+            // 領地のテーマ（季節）: 衣装室で装備して切り替える方式。1 つずつ装備して城内を撮る
+            for (season in listOf("spring", "winter", "autumn")) {
+                h.wearSkins(all + "territory_$season", mapOf("territory" to "territory_$season"))
+                h.open("city")
+                rule.waitForIdle()
+                Thread.sleep(1_500)
+                Screenshots.save("t114_city_theme_$season")
+            }
+        }
         h.step("map_with_skins") {
             h.wearSkins(all, mapOf("castle" to "castle_ice", "territory" to "territory_ice", "trail" to "trail_flame"))
             h.open("world_map")
