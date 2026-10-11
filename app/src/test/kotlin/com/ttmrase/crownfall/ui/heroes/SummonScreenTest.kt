@@ -68,7 +68,15 @@ class SummonScreenTest {
         runBlocking {
             session.newGame("QA", "hero_aldric", 42)
             session.dispatch { s ->
-                val slots = s.slots.map { if (it.type == BuildingType.TAVERN) it.copy(level = 1) else it }
+                // 英雄は城 Lv7 で解放される（段階解放）
+                val slots =
+                    s.slots.map {
+                        when (it.type) {
+                            BuildingType.TAVERN -> it.copy(level = 1)
+                            BuildingType.CASTLE -> it.copy(level = 7)
+                            else -> it
+                        }
+                    }
                 ActionResult.Success(s.copy(slots = slots, gems = START_GEMS, items = emptyMap()), tracked = true)
             }
         }

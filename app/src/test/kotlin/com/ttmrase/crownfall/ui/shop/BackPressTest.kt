@@ -80,7 +80,9 @@ class BackPressTest {
         runBlocking {
             session.newGame("QA", "hero_aldric", 42)
             // 自動のトリガー（城 Lv アップ・敗北）で 2 つのオファーを積む。タップで呼ぶ request は抑制の対象外なので使わない
-            session.dispatch { s ->
+            session.dispatch { s0 ->
+                // ショップ（城 Lv3）と襲撃（城 Lv5）が解放済みでないと、自動のオファーは積まれない（段階解放）
+                val s = s0.copy(slots = s0.slots.map { if (it.type == BuildingType.CASTLE) it.copy(level = 8) else it })
                 val defeated = OfferEngine.fire(s, "defeated", TriggerCtx(), data)
                 val castleUp = TriggerCtx(lv = 3, params = mapOf("lv" to 3L))
                 ActionResult.Success(OfferEngine.fire(defeated, "castleUp", castleUp, data), tracked = true)
