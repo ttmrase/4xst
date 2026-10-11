@@ -1,0 +1,18 @@
+run: 91
+commit: 5b2599af74f9549301ae4e1445c51f8b4b9eea77
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38123680695
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+e: app/src/main/kotlin/com/ttmrase/crownfall/navigation/CrownfallNavHost.kt:576:92 Unresolved reference 'fillMaxWidth'.
+e: app/src/main/kotlin/com/ttmrase/crownfall/ui/map/MapScreen.kt:41:47 Unresolved reference 'drawImage'.
+e: app/src/main/kotlin/com/ttmrase/crownfall/ui/map/MapScreen.kt:168:59 Unresolved reference 'cancel'.
+--- failed tests ---
+> Task :app:compileDebugKotlin FAILED
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
