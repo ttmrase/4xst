@@ -20,6 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,17 +39,19 @@ import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.BuildingType
-import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.session.GameSession
+import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.common.animationsEnabled
+import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.feature.emoji
 import com.ttmrase.crownfall.ui.feature.nameRes
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val NAVY = Color(0xFF12203F)
 private val GOLD = Color(0xFFE8C547)
@@ -99,26 +102,39 @@ fun CastleCeremonyHost(
     data: GameData,
     onActive: (Boolean) -> Unit,
 ) {
-    var level by remember { mutableIntStateOf(0) }
-    LaunchedEffect(session) {
-        session.events.collect { e ->
-            if (e is GameEvent.BuildingLevelUp && e.type == BuildingType.CASTLE && e.newLevel >= 2) {
-                level = maxOf(level, e.newLevel)
-            }
+    val state by session.collectCalmState()
+    val scope = rememberCoroutineScope()
+    val castleLv = state?.let { FeatureGate.castleLevel(it) } ?: 0
+    val celebrated = state?.celebratedCastleLv ?: 0
+    // 閉じた直後、保存へ反映されるまでの間に同じ演出を出し直さない
+    var closedUpTo by remember { mutableIntStateOf(0) }
+    // 旧セーブ（記録なし）は、現在の Lv へ黙って追従する
+    LaunchedEffect(castleLv, celebrated) {
+        if (state != null && celebrated == 0 && castleLv > 0) {
+            session.dispatch { Actions.celebrateCastle(it, castleLv) }
         }
     }
-    LaunchedEffect(level) { onActive(level > 0) }
-    if (level > 0) CastleCeremony(level, data) { level = 0 }
+    val from = maxOf(celebrated, closedUpTo)
+    val active = celebrated > 0 && castleLv > from
+    LaunchedEffect(active) { onActive(active) }
+    if (active) {
+        CastleCeremony(castleLv, from + 1, data) {
+            closedUpTo = castleLv
+            scope.launch { session.dispatch { Actions.celebrateCastle(it, castleLv) } }
+        }
+    }
 }
 
 @Composable
 private fun CastleCeremony(
     level: Int,
+    firstLevel: Int,
     data: GameData,
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
-    val lines = remember(level) { castleCeremonyLines(data, level) }
+    // 飛び越えた Lv の解放も、順に全部出す（途中の Lv の行を落とさない）
+    val lines = remember(level, firstLevel) { (firstLevel..level).flatMap { castleCeremonyLines(data, it) } }
     var shown by remember(level) { mutableIntStateOf(0) }
     val pop = remember(level) { Animatable(0.4f) }
     val animate = animationsEnabled()

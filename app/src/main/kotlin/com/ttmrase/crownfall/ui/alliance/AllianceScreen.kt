@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.alliance.AllianceTech
@@ -60,8 +61,10 @@ import com.ttmrase.crownfall.core.title.Titles
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.common.noteTextColor
 import com.ttmrase.crownfall.ui.common.remainingUntil
 import com.ttmrase.crownfall.ui.common.showReplacing
+import com.ttmrase.crownfall.ui.common.vipTextColor
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.itemName
 import com.ttmrase.crownfall.ui.map.FormationSheet
@@ -310,26 +313,29 @@ private fun MemberRow(
         ) {
             PortraitView(portrait, name, 44.dp, vip = vip)
             Column(Modifier.weight(1f)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(name, fontWeight = FontWeight.Bold)
-                    title?.let { id ->
-                        titleLabel(context, id)?.let {
+                // 名前は 1 行を占める（称号や VIP と同じ行に詰めて 1 文字ずつ折り返さない）
+                Text(name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val titleText = title?.let { id -> titleLabel(context, id) }
+                if (titleText != null || vip > 0) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        titleText?.let {
                             Text(
-                                "「$it」",
-                                color = MaterialTheme.colorScheme.tertiary,
+                                stringResource(R.string.rank_quote, it),
+                                color = noteTextColor(),
                                 style = MaterialTheme.typography.labelMedium,
                             )
                         }
-                    }
-                    if (vip > 0) {
-                        Text(
-                            stringResource(R.string.alliance_vip, vip),
-                            color = MaterialTheme.colorScheme.tertiary,
-                            style = MaterialTheme.typography.labelMedium,
-                        )
+                        if (vip > 0) {
+                            Text(
+                                stringResource(R.string.alliance_vip, vip),
+                                color = vipTextColor(),
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
                     }
                 }
                 Text(

@@ -154,7 +154,12 @@ private fun HeroCard(
                         color = color,
                     )
                 } else {
-                    PortraitView(def.id, def.id, PORTRAIT_CARD, rarity = def.rarity)
+                    PortraitView(
+                        def.id,
+                        heroNameRes(def.id)?.let { stringResource(it) } ?: def.id,
+                        PORTRAIT_CARD,
+                        rarity = def.rarity,
+                    )
                 }
             }
             Text(def.rarity.name, style = MaterialTheme.typography.labelSmall, color = color)

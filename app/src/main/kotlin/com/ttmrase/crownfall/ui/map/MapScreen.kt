@@ -307,12 +307,12 @@ private fun DrawScope.drawWorld(
     ) = x in x0..x1 && y in y0..y1
 
     // 地面（8×8 のチャンク。焼けていないあいだは地形の平らな色）
-    val hi = tile >= MapChunkCache.HI_MIN_TILE_PX
+    val res = MapChunkCache.resolutionFor(tile)
     val chunkPx = tile * MapArt.CHUNK
     for (cy in (y0 / MapArt.CHUNK)..(y1 / MapArt.CHUNK)) {
         for (cx in (x0 / MapArt.CHUNK)..(x1 / MapArt.CHUNK)) {
             val dst = Offset(offX + cx * chunkPx, offY + cy * chunkPx)
-            val img = chunks.get(cx, cy, hi)
+            val img = chunks.get(cx, cy, res)
             if (img != null) {
                 drawImage(
                     img,

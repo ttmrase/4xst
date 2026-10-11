@@ -566,7 +566,12 @@ private fun SummonCard(
                 CardBack(description = stringResource(R.string.summon_back))
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    PortraitView(entry.heroId, entry.heroId, 40.dp, rarity = entry.rarity)
+                    PortraitView(
+                        entry.heroId,
+                        heroNameRes(entry.heroId)?.let { stringResource(it) } ?: entry.heroId,
+                        40.dp,
+                        rarity = entry.rarity,
+                    )
                     Text(entry.rarity.name, color = frame, style = MaterialTheme.typography.titleSmall)
                     Text(
                         heroNameRes(entry.heroId)?.let { stringResource(it) } ?: entry.heroId,

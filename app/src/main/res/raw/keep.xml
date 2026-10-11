@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ポートレート（pt_<id>）と称号の名前（title_<id>）は名前で引くので、リソース縮小で消されないようにする。 -->
+<!-- ポートレート（pt_<id>）と称号の名前（rank_<id>）は名前で引くので、リソース縮小で消されないようにする。 -->
 <resources
     xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/pt_*,@string/title_*,@string/skin_*,@drawable/bld_castle_*" />
+    tools:keep="@drawable/pt_*,@string/rank_*,@string/skin_*,@drawable/bld_castle_*" />

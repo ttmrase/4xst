@@ -140,6 +140,9 @@ class ReviewFixesTest {
         val done = Simulation.tick(started, 10 * day, data).state
         assertEquals(8, FeatureGate.castleLevel(done))
         assertFalse(done.event.weekId == 3L && done.event.selfScore == 999L, "the stale tally must not survive")
+        // 古い週の集計で報酬（メール・ジェム）が出ないこと
+        assertTrue(done.mails.none { it.systemCode == "event_result" }, "no stale event_result mail")
+        assertEquals(s.gems, done.gems, "gems must not change from a stale tally")
     }
 
     // ---- T6: ラリーは RALLY、ワールドチャットは WORLD_CHAT まで作らない ----
@@ -172,5 +175,25 @@ class ReviewFixesTest {
     fun thePiggyDoesNotFillBeforeItUnlocks() {
         assertEquals(0L, PiggyBank.accrue(at(2), 500, data).shop.piggyGems)
         assertTrue(PiggyBank.accrue(at(6), 500, data).shop.piggyGems > 0)
+    }
+
+    // ---- S1: ショップ解放前は「VIP n 達成！」を出さず、受け取れる権利の有無を数える ----
+    @Test
+    fun vipLevelUpEventWaitsForTheShop() {
+        val s = at(2)
+        val events = mutableListOf<com.ttmrase.crownfall.core.model.GameEvent>()
+        com.ttmrase.crownfall.core.shop.VipCalculator.addPoints(s, 1_000_000, data, events)
+        assertTrue(events.isEmpty(), "no VIP notification before the shop unlocks")
+        val open = mutableListOf<com.ttmrase.crownfall.core.model.GameEvent>()
+        com.ttmrase.crownfall.core.shop.VipCalculator.addPoints(at(3), 1_000_000, data, open)
+        assertTrue(open.isNotEmpty(), "and it does appear once the shop is open")
+    }
+
+    @Test
+    fun castleCelebrationIsMonotonic() {
+        val s = at(5)
+        val a = (Actions.celebrateCastle(s, 4) as ActionResult.Success).state
+        val b = (Actions.celebrateCastle(a, 2) as ActionResult.Success).state
+        assertEquals(4, b.celebratedCastleLv)
     }
 }

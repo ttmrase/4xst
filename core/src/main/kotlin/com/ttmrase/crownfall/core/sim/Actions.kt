@@ -978,6 +978,12 @@ object Actions {
         data: GameData,
     ): ActionResult = gated(state, data, Feature.QUESTS) { QuestActions.claimDailyChest(state, tier, data) }
 
+    /** 城 Lv [lv] までの昇格の演出を見せ終えた（アプリを閉じても、見せていない分が次に城へ来たとき順に出る）。 */
+    fun celebrateCastle(
+        state: GameState,
+        lv: Int,
+    ): ActionResult = ActionResult.Success(state.copy(celebratedCastleLv = maxOf(state.celebratedCastleLv, lv)))
+
     /** ショップ画面を開いた（デイリーの進捗用）。 */
     fun recordShopOpened(
         state: GameState,

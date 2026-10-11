@@ -113,7 +113,8 @@ object VipCalculator {
         val after = level(s, data)
         var out = s
         for (lv in before + 1..after) {
-            events.add(GameEvent.VipLevelUp(lv))
+            // 「VIP n 達成！」の通知もショップの解放後から（それまでは黙って追従する）
+            if (FeatureGate.unlocked(out, data, Feature.SHOP)) events.add(GameEvent.VipLevelUp(lv))
             // 同盟のお祝いのチャットは、同盟の解放（城 Lv4）から
             if (FeatureGate.unlocked(out, data, Feature.ALLIANCE)) {
                 out = AllianceLogic.enqueueReactive(out, ChatEvent.VipUp(lv), listOf("johnny", "kaede"), data)

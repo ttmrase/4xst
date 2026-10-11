@@ -55,6 +55,7 @@ import com.ttmrase.crownfall.core.title.Titles
 import com.ttmrase.crownfall.ui.alliance.unreadIn
 import com.ttmrase.crownfall.ui.channelName
 import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.common.noteTextColor
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.feature.LockedFeatureCard
@@ -295,8 +296,8 @@ private fun MessageRow(
                     title?.let { id ->
                         titleLabel(context, id)?.let {
                             Text(
-                                "「$it」",
-                                color = MaterialTheme.colorScheme.tertiary,
+                                stringResource(R.string.rank_quote, it),
+                                color = noteTextColor(),
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }

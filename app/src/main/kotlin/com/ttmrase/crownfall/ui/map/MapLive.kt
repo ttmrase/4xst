@@ -104,7 +104,7 @@ internal object MapLive {
         val r = tile * 6f
         drawCircle(Brush.radialGradient(listOf(c.copy(alpha = 0.28f), Color.Transparent), center, r), r, center)
         drawCircle(c.copy(alpha = 0.6f), r * 0.98f, center, style = Stroke(width = 2.5f))
-        if (tile < LOD_FAR_PX) return
+        if (tile < LOD_FAR_DP * density) return
         repeat(14) { i ->
             val a = i * 2.399f + seconds * (0.15f + (i % 3) * 0.05f)
             val d = r * (0.25f + 0.7f * ((i * 37) % 100) / 100f)
@@ -173,7 +173,7 @@ internal object MapLive {
         seconds: Float,
         tile: Float,
     ) {
-        if (tile > CLOUD_MAX_TILE_PX) return
+        if (tile > CLOUD_MAX_TILE_DP * density) return
         val w = size.width + CLOUD_SPAN
         repeat(7) { i ->
             val speed = 6f + (i % 3) * 3f
@@ -230,7 +230,7 @@ internal object MapLive {
             }
             drawRect(Color.Black, Offset(bx, by), Size(bw, bh), style = Stroke(2f))
             drawRect(Color(0xFF3A2A18), Offset(bx + bw * 0.4f, by + bh * 0.4f), Size(bw * 0.2f, bh * 0.6f))
-            if (tile >= LOD_FAR_PX) {
+            if (tile >= LOD_FAR_DP * density) {
                 drawLine(Color.Black, Offset(bx + bw / 2, by - tile * 0.22f), Offset(bx + bw / 2, by - tile * 0.5f), 2f)
                 val flag =
                     Path().apply {
@@ -263,7 +263,7 @@ internal object MapLive {
             drawCircle(Brush.radialGradient(listOf(color.copy(alpha = 0.55f), Color.Transparent), c, r), r, c)
             drawCircle(color, tile * 0.2f, c)
             drawCircle(Color.Black.copy(alpha = 0.5f), tile * 0.2f, c, style = Stroke(1.5f))
-            if (tile >= LOD_FAR_PX) {
+            if (tile >= LOD_FAR_DP * density) {
                 glyph(n.type)?.let {
                     drawText(it, topLeft = Offset(c.x - it.size.width / 2f, c.y - it.size.height / 2f - tile * 0.02f))
                 }
@@ -341,7 +341,7 @@ internal object MapLive {
                     Offset(v.x / l, v.y / l)
                 }
             // 土ぼこり（進行方向の後ろに、時間差で薄れる粒）
-            if (tile >= LOD_FAR_PX * 0.5f) {
+            if (tile >= LOD_FAR_DP * density * 0.5f) {
                 repeat(6) { i ->
                     val u = i / 6f
                     val rise = -tile * 0.12f * u * (1f + sin(seconds * 5f + i))
@@ -370,14 +370,15 @@ internal object MapLive {
         }
     }
 
-    const val LOD_FAR_PX = 22f
+    /** これより小さい（dp）と、飾り・粒・ラベルを省く（密度に依らず見た目の大きさで決める）。 */
+    const val LOD_FAR_DP = 8f
     private const val FOG_SOFT_TILES = 5f
     private const val FOG_MAX_ALPHA = 0.7f
     private const val NIGHT_ALPHA = 0.28f
     private const val DUSK_ALPHA = 0.14f
     private const val CLOUD_SPAN = 400f
     private const val CLOUD_PARALLAX = 1.3f
-    private const val CLOUD_MAX_TILE_PX = 120f
+    private const val CLOUD_MAX_TILE_DP = 44f
 
     @Suppress("unused")
     private val TWO_PI = (2 * PI).toFloat()

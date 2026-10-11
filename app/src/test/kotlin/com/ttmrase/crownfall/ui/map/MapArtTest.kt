@@ -39,4 +39,17 @@ class MapArtTest {
         DayNight.entries.forEach { assertEquals(it, DayNight.of(it.id)) }
         assertEquals(DayNight.AUTO, DayNight.of(99))
     }
+
+    @Test
+    fun chunkResolutionFollowsTheOnScreenTileSizeWithinTwoTimesUpscale() {
+        assertEquals(12, MapChunkCache.resolutionFor(10f))
+        assertEquals(32, MapChunkCache.resolutionFor(40f))
+        assertEquals(64, MapChunkCache.resolutionFor(100f))
+        assertEquals(96, MapChunkCache.resolutionFor(180f))
+        // 上限を超えて拡大しても段階は増えない
+        assertEquals(96, MapChunkCache.resolutionFor(900f))
+        MapChunkCache.LEVELS.forEach { px ->
+            assertTrue(MapChunkCache.resolutionFor(px * 2f) <= px.coerceAtLeast(MapChunkCache.LEVELS.last()))
+        }
+    }
 }

@@ -31,6 +31,8 @@ data class GameState(
     val selectedTitle: String? = null,
     /** 収穫バブルを最後に回収した時刻（スロット ID → epoch 秒）。無い建物は未回収（すぐ出る）。M11 T11.2。 */
     val lastBubbleCollect: Map<Int, Long> = emptyMap(),
+    /** 城の昇格の演出を見せ終えた最高の Lv。0 は未記録（旧セーブ。最初に現在の Lv へ黙って追従する）。M11 T11.3。 */
+    val celebratedCastleLv: Int = 0,
     val starterHeroId: String? = null,
     val tutorialStep: Int = 0,
     val troops: Map<String, Long> = emptyMap(),

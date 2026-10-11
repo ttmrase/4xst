@@ -12,6 +12,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.session.GameSession
@@ -35,9 +39,15 @@ fun AvatarSettingsSection(session: GameSession) {
                 val selected = i == s.avatar
                 PortraitView(
                     PortraitKeys.avatar(i),
-                    s.playerName,
+                    stringResource(R.string.settings_avatar_item, i + 1),
                     52.dp,
-                    Modifier.clickable { scope.launch { session.dispatch { Actions.setAvatar(it, i) } } }.padding(2.dp),
+                    Modifier
+                        .semantics {
+                            this.selected = selected
+                            role = Role.Button
+                        }
+                        .clickable { scope.launch { session.dispatch { Actions.setAvatar(it, i) } } }
+                        .padding(2.dp),
                     rarity = if (selected) com.ttmrase.crownfall.core.model.HeroRarity.SSR else null,
                 )
             }

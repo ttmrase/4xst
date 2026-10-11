@@ -56,6 +56,7 @@ import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
+import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.quest.QuestLogic
@@ -76,6 +77,7 @@ import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.remainingUntil
+import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.event.eventNameRes
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.feature.LockedFeatureDialog
@@ -179,11 +181,19 @@ fun CityScreen(
             onBubbleTap = { slotId, pos ->
                 scope.launch {
                     val before = session.state.value
-                    val gain = before?.let { HarvestBubble.contents(it, slotId, data) }
                     val r = session.dispatch { Actions.collectBubble(it, slotId, data) }
-                    if (r is ActionResult.Success && gain != null) {
+                    val after = session.state.value
+                    if (r is ActionResult.Success && before != null && after != null) {
                         Sfx.play(context, SfxId.BUTTON)
-                        fly.flyAll(pos, gain)
+                        // 倉庫に入った分だけ飛ばす（一部しか入らないときに、満額のアイコンを飛ばさない）
+                        val gained =
+                            ResourceType.entries.fold(Resources.ZERO) { acc, t ->
+                                acc.with(t, (after.resources[t] - before.resources[t]).coerceAtLeast(0))
+                            }
+                        fly.flyAll(pos, gained)
+                    } else if (r is ActionResult.Failure && r.reason == ActionFailure.NothingToClaim) {
+                        // 倉庫がいっぱいで 1 つも入らない
+                        snackbarHostState.showReplacing(context.getString(R.string.bubble_storage_full))
                     }
                 }
             },
