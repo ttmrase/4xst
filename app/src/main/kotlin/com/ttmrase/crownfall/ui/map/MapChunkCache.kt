@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import com.ttmrase.crownfall.core.map.WorldMap
+import com.ttmrase.crownfall.ui.territory.SpriteCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,6 +27,7 @@ internal class MapChunkCache(
     private val world: WorldMap,
     private val seed: Long,
     private val scope: CoroutineScope,
+    private val sprites: SpriteCache? = null,
     private val maxBytes: Long = DEFAULT_MAX_BYTES,
 ) {
     private val roads = MapArt.roads(world)
@@ -48,6 +50,16 @@ internal class MapChunkCache(
     ): Long = (cx.toLong() shl KEY_X_SHIFT) or (cy.toLong() shl LEVEL_BITS) or levelIndex(px).toLong()
 
     private val failed = ConcurrentHashMap.newKeySet<Long>()
+    private var spritesLoaded = sprites == null
+
+    private fun spritesReady(): Boolean {
+        if (spritesLoaded) return true
+        val sp = sprites ?: return true
+        // 全部を読み込み要求に出してから、揃ったか見る
+        val ready = MapArt.TREES.map { sp.get(it) != null }.all { it }
+        if (ready) spritesLoaded = true
+        return ready
+    }
 
     /**
      * チャンク (cx, cy) の、1 タイル [px] の絵。まだ焼けていなければ null を返して焼き始める
@@ -60,6 +72,12 @@ internal class MapChunkCache(
     ): ImageBitmap? {
         val k = key(cx, cy, px)
         synchronized(images) { images[k] }?.let { return it }
+        // 森の木のスプライトが読めてから焼く（未読み込みのまま焼いて、木の無い絵が残らないように）
+        if (!spritesReady()) {
+            return synchronized(images) {
+                LEVELS.asSequence().mapNotNull { images[key(cx, cy, it)] }.firstOrNull()
+            }
+        }
         if (k !in failed && loading.add(k)) {
             scope.launch(Dispatchers.Default) {
                 try {
@@ -101,7 +119,7 @@ internal class MapChunkCache(
         val image = ImageBitmap(side, side)
         val scopeDraw = CanvasDrawScope()
         scopeDraw.draw(Density(1f), LayoutDirection.Ltr, Canvas(image), Size(side.toFloat(), side.toFloat())) {
-            with(MapArt) { drawChunk(world, cx, cy, px.toFloat(), seed, roads, px >= DETAIL_MIN_PX) }
+            with(MapArt) { drawChunk(world, cx, cy, px.toFloat(), seed, roads, px >= DETAIL_MIN_PX, sprites) }
         }
         return image
     }

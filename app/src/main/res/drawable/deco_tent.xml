@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tools/artgen で生成（手で編集しない）: decor tent -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="96dp" android:viewportWidth="64" android:viewportHeight="96">
+  <path android:fillColor="#000000" android:fillAlpha="0.22" android:pathData="M48.0,81.4L46.4,84.4L42.0,86.9L35.6,88.2L28.4,88.2L22.0,86.9L17.6,84.4L16.0,81.4L17.6,78.4L22.0,75.9L28.4,74.6L35.6,74.6L42.0,75.9L46.4,78.4Z" />
+  <path android:fillColor="#833825" android:strokeColor="#431D13" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M29.2,68.8L9.6,78.6L22.2,67.9L41.8,58.1Z" />
+  <path android:fillColor="#A8482F" android:strokeColor="#431D13" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M54.4,81.4L34.8,91.2L22.2,67.9L41.8,58.1Z" />
+  <path android:fillColor="#7A2E1E" android:strokeColor="#431D13" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M9.6,78.6L34.8,91.2L22.2,67.9Z" />
+  <path android:fillColor="#2A1812" android:pathData="M48.5,84.3L40.7,88.3L44.6,76.3Z" />
+  <path android:strokeColor="#4A3A2A" android:strokeWidth="1.10" android:strokeLineJoin="round" android:pathData="M32.0,63.0L32.0,51.0" />
+  <path android:fillColor="#C0392B" android:strokeColor="#601C16" android:strokeWidth="0.40" android:strokeLineJoin="round" android:pathData="M32.0,51.0L39.0,53.0L33.0,55.3Z" />
+</vector>

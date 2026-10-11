@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -67,6 +68,7 @@ import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.dispatchFly
 import com.ttmrase.crownfall.ui.shop.Confetti
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -79,6 +81,10 @@ private const val FLY_MS = 650
 private const val FLY_START_SCALE = 2.4f
 private const val FLY_END_SCALE = 0.45f
 private const val NAV_TABS = 5
+private const val FLY_FROM_Y = 0.45f
+private const val FLY_STAGGER_MS = 120L
+private const val FLY_WAIT_MS = 800L
+private const val TAB_FALLBACK_BOTTOM_PX = 120f
 private const val ARROW_BOUNCE_DP = 8f
 private const val ARROW_MS = 600
 private const val ARROW_WIDTH_DP = 88f
@@ -363,6 +369,25 @@ fun FeatureOverlays(
         }
     val pendingAll by pendingFlow.collectAsStateWithLifecycle(emptyList())
     val pending = if (hold) emptyList() else pendingAll
+    // 城の昇格の演出を見せたあとの解放は、別の全画面は出さず、アイコンが下部ナビのタブへ飛ぶ（演出は 1 枚に統一）
+    var sawCeremony by remember { mutableStateOf(false) }
+    LaunchedEffect(hold) { if (hold) sawCeremony = true }
+    val metrics = LocalContext.current.resources.displayMetrics
+    LaunchedEffect(pending.firstOrNull(), sawCeremony) {
+        if (!sawCeremony || pending.isEmpty()) return@LaunchedEffect
+        val batch = pending
+        val w = metrics.widthPixels.toFloat()
+        val h = metrics.heightPixels.toFloat()
+        val tabY = fly.fallbackTarget?.y ?: (h - TAB_FALLBACK_BOTTOM_PX)
+        batch.forEach { f ->
+            target(f)?.let { idx ->
+                fly.flyGlyph(Offset(w / 2f, h * FLY_FROM_Y), Offset(w * (idx + 0.5f) / NAV_TABS, tabY), f.emoji())
+                delay(FLY_STAGGER_MS)
+            }
+        }
+        delay(FLY_WAIT_MS)
+        batch.forEach { f -> session.dispatch { Actions.markFeatureCelebrated(it, f, data) } }
+    }
     val active = pending.isNotEmpty()
     LaunchedEffect(active) { onActive(active) }
     DisposableEffect(Unit) { onDispose { onActive(false) } }
@@ -371,7 +396,7 @@ fun FeatureOverlays(
             session.state.map { s -> if (s == null) emptyList() else claimableRewards(s, data) }.distinctUntilChanged()
         }
     val claimable by claimFlow.collectAsStateWithLifecycle(emptyList())
-    pending.firstOrNull()?.let { feature ->
+    pending.firstOrNull()?.takeIf { !sawCeremony }?.let { feature ->
         FeatureUnlockDialog(
             feature = feature,
             target = target(feature),

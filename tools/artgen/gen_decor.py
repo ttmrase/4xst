@@ -257,6 +257,26 @@ def site(sc):
         sc.box(x, y, x + 0.5, y + 0.4, 0, 3, "#8C6A3C")
 
 
+def tent(sc):
+    """野営地のテント（赤茶の切妻。入口と旗つき）。"""
+    sc.ellipse(*Q(0.1, 0.1, 0), 16, 7, "#000000", None, 0, 0.22, 14)
+    sc.gable(-0.9, -0.7, 0.9, 0.7, 0, 17, "#A8482F", axis="y", over=0.0, gable_c="#7A2E1E")
+    sc.poly([Q(0.9, -0.28, 0), Q(0.9, 0.28, 0), Q(0.9, 0.0, 10)], "#2A1812", None, 0)
+    sc.flag(0.0, 0.0, 17, 12, "#C0392B")
+
+
+def temple(sc):
+    """聖地の神殿（段・円柱・金の切妻屋根）。"""
+    sc.ellipse(*Q(0.1, 0.1, 0), 26, 11, "#000000", None, 0, 0.22, 18)
+    sc.box(-1.7, -1.3, 1.7, 1.3, 0, 3, "#D8D2C2")
+    sc.box(-1.45, -1.1, 1.45, 1.1, 3, 5, "#E7E1D0")
+    for (x, y) in ((-1.1, -0.85), (1.1, -0.85), (-1.1, 0.85), (-0.37, 0.85), (0.37, 0.85), (1.1, 0.85)):
+        sc.cylinder(x, y, 0.15, 5, 24, "#F3EEDF")
+    sc.box(-1.3, -1.0, 1.3, 1.0, 24, 27, "#E6DFCB")
+    sc.gable(-1.4, -1.1, 1.4, 1.1, 27, 11, "#D4AF37", axis="x", over=0.0, gable_c="#B8922A")
+    sc.cone(0.0, 0.0, 0.12, 38, 8, "#FFE082", 0.0)
+
+
 DECOR = [
     ("tree_oak_a", lambda sc: tree_oak(sc, 1.0)),
     ("tree_oak_b", lambda sc: tree_oak(sc, 0.8, "#6AAE45", "#7A5A38")),
@@ -279,11 +299,16 @@ DECOR = [
     ("field", field),
     ("manor", manor),
     ("statue", statue),
+    ("tent", tent),
+    ("temple", temple),
 ]
 
 
 def build_decor(name):
     fn = dict(DECOR)[name]
+    if name == "temple":
+        # 建物と同じ大きさの viewport（128 x 160、足元 (64, 120)）
+        return around(fn, 128, 160, 64.0, 120.0)
     return around(fn)
 
 
@@ -313,6 +338,19 @@ def kotlin_ids():
     lines.append("        tier: Int,")
     lines.append("    ): Int = BUILDINGS.getValue(type)[(tier - 1).coerceIn(0, 4)]")
     lines.append("")
+    lines.append("    /** 城のスキン（[theme] は %s）の見た目 [tier]（1..5）。知らないテーマは標準の城。 */" % " / ".join(gen_buildings.SKIN_PALETTES))
+    lines.append("    fun castleSkin(")
+    lines.append("        theme: String,")
+    lines.append("        tier: Int,")
+    lines.append("    ): Int {")
+    lines.append("        val i = (tier - 1).coerceIn(0, 4)")
+    lines.append("        return when (theme) {")
+    for skin in gen_buildings.SKIN_PALETTES:
+        lines.append('            "%s" -> CASTLE_%s[i]' % (skin, skin.upper()))
+    lines.append("            else -> building(BuildingType.CASTLE, tier)")
+    lines.append("        }")
+    lines.append("    }")
+    lines.append("")
     lines.append("    /** 城壁の部品の drawable（[tier] は 1..5）。 */")
     lines.append("    fun wallX(tier: Int): Int = WALL_X[(tier - 1).coerceIn(0, 4)]")
     lines.append("")
@@ -340,6 +378,8 @@ def kotlin_ids():
     arr("WALL_Y", ["R.drawable.deco_wall_y_t%d" % t for t in range(1, 6)])
     arr("WALL_TOWER", ["R.drawable.deco_wall_tower_t%d" % t for t in range(1, 6)])
     arr("GATE", ["R.drawable.deco_gate_t%d" % t for t in range(1, 6)])
+    for skin in gen_buildings.SKIN_PALETTES:
+        arr("CASTLE_%s" % skin.upper(), ["R.drawable.bld_castle_%s_t%d" % (skin, t) for t in range(1, 6)])
     lines.append("    private val BUILDINGS: Map<BuildingType, IntArray> =")
     lines.append("        mapOf(")
     for t in gen_buildings.TYPES:

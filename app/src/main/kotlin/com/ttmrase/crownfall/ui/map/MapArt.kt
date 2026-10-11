@@ -5,18 +5,24 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import com.ttmrase.crownfall.core.map.StructureType
 import com.ttmrase.crownfall.core.map.Terrain
 import com.ttmrase.crownfall.core.map.WorldMap
+import com.ttmrase.crownfall.ui.territory.SpriteCache
+import com.ttmrase.crownfall.ui.territory.SpriteIds
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
@@ -89,16 +95,70 @@ internal object MapArt {
         return water <= RIVER_MAX_WATER
     }
 
-    /** 道（タイル座標の折れ線）。自城から各拠点へ、水を避けて 8 方向に歩く。世界ごとに 1 度だけ作る。 */
+    /**
+     * 道（タイル座標の折れ線）。自城と主要な拠点（同盟の城・NPC 城・聖地）を、最小全域木とそこへ少しの追加の辺でつなぐ。
+     * 水を避けて歩き、折れ線にゆるいゆらぎを付ける（見た目だけ。:core の行軍は直線で、一致しない）。世界ごとに 1 度だけ作る。
+     */
     fun roads(world: WorldMap): List<List<Offset>> {
         val castle = world.structures.firstOrNull { it.type == StructureType.PLAYER_CASTLE } ?: return emptyList()
+        val others = world.structures.filter { it !== castle && it.type != StructureType.BARBARIAN_FORT }
+        val nodes = listOf(castle) + others
+        if (nodes.size < 2) return emptyList()
+
+        fun len(
+            i: Int,
+            j: Int,
+        ): Float = hypot((nodes[i].x - nodes[j].x).toFloat(), (nodes[i].y - nodes[j].y).toFloat())
+        // 最小全域木（Prim 法。出発は自城）
+        val inTree = BooleanArray(nodes.size)
+        val best = FloatArray(nodes.size) { Float.MAX_VALUE }
+        val from = IntArray(nodes.size) { -1 }
+        best[0] = 0f
+        val edges = ArrayList<Pair<Int, Int>>()
+        repeat(nodes.size) {
+            var u = -1
+            for (i in nodes.indices) if (!inTree[i] && (u < 0 || best[i] < best[u])) u = i
+            inTree[u] = true
+            if (from[u] >= 0) edges += from[u] to u
+            for (v in nodes.indices) {
+                if (!inTree[v] && len(u, v) < best[v]) {
+                    best[v] = len(u, v)
+                    from[v] = u
+                }
+            }
+        }
+        // 追加の辺: 木に無い組のうち、短いものを少しだけ（環ができて、道が網目らしくなる）
+        val used = edges.map { (a, b) -> minOf(a, b) to maxOf(a, b) }.toSet()
+        val extras =
+            nodes.indices.flatMap { i -> (i + 1 until nodes.size).map { j -> i to j } }
+                .filter { it !in used }
+                .sortedBy { len(it.first, it.second) }
+                .take(EXTRA_ROADS)
         val out = ArrayList<List<Offset>>()
-        for (st in world.structures) {
-            if (st === castle || st.type == StructureType.BARBARIAN_FORT) continue
-            path(world, castle.x, castle.y, st.x, st.y)?.let { out += it }
+        for ((i, j) in edges + extras) {
+            val line =
+                path(world, nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y)
+                    ?: path(world, nodes[j].x, nodes[j].y, nodes[i].x, nodes[i].y)?.reversed()
+            if (line != null) out += wobble(line, i * 31 + j)
         }
         return out
     }
+
+    /** 折れ線の途中の点を、タイルの中でゆらがせる（両端は動かさない）。決定論。 */
+    private fun wobble(
+        line: List<Offset>,
+        salt: Int,
+    ): List<Offset> =
+        line.mapIndexed { k, o ->
+            if (k == 0 || k == line.lastIndex) {
+                o
+            } else {
+                Offset(
+                    o.x + (hash(k, salt, 7L, 31) - 0.5f) * ROAD_WOBBLE,
+                    o.y + (hash(k, salt, 7L, 32) - 0.5f) * ROAD_WOBBLE,
+                )
+            }
+        }
 
     private fun path(
         world: WorldMap,
@@ -244,6 +304,7 @@ internal object MapArt {
         seed: Long,
         roads: List<List<Offset>>,
         detail: Boolean,
+        sprites: SpriteCache? = null,
     ) {
         val x0 = cx * CHUNK
         val y0 = cy * CHUNK
@@ -279,10 +340,11 @@ internal object MapArt {
                     if (!world.inBounds(x, y) || world.structureAt(x, y) != null) continue
                     decor(
                         world.terrainAt(x, y), x, y, tx * px, ty * px, px, seed,
-                        snowT(x, y, world.size, seed), sandT(x, y, world.size, seed),
+                        snowT(x, y, world.size, seed), sandT(x, y, world.size, seed), sprites == null,
                     )
                 }
             }
+            if (sprites != null) drawForest(world, x0, y0, px, seed, sprites)
         }
     }
 
@@ -439,16 +501,80 @@ internal object MapArt {
             for (line in roads) {
                 if (line.none { it.x in (x0 - 1f)..(x0 + CHUNK + 1f) && it.y in (y0 - 1f)..(y0 + CHUNK + 1f) }) continue
                 val p = Path()
-                line.forEachIndexed { i, o ->
-                    val x = (o.x - x0) * px
-                    val y = (o.y - y0) * px
-                    if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
+
+                // 点の列をなめらかな曲線にする（各点を制御点に、隣り合う点の中点どうしをつなぐ）
+                fun tx(o: Offset) = (o.x - x0) * px
+
+                fun ty(o: Offset) = (o.y - y0) * px
+                p.moveTo(tx(line[0]), ty(line[0]))
+                for (k in 1 until line.lastIndex) {
+                    val mx = (tx(line[k]) + tx(line[k + 1])) / 2f
+                    val my = (ty(line[k]) + ty(line[k + 1])) / 2f
+                    p.quadraticTo(tx(line[k]), ty(line[k]), mx, my)
                 }
+                p.lineTo(tx(line.last()), ty(line.last()))
                 drawPath(p, ROAD_EDGE, style = Stroke(px * 0.26f, cap = StrokeCap.Round))
                 drawPath(p, ROAD, style = Stroke(px * 0.18f, cap = StrokeCap.Round))
             }
         }
     }
+
+    /**
+     * 森の木のスプライト（城内の飾りと同じ絵）の群れ。木は上へ伸びるので、下の列の木が隣のチャンクにはみ出す分も
+     * このチャンクへ描く（継ぎ目で木が切れない）。奥の行から手前の行へ重ねる。
+     */
+    private fun DrawScope.drawForest(
+        world: WorldMap,
+        x0: Int,
+        y0: Int,
+        px: Float,
+        seed: Long,
+        sprites: SpriteCache,
+    ) {
+        val s = px / TREE_TILE_DIV
+        for (ty in -1..CHUNK + 2) {
+            for (tx in -1..CHUNK) {
+                val x = x0 + tx
+                val y = y0 + ty
+                if (!world.inBounds(x, y) || world.terrainAt(x, y) != Terrain.FOREST) continue
+                if (world.structureAt(x, y) != null) continue
+                val cold = snowT(x, y, world.size, seed) > 0.4f
+                val n = 1 + (hash(x, y, seed, 8) * 1.99f).toInt()
+                for (k in 0 until n) {
+                    val pick = hash(x, y, seed, 70 + k)
+                    val ids = if (cold) TREES_COLD else TREES
+                    val sp = sprites.get(ids[(pick * ids.size).toInt().coerceAtMost(ids.size - 1)]) ?: continue
+                    val fx = (tx + 0.2f + 0.6f * hash(x, y, seed, 10 + k)) * px
+                    val fy = (ty + 0.45f + 0.5f * hash(x, y, seed, 20 + k)) * px
+                    drawImage(
+                        sp.image,
+                        srcOffset = IntOffset.Zero,
+                        srcSize = IntSize(sp.image.width, sp.image.height),
+                        dstOffset = IntOffset((fx - sp.ax * s).roundToInt(), (fy - sp.ay * s).roundToInt()),
+                        dstSize =
+                            IntSize(
+                                (sp.vw * s).roundToInt().coerceAtLeast(1),
+                                (sp.vh * s).roundToInt().coerceAtLeast(1),
+                            ),
+                        filterQuality = FilterQuality.Medium,
+                    )
+                }
+            }
+        }
+    }
+
+    /** 森に立てる木のスプライト（温帯 / 寒い北では松だけ）。 */
+    val TREES =
+        intArrayOf(
+            SpriteIds.TREE_OAK_A,
+            SpriteIds.TREE_OAK_B,
+            SpriteIds.TREE_OAK_C,
+            SpriteIds.TREE_PINE_A,
+            SpriteIds.TREE_PINE_B,
+            SpriteIds.TREE_BIRCH,
+        )
+    val TREES_COLD = intArrayOf(SpriteIds.TREE_PINE_A, SpriteIds.TREE_PINE_B)
+    private const val TREE_TILE_DIV = 36f
 
     private fun DrawScope.decor(
         t: Terrain,
@@ -460,10 +586,12 @@ internal object MapArt {
         seed: Long,
         snow: Float,
         sand: Float,
+        procTrees: Boolean,
     ) {
         val r = hash(x, y, seed, 7)
         when (t) {
             Terrain.FOREST -> {
+                if (!procTrees) return
                 val n = 2 + (hash(x, y, seed, 8) * 2.99f).toInt()
                 for (k in 0 until n) {
                     val fx = ox + px * (0.15f + 0.7f * hash(x, y, seed, 10 + k))
@@ -578,6 +706,8 @@ internal object MapArt {
     }
 
     private const val ROAD_MIN_PX = 8f
+    private const val EXTRA_ROADS = 2
+    private const val ROAD_WOBBLE = 0.36f
     private const val RIVER_MAX_WATER = 11
 
     /** 2 点間の距離。 */

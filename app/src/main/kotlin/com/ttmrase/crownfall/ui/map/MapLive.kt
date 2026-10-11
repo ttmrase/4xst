@@ -23,8 +23,12 @@ import com.ttmrase.crownfall.core.map.WorldMap
 import com.ttmrase.crownfall.core.march.MarchKind
 import com.ttmrase.crownfall.core.march.MarchPhase
 import com.ttmrase.crownfall.core.march.MarchViews
+import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
+import com.ttmrase.crownfall.ui.territory.Sprite
+import com.ttmrase.crownfall.ui.territory.SpriteCache
+import com.ttmrase.crownfall.ui.territory.SpriteIds
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -238,10 +242,14 @@ internal object MapLive {
         offX: Float,
         offY: Float,
         castleTheme: String?,
+        castleTier: Int,
+        sprites: SpriteCache?,
         visible: (Int, Int) -> Boolean,
     ) {
+        val near = sprites != null && tile >= SPRITE_MIN_DP * density
         for (st in world.structures) {
             if (!visible(st.x, st.y)) continue
+            if (near && drawStructureSprite(st, tile, offX, offY, castleTheme, castleTier, sprites!!)) continue
             val color =
                 when (st.type) {
                     StructureType.PLAYER_CASTLE -> territoryColor(castleTheme) ?: CASTLE
@@ -287,6 +295,75 @@ internal object MapLive {
         }
     }
 
+    /** 拠点のスプライト（城内と同じアイソメの絵）。読み込み前なら false（簡易アイコンで描く）。 */
+    private fun DrawScope.drawStructureSprite(
+        st: com.ttmrase.crownfall.core.map.Structure,
+        tile: Float,
+        offX: Float,
+        offY: Float,
+        castleTheme: String?,
+        castleTier: Int,
+        sprites: SpriteCache,
+    ): Boolean {
+        val id =
+            when (st.type) {
+                StructureType.PLAYER_CASTLE ->
+                    if (castleTheme != null) {
+                        SpriteIds.castleSkin(
+                            castleTheme,
+                            castleTier,
+                        )
+                    } else {
+                        SpriteIds.building(BuildingType.CASTLE, castleTier)
+                    }
+                StructureType.ALLY_CASTLE -> SpriteIds.building(BuildingType.CASTLE, ALLY_TIER)
+                StructureType.NPC_CASTLE ->
+                    SpriteIds.building(
+                        BuildingType.CASTLE,
+                        NPC_TIER_MIN + (st.x * 7 + st.y * 13) % 3,
+                    )
+                StructureType.BARBARIAN_FORT -> SpriteIds.building(BuildingType.WATCHTOWER, FORT_TIER)
+                StructureType.HOLY_LAND -> SpriteIds.TEMPLE
+            }
+        val sp = sprites.get(id) ?: return false
+        val ring =
+            when (st.type) {
+                StructureType.PLAYER_CASTLE -> territoryColor(castleTheme) ?: CASTLE
+                StructureType.ALLY_CASTLE -> ALLY
+                StructureType.NPC_CASTLE -> NPC
+                StructureType.BARBARIAN_FORT -> FORT
+                StructureType.HOLY_LAND -> HOLY
+            }
+        val cx = offX + (st.x + 0.5f) * tile
+        val gy = offY + (st.y + 0.5f) * tile + tile * GROUND_DROP
+        // 足元の輪（持ち主が分かる色）と影
+        drawOval(ring.copy(alpha = 0.45f), Offset(cx - tile * 1.0f, gy - tile * 0.28f), Size(tile * 2.0f, tile * 0.56f))
+        drawOval(Color(0x40000000), Offset(cx - tile * 0.85f, gy - tile * 0.2f), Size(tile * 1.7f, tile * 0.4f))
+        val scale = tile * (if (st.type == StructureType.HOLY_LAND) HOLY_SPAN else CASTLE_SPAN) / FOOTPRINT_VP
+        drawSprite(sp, cx, gy, scale)
+        return true
+    }
+
+    private fun DrawScope.drawSprite(
+        sp: Sprite,
+        cx: Float,
+        groundY: Float,
+        scale: Float,
+    ) {
+        drawImage(
+            sp.image,
+            srcOffset = IntOffset.Zero,
+            srcSize = IntSize(sp.image.width, sp.image.height),
+            dstOffset = IntOffset((cx - sp.ax * scale).roundToInt(), (groundY - sp.ay * scale).roundToInt()),
+            dstSize =
+                IntSize(
+                    (sp.vw * scale).roundToInt().coerceAtLeast(1),
+                    (sp.vh * scale).roundToInt().coerceAtLeast(1),
+                ),
+            filterQuality = FilterQuality.Medium,
+        )
+    }
+
     /** 資源ノード: 脈打つ光＋絵文字（遠いズームでは光だけ）。 */
     fun DrawScope.drawNodes(
         s: GameState,
@@ -295,8 +372,10 @@ internal object MapLive {
         offY: Float,
         seconds: Float,
         glyph: (ResourceType) -> TextLayoutResult?,
+        sprites: SpriteCache?,
         visible: (Int, Int) -> Boolean,
     ) {
+        val near = sprites != null && tile >= SPRITE_MIN_DP * density
         for (n in s.map.nodes) {
             if (!visible(n.x, n.y)) continue
             val c = Offset(offX + (n.x + 0.5f) * tile, offY + (n.y + 0.5f) * tile)
@@ -308,6 +387,12 @@ internal object MapLive {
             drawCircle(color.copy(alpha = 0.16f), r, c)
             drawCircle(color.copy(alpha = 0.22f), r * 0.72f, c)
             drawCircle(color.copy(alpha = 0.3f), r * 0.45f, c)
+            // 近いズームは、資源ごとの建物のスプライト（畑・材木置き場・採石場・金鉱。ノードの Lv で段階が上がる）
+            val nodeSprite = if (near) sprites!!.get(nodeSpriteId(n.type, n.level)) else null
+            if (nodeSprite != null) {
+                drawSprite(nodeSprite, c.x, c.y + tile * NODE_DROP, tile * NODE_SPAN / FOOTPRINT_VP)
+                continue
+            }
             drawCircle(color, tile * 0.2f, c)
             drawCircle(Color.Black.copy(alpha = 0.5f), tile * 0.2f, c, style = Stroke(1.5f))
             if (tile >= LOD_FAR_DP * density) {
@@ -316,6 +401,36 @@ internal object MapLive {
                 }
             }
         }
+    }
+
+    /** 先読みするスプライト（資源地の建物の全段階・テント・神殿・拠点の城と砦）。 */
+    fun spriteIdsFor(tiers: Int): List<Int> {
+        val ids = ArrayList<Int>()
+        for (t in 1..tiers) {
+            for (b in listOf(BuildingType.FARM, BuildingType.SAWMILL, BuildingType.QUARRY, BuildingType.GOLD_MINE)) {
+                ids += SpriteIds.building(b, t)
+            }
+            ids += SpriteIds.building(BuildingType.CASTLE, t)
+        }
+        ids += SpriteIds.building(BuildingType.WATCHTOWER, FORT_TIER)
+        ids += SpriteIds.TENT
+        ids += SpriteIds.TEMPLE
+        return ids
+    }
+
+    private fun nodeSpriteId(
+        type: ResourceType,
+        level: Int,
+    ): Int {
+        val tier = ((level - 1) / 2 + 1).coerceIn(1, 5)
+        val b =
+            when (type) {
+                ResourceType.FOOD -> BuildingType.FARM
+                ResourceType.WOOD -> BuildingType.SAWMILL
+                ResourceType.STONE -> BuildingType.QUARRY
+                ResourceType.GOLD -> BuildingType.GOLD_MINE
+            }
+        return SpriteIds.building(b, tier)
     }
 
     /** 石のノードのまわりの丘: 草色のこんもりした盛り上がりと小さな岩（地面のキャッシュには入れず、ノードと一緒に描く）。 */
@@ -339,21 +454,28 @@ internal object MapLive {
         offX: Float,
         offY: Float,
         seconds: Float,
+        sprites: SpriteCache?,
         visible: (Int, Int) -> Boolean,
     ) {
+        val near = sprites != null && tile >= SPRITE_MIN_DP * density
         for (b in s.map.barbarians) {
             if (!visible(b.x, b.y)) continue
+            val tentSprite = if (near) sprites!!.get(SpriteIds.TENT) else null
             val x = offX + b.x * tile
             val y = offY + b.y * tile
             drawOval(Color(0x40000000), Offset(x + tile * 0.1f, y + tile * 0.75f), Size(tile * 0.8f, tile * 0.2f))
-            val tent = scratch
-            tent.rewind()
-            tent.moveTo(x + tile * 0.12f, y + tile * 0.82f)
-            tent.lineTo(x + tile * 0.4f, y + tile * 0.3f)
-            tent.lineTo(x + tile * 0.68f, y + tile * 0.82f)
-            tent.close()
-            drawPath(tent, Color(0xFF8B3A2E))
-            drawPath(tent, Color.Black, style = Stroke(1.5f))
+            if (tentSprite != null) {
+                drawSprite(tentSprite, x + tile * 0.42f, y + tile * 0.82f, tile * TENT_SPAN / TENT_FOOTPRINT_VP)
+            } else {
+                val tent = scratch
+                tent.rewind()
+                tent.moveTo(x + tile * 0.12f, y + tile * 0.82f)
+                tent.lineTo(x + tile * 0.4f, y + tile * 0.3f)
+                tent.lineTo(x + tile * 0.68f, y + tile * 0.82f)
+                tent.close()
+                drawPath(tent, Color(0xFF8B3A2E))
+                drawPath(tent, Color.Black, style = Stroke(1.5f))
+            }
             // 焚き火（炎の大きさと揺れは時間で変える）
             val fx = x + tile * 0.78f
             val fy = y + tile * 0.78f
@@ -435,6 +557,20 @@ internal object MapLive {
 
     /** これより小さい（dp）と、飾り・粒・ラベルを省く（密度に依らず見た目の大きさで決める）。 */
     const val LOD_FAR_DP = 8f
+
+    /** これ以上（dp）大きいとき、拠点・資源地・野営地をスプライトで描く（それより遠いと簡易アイコン）。 */
+    const val SPRITE_MIN_DP = 14f
+    private const val FOOTPRINT_VP = 112f
+    private const val CASTLE_SPAN = 1.9f
+    private const val HOLY_SPAN = 2.2f
+    private const val NODE_SPAN = 1.15f
+    private const val NODE_DROP = 0.3f
+    private const val GROUND_DROP = 0.3f
+    private const val TENT_SPAN = 1.0f
+    private const val TENT_FOOTPRINT_VP = 36f
+    private const val ALLY_TIER = 3
+    private const val NPC_TIER_MIN = 2
+    private const val FORT_TIER = 3
     private const val FOG_SOFT_TILES = 5f
     private const val FOG_MAX_ALPHA = 0.7f
     private const val NIGHT_ALPHA = 0.28f

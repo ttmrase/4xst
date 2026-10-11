@@ -83,6 +83,9 @@ internal class Flight(
     val durationMs: Long,
     val lift: Float,
     val sway: Float,
+    /** 資源以外のアイコン（機能の解放など）を飛ばすときの絵文字と行き先。null なら [target] の HUD へ。 */
+    val glyph: String? = null,
+    val dest: Offset? = null,
 )
 
 /**
@@ -133,6 +136,29 @@ class RewardFlyState {
                 ),
             )
         }
+    }
+
+    /** 絵文字 [glyph] を、画面上の [from] から [to]（ウィンドウ座標）へ 1 つ飛ばす（機能の解放でタブへ向かうアイコンなど）。 */
+    fun flyGlyph(
+        from: Offset,
+        to: Offset,
+        glyph: String,
+    ) {
+        if (!enabled || !layerAttached) return
+        seq++
+        val jitter = ((seq * 37) % 100) / 100f
+        flights.add(
+            Flight(
+                from = from,
+                target = FlyTarget.GEMS,
+                startMs = System.currentTimeMillis(),
+                durationMs = FLIGHT_MS + (jitter * FLIGHT_JITTER_MS).toLong(),
+                lift = LIFT_MIN + jitter * LIFT_RANGE,
+                sway = (jitter - 0.5f) * SWAY,
+                glyph = glyph,
+                dest = to,
+            ),
+        )
     }
 
     /** 資源と [gems] の獲得を、種類ごとに飛ばす。量が多いほど個数が増える（5〜12 個）。 */
@@ -234,8 +260,8 @@ fun RewardFlyLayer(state: RewardFlyState) {
             val now = System.currentTimeMillis()
             val done = state.flights.filter { now >= it.startMs + it.durationMs }
             if (done.isNotEmpty()) {
-                done.forEach { state.arrivals[it.target] = now }
-                state.playArrival(context, now)
+                done.forEach { if (it.dest == null) state.arrivals[it.target] = now }
+                if (done.any { it.dest == null }) state.playArrival(context, now)
                 state.flights.removeAll(done.toSet())
             }
         }
@@ -253,7 +279,7 @@ fun RewardFlyLayer(state: RewardFlyState) {
             val t = ((now - f.startMs).toFloat() / f.durationMs).coerceIn(0f, 1f)
             val e = t * t * (3f - 2f * t)
             val from = f.from - origin
-            val to = (state.targets[f.target] ?: state.fallbackTarget ?: (fallback + origin)) - origin
+            val to = (f.dest ?: state.targets[f.target] ?: state.fallbackTarget ?: (fallback + origin)) - origin
             val ctrl = Offset((from.x + to.x) / 2f + f.sway * density, min(from.y, to.y) - f.lift * density)
             val u = 1f - e
             val p =
@@ -261,7 +287,7 @@ fun RewardFlyLayer(state: RewardFlyState) {
                     u * u * from.x + 2f * u * e * ctrl.x + e * e * to.x,
                     u * u * from.y + 2f * u * e * ctrl.y + e * e * to.y,
                 )
-            val layout = measurer.measure(f.target.glyph, ICON_STYLE)
+            val layout = measurer.measure(f.glyph ?: f.target.glyph, ICON_STYLE)
             val alpha = if (t > FADE_START) 1f - (t - FADE_START) / (1f - FADE_START) * 0.5f else 1f
             drawText(
                 layout,

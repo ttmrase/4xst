@@ -66,6 +66,7 @@ import com.ttmrase.crownfall.ui.common.LocalClock
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.glyph
+import com.ttmrase.crownfall.ui.territory.SpriteCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -164,7 +165,13 @@ private fun MapContent(
     // 地面のキャッシュ（マップ画面を閉じたら捨てる）と、毎フレームの再描画の合図
     val cacheScope = remember { MapChunkCache.newScope() }
     DisposableEffect(cacheScope) { onDispose { cacheScope.cancel() } }
-    val chunks = remember(world) { MapChunkCache(world, s.map.seed, cacheScope) }
+    // 城内と共有のスプライト（拠点・資源地・野営地・森の木）。画面を開いたとき先読みする
+    val sprites = remember { SpriteCache.shared(context) }
+    LaunchedEffect(sprites) {
+        sprites.preload(MapArt.TREES.toList())
+        sprites.preload(MapLive.spriteIdsFor(MAP_SPRITE_TIERS))
+    }
+    val chunks = remember(world) { MapChunkCache(world, s.map.seed, cacheScope, sprites) }
     // 動きのある部分（焚き火・光・行軍）は 24Hz で描き直す（街の画面と同じ。ドラッグ・ズーム中は操作のたびに即時に描く）
     var tick by remember { mutableLongStateOf(0L) }
     LaunchedEffect(Unit) {
@@ -197,10 +204,10 @@ private fun MapContent(
                     .transformable(transformState)
                     .pointerInput(Unit) { detectTapGestures { onTap(it) } },
         ) {
-            if (tick < 0L || chunks.version < 0) return@Canvas
+            if (tick < 0L || chunks.version < 0 || sprites.version < 0) return@Canvas
             if (!offX.isNaN() && !offY.isNaN()) {
                 drawWorld(
-                    world, chunks, fog, s, data, basePx * scale, offX, offY, selected, style, dayNight,
+                    world, chunks, fog, sprites, s, data, basePx * scale, offX, offY, selected, style, dayNight,
                     { t -> glyphs.getOrPut(t) { measurer.measure(t.glyph(), GLYPH_STYLE) } },
                 ) {
                     clock?.value ?: s.nowEpochSec
@@ -288,6 +295,7 @@ private fun DrawScope.drawWorld(
     world: WorldMap,
     chunks: MapChunkCache,
     fog: ImageBitmap,
+    sprites: SpriteCache,
     s: GameState,
     data: GameData,
     tile: Float,
@@ -358,9 +366,9 @@ private fun DrawScope.drawWorld(
     with(MapLive) {
         drawTerritory(castleCenter, tile, style.territoryTheme, seconds)
         drawFog(fog, x0, y0, x1, y1, tile, offX, offY)
-        drawStructures(world, tile, offX, offY, style.castleTheme, ::visible)
-        drawNodes(s, tile, offX, offY, seconds, glyph, ::visible)
-        drawCamps(s, tile, offX, offY, seconds, ::visible)
+        drawStructures(world, tile, offX, offY, style.castleTheme, castleTier(s), sprites, ::visible)
+        drawNodes(s, tile, offX, offY, seconds, glyph, sprites, ::visible)
+        drawCamps(s, tile, offX, offY, seconds, sprites, ::visible)
         drawMarches(s, data, tile, offX, offY, now, seconds, style.trailTheme)
     }
     if (selected != null && visible(selected.x, selected.y)) {
@@ -376,6 +384,12 @@ private fun DrawScope.drawWorld(
         drawDayNight(dayNight, (((now + s.settings.utcOffsetSec) / SECONDS_PER_HOUR) % HOURS_PER_DAY).toInt())
     }
 }
+
+/** 城の見た目の段階（Lv1-5 = 1 … Lv21-25 = 5）。 */
+private fun castleTier(s: GameState): Int = ((castleLevel(s).toInt() - 1) / CASTLE_TIER_SPAN + 1).coerceIn(1, 5)
+
+private const val CASTLE_TIER_SPAN = 5
+private const val MAP_SPRITE_TIERS = 5
 
 private fun castleLevel(s: GameState): Float =
     (s.slots.firstOrNull { it.type == com.ttmrase.crownfall.core.model.BuildingType.CASTLE }?.level ?: 1).toFloat()

@@ -11,7 +11,7 @@ object SpriteIds {
         tier: Int,
     ): Int = BUILDINGS.getValue(type)[(tier - 1).coerceIn(0, 4)]
 
-    /** 城のスキン（[theme] は ice / gold / sakura / dragon）の見た目 [tier]（1..5）。知らないテーマは標準の城。 */
+    /** 城のスキン（[theme] は ice / gold / dragon / sakura）の見た目 [tier]（1..5）。知らないテーマは標準の城。 */
     fun castleSkin(
         theme: String,
         tier: Int,
@@ -20,44 +20,11 @@ object SpriteIds {
         return when (theme) {
             "ice" -> CASTLE_ICE[i]
             "gold" -> CASTLE_GOLD[i]
-            "sakura" -> CASTLE_SAKURA[i]
             "dragon" -> CASTLE_DRAGON[i]
+            "sakura" -> CASTLE_SAKURA[i]
             else -> building(BuildingType.CASTLE, tier)
         }
     }
-
-    private val CASTLE_DRAGON =
-        intArrayOf(
-            R.drawable.bld_castle_dragon_t1,
-            R.drawable.bld_castle_dragon_t2,
-            R.drawable.bld_castle_dragon_t3,
-            R.drawable.bld_castle_dragon_t4,
-            R.drawable.bld_castle_dragon_t5,
-        )
-    private val CASTLE_ICE =
-        intArrayOf(
-            R.drawable.bld_castle_ice_t1,
-            R.drawable.bld_castle_ice_t2,
-            R.drawable.bld_castle_ice_t3,
-            R.drawable.bld_castle_ice_t4,
-            R.drawable.bld_castle_ice_t5,
-        )
-    private val CASTLE_GOLD =
-        intArrayOf(
-            R.drawable.bld_castle_gold_t1,
-            R.drawable.bld_castle_gold_t2,
-            R.drawable.bld_castle_gold_t3,
-            R.drawable.bld_castle_gold_t4,
-            R.drawable.bld_castle_gold_t5,
-        )
-    private val CASTLE_SAKURA =
-        intArrayOf(
-            R.drawable.bld_castle_sakura_t1,
-            R.drawable.bld_castle_sakura_t2,
-            R.drawable.bld_castle_sakura_t3,
-            R.drawable.bld_castle_sakura_t4,
-            R.drawable.bld_castle_sakura_t5,
-        )
 
     /** 城壁の部品の drawable（[tier] は 1..5）。 */
     fun wallX(tier: Int): Int = WALL_X[(tier - 1).coerceIn(0, 4)]
@@ -110,6 +77,10 @@ object SpriteIds {
 
     val STATUE: Int = R.drawable.deco_statue
 
+    val TENT: Int = R.drawable.deco_tent
+
+    val TEMPLE: Int = R.drawable.deco_temple
+
     val SITE: Int = R.drawable.deco_site
 
     private val WALL_X =
@@ -146,6 +117,42 @@ object SpriteIds {
             R.drawable.deco_gate_t3,
             R.drawable.deco_gate_t4,
             R.drawable.deco_gate_t5,
+        )
+
+    private val CASTLE_ICE =
+        intArrayOf(
+            R.drawable.bld_castle_ice_t1,
+            R.drawable.bld_castle_ice_t2,
+            R.drawable.bld_castle_ice_t3,
+            R.drawable.bld_castle_ice_t4,
+            R.drawable.bld_castle_ice_t5,
+        )
+
+    private val CASTLE_GOLD =
+        intArrayOf(
+            R.drawable.bld_castle_gold_t1,
+            R.drawable.bld_castle_gold_t2,
+            R.drawable.bld_castle_gold_t3,
+            R.drawable.bld_castle_gold_t4,
+            R.drawable.bld_castle_gold_t5,
+        )
+
+    private val CASTLE_DRAGON =
+        intArrayOf(
+            R.drawable.bld_castle_dragon_t1,
+            R.drawable.bld_castle_dragon_t2,
+            R.drawable.bld_castle_dragon_t3,
+            R.drawable.bld_castle_dragon_t4,
+            R.drawable.bld_castle_dragon_t5,
+        )
+
+    private val CASTLE_SAKURA =
+        intArrayOf(
+            R.drawable.bld_castle_sakura_t1,
+            R.drawable.bld_castle_sakura_t2,
+            R.drawable.bld_castle_sakura_t3,
+            R.drawable.bld_castle_sakura_t4,
+            R.drawable.bld_castle_sakura_t5,
         )
 
     private val BUILDINGS: Map<BuildingType, IntArray> =

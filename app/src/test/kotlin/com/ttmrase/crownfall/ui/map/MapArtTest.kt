@@ -22,16 +22,31 @@ class MapArtTest {
     }
 
     @Test
-    fun roadsStartAtTheCastleAvoidWaterAndAreStable() {
+    fun roadsFormAConnectedNetworkFromTheCastleAvoidWaterAndAreStable() {
         val roads = MapArt.roads(world)
         assertEquals(roads, MapArt.roads(world))
-        val castle = world.structures.first { it.type == StructureType.PLAYER_CASTLE }
         assertTrue(roads.isNotEmpty())
-        for (line in roads) {
-            assertEquals(castle.x + 0.5f, line.first().x, 0f)
-            assertEquals(castle.y + 0.5f, line.first().y, 0f)
-            for (p in line) assertTrue(world.terrainAt(p.x.toInt(), p.y.toInt()) != Terrain.WATER)
+        val castle = world.structures.first { it.type == StructureType.PLAYER_CASTLE }
+        val centers = world.structures.associateBy { (it.x + 0.5f) to (it.y + 0.5f) }
+        // 水の上を通らない
+        for (line in roads) for (p in line) assertTrue(world.terrainAt(p.x.toInt(), p.y.toInt()) != Terrain.WATER)
+        // 両端は拠点の中心。道でつながった拠点の過半は自城と同じ網につながっている（最小全域木が土台）
+        val parent = HashMap<Pair<Float, Float>, Pair<Float, Float>>()
+
+        fun find(k: Pair<Float, Float>): Pair<Float, Float> {
+            var r = k
+            while (parent.getOrPut(r) { r } != r) r = parent.getValue(r)
+            return r
         }
+        for (line in roads) {
+            val a = line.first().x to line.first().y
+            val b = line.last().x to line.last().y
+            assertTrue(a in centers && b in centers)
+            parent[find(a)] = find(b)
+        }
+        val root = find((castle.x + 0.5f) to (castle.y + 0.5f))
+        val keys = parent.keys.toList()
+        assertTrue(keys.count { find(it) == root } * 2 >= keys.size)
     }
 
     @Test
