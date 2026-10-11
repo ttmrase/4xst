@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +30,8 @@ import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.remainingUntil
+import com.ttmrase.crownfall.ui.portrait.PortraitKeys
+import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.shop.ContentsLines
 
 fun eventNameRes(def: EventDef): Int =
@@ -93,12 +96,12 @@ fun EventScreen(
         }
         item { Text(stringResource(R.string.event_standings), style = MaterialTheme.typography.titleMedium) }
         itemsIndexed(rows.take(TOP_ROWS), key = { i, _ -> i }) { i, row ->
-            StandingLine(i + 1, row.name, row.alliance, row.score, row.isPlayer)
+            StandingLine(i + 1, row.name, row.alliance, row.score, row.isPlayer, s.avatar)
         }
         if (rank > TOP_ROWS) {
             item {
                 val me = rows[rank - 1]
-                StandingLine(rank, me.name, me.alliance, me.score, true)
+                StandingLine(rank, me.name, me.alliance, me.score, true, s.avatar)
             }
         }
         item { Text(stringResource(R.string.event_rewards), style = MaterialTheme.typography.titleMedium) }
@@ -139,6 +142,7 @@ private fun StandingLine(
     alliance: String?,
     score: Long,
     isPlayer: Boolean,
+    avatar: Int,
 ) {
     val colors =
         if (isPlayer) {
@@ -149,10 +153,12 @@ private fun StandingLine(
     Card(Modifier.fillMaxWidth(), colors = colors) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            PortraitView(if (isPlayer) PortraitKeys.avatar(avatar) else PortraitKeys.byName(name), name, 32.dp)
             val label = "$place  $name" + (alliance?.let { "  [$it]" } ?: "")
-            Text(label, fontWeight = if (isPlayer) FontWeight.Bold else null)
+            Text(label, fontWeight = if (isPlayer) FontWeight.Bold else null, modifier = Modifier.weight(1f))
             Text(ShortNumber.format(score))
         }
     }

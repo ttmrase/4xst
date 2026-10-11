@@ -50,8 +50,9 @@ import com.ttmrase.crownfall.ui.channelName
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.portrait.PortraitKeys
+import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.speakerName
-import com.ttmrase.crownfall.ui.vip.VipAvatar
 import com.ttmrase.crownfall.ui.vip.VipBadge
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -130,6 +131,19 @@ fun ChatScreen(
                 )
             }
         }
+        if (channel.startsWith("dm_")) {
+            val id = channel.removePrefix("dm_")
+            val def = data.personas.personas.firstOrNull { it.id == id }
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val n = channelName(context, channel)
+                PortraitView(id, n, 44.dp, vip = def?.vipLv ?: 0)
+                Text(n, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            }
+        }
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -144,7 +158,7 @@ fun ChatScreen(
                     } else {
                         data.personas.personas.firstOrNull { it.id == m.speaker }?.vipLv ?: 0
                     }
-                MessageRow(m, playerName, vip, timeFormat, onAnswer)
+                MessageRow(m, playerName, vip, portraitKey(m.speaker, s.avatar), timeFormat, onAnswer)
             }
         }
         typingNow[channel]?.let { who ->
@@ -186,11 +200,18 @@ fun ChatScreen(
     }
 }
 
+/** 発言者のポートレートの鍵（プレイヤーはアバター、ペルソナは ID、システム等は頭文字で代用）。 */
+private fun portraitKey(
+    speaker: String,
+    avatar: Int,
+): String = if (speaker == "player") PortraitKeys.avatar(avatar) else speaker
+
 @Composable
 private fun MessageRow(
     m: ChatMessage,
     playerName: String,
     vip: Int,
+    portrait: String,
     timeFormat: DateFormat,
     onAnswer: (Long, Int) -> Unit,
 ) {
@@ -215,7 +236,7 @@ private fun MessageRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    VipAvatar(name, vip)
+                    PortraitView(portrait, name, 32.dp, vip = vip)
                     Text(name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
                     VipBadge(vip)
                     Text(time, style = MaterialTheme.typography.labelSmall)

@@ -59,6 +59,7 @@ import com.ttmrase.crownfall.ui.heroDescRes
 import com.ttmrase.crownfall.ui.heroNameRes
 import com.ttmrase.crownfall.ui.itemName
 import com.ttmrase.crownfall.ui.nameRes
+import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.rarityColor
 import com.ttmrase.crownfall.ui.skillEffectText
 import kotlinx.coroutines.launch
@@ -125,6 +126,9 @@ fun HeroesScreen(
     }
 }
 
+private val PORTRAIT_CARD = 64.dp
+private val PORTRAIT_DETAIL = 120.dp
+
 @Composable
 private fun HeroCard(
     def: HeroDef,
@@ -143,11 +147,15 @@ private fun HeroCard(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Box(modifier = Modifier.padding(4.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    stringResource(if (owned == null) R.string.hero_unknown_icon else R.string.hero_icon),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = color,
-                )
+                if (owned == null) {
+                    Text(
+                        stringResource(R.string.hero_unknown_icon),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = color,
+                    )
+                } else {
+                    PortraitView(def.id, def.id, PORTRAIT_CARD, rarity = def.rarity)
+                }
             }
             Text(def.rarity.name, style = MaterialTheme.typography.labelSmall, color = color)
             Text(
@@ -193,6 +201,13 @@ private fun HeroDetailSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val name = heroNameRes(def.id)?.let { stringResource(it) } ?: def.id
+            PortraitView(
+                def.id,
+                name,
+                PORTRAIT_DETAIL,
+                Modifier.align(Alignment.CenterHorizontally),
+                rarity = def.rarity,
+            )
             Text(name, style = MaterialTheme.typography.headlineSmall, color = rarityColor(def.rarity))
             heroDescRes(def.id)?.let { Text(stringResource(it), style = MaterialTheme.typography.bodyMedium) }
             Text(

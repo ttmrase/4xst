@@ -760,6 +760,20 @@ object Actions {
             Feature.ALLIANCE,
         ) { AllianceActions.answerQuiz(state, messageId, option, data) }
 
+    /** アバター番号の上限（生成済みの候補数。:app の PortraitView と揃える）。 */
+    const val AVATAR_COUNT = 12
+
+    /** プレイヤーのアバターを選ぶ（0 until [AVATAR_COUNT]）。 */
+    fun setAvatar(
+        state: GameState,
+        index: Int,
+    ): ActionResult =
+        if (index !in 0 until AVATAR_COUNT) {
+            ActionResult.Failure(ActionFailure.InvalidArgument)
+        } else {
+            ActionResult.Success(state.copy(avatar = index))
+        }
+
     /** チャンネルを既読にする。 */
     fun markChannelRead(
         state: GameState,

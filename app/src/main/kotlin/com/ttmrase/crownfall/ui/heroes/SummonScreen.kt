@@ -89,6 +89,7 @@ import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.heroNameRes
+import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.rarityColor
 import com.ttmrase.crownfall.ui.theme.PressButton
 import kotlinx.coroutines.delay
@@ -565,6 +566,7 @@ private fun SummonCard(
                 CardBack(description = stringResource(R.string.summon_back))
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    PortraitView(entry.heroId, entry.heroId, 40.dp, rarity = entry.rarity)
                     Text(entry.rarity.name, color = frame, style = MaterialTheme.typography.titleSmall)
                     Text(
                         heroNameRes(entry.heroId)?.let { stringResource(it) } ?: entry.heroId,

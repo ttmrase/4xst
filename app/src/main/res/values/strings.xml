@@ -1033,4 +1033,5 @@
     <string name="feature_reward_claim">受け取る</string>
     <string name="failure_feature_locked">城 Lv%1$d で解放されます</string>
     <string name="offer_tag_feature_unlock">ショップ解放記念！初回ジェム 2 倍</string>
+    <string name="settings_avatar_title">アバター</string>
 </resources>

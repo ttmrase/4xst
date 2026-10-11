@@ -221,6 +221,10 @@ private fun SettingsForm(
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.settings_save)) }
         }
+        if (session != null) {
+            HorizontalDivider()
+            AvatarSettingsSection(session)
+        }
         HorizontalDivider()
         SoundSettingsSection()
         HorizontalDivider()

@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -35,6 +36,7 @@ import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.heroNameRes
 import com.ttmrase.crownfall.ui.nameRes
+import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.troopNameById
 import kotlin.math.roundToLong
 
@@ -120,13 +122,19 @@ fun FormationSheet(
                 val isBusy = h.heroId in busy
                 val on = h.heroId in heroes
                 val label = if (isBusy) stringResource(R.string.formation_hero_busy_label, name) else name
-                if (on) {
-                    Button(onClick = { heroes.remove(h.heroId) }) { Text(label) }
-                } else {
-                    OutlinedButton(
-                        onClick = { if (heroes.size < maxHeroes) heroes.add(h.heroId) },
-                        enabled = !isBusy,
-                    ) { Text(label) }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    data.heroes[h.heroId]?.let { PortraitView(h.heroId, name, 36.dp, rarity = it.rarity) }
+                    if (on) {
+                        Button(onClick = { heroes.remove(h.heroId) }) { Text(label) }
+                    } else {
+                        OutlinedButton(
+                            onClick = { if (heroes.size < maxHeroes) heroes.add(h.heroId) },
+                            enabled = !isBusy,
+                        ) { Text(label) }
+                    }
                 }
             }
             HorizontalDivider()

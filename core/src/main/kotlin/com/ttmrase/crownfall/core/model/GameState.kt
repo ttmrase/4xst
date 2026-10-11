@@ -25,6 +25,8 @@ data class GameState(
     val rngState: Long = 0,
     val storageFullFlags: Set<ResourceType> = emptySet(),
     val playerName: String = "",
+    /** プレイヤーのアバター番号（0 始まり。表示側の候補数で割った余りを使う。M11 T11.5）。 */
+    val avatar: Int = 0,
     val starterHeroId: String? = null,
     val tutorialStep: Int = 0,
     val troops: Map<String, Long> = emptyMap(),

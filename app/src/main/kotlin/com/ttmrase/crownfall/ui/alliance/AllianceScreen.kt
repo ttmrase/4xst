@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -64,6 +65,8 @@ import com.ttmrase.crownfall.ui.map.FormationSheet
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.namedString
 import com.ttmrase.crownfall.ui.personaName
+import com.ttmrase.crownfall.ui.portrait.PortraitKeys
+import com.ttmrase.crownfall.ui.portrait.PortraitView
 import kotlinx.coroutines.launch
 
 private const val SECONDS_PER_DAY = 86_400L
@@ -248,9 +251,10 @@ private fun MembersTab(
                 login = if (ago == ONLINE_HOURS) stringResource(R.string.alliance_online) else null,
                 hoursAgo = ago,
                 vip = def.vipLv,
+                portrait = def.id,
             )
         }
-        items(data.personas.fillerMembers, key = { it.name }) { f ->
+        itemsIndexed(data.personas.fillerMembers, key = { _, f -> f.name }) { i, f ->
             MemberRow(
                 name = f.name,
                 rank = 1,
@@ -258,6 +262,7 @@ private fun MembersTab(
                 login = if (f.lastLoginHoursAgo <= 0) stringResource(R.string.alliance_online) else null,
                 hoursAgo = f.lastLoginHoursAgo,
                 vip = 0,
+                portrait = PortraitKeys.filler(i),
             )
         }
     }
@@ -271,13 +276,15 @@ private fun MemberRow(
     login: String?,
     hoursAgo: Int,
     vip: Int,
+    portrait: String,
 ) {
     Card(Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            PortraitView(portrait, name, 44.dp, vip = vip)
             Column(Modifier.weight(1f)) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
