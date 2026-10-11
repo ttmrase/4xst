@@ -56,7 +56,7 @@ class SkinMapUiTest {
         Thread.sleep(800)
     }
 
-    private fun AppHarness.scrollToText(text: String) {
+    private fun scrollToText(text: String) {
         runCatching {
             rule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text, substring = true))
         }
@@ -136,17 +136,17 @@ class SkinMapUiTest {
             rule.waitForIdle()
             Thread.sleep(500)
             Screenshots.save("t114_skins_top")
-            h.scrollToText(h.str(R.string.skin_regular_title))
+            scrollToText(h.str(R.string.skin_regular_title))
             Screenshots.save("t114_skins_regular")
-            h.scrollToText(h.str(R.string.skin_bag_title))
+            scrollToText(h.str(R.string.skin_bag_title))
             Screenshots.save("t114_skins_bag")
-            h.scrollToText(h.str(R.string.skin_exchange_title).substringBefore("%1"))
+            scrollToText(h.str(R.string.skin_exchange_title).substringBefore("%1"))
             Screenshots.save("t114_skins_exchange")
-            h.scrollToText(h.str(R.string.skin_wardrobe_title))
+            scrollToText(h.str(R.string.skin_wardrobe_title))
             Screenshots.save("t114_skins_wardrobe")
         }
         h.step("skins_preview") {
-            h.scrollToText(h.str(R.string.skin_week_title).substringBefore(" ("))
+            scrollToText(h.str(R.string.skin_week_title).substringBefore(" ("))
             rule.onAllNodesWithText(h.str(R.string.skin_preview))[0].performClick()
             rule.waitForIdle()
             Thread.sleep(600)
@@ -165,7 +165,7 @@ class SkinMapUiTest {
             h.click(h.str(R.string.shop_tab_skins))
             rule.waitForIdle()
             val ten = h.str(R.string.skin_bag_ten).substringBefore("%1")
-            h.scrollToText(ten)
+            scrollToText(ten)
             rule.onAllNodesWithText(ten, substring = true)[0].performClick()
             rule.waitForIdle()
             Thread.sleep(1_000)
