@@ -1,0 +1,120 @@
+run: 107
+commit: de9a2aecc0ad22d4df90c00be2f1625502b2943f
+job status: success
+images: 121
+bytes: 4260332
+actions: https://github.com/ttmrase/4xst/actions/runs/38128735738
+--- result ---
+gradle exit status: 0
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 0/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 1/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 2/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 3/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 5/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 7/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 8/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 9/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 10/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 11/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 13/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 14/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 15/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 16/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 18/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 19/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 20/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 21/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 22/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 23/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 24/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 25/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 26/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 28/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 29/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 30/33 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 32/33 completed. (0 skipped) (0 failed)
+--- per test (androidTest-results xml) ---
+PASS BuilderUnlockUiTest.secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups
+PASS BuilderUnlockUiTest.barracksShowsTheTroopIcons
+PASS FeatureUnlockUiTest.theShopShowsLockCardsForTheWheelAndThePiggyBankAtCastleLevelFour
+PASS FeatureUnlockUiTest.backSkipsTheWholeCeremonyAndTheAllianceUnlocksAtLevelFour
+PASS FeatureUnlockUiTest.theFirstCastleUpgradeOfAFreshGameShowsItsDuration
+PASS FeatureUnlockUiTest.theLevelThreeUnlockCeremonyAndTheFirstUseRewardAreClaimedOnce
+PASS FeatureUnlockUiTest.settingsShowsTheLockCardBelowLevelFour
+PASS FeatureUnlockUiTest.freshStartShowsLocksAndEveryLockedTabAnswersAndBackWorks
+PASS HarvestSoundUiTest.theCastleLevelUpCeremonyShowsTheNewLevelAndWhatItUnlocks
+PASS HarvestSoundUiTest.tappingAHarvestBubbleCollectsItAndFliesToTheHud
+PASS HarvestSoundUiTest.settingsShowTheSoundAndTitleSections
+PASS HarvestSoundUiTest.theChestCeremonyShowsItsStages
+PASS LaunchSmokeTest.titleScreenAppearsAndCanBeCaptured
+PASS NavUiTest.cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks
+PASS PerfUiTest.lateGameCityPanFrameTimesAndSpriteMemory
+PASS PortraitUiTest.chatAndDmShowTheAvatars
+PASS PortraitUiTest.heroListAndDetailShowThePortraitsWithRarityFrames
+PASS PortraitUiTest.allianceMembersAndSettingsAvatarPickerShowThePortraits
+PASS SeederSmokeTest.seededRichCastleReachesTheSession
+PASS ShopVipUiTest.offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured
+PASS ShopVipUiTest.vipCinematicAndRewardDialogCloseWithBack
+PASS ShopVipUiTest.raidBannerAndSettingsAreCaptured
+PASS SkinMapUiTest.theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview
+PASS SkinMapUiTest.theLuckyBagTenPullShowsItsResult
+PASS SkinMapUiTest.worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook
+PASS SkinMapUiTest.equippedCastleSkinsChangeTheCityAndTheMapAndChat
+PASS SummonUiTest.ritualStagesAndTheTenRollListAreCaptured
+PASS SummonUiTest.tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce
+PASS TerritoryUiTest.tutorialBannerSteps
+PASS TerritoryUiTest.territoryScreenshotsForRichLateAndBuildingStates
+PASS TerritoryUiTest.panAndPinchOnTheTerritoryDoNotCrash
+PASS BackPressInstrumentedTest.systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups
+PASS BackPressInstrumentedTest.systemBackClosesTheBillingSheetBeforeAnyPayment
+--- TestRunner (started / finished / failed) ---
+10-11 09:37:43.231 cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks(com.ttmrase.crownfall.NavUiTest)
+10-11 09:37:43.845 lateGameCityPanFrameTimesAndSpriteMemory(com.ttmrase.crownfall.PerfUiTest)
+10-11 09:38:08.343 lateGameCityPanFrameTimesAndSpriteMemory(com.ttmrase.crownfall.PerfUiTest)
+10-11 09:38:08.984 chatAndDmShowTheAvatars(com.ttmrase.crownfall.PortraitUiTest)
+10-11 09:38:25.886 chatAndDmShowTheAvatars(com.ttmrase.crownfall.PortraitUiTest)
+10-11 09:38:26.421 heroListAndDetailShowThePortraitsWithRarityFrames(com.ttmrase.crownfall.PortraitUiTest)
+10-11 09:38:32.304 heroListAndDetailShowThePortraitsWithRarityFrames(com.ttmrase.crownfall.PortraitUiTest)
+10-11 09:38:32.935 allianceMembersAndSettingsAvatarPickerShowThePortraits(com.ttmrase.crownfall.PortraitUiTest)
+10-11 09:38:38.871 allianceMembersAndSettingsAvatarPickerShowThePortraits(com.ttmrase.crownfall.PortraitUiTest)
+10-11 09:38:39.502 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+10-11 09:38:41.347 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+10-11 09:38:41.366 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 09:38:56.500 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 09:38:57.848 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 09:39:08.855 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 09:39:09.331 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 09:39:13.403 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 09:39:13.872 theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview(com.ttmrase.crownfall.SkinMapUiTest)
+10-11 09:39:24.550 theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview(com.ttmrase.crownfall.SkinMapUiTest)
+10-11 09:39:25.305 theLuckyBagTenPullShowsItsResult(com.ttmrase.crownfall.SkinMapUiTest)
+10-11 09:39:30.841 theLuckyBagTenPullShowsItsResult(com.ttmrase.crownfall.SkinMapUiTest)
+10-11 09:39:31.637 worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook(com.ttmrase.crownfall.SkinMapUiTest)
+10-11 09:39:41.369 worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook(com.ttmrase.crownfall.SkinMapUiTest)
+10-11 09:39:41.966 equippedCastleSkinsChangeTheCityAndTheMapAndChat(com.ttmrase.crownfall.SkinMapUiTest)
+10-11 09:40:02.901 equippedCastleSkinsChangeTheCityAndTheMapAndChat(com.ttmrase.crownfall.SkinMapUiTest)
+10-11 09:40:03.427 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+10-11 09:40:11.636 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+10-11 09:40:12.256 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+10-11 09:40:18.676 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+10-11 09:40:19.202 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 09:40:25.102 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 09:40:25.642 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 09:40:39.648 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 09:40:40.082 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 09:40:45.271 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 09:40:45.796 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 09:40:48.502 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 09:40:48.505 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 09:40:51.454 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 09:40:51.457 33 tests, 0 failed, 0 ignored
+--- perf (logcat CrownfallPerf) ---
+city LATE_GAME idle 5s: frames=4 p50=101.7ms p95=116.8ms p99=116.8ms max=116.9ms janky(>16.7ms)=4 (100.0%)
+city LATE_GAME pan+pinch 10s: frames=71 p50=235.0ms p95=347.7ms p99=353.3ms max=354.4ms janky(>16.7ms)=71 (100.0%)
+memory: spriteCache=31.3MB/87 sprites pss=202MB javaHeap=22MB
+shop list scroll 5s: frames=76 p50=56.6ms p95=83.5ms p99=83.5ms max=93.4ms janky(>16.7ms)=76 (100.0%)
+--- instrumentation results ---
+Starting 33 tests on emulator-5554 - 14
+Finished 33 tests on emulator-5554 - 14
