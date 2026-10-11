@@ -1,0 +1,16 @@
+run: 87
+commit: 6114dafadf69451df68d23eb24bd29df648383b3
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38123369766
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+--- failed tests ---
+> Task :app:mergeDebugResources FAILED
+   > Resource compilation failed (Failed to compile values resource file /home/runner/work/4xst/4xst/app/build/intermediates/incremental/debug/mergeDebugResources/merged.dir/values-en/values-en.xml. Cause: java.lang.IllegalStateException: Can not extract resource from com.android.aaptcompiler.ParsedResource@21260181.,Can not extract resource from com.android.aaptcompiler.ParsedResource@4df35695.). Check logs for more details.
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
