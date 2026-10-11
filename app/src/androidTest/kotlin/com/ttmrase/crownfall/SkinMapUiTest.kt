@@ -145,39 +145,35 @@ class SkinMapUiTest {
     }
 
     @Test
-    fun theNorthSnowTheSoutheastDesertAndTheRiversAreShot() {
+    fun theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot() {
         val h = AppHarness(rule)
         h.seed(Preset.RICH_CASTLE)
         h.launchToCity()
         h.step("map_regions") {
             h.open("world_map")
             h.waitMapLoaded()
-            pinchMap(0.08f, 0.2f)
+            // 城の持ち主（旗の色: 自城=金・同盟=青・NPC=赤・敵の砦=紫）と段階が分かる中ズーム
+            pinchMap(0.08f, 0.13f)
             rule.waitForIdle()
-            // 城は地図の中央（64x64 の (32,32)）。北の雪原 = 地図が下へ動くように、南東の砂漠 = 左上へ動くように引く
-            for (i in 1..3) {
-                panMap(0f, 0.6f)
-                rule.waitForIdle()
-                Screenshots.save("t114_map_north_$i")
-            }
-            repeat(3) { panMap(0f, -0.6f) }
-            for (i in 1..3) {
-                panMap(-0.6f, -0.45f)
-                rule.waitForIdle()
-                Screenshots.save("t114_map_southeast_$i")
-            }
-            repeat(3) { panMap(0.6f, 0.45f) }
-            for (i in 1..2) {
-                panMap(0.6f, 0f)
-                rule.waitForIdle()
-                Screenshots.save("t114_map_west_$i")
-            }
-            repeat(2) { panMap(-0.6f, 0f) }
-            for (i in 1..2) {
-                panMap(-0.6f, 0f)
-                rule.waitForIdle()
-                Screenshots.save("t114_map_east_$i")
-            }
+            Screenshots.save("t114_map_owners")
+            pinchMap(0.08f, 0.16f)
+            rule.waitForIdle()
+            // 世界は 64x64、城は (32,32)。この倍率では 1 回のスワイプ（画面の 0.8 倍）が 6〜8 タイルほど。端でクランプされる
+            // 北の雪原（y < 約 9）
+            repeat(5) { panMap(0f, 0.8f) }
+            rule.waitForIdle()
+            Screenshots.save("t114_map_snow")
+            // 川（北端で x が約 13〜26）: 北端から西へ
+            repeat(3) { panMap(0.8f, 0f) }
+            rule.waitForIdle()
+            Screenshots.save("t114_map_river_north")
+            // 川の南の部分（南端で x が約 35〜48）: 南へ、東へ
+            repeat(10) { panMap(-0.8f, -0.8f) }
+            rule.waitForIdle()
+            Screenshots.save("t114_map_desert")
+            repeat(2) { panMap(0.8f, 0f) }
+            rule.waitForIdle()
+            Screenshots.save("t114_map_river_south")
         }
     }
 
