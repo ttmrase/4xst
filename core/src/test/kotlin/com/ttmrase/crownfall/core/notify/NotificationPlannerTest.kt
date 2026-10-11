@@ -15,7 +15,7 @@ class NotificationPlannerTest {
     private val now = 20_000L * 86_400 + 3600
 
     private fun base(): GameState {
-        val s = TestSupport.newGame(now = now)
+        val s = TestSupport.newGame(now = now, castle = 10)
         return s.copy(map = s.map.copy(nextRaidEpochSec = Long.MAX_VALUE / 4))
     }
 

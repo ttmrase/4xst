@@ -282,6 +282,7 @@ fun failureMessage(
         ActionFailure.AlreadyClaimed -> context.getString(R.string.failure_already_claimed)
         ActionFailure.NotOwned -> context.getString(R.string.failure_not_owned)
         ActionFailure.NothingToClaim -> context.getString(R.string.failure_nothing_to_claim)
+        is ActionFailure.FeatureLocked -> context.getString(R.string.failure_feature_locked, failure.requiredLv)
     }
 
 /** イベントの通知文言（量産型翻訳調）。表示しないイベントは null。 */

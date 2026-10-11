@@ -229,7 +229,7 @@
    }
   },
   {
-   "id": "pack_hero",
+   "id": "pack_hero", "feature": "heroes",
    "priceYen": 1220,
    "listValueYen": 9800,
    "badge": "POPULAR",
@@ -257,7 +257,7 @@
    "tier": 0
   },
   {
-   "id": "pack_revenge",
+   "id": "pack_revenge", "feature": "raids",
    "priceYen": 610,
    "listValueYen": 7800,
    "badge": "RECOMMENDED",
@@ -286,7 +286,7 @@
    }
   },
   {
-   "id": "pack_ranking",
+   "id": "pack_ranking", "feature": "events",
    "priceYen": 1220,
    "listValueYen": 16800,
    "badge": "BEST_VALUE",
@@ -510,7 +510,7 @@
    }
   },
   {
-   "id": "pack_piggy_nudge",
+   "id": "pack_piggy_nudge", "feature": "piggy",
    "priceYen": 160,
    "listValueYen": 980,
    "badge": "NONE",
@@ -611,7 +611,7 @@
    "deal": "normal"
   },
   {
-   "id": "deal_hero",
+   "id": "deal_hero", "feature": "heroes",
    "priceYen": 1220,
    "listValueYen": 14800,
    "badge": "NONE",

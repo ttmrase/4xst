@@ -163,7 +163,7 @@
    {"level":25,"cost":{"food":1010047,"wood":1010047,"stone":1515070,"gold":1060549},"seconds":272160,"prereqs":[{"type":"castle","level":25}],"effects":{"storage_cap":5428008,"protect":2714004},"power":438601}
   ]},
   {"type": "barracks", "count": 1, "maxLevel": 25, "levels": [
-   {"level":1,"cost":{"food":80,"wood":80,"stone":48,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":1}],"effects":{"train_capacity":100},"power":126},
+   {"level":1,"cost":{"food":80,"wood":80,"stone":48,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":2}],"effects":{"train_capacity":100},"power":126},
    {"level":2,"cost":{"food":120,"wood":120,"stone":72,"gold":0},"seconds":6,"prereqs":[{"type":"castle","level":2}],"effects":{"train_capacity":125},"power":179},
    {"level":3,"cost":{"food":180,"wood":180,"stone":108,"gold":0},"seconds":19,"prereqs":[{"type":"castle","level":3}],"effects":{"train_capacity":156},"power":254},
    {"level":4,"cost":{"food":270,"wood":270,"stone":162,"gold":0},"seconds":58,"prereqs":[{"type":"castle","level":4}],"effects":{"train_capacity":195},"power":361},
@@ -190,7 +190,7 @@
    {"level":25,"cost":{"food":1346729,"wood":1346729,"stone":2020093,"gold":1414065},"seconds":362880,"prereqs":[{"type":"castle","level":25}],"effects":{"train_capacity":21176},"power":570182}
   ]},
   {"type": "archery_range", "count": 1, "maxLevel": 25, "levels": [
-   {"level":1,"cost":{"food":80,"wood":80,"stone":48,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":1}],"effects":{"train_capacity":100},"power":126},
+   {"level":1,"cost":{"food":80,"wood":80,"stone":48,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":3}],"effects":{"train_capacity":100},"power":126},
    {"level":2,"cost":{"food":120,"wood":120,"stone":72,"gold":0},"seconds":6,"prereqs":[{"type":"castle","level":2}],"effects":{"train_capacity":125},"power":179},
    {"level":3,"cost":{"food":180,"wood":180,"stone":108,"gold":0},"seconds":19,"prereqs":[{"type":"castle","level":3}],"effects":{"train_capacity":156},"power":254},
    {"level":4,"cost":{"food":270,"wood":270,"stone":162,"gold":0},"seconds":58,"prereqs":[{"type":"castle","level":4}],"effects":{"train_capacity":195},"power":361},
@@ -217,7 +217,7 @@
    {"level":25,"cost":{"food":1346729,"wood":1346729,"stone":2020093,"gold":1414065},"seconds":362880,"prereqs":[{"type":"castle","level":25}],"effects":{"train_capacity":21176},"power":570182}
   ]},
   {"type": "stable", "count": 1, "maxLevel": 25, "levels": [
-   {"level":1,"cost":{"food":80,"wood":80,"stone":48,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":1}],"effects":{"train_capacity":100},"power":126},
+   {"level":1,"cost":{"food":80,"wood":80,"stone":48,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":3}],"effects":{"train_capacity":100},"power":126},
    {"level":2,"cost":{"food":120,"wood":120,"stone":72,"gold":0},"seconds":6,"prereqs":[{"type":"castle","level":2}],"effects":{"train_capacity":125},"power":179},
    {"level":3,"cost":{"food":180,"wood":180,"stone":108,"gold":0},"seconds":19,"prereqs":[{"type":"castle","level":3}],"effects":{"train_capacity":156},"power":254},
    {"level":4,"cost":{"food":270,"wood":270,"stone":162,"gold":0},"seconds":58,"prereqs":[{"type":"castle","level":4}],"effects":{"train_capacity":195},"power":361},
@@ -244,7 +244,7 @@
    {"level":25,"cost":{"food":1346729,"wood":1346729,"stone":2020093,"gold":1414065},"seconds":362880,"prereqs":[{"type":"castle","level":25}],"effects":{"train_capacity":21176},"power":570182}
   ]},
   {"type": "siege_workshop", "count": 1, "maxLevel": 25, "levels": [
-   {"level":1,"cost":{"food":85,"wood":85,"stone":51,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":1}],"effects":{"train_capacity":100},"power":126},
+   {"level":1,"cost":{"food":85,"wood":85,"stone":51,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":5}],"effects":{"train_capacity":100},"power":126},
    {"level":2,"cost":{"food":128,"wood":128,"stone":76,"gold":0},"seconds":6,"prereqs":[{"type":"castle","level":2}],"effects":{"train_capacity":125},"power":179},
    {"level":3,"cost":{"food":191,"wood":191,"stone":115,"gold":0},"seconds":20,"prereqs":[{"type":"castle","level":3}],"effects":{"train_capacity":156},"power":254},
    {"level":4,"cost":{"food":287,"wood":287,"stone":172,"gold":0},"seconds":63,"prereqs":[{"type":"castle","level":4}],"effects":{"train_capacity":195},"power":361},
@@ -271,7 +271,7 @@
    {"level":25,"cost":{"food":1430900,"wood":1430900,"stone":2146349,"gold":1502445},"seconds":393120,"prereqs":[{"type":"castle","level":25}],"effects":{"train_capacity":21176},"power":570182}
   ]},
   {"type": "hospital", "count": 1, "maxLevel": 25, "levels": [
-   {"level":1,"cost":{"food":70,"wood":70,"stone":42,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":1}],"effects":{"hospital_capacity":500},"power":97},
+   {"level":1,"cost":{"food":70,"wood":70,"stone":42,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":2}],"effects":{"hospital_capacity":500},"power":97},
    {"level":2,"cost":{"food":105,"wood":105,"stone":63,"gold":0},"seconds":6,"prereqs":[{"type":"castle","level":2}],"effects":{"hospital_capacity":640},"power":138},
    {"level":3,"cost":{"food":158,"wood":158,"stone":94,"gold":0},"seconds":17,"prereqs":[{"type":"castle","level":3}],"effects":{"hospital_capacity":819},"power":196},
    {"level":4,"cost":{"food":236,"wood":236,"stone":142,"gold":0},"seconds":53,"prereqs":[{"type":"castle","level":4}],"effects":{"hospital_capacity":1049},"power":278},
@@ -298,7 +298,7 @@
    {"level":25,"cost":{"food":1178388,"wood":1178388,"stone":1767582,"gold":1237307},"seconds":332640,"prereqs":[{"type":"castle","level":25}],"effects":{"hospital_capacity":187072},"power":438601}
   ]},
   {"type": "academy", "count": 1, "maxLevel": 25, "levels": [
-   {"level":1,"cost":{"food":90,"wood":90,"stone":54,"gold":0},"seconds":4,"prereqs":[{"type":"castle","level":1}],"effects":{"research_tier":1},"power":97},
+   {"level":1,"cost":{"food":90,"wood":90,"stone":54,"gold":0},"seconds":4,"prereqs":[{"type":"castle","level":6}],"effects":{"research_tier":1},"power":97},
    {"level":2,"cost":{"food":135,"wood":135,"stone":81,"gold":0},"seconds":8,"prereqs":[{"type":"castle","level":2}],"effects":{"research_tier":2},"power":138},
    {"level":3,"cost":{"food":202,"wood":202,"stone":122,"gold":0},"seconds":25,"prereqs":[{"type":"castle","level":3}],"effects":{"research_tier":3},"power":196},
    {"level":4,"cost":{"food":304,"wood":304,"stone":182,"gold":0},"seconds":78,"prereqs":[{"type":"castle","level":4}],"effects":{"research_tier":4},"power":278},
@@ -352,7 +352,7 @@
    {"level":25,"cost":{"food":1178388,"wood":1178388,"stone":1767582,"gold":1237307},"seconds":453600,"prereqs":[{"type":"castle","level":25}],"effects":{"wall_hp":542801},"power":526321}
   ]},
   {"type": "watchtower", "count": 1, "maxLevel": 25, "levels": [
-   {"level":1,"cost":{"food":60,"wood":60,"stone":36,"gold":0},"seconds":2,"prereqs":[{"type":"castle","level":1}],"effects":{"scout_accuracy_bp":2300},"power":97},
+   {"level":1,"cost":{"food":60,"wood":60,"stone":36,"gold":0},"seconds":2,"prereqs":[{"type":"castle","level":5}],"effects":{"scout_accuracy_bp":2300},"power":97},
    {"level":2,"cost":{"food":90,"wood":90,"stone":54,"gold":0},"seconds":5,"prereqs":[{"type":"castle","level":2}],"effects":{"scout_accuracy_bp":2600},"power":138},
    {"level":3,"cost":{"food":135,"wood":135,"stone":81,"gold":0},"seconds":16,"prereqs":[{"type":"castle","level":3}],"effects":{"scout_accuracy_bp":2900},"power":196},
    {"level":4,"cost":{"food":202,"wood":202,"stone":122,"gold":0},"seconds":48,"prereqs":[{"type":"castle","level":4}],"effects":{"scout_accuracy_bp":3200},"power":278},
@@ -379,7 +379,7 @@
    {"level":25,"cost":{"food":1010047,"wood":1010047,"stone":1515070,"gold":1060549},"seconds":302400,"prereqs":[{"type":"castle","level":25}],"effects":{"scout_accuracy_bp":9500},"power":438601}
   ]},
   {"type": "trading_post", "count": 1, "maxLevel": 25, "levels": [
-   {"level":1,"cost":{"food":60,"wood":60,"stone":36,"gold":0},"seconds":2,"prereqs":[{"type":"castle","level":1}],"effects":{"trade_rate_bp":5100},"power":97},
+   {"level":1,"cost":{"food":60,"wood":60,"stone":36,"gold":0},"seconds":2,"prereqs":[{"type":"castle","level":3}],"effects":{"trade_rate_bp":5100},"power":97},
    {"level":2,"cost":{"food":90,"wood":90,"stone":54,"gold":0},"seconds":4,"prereqs":[{"type":"castle","level":2}],"effects":{"trade_rate_bp":5200},"power":138},
    {"level":3,"cost":{"food":135,"wood":135,"stone":81,"gold":0},"seconds":12,"prereqs":[{"type":"castle","level":3}],"effects":{"trade_rate_bp":5300},"power":196},
    {"level":4,"cost":{"food":202,"wood":202,"stone":122,"gold":0},"seconds":39,"prereqs":[{"type":"castle","level":4}],"effects":{"trade_rate_bp":5400},"power":278},
@@ -406,7 +406,7 @@
    {"level":25,"cost":{"food":1010047,"wood":1010047,"stone":1515070,"gold":1060549},"seconds":241920,"prereqs":[{"type":"castle","level":25}],"effects":{"trade_rate_bp":7500},"power":438601}
   ]},
   {"type": "alliance_center", "count": 1, "maxLevel": 25, "levels": [
-   {"level":1,"cost":{"food":60,"wood":60,"stone":36,"gold":0},"seconds":2,"prereqs":[{"type":"castle","level":1}],"effects":{"help_count":3},"power":97},
+   {"level":1,"cost":{"food":60,"wood":60,"stone":36,"gold":0},"seconds":2,"prereqs":[{"type":"castle","level":4}],"effects":{"help_count":3},"power":97},
    {"level":2,"cost":{"food":90,"wood":90,"stone":54,"gold":0},"seconds":5,"prereqs":[{"type":"castle","level":2}],"effects":{"help_count":3},"power":138},
    {"level":3,"cost":{"food":135,"wood":135,"stone":81,"gold":0},"seconds":16,"prereqs":[{"type":"castle","level":3}],"effects":{"help_count":4},"power":196},
    {"level":4,"cost":{"food":202,"wood":202,"stone":122,"gold":0},"seconds":48,"prereqs":[{"type":"castle","level":4}],"effects":{"help_count":4},"power":278},
@@ -433,7 +433,7 @@
    {"level":25,"cost":{"food":1010047,"wood":1010047,"stone":1515070,"gold":1060549},"seconds":302400,"prereqs":[{"type":"castle","level":25}],"effects":{"help_count":11},"power":438601}
   ]},
   {"type": "tavern", "count": 1, "maxLevel": 25, "levels": [
-   {"level":1,"cost":{"food":60,"wood":60,"stone":36,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":1}],"effects":{"hero_cap":3},"power":97},
+   {"level":1,"cost":{"food":60,"wood":60,"stone":36,"gold":0},"seconds":3,"prereqs":[{"type":"castle","level":7}],"effects":{"hero_cap":3},"power":97},
    {"level":2,"cost":{"food":90,"wood":90,"stone":54,"gold":0},"seconds":6,"prereqs":[{"type":"castle","level":2}],"effects":{"hero_cap":3},"power":138},
    {"level":3,"cost":{"food":135,"wood":135,"stone":81,"gold":0},"seconds":17,"prereqs":[{"type":"castle","level":3}],"effects":{"hero_cap":4},"power":196},
    {"level":4,"cost":{"food":202,"wood":202,"stone":122,"gold":0},"seconds":53,"prereqs":[{"type":"castle","level":4}],"effects":{"hero_cap":4},"power":278},
@@ -460,7 +460,7 @@
    {"level":25,"cost":{"food":1010047,"wood":1010047,"stone":1515070,"gold":1060549},"seconds":332640,"prereqs":[{"type":"castle","level":25}],"effects":{"hero_cap":11},"power":438601}
   ]},
   {"type": "builders_hut", "count": 1, "maxLevel": 25, "levels": [
-   {"level":1,"cost":{"food":60,"wood":60,"stone":36,"gold":0},"seconds":2,"prereqs":[{"type":"castle","level":1}],"effects":{"builder_hut":1},"power":97},
+   {"level":1,"cost":{"food":60,"wood":60,"stone":36,"gold":0},"seconds":2,"prereqs":[{"type":"castle","level":2}],"effects":{"builder_hut":1},"power":97},
    {"level":2,"cost":{"food":90,"wood":90,"stone":54,"gold":0},"seconds":4,"prereqs":[{"type":"castle","level":2}],"effects":{"builder_hut":1},"power":138},
    {"level":3,"cost":{"food":135,"wood":135,"stone":81,"gold":0},"seconds":12,"prereqs":[{"type":"castle","level":3}],"effects":{"builder_hut":1},"power":196},
    {"level":4,"cost":{"food":202,"wood":202,"stone":122,"gold":0},"seconds":39,"prereqs":[{"type":"castle","level":4}],"effects":{"builder_hut":1},"power":278},

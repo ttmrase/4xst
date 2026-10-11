@@ -2,10 +2,14 @@ package com.ttmrase.crownfall.offers
 
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.MonthPass
 import com.ttmrase.crownfall.core.shop.OfferEngine
+import com.ttmrase.crownfall.core.sim.ActionFailure
+import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -22,13 +26,20 @@ class ShopOfferHooks(
     private val scope: CoroutineScope,
     private val openProduct: (String) -> Unit = {},
     private val notify: (Int) -> Unit = {},
+    private val notifyLocked: (Int) -> Unit = {},
 ) : OfferHooks {
+    /** ショップが未解放（城 Lv3 未満）なら、無反応にせず「城 Lv n で解放」を知らせる。 */
+    private fun reportLocked(result: ActionResult) {
+        val reason = (result as? ActionResult.Failure)?.reason
+        if (reason is ActionFailure.FeatureLocked) notifyLocked(reason.requiredLv)
+    }
+
     override fun onResourceShortage(missing: Resources) {
-        scope.launch { session.dispatch { Actions.offerForShortage(it, missing, data) } }
+        scope.launch { reportLocked(session.dispatch { Actions.offerForShortage(it, missing, data) }) }
     }
 
     override fun onGemShortage(missing: Long) {
-        scope.launch { session.dispatch { Actions.offerForGemShortage(it, missing, data) } }
+        scope.launch { reportLocked(session.dispatch { Actions.offerForGemShortage(it, missing, data) }) }
     }
 
     /**
@@ -39,8 +50,10 @@ class ShopOfferHooks(
         scope.launch {
             val s = session.state.value ?: return@launch
             when {
+                !FeatureGate.unlocked(s, data, Feature.SHOP) ->
+                    notifyLocked(FeatureGate.requiredLv(data, Feature.SHOP))
                 OfferEngine.canRequestSecondBuilder(s, data) ->
-                    session.dispatch { Actions.offerForSecondBuilder(it, data) }
+                    reportLocked(session.dispatch { Actions.offerForSecondBuilder(it, data) })
                 !MonthPass.active(s) -> openProduct(data.shopRules.monthPass.sku)
                 else -> notify(R.string.offer_sold_out_today)
             }

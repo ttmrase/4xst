@@ -3,6 +3,8 @@ package com.ttmrase.crownfall.core.alliance
 import com.ttmrase.crownfall.core.chat.ChatEvent
 import com.ttmrase.crownfall.core.chat.ChatKeys
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.map.TileRef
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.LogKind
@@ -53,7 +55,12 @@ internal object AllianceHooks {
         state: GameState,
         lv: Int,
         data: GameData,
-    ): GameState = AllianceLogic.enqueueReactive(state, ChatEvent.PlayerCastleUp(lv), listOf(LEADER, ANALYST), data)
+    ): GameState =
+        if (FeatureGate.unlocked(state, data, Feature.ALLIANCE)) {
+            AllianceLogic.enqueueReactive(state, ChatEvent.PlayerCastleUp(lv), listOf(LEADER, ANALYST), data)
+        } else {
+            state
+        }
 
     /** 襲撃の結果。 */
     fun onRaid(

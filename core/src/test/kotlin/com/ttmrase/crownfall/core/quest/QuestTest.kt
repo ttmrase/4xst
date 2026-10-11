@@ -23,7 +23,7 @@ class QuestTest {
     private val t0 = 20_000L * day + 12 * 3600
 
     private fun base(utc: Int = 0): GameState {
-        val s = TestSupport.newGame(now = t0)
+        val s = TestSupport.newGame(now = t0, castle = 10)
         return s.copy(
             settings = s.settings.copy(utcOffsetSec = utc),
             map = s.map.copy(nextRaidEpochSec = Long.MAX_VALUE / 4),
@@ -189,11 +189,11 @@ class QuestTest {
     fun chaptersProgressInOrderAndPayOnce() {
         val ch1 = data.quests.chapters[0]
         val ch2 = data.quests.chapters[1]
-        var s = TestSupport.newGame(now = t0)
+        var s = TestSupport.newGame(now = t0, castle = 3)
         assertEquals(ch1, QuestLogic.currentChapter(s, data))
         assertEquals(ActionFailure.NothingToClaim, Actions.claimQuest(s, ch1.id, data).failure())
         // 1 章のタスク（城 Lv2・農場 Lv2・製材所 Lv2）を満たす
-        val lv2 = setOf(BuildingType.CASTLE, BuildingType.FARM, BuildingType.SAWMILL)
+        val lv2 = setOf(BuildingType.FARM, BuildingType.SAWMILL)
         s = s.copy(slots = s.slots.map { if (it.type in lv2) it.copy(level = 2) else it })
         assertTrue(QuestLogic.chapterDone(ch1, s, data))
         assertEquals(1, QuestLogic.claimableCount(s, data))

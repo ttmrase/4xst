@@ -10,9 +10,13 @@ class LockedSlotsTest {
     private val data = TestSupport.data
 
     @Test
-    fun aNewGameHasNoLockedSlotBecauseEveryLevelOnePrerequisiteIsCastleOne() {
+    fun aNewGameLocksExactlyTheBuildingsTheUnlockTableHoldsBack() {
         val s = TestSupport.newGame()
-        assertTrue(UiQueries.lockedSlots(s, data).isEmpty())
+        val locked = UiQueries.lockedSlots(s, data)
+        val gated = s.slots.filter { it.level == 0 && data.building(it.type).level(1).prereqs.single().level > 1 }
+        assertTrue(gated.isNotEmpty())
+        assertEquals(gated.map { it.slotId }.toSet(), locked.keys)
+        for (slot in gated) assertEquals(BuildingType.CASTLE, locked.getValue(slot.slotId).type)
     }
 
     @Test
@@ -24,7 +28,7 @@ class LockedSlotsTest {
         for (slot in unbuilt) {
             val need = locked[slot.slotId]
             assertEquals(BuildingType.CASTLE, need?.type, "slot ${slot.slotId}")
-            assertEquals(1, need?.level)
+            assertEquals(data.building(slot.type).level(1).prereqs.single().level, need?.level)
         }
     }
 

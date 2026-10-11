@@ -76,12 +76,15 @@ class AllianceActionsTest {
         var s = at21()
         s = Actions.startUpgrade(s, TestSupport.slotOf(s, BuildingType.CASTLE), data).ok()
         val id = s.timers.single().id
-        val marked = Actions.requestHelp(s, id).ok()
+        val marked = Actions.requestHelp(s, id, data).ok()
         assertTrue(marked.timers.single().helpRequested)
-        assertEquals(ActionFailure.HelpAlreadyRequested, Actions.requestHelp(marked, id).failure())
-        assertEquals(ActionFailure.JobNotFound, Actions.requestHelp(s, 999).failure())
+        assertEquals(ActionFailure.HelpAlreadyRequested, Actions.requestHelp(marked, id, data).failure())
+        assertEquals(ActionFailure.JobNotFound, Actions.requestHelp(s, 999, data).failure())
         val heal = s.timers.single().copy(kind = TimerKind.HEAL)
-        assertEquals(ActionFailure.InvalidArgument, Actions.requestHelp(s.copy(timers = listOf(heal)), id).failure())
+        assertEquals(
+            ActionFailure.InvalidArgument,
+            Actions.requestHelp(s.copy(timers = listOf(heal)), id, data).failure(),
+        )
     }
 
     @Test

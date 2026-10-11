@@ -15,8 +15,9 @@ internal object ShopTestSupport {
     fun base(
         freq: OfferFrequency = OfferFrequency.MASS,
         utc: Int = 0,
+        castle: Int = 5,
     ): GameState {
-        var s = TestSupport.advanced(level = 5, castle = 5, now = DAY0 * DAY + 12 * HOUR)
+        var s = TestSupport.advanced(level = castle, castle = castle, now = DAY0 * DAY + 12 * HOUR)
         s = s.copy(rngState = 7, resources = TestSupport.RICH, gems = 0)
         s = s.copy(map = s.map.copy(nextRaidEpochSec = Long.MAX_VALUE / 4))
         s = s.copy(settings = s.settings.copy(utcOffsetSec = utc))

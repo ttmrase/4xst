@@ -70,6 +70,8 @@ data class PackDef(
     val tier: Int = 0,
     val trigger: TriggerDef? = null,
     val deal: String? = null,
+    /** このパックを出すのに解放が要る機能の id（[com.ttmrase.crownfall.core.feature.Feature.id]）。 */
+    val feature: String? = null,
 )
 
 /** offers.json。 */

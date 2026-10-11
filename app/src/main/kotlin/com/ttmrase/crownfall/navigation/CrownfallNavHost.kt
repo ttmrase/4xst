@@ -7,7 +7,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -31,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,6 +47,8 @@ import androidx.navigation.navArgument
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.ai.AiService
 import com.ttmrase.crownfall.chat.ChatCoordinator
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.BattleKind
 import com.ttmrase.crownfall.core.quest.QuestLogic
 import com.ttmrase.crownfall.core.shop.OfferEngine
@@ -66,6 +71,9 @@ import com.ttmrase.crownfall.ui.common.collectClock
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.event.EventScreen
 import com.ttmrase.crownfall.ui.eventMessage
+import com.ttmrase.crownfall.ui.feature.FeatureOverlays
+import com.ttmrase.crownfall.ui.feature.LockedFeatureDialog
+import com.ttmrase.crownfall.ui.feature.LockedScreenBody
 import com.ttmrase.crownfall.ui.heroes.HeroesScreen
 import com.ttmrase.crownfall.ui.heroes.SummonScreen
 import com.ttmrase.crownfall.ui.mail.MailScreen
@@ -87,6 +95,7 @@ import kotlinx.coroutines.launch
 
 /** 単一 Activity 用の NavHost と下部ナビ（Title では非表示）。 */
 private const val CLAIM_PERIOD_MS = 30_000L
+private const val LOCKED_ALPHA = 0.45f
 private const val TRANSITION_MS = 180
 private const val SLIDE_DIV = 12
 
@@ -117,6 +126,11 @@ fun CrownfallNavHost(
                     scope = uiScope,
                     openProduct = { billingId = it },
                     notify = { res -> uiScope.launch { snackbarHostState.showReplacing(context.getString(res)) } },
+                    notifyLocked = { lv ->
+                        uiScope.launch {
+                            snackbarHostState.showReplacing(context.getString(R.string.failure_feature_locked, lv))
+                        }
+                    },
                 )
             } else {
                 NoOpOfferHooks
@@ -145,6 +159,23 @@ fun CrownfallNavHost(
         }
     val claimable by claimFlow.collectAsStateWithLifecycle(0)
     val clock = readySession?.collectClock()
+
+    // 段階解放: 城 Lv と、タップで開くロックのダイアログ、城のアップグレードを開く要求
+    val castleFlow =
+        remember(readySession) {
+            readySession?.state?.map { s -> s?.let { FeatureGate.castleLevel(it) } ?: 0 }?.distinctUntilChanged()
+                ?: flowOf(0)
+        }
+    val castleLv by castleFlow.collectAsStateWithLifecycle(0)
+    var lockedFeature by remember { mutableStateOf<Feature?>(null) }
+    var castleRequest by remember { mutableIntStateOf(0) }
+
+    fun isLocked(feature: Feature?): Boolean =
+        feature != null && ready != null && !FeatureGate.unlockedAt(ready.data, castleLv, feature)
+    val upgradeCastle = {
+        castleRequest++
+        navController.navigateBottom(BottomDestination.City)
+    }
 
     // 全画面共通のトースト（ヘルプ受領・ギフト・行軍の帰還など）。
     LaunchedEffect(readySession) {
@@ -224,9 +255,13 @@ fun CrownfallNavHost(
                 if (destination != null && destination.route != Screen.Title.route) {
                     NavigationBar {
                         BottomDestination.entries.forEach { item ->
+                            val locked = isLocked(item.feature)
                             NavigationBarItem(
                                 selected = destination.hierarchy.any { it.route == item.screen.route },
-                                onClick = { navController.navigateBottom(item) },
+                                onClick = {
+                                    if (locked) lockedFeature = item.feature else navController.navigateBottom(item)
+                                },
+                                modifier = Modifier.alpha(if (locked) LOCKED_ALPHA else 1f),
                                 icon = {
                                     val isAlliance = item == BottomDestination.Alliance
                                     val isCity = item == BottomDestination.City
@@ -236,7 +271,15 @@ fun CrownfallNavHost(
                                             isCity -> claimable
                                             else -> 0
                                         }
-                                    BadgedBox(badge = { if (count > 0) Badge { Text(count.toString()) } }) {
+                                    BadgedBox(
+                                        badge = {
+                                            if (locked) {
+                                                Badge { Text("🔒") }
+                                            } else if (count > 0) {
+                                                Badge { Text(count.toString()) }
+                                            }
+                                        },
+                                    ) {
                                         Icon(item.icon, contentDescription = null)
                                     }
                                 },
@@ -286,6 +329,7 @@ fun CrownfallNavHost(
                                 snackbarHostState = snackbarHostState,
                                 onNavigate = { navController.navigate(it.route) },
                                 onOpenBarracks = { tab -> navController.navigate("${Screen.Barracks.route}?tab=$tab") },
+                                castleRequest = castleRequest,
                             )
                         }
                     }
@@ -299,8 +343,7 @@ fun CrownfallNavHost(
                                 },
                             ),
                     ) { entry ->
-                        val ready = startup as? Startup.Ready
-                        if (ready != null) {
+                        Guard(Screen.Barracks, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
                             BarracksScreen(
                                 ready.session,
                                 ready.data,
@@ -311,12 +354,12 @@ fun CrownfallNavHost(
                         }
                     }
                     composable(Screen.Research.route) {
-                        val ready = startup as? Startup.Ready
-                        if (ready != null) ResearchScreen(ready.session, ready.data, hooks, snackbarHostState)
+                        Guard(Screen.Research, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                            ResearchScreen(ready.session, ready.data, hooks, snackbarHostState)
+                        }
                     }
                     composable(Screen.Heroes.route) {
-                        val ready = startup as? Startup.Ready
-                        if (ready != null) {
+                        Guard(Screen.Heroes, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
                             HeroesScreen(
                                 ready.session,
                                 ready.data,
@@ -325,12 +368,12 @@ fun CrownfallNavHost(
                         }
                     }
                     composable(Screen.Summon.route) {
-                        val ready = startup as? Startup.Ready
-                        if (ready != null) SummonScreen(ready.session, ready.data, hooks, snackbarHostState)
+                        Guard(Screen.Summon, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                            SummonScreen(ready.session, ready.data, hooks, snackbarHostState)
+                        }
                     }
                     composable(Screen.WorldMap.route) {
-                        val ready = startup as? Startup.Ready
-                        if (ready != null) {
+                        Guard(Screen.WorldMap, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
                             MapScreen(
                                 ready.session,
                                 ready.data,
@@ -343,16 +386,14 @@ fun CrownfallNavHost(
                         if (ready != null) MailScreen(ready.session, ready.data)
                     }
                     composable(Screen.Alliance.route) {
-                        val ready = startup as? Startup.Ready
-                        if (ready != null) {
+                        Guard(Screen.Alliance, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
                             AllianceScreen(ready.session, ready.data, snackbarHostState) {
                                 navController.navigate(Screen.Chat.route)
                             }
                         }
                     }
                     composable(Screen.Chat.route) {
-                        val ready = startup as? Startup.Ready
-                        if (ready != null) {
+                        Guard(Screen.Chat, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
                             ChatScreen(
                                 ready.session,
                                 ready.data,
@@ -363,16 +404,19 @@ fun CrownfallNavHost(
                         }
                     }
                     composable(Screen.Shop.route) {
-                        val r = startup as? Startup.Ready
-                        if (r != null) ShopScreen(r.session, r.data, snackbarHostState) { billingId = it }
+                        Guard(Screen.Shop, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
+                            ShopScreen(r.session, r.data, snackbarHostState) { billingId = it }
+                        }
                     }
                     composable(Screen.Quests.route) {
-                        val r = startup as? Startup.Ready
-                        if (r != null) QuestScreen(r.session, r.data, snackbarHostState)
+                        Guard(Screen.Quests, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
+                            QuestScreen(r.session, r.data, snackbarHostState)
+                        }
                     }
                     composable(Screen.Event.route) {
-                        val r = startup as? Startup.Ready
-                        if (r != null) EventScreen(r.session, r.data)
+                        Guard(Screen.Event, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
+                            EventScreen(r.session, r.data)
+                        }
                     }
                     composable(Screen.Settings.route) {
                         val r = startup as? Startup.Ready
@@ -420,6 +464,25 @@ fun CrownfallNavHost(
             onIdle = { if (exitStage == 1) exitStage = 2 },
         )
         VipCinematicHost(ready.session, ready.data, hold = billingId != null, onActive = { vipActive = it })
+        FeatureOverlays(
+            session = ready.session,
+            data = ready.data,
+            target = { f -> BottomDestination.entries.indexOfFirst { it.feature == f }.takeIf { it >= 0 } },
+            modifier = Modifier.fillMaxSize().statusBarsPadding(),
+        )
+        lockedFeature?.let { f ->
+            LockedFeatureDialog(
+                feature = f,
+                data = ready.data,
+                castleLv = castleLv,
+                onUpgrade = {
+                    lockedFeature = null
+                    castleRequest++
+                    navController.navigateBottom(BottomDestination.City)
+                },
+                onDismiss = { lockedFeature = null },
+            )
+        }
         billingId?.let { id ->
             FakeBillingSheet(
                 id,
@@ -448,5 +511,23 @@ fun CrownfallNavHost(
                 },
             )
         }
+    }
+}
+
+/** 未解放の画面は中身を作らず、ロックの案内を出す（通知などで直接開かれたときも同じ）。 */
+@Composable
+private fun Guard(
+    screen: Screen,
+    ready: Startup.Ready?,
+    castleLv: Int,
+    onUpgrade: () -> Unit,
+    content: @Composable (Startup.Ready) -> Unit,
+) {
+    if (ready == null) return
+    val feature = screen.requiredFeature()
+    if (feature != null && !FeatureGate.unlockedAt(ready.data, castleLv, feature)) {
+        LockedScreenBody(feature, ready.data, castleLv, onUpgrade, Modifier.fillMaxSize())
+    } else {
+        content(ready)
     }
 }

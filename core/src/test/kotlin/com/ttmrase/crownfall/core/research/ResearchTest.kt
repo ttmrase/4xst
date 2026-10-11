@@ -26,7 +26,7 @@ class ResearchTest {
 
     /** Academy を Lv[academy] にして資源を満たした状態。 */
     private fun ready(academy: Int = 3): GameState =
-        TestSupport.withAcademy(TestSupport.advanced(), academy).copy(resources = RICH)
+        TestSupport.withAcademy(TestSupport.advanced(level = 2, castle = 6), academy).copy(resources = RICH)
 
     @Test
     fun startResearchChargesCostAndSchedulesCompletion() {
@@ -90,7 +90,7 @@ class ResearchTest {
         val cost = data.research.getValue("eco_food").level(1).cost
         assertEquals(ActionFailure.NotEnoughResources(cost), Actions.startResearch(lacking, "eco_food", data).failure())
         // Academy 未建設では Lv1 から前提不足
-        val noAcademy = TestSupport.advanced().copy(resources = RICH)
+        val noAcademy = TestSupport.advanced(level = 2, castle = 6).copy(resources = RICH)
         assertEquals(
             ActionFailure.ResearchPrereqNotMet(1, emptyList()),
             Actions.startResearch(noAcademy, "eco_food", data).failure(),
@@ -151,7 +151,7 @@ class ResearchTest {
 
     @Test
     fun researchPowerIsAddedToTotal() {
-        val s = TestSupport.newGame()
+        val s = TestSupport.newGame(castle = 6)
         assertEquals(0, PowerCalculator.researchPower(s, data))
         val researched = s.copy(research = mapOf("eco_food" to 3, "dev_build" to 1, "ghost" to 4, "eco_wood" to 0))
         val expected =

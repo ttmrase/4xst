@@ -31,8 +31,12 @@ class AllianceSchedulerTest {
 
     /** 現地（UTC+0）の 00:00 ちょうどから始まる新規ゲーム。 */
     private fun fresh(seed: Long = 42): GameState {
-        val s = TestSupport.newGame(now = 20_000L * day, seed = seed)
-        return s.copy(map = s.map.copy(nextRaidEpochSec = Long.MAX_VALUE / 4))
+        val s = TestSupport.newGame(now = 20_000L * day, seed = seed, castle = 10)
+        val lifted = setOf(BuildingType.WALL, BuildingType.WAREHOUSE)
+        return s.copy(
+            slots = s.slots.map { if (it.type in lifted) it.copy(level = 10) else it },
+            map = s.map.copy(nextRaidEpochSec = Long.MAX_VALUE / 4),
+        )
     }
 
     private fun queue(

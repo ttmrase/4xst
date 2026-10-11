@@ -27,7 +27,7 @@ class QaNotifyTest {
         raidIn: Long,
         archers: Long = 0,
     ): GameState {
-        val s0 = TestSupport.withLevel(TestSupport.newGame(now = t0), BuildingType.WATCHTOWER, watchtower)
+        val s0 = TestSupport.withLevel(TestSupport.newGame(now = t0, castle = 10), BuildingType.WATCHTOWER, watchtower)
         val s1 =
             Simulation.tick(
                 s0.copy(troops = if (archers > 0) mapOf("archer_t2" to archers) else emptyMap()),

@@ -90,7 +90,7 @@ class MarchTest {
 
     @Test
     fun mapIsInitializedOnceAndRaidIsScheduled() {
-        val raw = TestSupport.newGame()
+        val raw = TestSupport.newGame(castle = 5)
         assertEquals(0, raw.map.nextRefreshEpochSec)
         val s = tick(raw, 0).state
         assertEquals(56, s.map.nodes.size)

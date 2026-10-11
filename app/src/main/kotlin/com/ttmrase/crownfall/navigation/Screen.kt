@@ -2,6 +2,7 @@ package com.ttmrase.crownfall.navigation
 
 import androidx.annotation.StringRes
 import com.ttmrase.crownfall.R
+import com.ttmrase.crownfall.core.feature.Feature
 
 /** 全画面のルート定義。 */
 enum class Screen(
@@ -23,3 +24,17 @@ enum class Screen(
     Summon("summon", R.string.screen_summon),
     Event("event", R.string.screen_event),
 }
+
+/** この画面を使うのに解放が要る機能（無ければ null）。未解放のあいだは、画面の代わりにロックの案内を出す。 */
+fun Screen.requiredFeature(): Feature? =
+    when (this) {
+        Screen.WorldMap -> Feature.WORLD_MAP
+        Screen.Alliance, Screen.Chat -> Feature.ALLIANCE
+        Screen.Heroes, Screen.Summon -> Feature.HEROES
+        Screen.Research -> Feature.RESEARCH
+        Screen.Barracks -> Feature.TRAINING
+        Screen.Quests -> Feature.QUESTS
+        Screen.Shop -> Feature.SHOP
+        Screen.Event -> Feature.EVENTS
+        else -> null
+    }

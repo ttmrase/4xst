@@ -7,6 +7,8 @@ import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.QuestCond
 import com.ttmrase.crownfall.core.data.QuestDef
 import com.ttmrase.crownfall.core.economy.PowerCalculator
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.QuestState
 import com.ttmrase.crownfall.core.shop.ShopLogic
@@ -64,13 +66,38 @@ object QuestLogic {
         state: GameState,
     ): Progress = Progress(view(state).dailyCounts[d.key] ?: 0L, d.target)
 
+    /** いま出すデイリー項目（解放済みの機能のものだけ）。 */
+    fun dailies(
+        state: GameState,
+        data: GameData,
+    ): List<DailyDef> =
+        data.quests.dailies.filter { d ->
+            val f = d.feature?.let { Feature.fromId(it) }
+            f == null || FeatureGate.unlocked(state, data, f)
+        }
+
     /** 今日のデイリーのポイント（受け取り済みの項目の合計）。 */
     fun dailyPoints(
         state: GameState,
         data: GameData,
     ): Int {
         val q = view(state)
-        return data.quests.dailies.filter { it.id in q.dailyClaimed }.sumOf { it.points }
+        return dailies(state, data).filter { it.id in q.dailyClaimed }.sumOf { it.points }
+    }
+
+    /**
+     * 宝箱の段 [chest] を開けるのに要るポイント。出ている項目の合計点に比例させる
+     * （全部こなせば最上段に届く。全項目が出ているときは宝箱の定義のまま）。
+     */
+    fun chestThreshold(
+        chest: ChestDef,
+        state: GameState,
+        data: GameData,
+    ): Int {
+        val top = data.quests.chests.maxOfOrNull { it.points } ?: return chest.points
+        val total = dailies(state, data).sumOf { it.points }
+        if (top <= 0 || total >= top) return chest.points
+        return maxOf(1, (chest.points * total + top - 1) / top).coerceAtMost(total.coerceAtLeast(1))
     }
 
     /** メインの現在のチャプター（最初の未受け取り）。全部受け取り済みなら null。 */
@@ -96,7 +123,7 @@ object QuestLogic {
     ): List<ChestDef> {
         val points = dailyPoints(state, data)
         val q = view(state)
-        return data.quests.chests.filter { points >= it.points && it.tier !in q.dailyChests }
+        return data.quests.chests.filter { points >= chestThreshold(it, state, data) && it.tier !in q.dailyChests }
     }
 
     /** 達成済みで未受け取りの同盟クエスト・実績。 */
@@ -118,7 +145,7 @@ object QuestLogic {
         var n = 0
         currentChapter(state, data)?.let { if (chapterDone(it, state, data)) n++ }
         val q = view(state)
-        n += data.quests.dailies.count { it.id !in q.dailyClaimed && dailyProgress(it, state).done }
+        n += dailies(state, data).count { it.id !in q.dailyClaimed && dailyProgress(it, state).done }
         n += claimableChests(state, data).size
         n += claimableOneShots(state, data).size
         return n

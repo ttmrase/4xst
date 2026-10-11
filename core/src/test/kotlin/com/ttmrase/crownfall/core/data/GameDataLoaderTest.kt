@@ -9,6 +9,28 @@ import kotlin.test.assertTrue
 
 class GameDataLoaderTest {
     private val data = TestSupport.data
+
+    private val unlockLv =
+        mapOf(
+            BuildingType.CASTLE to 1,
+            BuildingType.FARM to 1,
+            BuildingType.SAWMILL to 1,
+            BuildingType.QUARRY to 1,
+            BuildingType.GOLD_MINE to 1,
+            BuildingType.WAREHOUSE to 1,
+            BuildingType.WALL to 1,
+            BuildingType.BARRACKS to 2,
+            BuildingType.HOSPITAL to 2,
+            BuildingType.BUILDERS_HUT to 2,
+            BuildingType.ARCHERY_RANGE to 3,
+            BuildingType.STABLE to 3,
+            BuildingType.TRADING_POST to 3,
+            BuildingType.ALLIANCE_CENTER to 4,
+            BuildingType.SIEGE_WORKSHOP to 5,
+            BuildingType.WATCHTOWER to 5,
+            BuildingType.ACADEMY to 6,
+            BuildingType.TAVERN to 7,
+        )
     private val raw: Map<String, String> by lazy { ClasspathDataSource.readAll() }
 
     private fun rulesJson(
@@ -76,13 +98,29 @@ class GameDataLoaderTest {
     }
 
     @Test
+    fun theBuildingUnlockTableIsPinned() {
+        // M11 T11.1 の解放表（城 Lv n で Lv1 が建てられる）。全 18 種
+        assertEquals(18, data.buildings.size)
+        val actual =
+            BuildingType.entries.associateWith {
+                if (it == BuildingType.CASTLE) 1 else data.building(it).level(1).prereqs.single().level
+            }
+        assertEquals(unlockLv, actual)
+    }
+
+    @Test
     fun prereqsFollowTheRules() {
         data.buildings.values.forEach { def ->
             def.levels.forEach { l ->
                 when {
                     def.type != BuildingType.CASTLE ->
                         assertEquals(
-                            listOf(com.ttmrase.crownfall.core.model.Prereq(BuildingType.CASTLE, l.level)),
+                            listOf(
+                                com.ttmrase.crownfall.core.model.Prereq(
+                                    BuildingType.CASTLE,
+                                    if (l.level == 1) unlockLv.getValue(def.type) else l.level,
+                                ),
+                            ),
                             l.prereqs,
                         )
                     l.level == 1 -> assertTrue(l.prereqs.isEmpty())

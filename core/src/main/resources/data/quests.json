@@ -948,25 +948,25 @@
  ],
  "dailies": [
   {
-   "id": "d_help",
+   "id": "d_help", "feature": "alliance",
    "key": "help",
    "target": 5,
    "points": 10
   },
   {
-   "id": "d_gather",
+   "id": "d_gather", "feature": "world_map",
    "key": "gather",
    "target": 1,
    "points": 10
   },
   {
-   "id": "d_train",
+   "id": "d_train", "feature": "training",
    "key": "train",
    "target": 1,
    "points": 10
   },
   {
-   "id": "d_research",
+   "id": "d_research", "feature": "research",
    "key": "research",
    "target": 1,
    "points": 10
@@ -978,31 +978,31 @@
    "points": 10
   },
   {
-   "id": "d_hunt",
+   "id": "d_hunt", "feature": "world_map",
    "key": "hunt",
    "target": 1,
    "points": 10
   },
   {
-   "id": "d_donate",
+   "id": "d_donate", "feature": "alliance",
    "key": "donate",
    "target": 1,
    "points": 10
   },
   {
-   "id": "d_summon",
+   "id": "d_summon", "feature": "heroes",
    "key": "summon",
    "target": 1,
    "points": 10
   },
   {
-   "id": "d_shop",
+   "id": "d_shop", "feature": "shop",
    "key": "shop",
    "target": 1,
    "points": 10
   },
   {
-   "id": "d_chat",
+   "id": "d_chat", "feature": "alliance",
    "key": "chat",
    "target": 1,
    "points": 10

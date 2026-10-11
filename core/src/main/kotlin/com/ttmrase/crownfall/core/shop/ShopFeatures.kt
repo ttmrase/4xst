@@ -4,6 +4,8 @@ import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.core.data.PackDef
 import com.ttmrase.crownfall.core.data.WheelSegment
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.util.Mix
 import com.ttmrase.crownfall.core.util.SeededRandom
@@ -23,6 +25,16 @@ data class DealCard(
 
 /** デイリーディール。毎日 3 枚（普通 2 + 99% OFF の ¥120 が 1）。内容は (種, 現地日) のハッシュで決まる（分割不変）。 */
 object DailyDeals {
+    /** パックが要る機能（英雄など）が解放済みか。 */
+    fun packUnlocked(
+        state: GameState,
+        pack: PackDef,
+        data: GameData,
+    ): Boolean {
+        val need = pack.feature?.let { Feature.fromId(it) } ?: return true
+        return FeatureGate.unlocked(state, data, need)
+    }
+
     /** 今日のディール（決定論。状態は変えない）。 */
     fun today(
         state: GameState,
@@ -37,7 +49,7 @@ object DailyDeals {
             count: Int,
             salt: Long,
         ): List<PackDef> =
-            data.offers.packs.filter { it.deal == kind }
+            data.offers.packs.filter { it.deal == kind && packUnlocked(state, it, data) }
                 .sortedBy { Mix.mix(seed xor (day * 31 + salt) xor it.id.hashCode().toLong()) }
                 .take(count)
 

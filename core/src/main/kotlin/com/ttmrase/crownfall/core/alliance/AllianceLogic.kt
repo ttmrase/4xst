@@ -3,6 +3,8 @@ package com.ttmrase.crownfall.core.alliance
 import com.ttmrase.crownfall.core.chat.ChatEvent
 import com.ttmrase.crownfall.core.chat.ChatKeys
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.ActionLogEntry
 import com.ttmrase.crownfall.core.model.AllianceState
 import com.ttmrase.crownfall.core.model.GameState
@@ -86,7 +88,9 @@ object AllianceLogic {
             a = a.copy(favorLevel = a.favorLevel + (persona to after))
             for (lv in before + 1..after) {
                 val event = ChatEvent.FavorMilestone(persona, lv)
-                a = enqueue(a, event, state.nowEpochSec, listOf(persona), ChatKeys.dm(persona), data)
+                if (FeatureGate.unlocked(state, data, Feature.WORLD_CHAT)) {
+                    a = enqueue(a, event, state.nowEpochSec, listOf(persona), ChatKeys.dm(persona), data)
+                }
                 val (id, b) = nextId(a)
                 a =
                     b.copy(

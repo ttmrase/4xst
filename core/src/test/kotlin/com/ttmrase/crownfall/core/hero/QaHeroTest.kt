@@ -37,7 +37,11 @@ class QaHeroTest {
     private val data = TestSupport.data
 
     private fun tavern(): GameState =
-        TestSupport.withLevel(TestSupport.newGame(), BuildingType.TAVERN, 1).copy(gems = 100_000_000, resources = RICH)
+        TestSupport.withLevel(
+            TestSupport.newGame(castle = 7),
+            BuildingType.TAVERN,
+            1,
+        ).copy(gems = 100_000_000, resources = RICH)
 
     private fun only(
         rarity: HeroRarity,

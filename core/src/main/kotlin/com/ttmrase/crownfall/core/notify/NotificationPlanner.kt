@@ -2,6 +2,8 @@ package com.ttmrase.crownfall.core.notify
 
 import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.march.MarchPhase
 import com.ttmrase.crownfall.core.march.Raids
 import com.ttmrase.crownfall.core.military.Military
@@ -116,11 +118,13 @@ object NotificationPlanner {
                 (at, res) ->
             add(at, NoticeType.STORAGE_FULL, NoticeChannel.TIMER, res.ordinal)
         }
-        for (o in OfferEngine.active(state)) {
-            add(o.expiresEpochSec - OFFER_LEAD_SEC, NoticeType.OFFER_EXPIRING, NoticeChannel.OFFER)
+        if (FeatureGate.unlocked(state, data, Feature.SHOP)) {
+            for (o in OfferEngine.active(state)) {
+                add(o.expiresEpochSec - OFFER_LEAD_SEC, NoticeType.OFFER_EXPIRING, NoticeChannel.OFFER)
+            }
         }
         val raid = state.map.nextRaidEpochSec
-        if (raid > now && raid != Long.MAX_VALUE) {
+        if (FeatureGate.unlocked(state, data, Feature.RAIDS) && raid > now && raid != Long.MAX_VALUE) {
             val warn = raid - Raids.warnSec(state, data)
             if (!state.map.raidWarned && warn < raid && warn > now) {
                 add(
@@ -131,11 +135,13 @@ object NotificationPlanner {
             }
             add(raid, NoticeType.RAID_ARRIVAL, NoticeChannel.RAID)
         }
-        for (r in state.alliance.rallies) {
-            add(r.joinDeadlineEpochSec - RALLY_LEAD_SEC, NoticeType.RALLY_DEADLINE, NoticeChannel.ALLIANCE)
-        }
-        for (q in state.alliance.requests) {
-            add(q.expiresEpochSec - REQUEST_LEAD_SEC, NoticeType.REQUEST_EXPIRING, NoticeChannel.ALLIANCE)
+        if (FeatureGate.unlocked(state, data, Feature.ALLIANCE)) {
+            for (r in state.alliance.rallies) {
+                add(r.joinDeadlineEpochSec - RALLY_LEAD_SEC, NoticeType.RALLY_DEADLINE, NoticeChannel.ALLIANCE)
+            }
+            for (q in state.alliance.requests) {
+                add(q.expiresEpochSec - REQUEST_LEAD_SEC, NoticeType.REQUEST_EXPIRING, NoticeChannel.ALLIANCE)
+            }
         }
         return raw.groupBy { Triple(it.epochSec, it.type, it.param) }
             .map { (k, v) -> PlannedNotice(k.first, k.second, v.first().channel, v.size, k.third) }

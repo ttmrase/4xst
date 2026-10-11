@@ -22,7 +22,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,6 +48,8 @@ import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.TroopType
 import com.ttmrase.crownfall.core.economy.PowerCalculator
 import com.ttmrase.crownfall.core.event.WeeklyEvents
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
@@ -61,12 +65,15 @@ import com.ttmrase.crownfall.core.sim.Simulation
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.navigation.Screen
+import com.ttmrase.crownfall.navigation.requiredFeature
 import com.ttmrase.crownfall.offers.OfferHooks
 import com.ttmrase.crownfall.ui.common.LocalClock
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.remainingUntil
 import com.ttmrase.crownfall.ui.event.eventNameRes
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.feature.LockedFeatureDialog
+import com.ttmrase.crownfall.ui.feature.NextUnlockChip
 import com.ttmrase.crownfall.ui.glyph
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.territory.TerritoryView
@@ -88,6 +95,7 @@ fun CityScreen(
     snackbarHostState: SnackbarHostState,
     onNavigate: (Screen) -> Unit,
     onOpenBarracks: (Int) -> Unit,
+    castleRequest: Int = 0,
 ) {
     val state by session.collectCalmState()
     val summary by session.offlineSummary.collectAsStateWithLifecycle()
@@ -96,8 +104,21 @@ fun CityScreen(
     var sheetSlotId by rememberSaveable { mutableStateOf<Int?>(null) }
     var speedupJobId by rememberSaveable { mutableStateOf<Long?>(null) }
     var healOpen by rememberSaveable { mutableStateOf(false) }
+    var lockedFeature by remember { mutableStateOf<Feature?>(null) }
+    var handledCastleRequest by rememberSaveable { mutableIntStateOf(0) }
 
     val s = state ?: return
+
+    fun openCastleSheet() {
+        s.slots.firstOrNull { it.type == BuildingType.CASTLE }?.let { sheetSlotId = it.slotId }
+    }
+    // 他の画面の「城をアップグレード」から来たら、城の詳細シートを開く
+    LaunchedEffect(castleRequest) {
+        if (castleRequest > handledCastleRequest) {
+            handledCastleRequest = castleRequest
+            openCastleSheet()
+        }
+    }
 
     fun showFailure(reason: ActionFailure) {
         scope.launch {
@@ -150,11 +171,20 @@ fun CityScreen(
                     modifier = Modifier.weight(1f),
                 )
             }
-            EventChip(s, data) { onNavigate(Screen.Event) }
+            if (FeatureGate.unlocked(s, data, Feature.EVENTS)) EventChip(s, data) { onNavigate(Screen.Event) }
+            NextUnlockChip(s, data, onClick = ::openCastleSheet)
         }
         QuickLinkColumn(
             claimable = QuestLogic.claimableCount(s, data),
-            onNavigate = onNavigate,
+            locked =
+                QuickLinks.filter {
+                        sc ->
+                    sc.requiredFeature()?.let { !FeatureGate.unlocked(s, data, it) } == true
+                },
+            onNavigate = { sc ->
+                val need = sc.requiredFeature()
+                if (need != null && !FeatureGate.unlocked(s, data, need)) lockedFeature = need else onNavigate(sc)
+            },
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = 6.dp),
         )
         if (s.tutorialStep < Actions.TUTORIAL_DONE) {
@@ -164,6 +194,19 @@ fun CityScreen(
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
+    }
+
+    lockedFeature?.let { f ->
+        LockedFeatureDialog(
+            feature = f,
+            data = data,
+            castleLv = FeatureGate.castleLevel(s),
+            onUpgrade = {
+                lockedFeature = null
+                openCastleSheet()
+            },
+            onDismiss = { lockedFeature = null },
+        )
     }
 
     val slotId = sheetSlotId
@@ -432,6 +475,8 @@ private fun EventChip(
     }
 }
 
+private const val QUICK_LOCKED_ALPHA = 0.5f
+
 private val QUICK_ICONS =
     mapOf(
         Screen.Mail to "✉",
@@ -446,6 +491,7 @@ private val QUICK_ICONS =
 @Composable
 private fun QuickLinkColumn(
     claimable: Int,
+    locked: List<Screen>,
     onNavigate: (Screen) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -460,11 +506,12 @@ private fun QuickLinkColumn(
                             .size(40.dp)
                             .background(Color(0xCC121A2E), CircleShape)
                             .border(1.dp, QUEUE_GOLD, CircleShape)
+                            .alpha(if (screen in locked) QUICK_LOCKED_ALPHA else 1f)
                             .clickable { onNavigate(screen) }
                             .semantics { contentDescription = name },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(QUICK_ICONS[screen] ?: "•", fontSize = 18.sp)
+                    Text(if (screen in locked) "🔒" else QUICK_ICONS[screen] ?: "•", fontSize = 18.sp)
                 }
             }
         }

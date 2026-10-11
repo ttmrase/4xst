@@ -83,7 +83,7 @@ class UiQueriesM3Test {
 
     private fun lab(
         level: Int = 3,
-        base: GameState = TestSupport.advanced(),
+        base: GameState = TestSupport.advanced(level = 2, castle = 6),
     ) = TestSupport.withAcademy(base, level).copy(resources = RICH)
 
     @Test

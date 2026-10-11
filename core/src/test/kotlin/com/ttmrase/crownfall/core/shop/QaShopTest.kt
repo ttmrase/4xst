@@ -23,7 +23,10 @@ import kotlin.test.assertTrue
 class QaShopTest {
     private val data = ShopTestSupport.data
 
-    private fun base(freq: OfferFrequency = OfferFrequency.MASS) = ShopTestSupport.base(freq)
+    private fun base(
+        freq: OfferFrequency = OfferFrequency.MASS,
+        castle: Int = 5,
+    ) = ShopTestSupport.base(freq, castle = castle)
 
     // ───── 二重購入・期限 ─────
 
@@ -111,7 +114,7 @@ class QaShopTest {
     fun randomTriggerStormNeverBreaksCapsCooldownOrUniqueness() {
         for (freq in OfferFrequency.entries) {
             val rnd = java.util.Random(freq.ordinal + 5L)
-            var s = Actions.beginSession(base(freq), data).ok()
+            var s = Actions.beginSession(base(freq, castle = 8), data).ok()
             val cap = OfferEngine.sessionCap(freq, data)
             val sessionStart = s.shop.sessionOffers
             repeat(300) {
@@ -147,7 +150,7 @@ class QaShopTest {
     // ───── R3 と不在からの復帰 ─────
 
     private fun busy(): GameState {
-        var s = Actions.beginSession(base(), data).ok()
+        var s = Actions.beginSession(base(castle = 8), data).ok()
         s = TestSupport.withLevel(s, BuildingType.WATCHTOWER, 1)
         s = s.copy(resources = TestSupport.RICH, gems = 500)
         s = Actions.grantSecondBuilder(s, 3 * DAY).ok()

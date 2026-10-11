@@ -4,6 +4,8 @@ import com.ttmrase.crownfall.core.alliance.AllianceHooks
 import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.buff.BuffSet
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.feature.FeatureGate
+import com.ttmrase.crownfall.core.feature.FeatureHooks
 import com.ttmrase.crownfall.core.march.WorldSim
 import com.ttmrase.crownfall.core.military.Military
 import com.ttmrase.crownfall.core.model.BuildingType
@@ -41,7 +43,7 @@ object Simulation {
         require(dtSec >= 0) { "dtSec must be >= 0: $dtSec" }
         val events = ArrayList<GameEvent>()
         val target = satAdd(state.nowEpochSec, dtSec)
-        var s = state
+        var s = FeatureGate.initialize(state, data)
         var tracked = 0
         while (true) {
             s = settleDue(s, data, events)
@@ -122,6 +124,7 @@ object Simulation {
         events: MutableList<GameEvent>,
     ): GameState {
         var s = state
+        val castleBefore = FeatureGate.castleLevel(state)
         val firstEvent = events.size
         val expired = s.boosts.filter { it.untilEpochSec <= s.nowEpochSec }
         if (expired.isNotEmpty()) {
@@ -175,6 +178,10 @@ object Simulation {
                 )
             s = syncStorageFlags(s, data)
             for (lv in castleUps) s = AllianceHooks.onCastleUp(s, lv, data)
+            for (f in FeatureGate.newlyUnlocked(data, castleBefore, FeatureGate.castleLevel(s))) {
+                events.add(GameEvent.FeatureUnlocked(f))
+                s = FeatureHooks.onUnlocked(s, f, data)
+            }
         }
         val settled = WorldSim.settle(s, data, events)
         return ShopHooks.onEvents(settled, events.subList(firstEvent, events.size).toList(), data)

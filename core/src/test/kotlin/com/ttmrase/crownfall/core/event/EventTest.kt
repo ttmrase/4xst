@@ -23,7 +23,7 @@ class EventTest {
         seed: Long = 1L,
         at: Long = start + 3600,
     ): GameState {
-        val s = TestSupport.newGame(now = at)
+        val s = TestSupport.newGame(now = at, castle = 8)
         val inited =
             s.copy(
                 map = s.map.copy(seed = seed, nextRaidEpochSec = Long.MAX_VALUE / 4),

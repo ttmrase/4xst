@@ -3,12 +3,15 @@ package com.ttmrase.crownfall.core.sim
 import com.ttmrase.crownfall.core.alliance.DonationKind
 import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.buff.BuffKey
+import com.ttmrase.crownfall.core.chat.ChatKeys
 import com.ttmrase.crownfall.core.chat.SpokenText
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.ResearchPrereq
 import com.ttmrase.crownfall.core.economy.CostCheck
 import com.ttmrase.crownfall.core.economy.Costs
 import com.ttmrase.crownfall.core.economy.GemSkip
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.hero.HeroGrowth
 import com.ttmrase.crownfall.core.hero.SummonKind
 import com.ttmrase.crownfall.core.hero.Summoner
@@ -29,6 +32,7 @@ import com.ttmrase.crownfall.core.model.satAdd
 import com.ttmrase.crownfall.core.model.satMul
 import com.ttmrase.crownfall.core.research.ResearchRules
 import com.ttmrase.crownfall.core.shop.ShopHooks
+import com.ttmrase.crownfall.core.shop.ShopLogic
 import com.ttmrase.crownfall.core.shop.VipCalculator
 
 /** アクション失敗の理由（ID と数値のみ。表示文言は :app）。 */
@@ -57,6 +61,9 @@ sealed interface ActionFailure {
 
     /** 兵種の訓練建物の Lv が足りない。[requiredLevel] は必要な建物 Lv。 */
     data class TroopLocked(val requiredLevel: Int) : ActionFailure
+
+    /** 段階解放で未解放の機能（城 Lv [requiredLv] で解放）。 */
+    data class FeatureLocked(val feature: Feature, val requiredLv: Int) : ActionFailure
 
     data object HeroNotOwned : ActionFailure
 
@@ -235,6 +242,12 @@ object Actions {
         state: GameState,
         nodeId: String,
         data: GameData,
+    ): ActionResult = gated(state, data, Feature.RESEARCH) { startResearchRaw(state, nodeId, data) }
+
+    private fun startResearchRaw(
+        state: GameState,
+        nodeId: String,
+        data: GameData,
     ): ActionResult {
         val node = data.research[nodeId] ?: return fail(ActionFailure.NodeNotFound)
         val current = state.research[nodeId] ?: 0
@@ -272,6 +285,13 @@ object Actions {
      * 検査順: 不正な引数 → TroopLocked → 上限超過（InvalidArgument）→ QueueFull → NotEnoughResources。
      */
     fun startTraining(
+        state: GameState,
+        troopId: String,
+        count: Long,
+        data: GameData,
+    ): ActionResult = gated(state, data, Feature.TRAINING) { startTrainingRaw(state, troopId, count, data) }
+
+    private fun startTrainingRaw(
         state: GameState,
         troopId: String,
         count: Long,
@@ -319,6 +339,12 @@ object Actions {
      * 完了で troops へ戻る。コスト = 訓練コスト × healCostPct / 100、時間 = trainSec × healTimePct / 100 × 数。
      */
     fun startHeal(
+        state: GameState,
+        batch: Map<String, Long>,
+        data: GameData,
+    ): ActionResult = gated(state, data, Feature.TRAINING) { startHealRaw(state, batch, data) }
+
+    private fun startHealRaw(
         state: GameState,
         batch: Map<String, Long>,
         data: GameData,
@@ -424,6 +450,13 @@ object Actions {
         kind: SummonKind,
         times: Int,
         data: GameData,
+    ): ActionResult = gated(state, data, Feature.HEROES) { summonRaw(state, kind, times, data) }
+
+    private fun summonRaw(
+        state: GameState,
+        kind: SummonKind,
+        times: Int,
+        data: GameData,
     ): ActionResult {
         if (times != 1 && times != TEN_ROLL) return fail(ActionFailure.InvalidArgument)
         if (state.slots.none { it.type == BuildingType.TAVERN && it.level >= 1 }) {
@@ -460,6 +493,14 @@ object Actions {
         itemId: String,
         count: Int,
         data: GameData,
+    ): ActionResult = gated(state, data, Feature.HEROES) { useHeroExpRaw(state, heroId, itemId, count, data) }
+
+    private fun useHeroExpRaw(
+        state: GameState,
+        heroId: String,
+        itemId: String,
+        count: Int,
+        data: GameData,
     ): ActionResult {
         if (count <= 0) return fail(ActionFailure.InvalidArgument)
         val hero = state.heroes.firstOrNull { it.heroId == heroId } ?: return fail(ActionFailure.HeroNotOwned)
@@ -482,6 +523,12 @@ object Actions {
         state: GameState,
         heroId: String,
         data: GameData,
+    ): ActionResult = gated(state, data, Feature.HEROES) { starUpRaw(state, heroId, data) }
+
+    private fun starUpRaw(
+        state: GameState,
+        heroId: String,
+        data: GameData,
     ): ActionResult {
         val hero = state.heroes.firstOrNull { it.heroId == heroId } ?: return fail(ActionFailure.HeroNotOwned)
         if (hero.star >= data.heroRules.starLevelCaps.size) return fail(ActionFailure.MaxStar)
@@ -499,6 +546,13 @@ object Actions {
 
     /** 英雄 [heroId] のスキル [skillIndex]（0..2）を 1 Lv 上げる（skill_book を 1 冊消費。上限は maxSkillLevel）。 */
     fun skillUp(
+        state: GameState,
+        heroId: String,
+        skillIndex: Int,
+        data: GameData,
+    ): ActionResult = gated(state, data, Feature.HEROES) { skillUpRaw(state, heroId, skillIndex, data) }
+
+    private fun skillUpRaw(
         state: GameState,
         heroId: String,
         skillIndex: Int,
@@ -581,7 +635,11 @@ object Actions {
         troops: Map<String, Long>,
         heroIds: List<String>,
         data: GameData,
-    ): ActionResult = MarchActions.start(state, kind, target, troops, heroIds, data)
+    ): ActionResult {
+        // 砦（RALLY）は城 Lv10、採集・偵察・野蛮人討伐はワールドマップの解放から
+        val feature = if (kind == MarchKind.RALLY) Feature.RALLY else Feature.WORLD_MAP
+        return gated(state, data, feature) { MarchActions.start(state, kind, target, troops, heroIds, data) }
+    }
 
     /** 行軍 [marchId] を呼び戻す。 */
     fun recallMarch(
@@ -612,20 +670,21 @@ object Actions {
     fun requestHelp(
         state: GameState,
         jobId: Long,
-    ): ActionResult = AllianceActions.requestHelp(state, jobId)
+        data: GameData,
+    ): ActionResult = gated(state, data, Feature.ALLIANCE) { AllianceActions.requestHelp(state, jobId) }
 
     /** 同盟ヘルプ一覧の全件にヘルプする（1 日の上限あり）。 */
     fun helpAll(
         state: GameState,
         data: GameData,
-    ): ActionResult = AllianceActions.helpAll(state, data)
+    ): ActionResult = gated(state, data, Feature.ALLIANCE) { AllianceActions.helpAll(state, data) }
 
     /** 資源の要請 [requestId] に応える（Trading Post の Lv で手数料が下がる）。 */
     fun fulfillRequest(
         state: GameState,
         requestId: Long,
         data: GameData,
-    ): ActionResult = AllianceActions.fulfillRequest(state, requestId, data)
+    ): ActionResult = gated(state, data, Feature.ALLIANCE) { AllianceActions.fulfillRequest(state, requestId, data) }
 
     /** 同盟テック [techId] に寄付する。 */
     fun donate(
@@ -633,21 +692,21 @@ object Actions {
         techId: String,
         kind: DonationKind,
         data: GameData,
-    ): ActionResult = AllianceActions.donate(state, techId, kind, data)
+    ): ActionResult = gated(state, data, Feature.ALLIANCE) { AllianceActions.donate(state, techId, kind, data) }
 
     /** 同盟ショップで [shopId] を買う。 */
     fun buyAllianceShop(
         state: GameState,
         shopId: String,
         data: GameData,
-    ): ActionResult = AllianceActions.buyShop(state, shopId, data)
+    ): ActionResult = gated(state, data, Feature.ALLIANCE) { AllianceActions.buyShop(state, shopId, data) }
 
     /** ギフト箱 [giftId] を開ける。 */
     fun openGift(
         state: GameState,
         giftId: Long,
         data: GameData,
-    ): ActionResult = AllianceActions.openGift(state, giftId, data)
+    ): ActionResult = gated(state, data, Feature.ALLIANCE) { AllianceActions.openGift(state, giftId, data) }
 
     /** AI 主催のラリー [rallyId] に参加する。 */
     fun joinRally(
@@ -656,7 +715,12 @@ object Actions {
         troops: Map<String, Long>,
         heroIds: List<String>,
         data: GameData,
-    ): ActionResult = AllianceActions.joinRally(state, rallyId, troops, heroIds, data)
+    ): ActionResult =
+        gated(
+            state,
+            data,
+            Feature.RALLY,
+        ) { AllianceActions.joinRally(state, rallyId, troops, heroIds, data) }
 
     /** プレイヤーの自由入力を [channel]（alliance / dm_<persona>）に書き込む。 */
     fun submitFreeText(
@@ -664,7 +728,10 @@ object Actions {
         text: String,
         channel: String,
         data: GameData,
-    ): ActionResult = AllianceActions.submitFreeText(state, text, channel, data)
+    ): ActionResult {
+        val feature = if (channel == ChatKeys.ALLIANCE) Feature.ALLIANCE else Feature.WORLD_CHAT
+        return gated(state, data, feature) { AllianceActions.submitFreeText(state, text, channel, data) }
+    }
 
     /**
      * 文面待ちのチャット [pendingId] に [lines] を書き戻す。[done] が true ならキューから外す
@@ -686,7 +753,12 @@ object Actions {
         messageId: Long,
         option: Int,
         data: GameData,
-    ): ActionResult = AllianceActions.answerQuiz(state, messageId, option, data)
+    ): ActionResult =
+        gated(
+            state,
+            data,
+            Feature.ALLIANCE,
+        ) { AllianceActions.answerQuiz(state, messageId, option, data) }
 
     /** チャンネルを既読にする。 */
     fun markChannelRead(
@@ -704,7 +776,7 @@ object Actions {
     fun refreshOffers(
         state: GameState,
         data: GameData,
-    ): ActionResult = ShopActions.refreshOffers(state, data)
+    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.refreshOffers(state, data) }
 
     /** オファー [offerId] を閉じる（期限までは棚に残る）。[byBack] は「戻る」で閉じたとき（自動ポップアップを止める）。 */
     fun dismissOffer(
@@ -718,20 +790,20 @@ object Actions {
         state: GameState,
         missing: Resources,
         data: GameData,
-    ): ActionResult = ShopActions.offerForShortage(state, missing, data)
+    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.offerForShortage(state, missing, data) }
 
     /** ジェム不足のタップ。不足以上で最小の SKU を積む。 */
     fun offerForGemShortage(
         state: GameState,
         missing: Long,
         data: GameData,
-    ): ActionResult = ShopActions.offerForGemShortage(state, missing, data)
+    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.offerForGemShortage(state, missing, data) }
 
     /** 2 本目ビルダー枠のタップ。 */
     fun offerForSecondBuilder(
         state: GameState,
         data: GameData,
-    ): ActionResult = ShopActions.offerForSecondBuilder(state, data)
+    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.offerForSecondBuilder(state, data) }
 
     /** イベント集計で 2〜4 位（1 位との差 [gapPt]）。 */
     fun offerForRanking(
@@ -739,20 +811,20 @@ object Actions {
         rank: Int,
         gapPt: Long,
         data: GameData,
-    ): ActionResult = ShopActions.offerForRanking(state, rank, gapPt, data)
+    ): ActionResult = gated(state, data, Feature.EVENTS) { ShopActions.offerForRanking(state, rank, gapPt, data) }
 
     /** 退出前の「待って！」を 1 日 1 回積む。 */
     fun exitOffer(
         state: GameState,
         data: GameData,
-    ): ActionResult = ShopActions.exitOffer(state, data)
+    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.exitOffer(state, data) }
 
     /** 擬似購入。[offerId] は [com.ttmrase.crownfall.core.shop.ProductIds] かカタログの SKU。実通信なし。 */
     fun fakePurchase(
         state: GameState,
         offerId: String,
         data: GameData,
-    ): ActionResult = ShopActions.fakePurchase(state, offerId, data)
+    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.fakePurchase(state, offerId, data) }
 
     /** VIP 昇格の演出済みの Lv を記録する。 */
     fun markVipCelebrated(
@@ -764,26 +836,26 @@ object Actions {
     fun claimVipChest(
         state: GameState,
         data: GameData,
-    ): ActionResult = ShopActions.claimVipChest(state, data)
+    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.claimVipChest(state, data) }
 
     /** 月パスの今日の分を受け取る。 */
     fun claimMonthPass(
         state: GameState,
         data: GameData,
-    ): ActionResult = ShopActions.claimMonthPass(state, data)
+    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.claimMonthPass(state, data) }
 
     /** 成長ファンドの到達済みの分をまとめて受け取る。 */
     fun claimGrowthFund(
         state: GameState,
         data: GameData,
-    ): ActionResult = ShopActions.claimGrowthFund(state, data)
+    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.claimGrowthFund(state, data) }
 
     /** ラッキーホイールを回す（無料 → 追加分 → [payGems] ならジェム）。 */
     fun spinWheel(
         state: GameState,
         payGems: Boolean,
         data: GameData,
-    ): ActionResult = ShopActions.spinWheel(state, payGems, data)
+    ): ActionResult = gated(state, data, Feature.WHEEL) { ShopActions.spinWheel(state, payGems, data) }
 
     /** ショップの設定を保存する。 */
     fun setShopSettings(
@@ -796,20 +868,66 @@ object Actions {
         state: GameState,
         questId: String,
         data: GameData,
-    ): ActionResult = QuestActions.claimQuest(state, questId, data)
+    ): ActionResult {
+        val feature = if (data.quests.alliance.any { it.id == questId }) Feature.RALLY else Feature.QUESTS
+        return gated(state, data, feature) { QuestActions.claimQuest(state, questId, data) }
+    }
 
     /** デイリー宝箱の段 [tier] を受け取る。 */
     fun claimDailyChest(
         state: GameState,
         tier: Int,
         data: GameData,
-    ): ActionResult = QuestActions.claimDailyChest(state, tier, data)
+    ): ActionResult = gated(state, data, Feature.QUESTS) { QuestActions.claimDailyChest(state, tier, data) }
 
     /** ショップ画面を開いた（デイリーの進捗用）。 */
     fun recordShopOpened(state: GameState): ActionResult = QuestActions.recordShopOpened(state)
+
+    /** 機能 [feature] の解放の演出を見せた印を付ける（解放済みのときだけ。何度呼んでも同じ）。 */
+    fun markFeatureCelebrated(
+        state: GameState,
+        feature: Feature,
+        data: GameData,
+    ): ActionResult {
+        if (!FeatureGate.unlocked(state, data, feature)) return locked(data, feature)
+        val f = state.features
+        if (feature.id in f.celebrated) return ActionResult.Success(state)
+        return ActionResult.Success(state.copy(features = f.copy(celebrated = f.celebrated + feature.id)))
+    }
+
+    /** 機能 [feature] の初回報酬（最初の成功した行動のあとに 1 回だけ）を受け取る。 */
+    fun claimFeatureReward(
+        state: GameState,
+        feature: Feature,
+        data: GameData,
+    ): ActionResult {
+        if (!FeatureGate.unlocked(state, data, feature)) return locked(data, feature)
+        if (feature.id in state.features.firstUseClaimed) return fail(ActionFailure.AlreadyClaimed)
+        if (!FeatureGate.rewardClaimable(state, data, feature)) return fail(ActionFailure.NothingToClaim)
+        val granted = ShopLogic.grant(state, FeatureGate.reward(data, feature), data)
+        val f = granted.features
+        return ActionResult.Success(granted.copy(features = f.copy(firstUseClaimed = f.firstUseClaimed + feature.id)))
+    }
 
     /** すべてのメールを既読にする。 */
     fun markAllMailRead(state: GameState): ActionResult = ActionResult.Success(MailBox.markAllRead(state))
 
     private fun fail(reason: ActionFailure) = ActionResult.Failure(reason)
+
+    /** 未解放なら [ActionFailure.FeatureLocked]、解放済みなら [block] を実行し、成功したら最初の使用の印を付ける。 */
+    private inline fun gated(
+        state: GameState,
+        data: GameData,
+        feature: Feature,
+        block: () -> ActionResult,
+    ): ActionResult {
+        if (!FeatureGate.unlocked(state, data, feature)) return locked(data, feature)
+        val r = block()
+        return if (r is ActionResult.Success) r.copy(state = FeatureGate.markUsed(r.state, feature)) else r
+    }
+
+    private fun locked(
+        data: GameData,
+        feature: Feature,
+    ) = fail(ActionFailure.FeatureLocked(feature, FeatureGate.requiredLv(data, feature)))
 }

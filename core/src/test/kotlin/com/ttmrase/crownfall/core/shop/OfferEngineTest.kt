@@ -117,18 +117,18 @@ class OfferEngineTest {
 
     @Test
     fun rankingExitComebackPiggyAndVipNearTriggers() {
-        val r = Actions.offerForRanking(base(), 2, 340, data).ok()
+        val r = Actions.offerForRanking(base(castle = 8), 2, 340, data).ok()
         val o = OfferEngine.active(r).single()
         assertEquals("pack_ranking", o.sku)
         assertEquals(2L, o.params["rank"])
         assertEquals(340L, o.params["gap"])
-        assertEquals(listOf("pack_wait"), skus(Actions.exitOffer(base(), data).ok()))
-        val cb = OfflineCatchUp.run(base(), base().nowEpochSec + 2 * DAY, data).state
+        assertEquals(listOf("pack_wait"), skus(Actions.exitOffer(base(castle = 8), data).ok()))
+        val cb = OfflineCatchUp.run(base(castle = 8), base(castle = 8).nowEpochSec + 2 * DAY, data).state
         assertTrue("pack_comeback" in skus(cb))
-        val cb2 = OfflineCatchUp.run(base(), base().nowEpochSec + 2 * DAY - 1, data).state
+        val cb2 = OfflineCatchUp.run(base(castle = 8), base(castle = 8).nowEpochSec + 2 * DAY - 1, data).state
         assertTrue("pack_comeback" !in skus(cb2))
         val near =
-            base().let {
+            base(castle = 8).let {
                 it.copy(
                     shop = it.shop.copy(vipPoints = 100 - 50),
                 )
@@ -137,14 +137,14 @@ class OfferEngineTest {
         val vo = OfferEngine.active(vn).single { it.sku == "pack_vip" }
         assertEquals(1L, vo.params["vip"])
         assertEquals(50L, vo.params["pt"])
-        val far = base().let { it.copy(shop = it.shop.copy(vipPoints = 150_000 + 1)) }
+        val far = base(castle = 8).let { it.copy(shop = it.shop.copy(vipPoints = 150_000 + 1)) }
         assertTrue(skus(OfferEngine.onVipChanged(far, data)).isEmpty())
     }
 
     @Test
     fun piggyFullQueuesTheNudgeOnceWhenCrossingTheCap() {
         val cap = data.shopRules.piggy.cap
-        val almost = base().let { it.copy(shop = it.shop.copy(piggyGems = cap - 1)) }
+        val almost = base(castle = 8).let { it.copy(shop = it.shop.copy(piggyGems = cap - 1)) }
         val full = ShopHooks.onEvents(almost, listOf(GameEvent.BuildingLevelUp(0, BuildingType.FARM, 2)), data)
         assertEquals(cap, full.shop.piggyGems)
         assertTrue("pack_piggy_nudge" in skus(full))
@@ -237,10 +237,10 @@ class OfferEngineTest {
 
     @Test
     fun sessionCapDependsOnFrequencyAndBeginSessionResetsIt() {
-        assertEquals(2, skus(burst(base(OfferFrequency.LOW))).size)
-        assertEquals(5, skus(burst(base(OfferFrequency.STANDARD))).size)
-        assertEquals(6, skus(burst(base(OfferFrequency.MASS))).size)
-        val low = burst(base(OfferFrequency.LOW))
+        assertEquals(2, skus(burst(base(OfferFrequency.LOW, castle = 8))).size)
+        assertEquals(5, skus(burst(base(OfferFrequency.STANDARD, castle = 8))).size)
+        assertEquals(6, skus(burst(base(OfferFrequency.MASS, castle = 8))).size)
+        val low = burst(base(OfferFrequency.LOW, castle = 8))
         assertEquals(2, low.shop.sessionOffers)
         val next = Actions.beginSession(low, data).ok()
         assertEquals(

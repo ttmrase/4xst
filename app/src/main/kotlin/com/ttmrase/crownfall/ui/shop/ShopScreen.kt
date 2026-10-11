@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.PackContents
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.DailyDeals
@@ -51,6 +53,7 @@ import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.feature.LockedFeatureCard
 import kotlinx.coroutines.launch
 
 private const val SECONDS_PER_DAY = 86_400L
@@ -196,8 +199,20 @@ private fun androidx.compose.foundation.lazy.LazyListScope.recommended(
             onBuy = { onBuy(ProductIds.offer(o.id)) },
         )
     }
-    item { PiggyCard(s, data, onBuy) }
-    item { WheelCard(s, data, session, snackbarHostState) { onBuy(data.shopRules.wheel.extraSku) } }
+    item {
+        if (FeatureGate.unlocked(s, data, Feature.PIGGY)) {
+            PiggyCard(s, data, onBuy)
+        } else {
+            LockedFeatureCard(Feature.PIGGY, data)
+        }
+    }
+    item {
+        if (FeatureGate.unlocked(s, data, Feature.WHEEL)) {
+            WheelCard(s, data, session, snackbarHostState) { onBuy(data.shopRules.wheel.extraSku) }
+        } else {
+            LockedFeatureCard(Feature.WHEEL, data)
+        }
+    }
 }
 
 @Composable
@@ -285,7 +300,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.packs(
     data: GameData,
     onBuy: (String) -> Unit,
 ) {
-    items(data.offers.packs.filter { it.shelf }, key = { it.id }) { p ->
+    items(data.offers.packs.filter { it.shelf && DailyDeals.packUnlocked(s, it, data) }, key = { it.id }) { p ->
         val context = androidx.compose.ui.platform.LocalContext.current
         val left = stockLeft(s, p.id, p.dailyStock)
         OfferCard(

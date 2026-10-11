@@ -5,6 +5,7 @@ import com.ttmrase.crownfall.core.hero.HeroBootstrap
 import com.ttmrase.crownfall.core.map.MapState
 import com.ttmrase.crownfall.core.model.BuildingSlot
 import com.ttmrase.crownfall.core.model.BuildingType
+import com.ttmrase.crownfall.core.model.FeatureProgress
 import com.ttmrase.crownfall.core.model.GameState
 
 /** 新規ゲームの初期状態を作る。 */
@@ -36,6 +37,7 @@ object NewGame {
                 map = MapState(seed = seed, rngState = seed),
                 playerName = playerName,
                 starterHeroId = starterHeroId,
+                features = FeatureProgress(initialized = true),
             ),
         )
     }

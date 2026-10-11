@@ -2,7 +2,9 @@ package com.ttmrase.crownfall.debug
 
 import com.ttmrase.crownfall.AppContainer
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.BuildingType
+import com.ttmrase.crownfall.core.model.FeatureProgress
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Resources
 import com.ttmrase.crownfall.core.shop.OfferEngine
@@ -41,6 +43,15 @@ object DebugStateSeeder {
 
         /** RICH_CASTLE + 召喚の天井直前（SSR 確定まであと 1 回）でジェムが十分ある。 */
         GACHA_READY,
+
+        /** 新規ゲーム直後（城 Lv1、チュートリアル済み）。鍵のかかったタブとアイコン、次の解放のチップを見る。 */
+        FRESH_START,
+
+        /** 城 Lv2 で、Lv3（クエスト・ショップの解放）への建設があと数秒で終わる。解放の演出を見る。 */
+        UNLOCK_EVE_LV3,
+
+        /** 城 Lv3 で、Lv4（同盟の解放）への建設があと数秒で終わる。「同盟に招待されました！」を見る。 */
+        UNLOCK_EVE_LV4,
     }
 
     /** [preset] の状態を注入して保存する。新規ゲームが無ければ作る。 */
@@ -73,6 +84,45 @@ object DebugStateSeeder {
             Preset.RAID_IN_15_MIN -> raidSoon(rich, data)
             Preset.VIP_NEAR -> vipNear(rich, data)
             Preset.GACHA_READY -> rich.copy(summonPity = PITY_NEAR)
+            Preset.FRESH_START -> settled(state.copy(tutorialStep = Actions.TUTORIAL_DONE), data)
+            Preset.UNLOCK_EVE_LV3 -> unlockEve(state, data, 2)
+            Preset.UNLOCK_EVE_LV4 -> unlockEve(state, data, 3)
+        }
+    }
+
+    /** 段階解放の印を、いま解放済みの機能すべてに付ける（解放の演出の洪水や、初回報酬の表示を避ける）。 */
+    private fun settled(
+        state: GameState,
+        data: GameData,
+    ): GameState = FeatureGate.initialize(state.copy(features = FeatureProgress()), data)
+
+    /** 城・城壁・倉庫を [castleLv] にして、城の次の Lv への建設を [EVE_SEC] 秒後に終わるようにする。 */
+    private fun unlockEve(
+        state: GameState,
+        data: GameData,
+        castleLv: Int,
+    ): GameState {
+        val lifted = setOf(BuildingType.CASTLE, BuildingType.WALL, BuildingType.WAREHOUSE)
+        val slots = state.slots.map { if (it.type in lifted) it.copy(level = castleLv) else it }
+        val cap = Simulation.storageCap(state.copy(slots = slots), data)
+        val amount = if (cap > 0) cap / 10 * 9 else RICH
+        val base =
+            settled(
+                state.copy(
+                    slots = slots,
+                    resources = Resources(amount, amount, amount, amount),
+                    gems = RICH_GEMS,
+                    tutorialStep = Actions.TUTORIAL_DONE,
+                ),
+                data,
+            )
+        val castle = base.slots.first { it.type == BuildingType.CASTLE }
+        return when (val r = Actions.startUpgrade(base, castle.slotId, data)) {
+            is ActionResult.Success ->
+                r.state.copy(
+                    timers = r.state.timers.map { it.copy(endEpochSec = base.nowEpochSec + EVE_SEC) },
+                )
+            is ActionResult.Failure -> base
         }
     }
 
@@ -90,11 +140,14 @@ object DebugStateSeeder {
         // 資源は上限の 90%（上限ちょうどだと「倉庫がいっぱい」の通知が全画面に残る）。チュートリアルは完了済み
         val cap = Simulation.storageCap(state.copy(slots = slots), data)
         val amount = if (cap > 0) cap / 10 * 9 else RICH
-        return state.copy(
-            slots = slots,
-            resources = Resources(amount, amount, amount, amount),
-            gems = RICH_GEMS,
-            tutorialStep = Actions.TUTORIAL_DONE,
+        return settled(
+            state.copy(
+                slots = slots,
+                resources = Resources(amount, amount, amount, amount),
+                gems = RICH_GEMS,
+                tutorialStep = Actions.TUTORIAL_DONE,
+            ),
+            data,
         )
     }
 
@@ -163,6 +216,7 @@ object DebugStateSeeder {
     private const val RICH_GEMS = 100_000L
     private const val RAID_SOON_SEC = 900L
     private const val NEAR_VIP_FROM = 4
+    private const val EVE_SEC = 6L
 
     /** premium の天井（pityAt=100）の 1 回前。 */
     private const val PITY_NEAR = 99

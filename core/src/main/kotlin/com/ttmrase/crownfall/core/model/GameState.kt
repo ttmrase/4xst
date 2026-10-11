@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall.core.model
 
+import com.ttmrase.crownfall.core.feature.Feature
 import com.ttmrase.crownfall.core.map.MapState
 import com.ttmrase.crownfall.core.march.March
 import com.ttmrase.crownfall.core.march.MarchKind
@@ -43,6 +44,7 @@ data class GameState(
     val shop: ShopState = ShopState(),
     val quest: QuestState = QuestState(),
     val event: EventState = EventState(),
+    val features: FeatureProgress = FeatureProgress(),
 )
 
 /** tick / アクションが出すイベント（UI・通知・チャットへの入力）。 */
@@ -142,6 +144,9 @@ sealed interface GameEvent {
 
     /** VIP が [lv] に上がった。 */
     data class VipLevelUp(val lv: Int) : GameEvent
+
+    /** 城 Lv の上昇で機能 [feature] が解放された。 */
+    data class FeatureUnlocked(val feature: Feature) : GameEvent
 
     /** ラッキーホイールの結果。[segment] は当たり、[tease] は「惜しい」演出で先に見せる位置（無ければ -1）。 */
     data class WheelResult(val segment: Int, val tease: Int, val segmentId: String) : GameEvent

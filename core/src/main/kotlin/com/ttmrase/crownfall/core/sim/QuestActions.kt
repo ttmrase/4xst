@@ -51,7 +51,9 @@ internal object QuestActions {
         val s0 = QuestLogic.rollDaily(state)
         val chest = data.quests.chests.firstOrNull { it.tier == tier } ?: return fail(ActionFailure.QuestNotFound)
         if (tier in s0.quest.dailyChests) return fail(ActionFailure.AlreadyClaimed)
-        if (QuestLogic.dailyPoints(s0, data) < chest.points) return fail(ActionFailure.NothingToClaim)
+        if (QuestLogic.dailyPoints(s0, data) < QuestLogic.chestThreshold(chest, s0, data)) {
+            return fail(ActionFailure.NothingToClaim)
+        }
         val granted = ShopLogic.grant(s0, chest.reward, data)
         return ActionResult.Success(
             granted.copy(quest = granted.quest.copy(dailyChests = granted.quest.dailyChests + tier)),

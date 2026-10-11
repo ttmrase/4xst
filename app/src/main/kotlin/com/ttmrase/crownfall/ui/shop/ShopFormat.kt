@@ -100,6 +100,7 @@ fun offerTagline(
         "login" -> context.getString(R.string.offer_tag_login)
         "exitIntent" -> context.getString(R.string.offer_tag_exit)
         "piggyFull" -> context.getString(R.string.offer_tag_piggy_full)
+        "featureUnlock" -> context.getString(R.string.offer_tag_feature_unlock)
         "afterPurchase" -> context.getString(R.string.offer_tag_chain)
         "secondBuilder" -> context.getString(R.string.offer_tag_builder)
         else -> null

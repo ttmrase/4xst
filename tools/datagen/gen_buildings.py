@@ -101,12 +101,28 @@ def effects_for(t, level):
     raise ValueError(t)
 
 
+UNLOCK_CASTLE_LV = {
+    "barracks": 2,
+    "hospital": 2,
+    "builders_hut": 2,
+    "archery_range": 3,
+    "stable": 3,
+    "trading_post": 3,
+    "alliance_center": 4,
+    "siege_workshop": 5,
+    "watchtower": 5,
+    "academy": 6,
+    "tavern": 7,
+}
+
+
 def prereqs_for(t, level):
     if t == "castle":
         if level >= 2:
             return [{"type": "wall", "level": level - 1}, {"type": "warehouse", "level": level - 1}]
         return []
-    return [{"type": "castle", "level": level}]
+    # 段階解放（M11 T11.1）: Lv1 を建てるのに必要な城 Lv。2 Lv 目以降は建物 Lv と同じ城 Lv
+    return [{"type": "castle", "level": max(level, UNLOCK_CASTLE_LV.get(t, 1)) if level == 1 else level}]
 
 
 def build():

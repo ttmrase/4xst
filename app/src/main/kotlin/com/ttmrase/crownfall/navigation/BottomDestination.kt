@@ -21,4 +21,8 @@ enum class BottomDestination(
     Alliance(Screen.Alliance, R.string.nav_alliance, Icons.Filled.Favorite),
     Heroes(Screen.Heroes, R.string.nav_heroes, Icons.Filled.Star),
     Shop(Screen.Shop, R.string.nav_shop, Icons.Filled.ShoppingCart),
+    ;
+
+    /** このタブが要る機能（無ければ null）。 */
+    val feature get() = screen.requiredFeature()
 }

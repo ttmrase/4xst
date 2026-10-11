@@ -1,0 +1,123 @@
+{
+  "features": [
+    {
+      "id": "training",
+      "lv": 2,
+      "reward": {
+        "gems": 10,
+        "resources": {
+          "food": 1000,
+          "wood": 1000,
+          "stone": 500,
+          "gold": 300
+        }
+      }
+    },
+    {
+      "id": "quests",
+      "lv": 3,
+      "reward": {
+        "gems": 20,
+        "items": {
+          "speedup_general_5m": 2
+        }
+      }
+    },
+    {
+      "id": "shop",
+      "lv": 3,
+      "reward": {
+        "gems": 30
+      }
+    },
+    {
+      "id": "alliance",
+      "lv": 4,
+      "reward": {
+        "gems": 20,
+        "items": {
+          "speedup_general_15m": 2
+        }
+      }
+    },
+    {
+      "id": "world_map",
+      "lv": 5,
+      "reward": {
+        "gems": 30,
+        "resources": {
+          "food": 3000,
+          "wood": 3000,
+          "stone": 1500,
+          "gold": 1000
+        }
+      }
+    },
+    {
+      "id": "raids",
+      "lv": 5,
+      "reward": {
+        "gems": 20,
+        "items": {
+          "speedup_general_15m": 2
+        }
+      }
+    },
+    {
+      "id": "research",
+      "lv": 6,
+      "reward": {
+        "gems": 30,
+        "items": {
+          "speedup_general_60m": 1
+        }
+      }
+    },
+    {
+      "id": "wheel",
+      "lv": 6,
+      "reward": {
+        "gems": 20
+      }
+    },
+    {
+      "id": "piggy",
+      "lv": 6,
+      "reward": {
+        "gems": 20
+      }
+    },
+    {
+      "id": "heroes",
+      "lv": 7,
+      "reward": {
+        "gems": 50,
+        "items": {
+          "summon_ticket_normal": 2
+        }
+      }
+    },
+    {
+      "id": "world_chat",
+      "lv": 8,
+      "reward": {}
+    },
+    {
+      "id": "events",
+      "lv": 8,
+      "reward": {
+        "gems": 30
+      }
+    },
+    {
+      "id": "rally",
+      "lv": 10,
+      "reward": {
+        "gems": 50,
+        "items": {
+          "speedup_general_60m": 2
+        }
+      }
+    }
+  ]
+}

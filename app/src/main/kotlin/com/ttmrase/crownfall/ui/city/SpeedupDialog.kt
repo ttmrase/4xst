@@ -202,7 +202,7 @@ fun SpeedupHost(
         onDismiss = onDismiss,
         onRequestHelp = {
             scope.launch {
-                val result = session.dispatch { Actions.requestHelp(it, jobId) }
+                val result = session.dispatch { Actions.requestHelp(it, jobId, data) }
                 if (result is ActionResult.Failure) {
                     snackbarHostState.showReplacing(failureMessage(context, result.reason))
                 }

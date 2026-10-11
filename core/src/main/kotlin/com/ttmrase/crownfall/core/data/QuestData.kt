@@ -28,7 +28,14 @@ data class ChapterDef(val id: String, val tasks: List<QuestTaskDef>, val reward:
 
 /** デイリー 1 項目。[key] のその日のカウンタが [target] に達すると [points] を受け取れる。 */
 @Serializable
-data class DailyDef(val id: String, val key: String, val target: Long, val points: Int)
+data class DailyDef(
+    val id: String,
+    val key: String,
+    val target: Long,
+    val points: Int,
+    /** この項目を出すのに解放が要る機能の id（無ければ最初から出す）。 */
+    val feature: String? = null,
+)
 
 /** デイリー宝箱（ポイントが [points] に達したら受け取れる）。 */
 @Serializable

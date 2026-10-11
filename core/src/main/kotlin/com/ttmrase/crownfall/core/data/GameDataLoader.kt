@@ -183,6 +183,7 @@ object GameDataLoader {
     const val QUESTS = "quests.json"
     const val EVENTS = "events.json"
     const val NOTIFICATION_RULES = "notification_rules.json"
+    const val FEATURES = "features.json"
 
     private const val STARTER_HERO_COUNT = 3
     private const val TROOP_TIERS = 4
@@ -214,6 +215,7 @@ object GameDataLoader {
         val quests = decode<QuestsFile>(jsonByName, QUESTS)
         val events = decode<EventsFile>(jsonByName, EVENTS)
         val notifyRules = decode<NotificationRules>(jsonByName, NOTIFICATION_RULES)
+        val features = decode<FeaturesFile>(jsonByName, FEATURES)
         val defs = buildBuildings(buildings)
         val itemDefs = buildItems(items)
         val heroDefs = buildHeroes(heroesFile, itemDefs)
@@ -236,11 +238,13 @@ object GameDataLoader {
             quests = quests,
             events = events,
             notifyRules = notifyRules,
+            features = features,
         ).also {
             AllianceValidator.validate(it)
             ShopValidator.validate(it)
             QuestValidator.validate(it)
             NotifyRulesValidator.validate(it)
+            FeatureValidator.validate(it)
         }
     }
 

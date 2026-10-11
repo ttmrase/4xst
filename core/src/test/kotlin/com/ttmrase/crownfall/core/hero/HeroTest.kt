@@ -27,7 +27,11 @@ class HeroTest {
     private val data = TestSupport.data
 
     private fun tavern(gems: Long = 1_000_000): GameState =
-        TestSupport.withLevel(TestSupport.newGame(), BuildingType.TAVERN, 1).copy(gems = gems, resources = RICH)
+        TestSupport.withLevel(
+            TestSupport.newGame(castle = 7),
+            BuildingType.TAVERN,
+            1,
+        ).copy(gems = gems, resources = RICH)
 
     private fun summonResult(r: ActionResult): SummonResult =
         (r as ActionResult.Success).events.filterIsInstance<GameEvent.HeroSummoned>().single().result
@@ -233,7 +237,7 @@ class HeroTest {
         )
         assertEquals(ActionFailure.InvalidArgument, Actions.summon(tavern(), SummonKind.PREMIUM, 2, data).failure())
         assertEquals(ActionFailure.InvalidArgument, Actions.summon(tavern(), SummonKind.PREMIUM, 0, data).failure())
-        val noTavern = TestSupport.newGame().copy(gems = 99_999)
+        val noTavern = TestSupport.newGame(castle = 7).copy(gems = 99_999)
         assertEquals(
             ActionFailure.PrereqNotMet(listOf(Prereq(BuildingType.TAVERN, 1))),
             Actions.summon(noTavern, SummonKind.PREMIUM, 1, data).failure(),
@@ -247,7 +251,7 @@ class HeroTest {
         items: Map<String, Int> =
             mapOf("hero_exp_1k" to 10, "hero_exp_5k" to 10, "hero_exp_20k" to 10, "skill_book" to 5),
         shards: Map<String, Int> = emptyMap(),
-    ) = TestSupport.newGame().copy(heroes = listOf(hero), items = items, heroShards = shards)
+    ) = TestSupport.newGame(castle = 7).copy(heroes = listOf(hero), items = items, heroShards = shards)
 
     @Test
     fun expLevelsUpAndCarriesTheRemainder() {
@@ -355,7 +359,7 @@ class HeroTest {
 
     @Test
     fun ensureStarterIsIdempotent() {
-        val noStarter = TestSupport.newGame()
+        val noStarter = TestSupport.newGame(castle = 7)
         assertEquals(noStarter, HeroBootstrap.ensureStarter(noStarter))
         val old = noStarter.copy(starterHeroId = "hero_seren", playerName = "A") // M2 のセーブ相当（heroes が空）
         val fixed = HeroBootstrap.ensureStarter(old)
@@ -378,13 +382,13 @@ class HeroTest {
     fun heroPowerFollowsLevelStarAndSkills() {
         val rules = data.heroRules
         val h = HeroState("hero_aldric", level = 10, star = 2, skillLevels = listOf(3, 1, 1))
-        val s = TestSupport.newGame().copy(heroes = listOf(h, HeroState("ghost")))
+        val s = TestSupport.newGame(castle = 7).copy(heroes = listOf(h, HeroState("ghost")))
         val expected =
             rules.rarityPower.getValue(HeroRarity.R) * 2 +
                 10 * rules.powerPerLevel +
                 5 * rules.powerPerSkillLevel
         assertEquals(expected, HeroPower.total(s, data))
         assertEquals(PowerCalculator.buildingPower(s, data) + expected, PowerCalculator.total(s, data))
-        assertEquals(0, HeroPower.total(TestSupport.newGame(), data))
+        assertEquals(0, HeroPower.total(TestSupport.newGame(castle = 7), data))
     }
 }

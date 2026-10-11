@@ -17,10 +17,16 @@ object TestSupport {
 
     val data: GameData by lazy { ClasspathDataSource.load() }
 
+    /** [castle] は城の Lv（段階解放の機能を使うテストは、その Lv 以上にする）。 */
     fun newGame(
         now: Long = T0,
         seed: Long = 42,
-    ): GameState = NewGame.create(data, now, seed)
+        castle: Int = 1,
+    ): GameState {
+        val s = NewGame.create(data, now, seed)
+        if (castle == 1) return s
+        return s.copy(slots = s.slots.map { if (it.type == BuildingType.CASTLE) it.copy(level = castle) else it })
+    }
 
     fun slotOf(
         state: GameState,

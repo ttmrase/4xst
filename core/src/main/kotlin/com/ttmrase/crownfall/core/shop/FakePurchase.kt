@@ -3,6 +3,8 @@ package com.ttmrase.crownfall.core.shop
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.GemSku
 import com.ttmrase.crownfall.core.data.PackContents
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.march.MailBox
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
@@ -147,6 +149,21 @@ object FakePurchase {
         return ProductView(p.sku, p.priceYen, p.contents, p.trigger, list, first)
     }
 
+    /** 商品が要る機能（ピギー・ホイールの追加・英雄パックなど）が未解放ならその機能。 */
+    private fun lockedFeature(
+        s: GameState,
+        p: Product,
+        data: GameData,
+    ): Feature? {
+        val need =
+            when (p.kind) {
+                Kind.PIGGY -> Feature.PIGGY
+                Kind.WHEEL_EXTRA -> Feature.WHEEL
+                else -> data.offers.pack(p.sku)?.feature?.let { Feature.fromId(it) }
+            }
+        return need?.takeIf { !FeatureGate.unlocked(s, data, it) }
+    }
+
     /** [id] の商品を擬似購入する（ID は [ProductIds] またはカタログの SKU）。 */
     fun purchase(
         state: GameState,
@@ -155,6 +172,9 @@ object FakePurchase {
     ): ActionResult {
         var s = ShopLogic.rollDay(state)
         val p = resolve(s, id, data) ?: return fail(ActionFailure.OfferUnavailable)
+        lockedFeature(s, p, data)?.let { f ->
+            return fail(ActionFailure.FeatureLocked(f, FeatureGate.requiredLv(data, f)))
+        }
         if (p.stock != null && (s.shop.stockUsed[p.sku] ?: 0) >= p.stock) return fail(ActionFailure.SoldOut)
         if (p.kind == Kind.GROWTH_FUND && s.shop.growthFundOwned) return fail(ActionFailure.AlreadyOwned)
         if (p.kind == Kind.PIGGY && s.shop.piggyGems <= 0) return fail(ActionFailure.NothingToClaim)

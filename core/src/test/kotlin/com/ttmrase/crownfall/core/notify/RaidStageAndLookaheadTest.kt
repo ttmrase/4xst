@@ -29,7 +29,7 @@ class RaidStageAndLookaheadTest {
         watchtower: Int,
         raidIn: Long,
     ): GameState {
-        val s0 = TestSupport.withLevel(TestSupport.newGame(now = t0), BuildingType.WATCHTOWER, watchtower)
+        val s0 = TestSupport.withLevel(TestSupport.newGame(now = t0, castle = 10), BuildingType.WATCHTOWER, watchtower)
         val s1 = Simulation.tick(s0, 1, data).state
         return s1.copy(
             map = s1.map.copy(nextRaidEpochSec = s1.nowEpochSec + raidIn, raidWarned = false, raidStageDone = 0),

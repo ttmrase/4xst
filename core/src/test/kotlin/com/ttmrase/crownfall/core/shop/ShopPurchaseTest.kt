@@ -104,7 +104,7 @@ class ShopPurchaseTest {
 
     @Test
     fun failedPurchaseChangesNothing() {
-        val s = base()
+        val s = base(castle = 8)
         for (id in listOf("nope", "offer:999", "deal:pack_growth", "pack_castle", "growth_fund_x")) {
             assertEquals(ActionFailure.OfferUnavailable, buy(s, id).failure(), id)
         }
@@ -392,7 +392,7 @@ class ShopPurchaseTest {
     @Test
     fun piggyBankFillsFromActionsCapsAndOpens() {
         val p = data.shopRules.piggy
-        var s = base()
+        var s = base(castle = 8)
         val events =
             listOf(
                 GameEvent.ResearchCompleted("n", 1),
@@ -413,7 +413,7 @@ class ShopPurchaseTest {
 
     @Test
     fun wheelGivesOneFreeSpinPerDayThenNeedsPurchaseOrGems() {
-        var s = base().copy(gems = 150)
+        var s = base(castle = 8).copy(gems = 150)
         assertTrue(LuckyWheel.freeAvailable(s))
         val r = Actions.spinWheel(s, false, data)
         s = r.ok()
@@ -440,8 +440,8 @@ class ShopPurchaseTest {
 
     @Test
     fun wheelIsDeterministicForTheSameSeedAndFollowsTheWeights() {
-        val a = Actions.spinWheel(base(), false, data)
-        val b = Actions.spinWheel(base(), false, data)
+        val a = Actions.spinWheel(base(castle = 8), false, data)
+        val b = Actions.spinWheel(base(castle = 8), false, data)
         assertEquals((a as ActionResult.Success).events, (b as ActionResult.Success).events)
         assertEquals(a.state, b.state)
         val segs = data.shopRules.wheel.segments

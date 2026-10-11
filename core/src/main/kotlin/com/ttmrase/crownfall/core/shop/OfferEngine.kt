@@ -6,6 +6,8 @@ import com.ttmrase.crownfall.core.data.OfferBadge
 import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.core.data.PackDef
 import com.ttmrase.crownfall.core.data.TriggerDef
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Offer
 import com.ttmrase.crownfall.core.model.OfferFrequency
@@ -38,6 +40,7 @@ data class TriggerCtx(
 object OfferEngine {
     const val SHORTAGE_SKU = "shortage"
     private const val SECONDS_PER_DAY = 86_400L
+    private const val UNLOCK_GEM_SKU = "gems_m"
     private const val MIN_LOGIN_OFFER_SEC = 60L
     private val RESOURCE_KEYS = listOf("food", "wood", "stone", "gold")
 
@@ -132,6 +135,7 @@ object OfferEngine {
         stock: Int = Int.MAX_VALUE,
         bypass: Boolean = false,
     ): GameState {
+        if (!offerUnlocked(state, offer, data)) return state
         val s0 = ShopLogic.rollDay(state)
         val shop = s0.shop
         if (!bypass) {
@@ -152,6 +156,17 @@ object OfferEngine {
                     lastShownEpochSec = shop.lastShownEpochSec + (offer.sku to s0.nowEpochSec),
                 ),
         )
+    }
+
+    /** ショップが解放済みで、パックが要る機能（英雄・ピギーなど）も解放済みか。 */
+    private fun offerUnlocked(
+        state: GameState,
+        offer: Offer,
+        data: GameData,
+    ): Boolean {
+        if (!FeatureGate.unlocked(state, data, Feature.SHOP)) return false
+        val need = data.offers.pack(offer.sku)?.feature?.let { Feature.fromId(it) } ?: return true
+        return FeatureGate.unlocked(state, data, need)
     }
 
     /** パックのトリガー種 [kind] が [ctx] で発火するものをすべて積む。 */
@@ -294,6 +309,30 @@ object OfferEngine {
     ): GameState {
         val pack = data.offers.packs.firstOrNull { it.contents.secondBuilderDays > 0 } ?: return state
         return request(state, makeOffer(state, pack, "secondBuilder", data), data, pack.dailyStock)
+    }
+
+    /**
+     * ショップの解放（城 Lv3）の瞬間に出す「初回 2 倍」のジェム。自動のオファー（抑制の対象外で、解放の演出のあとに出る）。
+     */
+    fun onShopUnlocked(
+        state: GameState,
+        data: GameData,
+    ): GameState {
+        val sku = data.offers.gemSkus.firstOrNull { it.sku == UNLOCK_GEM_SKU } ?: return state
+        val offer =
+            Offer(
+                id = 0,
+                sku = sku.sku,
+                trigger = "featureUnlock",
+                createdEpochSec = state.nowEpochSec,
+                expiresEpochSec = satAdd(state.nowEpochSec, data.shopRules.shortage.durationSec),
+                priceYen = sku.priceYen,
+                listValueYen = sku.priceYen,
+                badge = OfferBadge.BEST_VALUE,
+                contents = PackContents(gems = sku.gems + sku.bonus),
+                params = mapOf("yen" to sku.priceYen),
+            )
+        return enqueue(state, offer, 0, data, bypass = true)
     }
 
     /** 退出前（戻る → タイトル確認の前）。1 日 1 回、「待って！」を積む。積めたら true を返す側で扱う。 */
