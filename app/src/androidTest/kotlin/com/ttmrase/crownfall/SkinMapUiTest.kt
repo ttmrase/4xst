@@ -156,22 +156,24 @@ class SkinMapUiTest {
             pinchMap(0.08f, 0.13f)
             rule.waitForIdle()
             Screenshots.save("t114_map_owners")
-            pinchMap(0.08f, 0.16f)
-            rule.waitForIdle()
-            // 世界は 64x64、城は (32,32)。この倍率では 1 回のスワイプ（画面の 0.8 倍）が 6〜8 タイルほど。端でクランプされる
-            // 北の雪原（y < 約 9）
-            repeat(5) { panMap(0f, 0.8f) }
+            // 世界は 64x64、城は (32,32)。この倍率（約 1.6 倍）では、1 回のスワイプが横に約 6 タイル、縦（0.7 倍）で約 12 タイル。
+            // 下部ナビの上（画面の下 12%）から始めるとスワイプが効かないので、割合は 0.7 以下にする
+            // 北の雪原（y < 約 9 = 城から 23 タイル北）
+            repeat(4) { panMap(0f, 0.7f) }
             rule.waitForIdle()
             Screenshots.save("t114_map_snow")
             // 川（北端で x が約 13〜26）: 北端から西へ
-            repeat(3) { panMap(0.8f, 0f) }
+            repeat(2) { panMap(0.7f, 0f) }
             rule.waitForIdle()
             Screenshots.save("t114_map_river_north")
-            // 川の南の部分（南端で x が約 35〜48）: 南へ、東へ
-            repeat(10) { panMap(-0.8f, -0.8f) }
+            // 城へ戻って、南東の砂漠（x + y > 約 90）へ
+            rule.onAllNodesWithText(h.str(R.string.screen_city))[0].performClick()
+            rule.waitForIdle()
+            repeat(4) { panMap(-0.7f, -0.35f) }
             rule.waitForIdle()
             Screenshots.save("t114_map_desert")
-            repeat(2) { panMap(0.8f, 0f) }
+            // 川の南の部分（南端で x が約 35〜48）: 西へ
+            repeat(2) { panMap(0.7f, 0f) }
             rule.waitForIdle()
             Screenshots.save("t114_map_river_south")
         }
