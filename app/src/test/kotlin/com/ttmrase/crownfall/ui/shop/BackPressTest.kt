@@ -16,6 +16,7 @@ import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.ClasspathDataSource
+import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.session.SaveStorage
 import com.ttmrase.crownfall.core.shop.OfferEngine
