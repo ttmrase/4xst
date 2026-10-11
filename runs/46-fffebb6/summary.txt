@@ -1,0 +1,16 @@
+run: 46
+commit: fffebb6af682323a131f47102f942271b9b3b214
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38109308416
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+e: app/src/main/kotlin/com/ttmrase/crownfall/offers/ShopOfferHooks.kt:25:26 This annotation is not applicable to target 'type usage'. Applicable targets: function, getter, setter, value parameter, field, local variable
+--- failed tests ---
+> Task :app:compileDebugKotlin FAILED
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
