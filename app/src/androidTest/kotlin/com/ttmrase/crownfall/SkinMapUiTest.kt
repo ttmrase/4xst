@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ttmrase.crownfall.core.data.ClasspathDataSource
 import com.ttmrase.crownfall.core.map.MapQueries
@@ -191,6 +192,7 @@ class SkinMapUiTest {
                 "castle_ice",
                 "castle_gold",
                 "castle_sakura",
+                "castle_dragon",
                 "territory_ice",
                 "trail_flame",
                 "frame_crystal",
@@ -198,7 +200,7 @@ class SkinMapUiTest {
                 "bubble_sakura",
             )
         h.step("castle_skins") {
-            for (castle in listOf("castle_ice", "castle_gold", "castle_sakura")) {
+            for (castle in listOf("castle_ice", "castle_gold", "castle_sakura", "castle_dragon")) {
                 h.wearSkins(all, mapOf("castle" to castle, "territory" to "territory_ice"))
                 h.open("city")
                 rule.waitForIdle()
@@ -219,10 +221,13 @@ class SkinMapUiTest {
             )
             h.open("chat")
             h.waitText(h.str(R.string.chat_input_hint), substring = true)
-            rule.onNode(hasSetTextAction()).performTextInput("Hello")
-            h.click(h.str(R.string.chat_send))
-            h.waitText("Hello")
-            Thread.sleep(2_000)
+            for (text in listOf("Hello", "How are you?", "Let us trade")) {
+                rule.onNode(hasSetTextAction()).performTextInput(text)
+                h.click(h.str(R.string.chat_send))
+                h.waitText(text)
+            }
+            Espresso.closeSoftKeyboard()
+            Thread.sleep(6_000)
             Screenshots.save("t114_chat_skins")
         }
     }

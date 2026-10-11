@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ttmrase.crownfall.core.data.ClasspathDataSource
 import com.ttmrase.crownfall.core.model.HeroState
@@ -87,9 +88,12 @@ class PortraitUiTest {
             Thread.sleep(800)
             Screenshots.save("portrait_chat_dm")
             // 1 通送って返事（吹き出しのアバター）を待つ
-            rule.onNode(hasSetTextAction()).performTextInput("Hello")
-            h.click(h.str(R.string.chat_send))
-            h.waitText("Hello")
+            for (text in listOf("Hello", "How are you?", "Let us trade")) {
+                rule.onNode(hasSetTextAction()).performTextInput(text)
+                h.click(h.str(R.string.chat_send))
+                h.waitText(text)
+            }
+            Espresso.closeSoftKeyboard()
             Thread.sleep(8_000) // ペルソナの返事（入力中の表示のあと）を待つ
             Screenshots.save("portrait_chat_bubbles")
         }
