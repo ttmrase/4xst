@@ -258,7 +258,10 @@ fun CityScreen(
                 onUpgrade = {
                     scope.launch {
                         when (val r = session.dispatch { Actions.startUpgrade(it, slotId, data) }) {
-                            is ActionResult.Success -> advanceTutorial(TUTORIAL_PRESS_BUILD_STEP)
+                            is ActionResult.Success -> {
+                                Sfx.play(context, SfxId.BUILD_START)
+                                advanceTutorial(TUTORIAL_PRESS_BUILD_STEP)
+                            }
                             is ActionResult.Failure -> showFailure(r.reason)
                         }
                     }

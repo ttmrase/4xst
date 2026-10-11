@@ -39,8 +39,9 @@ private const val NANOS = 1_000_000_000f
 private const val SHOWER_SEC = 3.4f
 private const val FLY_MS = 900
 private const val FLY_STAGGER_MS = 160L
-private const val CHEST_SFX_DELAY_MS = 350L
-private const val COIN_SFX_DELAY_MS = 180L
+private const val CHEST_SFX_DELAY_MS = 600L
+private const val COIN_SFX_DELAY_MS = 350L
+private const val ICONS_START_MS = 1500L
 
 private class Coin(
     val x: Float,
@@ -105,16 +106,16 @@ fun PurchaseCelebration(
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         Sfx.play(context, SfxId.FANFARE)
+        delay(CHEST_SFX_DELAY_MS)
+        Sfx.play(context, SfxId.CHEST) // ひびが入って光がもれる瞬間
         delay(COIN_SFX_DELAY_MS)
         Sfx.play(context, SfxId.COIN)
-        delay(CHEST_SFX_DELAY_MS - COIN_SFX_DELAY_MS)
-        Sfx.play(context, SfxId.CHEST)
     }
     val glyphs = remember(contents) { flyingGlyphs(contents) }
     Box(modifier = modifier.fillMaxWidth().height(170.dp)) {
         TreasureChest(modifier = Modifier.align(Alignment.TopCenter))
         Text("🎒", fontSize = 30.sp, modifier = Modifier.align(Alignment.BottomEnd))
-        glyphs.forEachIndexed { i, glyph -> FlyingIcon(glyph, delayMs = 700L + i * FLY_STAGGER_MS) }
+        glyphs.forEachIndexed { i, glyph -> FlyingIcon(glyph, delayMs = ICONS_START_MS + i * FLY_STAGGER_MS) }
     }
 }
 

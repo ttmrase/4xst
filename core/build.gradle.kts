@@ -60,6 +60,7 @@ kover {
                     "com.ttmrase.crownfall.core.event",
                     "com.ttmrase.crownfall.core.notify",
                     "com.ttmrase.crownfall.core.bubble",
+                    "com.ttmrase.crownfall.core.title",
                 )
             }
         }

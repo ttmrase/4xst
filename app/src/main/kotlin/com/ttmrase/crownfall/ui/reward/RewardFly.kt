@@ -291,18 +291,34 @@ internal fun RewardFlyState.originOrDefault(): Offset =
 private const val DEFAULT_X = 540f
 private const val DEFAULT_Y = 1400f
 
-/** ルートに付けて、最後のタップ位置を記録する（ポインタ入力は消費しない）。 */
+/**
+ * ルートに付けて、最後のタップ位置を記録し、タップのたびに [onTap] を呼ぶ（ポインタ入力は消費しない）。
+ * 「タップ」は、ほとんど動かさずに短く離したもの（スクロールやドラッグでは呼ばない）。
+ */
 fun Modifier.trackTaps(
     fly: RewardFlyState,
     windowOrigin: () -> Offset,
+    onTap: () -> Unit = {},
 ): Modifier =
     pointerInput(fly) {
+        val slop = viewConfiguration.touchSlop
         awaitPointerEventScope {
+            var downAt = Offset.Unspecified
+            var downMs = 0L
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Initial)
-                event.changes.firstOrNull { it.pressed && !it.previousPressed }?.let {
-                    fly.lastTap = it.position + windowOrigin()
+                val change = event.changes.firstOrNull() ?: continue
+                if (change.pressed && !change.previousPressed) {
+                    downAt = change.position
+                    downMs = System.currentTimeMillis()
+                    fly.lastTap = change.position + windowOrigin()
+                } else if (!change.pressed && change.previousPressed && downAt.isSpecified) {
+                    val quick = System.currentTimeMillis() - downMs < TAP_MAX_MS
+                    if (quick && (change.position - downAt).getDistance() <= slop) onTap()
+                    downAt = Offset.Unspecified
                 }
             }
         }
     }
+
+private const val TAP_MAX_MS = 350L

@@ -24,6 +24,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -35,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.core.data.QuestCond
 import com.ttmrase.crownfall.core.data.QuestDef
 import com.ttmrase.crownfall.core.model.BuildingType
@@ -52,6 +55,7 @@ import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.dispatchFly
 import com.ttmrase.crownfall.ui.shop.ContentsLines
+import com.ttmrase.crownfall.ui.shop.RewardDialog
 import kotlinx.coroutines.launch
 
 private val TABS =
@@ -76,12 +80,23 @@ fun QuestScreen(
     val fly = LocalRewardFly.current
     val s = state ?: return
 
-    fun claim(block: (GameState) -> ActionResult) {
+    var shown by remember { mutableStateOf<PackContents?>(null) }
+
+    /** [contents] を渡すと、受け取りのあとに宝箱の演出（共通の [RewardDialog]）を出す。 */
+    fun claim(
+        contents: PackContents? = null,
+        block: (GameState) -> ActionResult,
+    ) {
         scope.launch {
-            val r = session.dispatchFly(fly, block)
-            if (r is ActionResult.Failure) snackbarHostState.showReplacing(failureMessage(context, r.reason))
+            val r = if (contents == null) session.dispatchFly(fly, block) else session.dispatch(block)
+            if (r is ActionResult.Failure) {
+                snackbarHostState.showReplacing(failureMessage(context, r.reason))
+            } else if (contents != null) {
+                shown = contents
+            }
         }
     }
+    shown?.let { RewardDialog(stringResource(R.string.quest_reward_title), it, data, false) { shown = null } }
 
     val mainBadge = QuestLogic.currentChapter(s, data)?.let { QuestLogic.chapterDone(it, s, data) } == true
     val q = QuestLogic.view(s)
@@ -111,15 +126,29 @@ fun QuestScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             when (tab) {
-                0 -> mainTab(s, data) { id -> claim { Actions.claimQuest(it, id, data) } }
+                0 ->
+                    mainTab(s, data) { id ->
+                        claim(
+                            data.quests.chapters.firstOrNull { it.id == id }?.reward,
+                        ) { Actions.claimQuest(it, id, data) }
+                    }
                 1 ->
                     dailyTab(s, data, onClaim = { id -> claim { Actions.claimQuest(it, id, data) } }) { tier ->
-                        claim { Actions.claimDailyChest(it, tier, data) }
+                        claim(data.quests.chests.firstOrNull { it.tier == tier }?.reward) {
+                            Actions.claimDailyChest(it, tier, data)
+                        }
                     }
-                2 -> oneShotTab(s, data, data.quests.alliance) { id -> claim { Actions.claimQuest(it, id, data) } }
+                2 ->
+                    oneShotTab(s, data, data.quests.alliance) { id ->
+                        claim(data.quests.alliance.firstOrNull { it.id == id }?.reward) {
+                            Actions.claimQuest(it, id, data)
+                        }
+                    }
                 else ->
                     oneShotTab(s, data, data.quests.achievements) { id ->
-                        claim { Actions.claimQuest(it, id, data) }
+                        claim(data.quests.achievements.firstOrNull { it.id == id }?.reward) {
+                            Actions.claimQuest(it, id, data)
+                        }
                     }
             }
         }

@@ -441,6 +441,14 @@ fun channelName(
         else -> channel
     }
 
+/** 称号 [id] の表示名（文字列が無ければ null）。リソース名 `title_<id>` で引く（縮小で消えないよう keep.xml に載せている）。 */
+fun titleLabel(
+    context: Context,
+    id: String,
+): String? =
+    context.resources.getIdentifier("title_$id", "string", context.packageName).takeIf { it != 0 }
+        ?.let { context.getString(it) }
+
 /** チャットの発話者の表示名（ペルソナ ID / `world:<名前>` / `player` / `system`）。 */
 fun speakerName(
     context: Context,

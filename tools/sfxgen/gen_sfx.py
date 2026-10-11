@@ -4,7 +4,9 @@
 実行: python3 tools/sfxgen/gen_sfx.py
 16bit・モノラル・22050Hz。短い音だけなので合計は数百 KB。乱数は固定シード（出力は決定論的）。
 音: button, coin, fanfare, charge（召喚のチャージ）, flip（カードをめくる）, rare（レア確定）, ssr（SSR）,
-alarm（警報）, vip（VIP 昇格）, chest（宝箱）
+alarm（警報）, vip（VIP 昇格）, chest（宝箱）,
+M11 追加: collect（回収）, build_start（着工）, build_done（完成）, levelup（城の昇格）, unlock（機能の解放）,
+purchase（購入完了）, notify（通知）, tap（軽いタップ）
 """
 
 import math
@@ -168,6 +170,32 @@ def main():
     # 宝箱: きしみ + きらめき
     creak = sweep(140, 320, 0.5, 0.5, 1.0, 0.8, 18.0)
     write("chest", fade_out(mix(creak, noise(0.5, 13, 0.08, a=0.2, r=0.2), *[at(0.5 + 0.06 * i, bell(1760 + 160 * i, 0.5, 0.5)) for i in range(6)])), 0.75)
+    # --- M11 追加 ---
+    # 回収: ぽんと弾ける短い泡 + 小さなベル
+    write("collect", mix(sweep(380, 900, 0.09, 0.8, 0.8), at(0.06, bell(1568, 0.35, 0.6))), 0.7)
+    # 着工: 金づちの 2 打
+    hammer = lambda t: at(t, mix(tone(210, 0.12, ((1, 1.0), (2.3, 0.5)), a=0.001, d=0.08, s=0.0, r=0.03), noise(0.03, 17, 0.5, a=0.001, r=0.03)))
+    write("build_start", mix(hammer(0.0), hammer(0.16)), 0.75)
+    # 完成: 明るい 2 音のチャイム
+    write("build_done", mix(bell(1046.5, 0.8, 0.8), at(0.14, bell(1568.0, 1.0, 0.8)), at(0.14, bell(2093.0, 0.8, 0.3))), 0.8)
+    # 城の昇格: 小さなファンファーレ（上昇 4 音 + 和音）+ きらめき
+    up = [(392.0, 0.12), (523.3, 0.12), (659.3, 0.12), (784.0, 0.12)]
+    t, parts = 0.0, []
+    for f, d in up:
+        parts.append(at(t, brass(f, d + 0.08)))
+        t += d
+    parts += [at(t, brass(f, 1.0, 0.6)) for f in (523.3, 659.3, 784.0, 1046.5)]
+    parts += [at(t + 0.06 * i, bell(1318.5 * (1 + 0.12 * i), 0.6, 0.35)) for i in range(7)]
+    write("levelup", mix(*parts), 0.85)
+    # 機能の解放: 鍵が開くような金属音 + 上昇するきらめき
+    click = mix(tone(920, 0.05, ((1, 1.0), (2.4, 0.4)), a=0.001, d=0.04, s=0.0, r=0.01), noise(0.02, 19, 0.3, a=0.001, r=0.02))
+    write("unlock", mix(click, at(0.1, click), *[at(0.22 + 0.07 * i, bell(1175 * (1 + i * 0.26), 0.7, 0.55)) for i in range(5)]), 0.8)
+    # 購入完了: レジのチン + コイン
+    write("purchase", mix(bell(2093.0, 0.9, 0.8), at(0.08, bell(2637.0, 0.9, 0.6)), at(0.25, bell(1319, 0.5, 0.5)), at(0.31, bell(1760, 0.6, 0.5))), 0.8)
+    # 通知: やさしい 2 音
+    write("notify", mix(bell(988, 0.5, 0.7), at(0.18, bell(1319, 0.7, 0.7))), 0.7)
+    # 軽いタップ（全部のボタンに付けても邪魔にならない小さな音）
+    write("tap", mix(tone(1560, 0.035, ((1, 1.0), (2, 0.2)), a=0.001, d=0.03, s=0.0, r=0.005)), 0.35)
 
 
 if __name__ == "__main__":

@@ -369,23 +369,43 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCrown(
 /** 購入完了の宝箱。ふたが開いて金色の光があふれる。 */
 @Composable
 fun TreasureChest(modifier: Modifier = Modifier) {
-    val open = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { open.animateTo(1f, tween(700)) }
-    Canvas(modifier = modifier.size(width = 140.dp, height = 110.dp)) {
+    // 1.5 秒: 揺れる（0〜40%）→ ひびが入って光がもれる（40〜60%）→ ふたが開いて光の筋が弾ける（60〜100%）
+    val t = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { t.animateTo(1f, tween(CHEST_MS, easing = LinearEasing)) }
+    val p = t.value
+    val shake = if (p < SHAKE_END) sin(p * SHAKE_FREQ) * (1f - 0.3f * p / SHAKE_END) * SHAKE_DEG else 0f
+    val crack = ((p - SHAKE_END) / (OPEN_START - SHAKE_END)).coerceIn(0f, 1f)
+    val open = ((p - OPEN_START) / (1f - OPEN_START)).coerceIn(0f, 1f)
+    Canvas(
+        modifier =
+            modifier.size(width = 140.dp, height = 110.dp).graphicsLayer {
+                rotationZ = shake
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
+            },
+    ) {
         val w = size.width
         val h = size.height
         val body = Color(0xFF8B4A1C)
         val band = FoilGold
-        val glowAlpha = open.value
+        val glowAlpha = maxOf(open, crack * 0.35f)
+        val core = Offset(w / 2f, h * 0.4f)
         drawCircle(
-            Brush.radialGradient(
-                listOf(FoilGold.copy(alpha = glowAlpha), Color.Transparent),
-                Offset(w / 2f, h * 0.4f),
-                w * 0.6f,
-            ),
+            Brush.radialGradient(listOf(FoilGold.copy(alpha = glowAlpha), Color.Transparent), core, w * 0.6f),
             w * 0.6f,
-            Offset(w / 2f, h * 0.4f),
+            core,
         )
+        if (open > 0f) {
+            repeat(RAYS) { i ->
+                val a = (i.toFloat() / RAYS) * 2f * Math.PI.toFloat() - Math.PI.toFloat() / 2f
+                val len = w * (0.25f + 0.65f * open)
+                drawLine(
+                    FoilGold.copy(alpha = (1f - open * 0.7f).coerceIn(0f, 1f)),
+                    core,
+                    Offset(core.x + kotlin.math.cos(a) * len, core.y + kotlin.math.sin(a) * len * 0.8f),
+                    strokeWidth = 2.5.dp.toPx(),
+                )
+            }
+        }
         // 箱本体
         drawRoundRect(
             body,
@@ -395,8 +415,8 @@ fun TreasureChest(modifier: Modifier = Modifier) {
         )
         drawRect(band, Offset(w * 0.1f, h * 0.45f), androidx.compose.ui.geometry.Size(w * 0.8f, h * 0.07f))
         drawRect(band, Offset(w * 0.47f, h * 0.5f), androidx.compose.ui.geometry.Size(w * 0.06f, h * 0.3f))
-        // ふた（開くほど上へ跳ね上がる）
-        val lift = open.value * h * 0.28f
+        // ふた（ひびの段階で少し浮き、開くほど上へ跳ね上がる）
+        val lift = crack * h * 0.05f + open * h * 0.23f
         val lid =
             Path().apply {
                 moveTo(w * 0.1f, h * 0.45f - lift)
@@ -405,5 +425,20 @@ fun TreasureChest(modifier: Modifier = Modifier) {
             }
         drawPath(lid, body)
         drawPath(lid, band, style = Stroke(width = 3.dp.toPx()))
+        if (crack > 0f) {
+            // ふたと箱のすきまから光がもれる
+            drawRect(
+                Color.White.copy(alpha = crack * 0.9f),
+                Offset(w * 0.12f, h * 0.45f - lift),
+                androidx.compose.ui.geometry.Size(w * 0.76f, (lift + 2f).coerceAtLeast(2f)),
+            )
+        }
     }
 }
+
+private const val CHEST_MS = 1500
+private const val SHAKE_END = 0.4f
+private const val OPEN_START = 0.6f
+private const val SHAKE_FREQ = 55f
+private const val SHAKE_DEG = 7f
+private const val RAYS = 12

@@ -25,6 +25,14 @@ enum class SfxId(
     ALARM(R.raw.sfx_alarm),
     VIP(R.raw.sfx_vip),
     CHEST(R.raw.sfx_chest),
+    COLLECT(R.raw.sfx_collect),
+    BUILD_START(R.raw.sfx_build_start),
+    BUILD_DONE(R.raw.sfx_build_done),
+    LEVELUP(R.raw.sfx_levelup),
+    UNLOCK(R.raw.sfx_unlock),
+    PURCHASE(R.raw.sfx_purchase),
+    NOTIFY(R.raw.sfx_notify),
+    TAP(R.raw.sfx_tap),
 }
 
 /**
@@ -35,6 +43,7 @@ object Sfx {
     private const val PREFS = "crownfall_ui_prefs"
     private const val KEY_ENABLED = "sfx_enabled"
     private const val KEY_VIBRATION = "vibration_enabled"
+    private const val KEY_VOLUME = "sfx_volume"
     private const val MAX_STREAMS = 6
 
     private var pool: SoundPool? = null
@@ -62,6 +71,21 @@ object Sfx {
     /** 効果音が有効か。 */
     fun isEnabled(context: Context): Boolean =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_ENABLED, true)
+
+    /** 効果音の音量（0〜100、既定 100）。BGM とは別。 */
+    fun volume(context: Context): Int =
+        context.applicationContext.getSharedPreferences(
+            PREFS,
+            Context.MODE_PRIVATE,
+        ).getInt(KEY_VOLUME, 100).coerceIn(0, 100)
+
+    fun setVolume(
+        context: Context,
+        percent: Int,
+    ) {
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putInt(KEY_VOLUME, percent.coerceIn(0, 100)).apply()
+    }
 
     /** 効果音の ON/OFF を保存する。 */
     fun setEnabled(
@@ -95,7 +119,10 @@ object Sfx {
         init(app)
         try {
             val sample = sampleIds[id] ?: return
-            if (sample in ready) pool?.play(sample, 1f, 1f, 1, 0, 1f)
+            if (sample in ready) {
+                val v = volume(app) / 100f
+                pool?.play(sample, v, v, 1, 0, 1f)
+            }
         } catch (e: Exception) {
             // 音が出せなくてもゲームは続ける
         }

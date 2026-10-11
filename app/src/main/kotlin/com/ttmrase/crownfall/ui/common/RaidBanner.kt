@@ -49,7 +49,10 @@ fun RaidBanner(
     val context = LocalContext.current
     LaunchedEffect(session) {
         session.events.collect { e ->
-            if (e is GameEvent.RaidStageReached && e.stage != RaidStage.RESULT) vibrate(context)
+            if (e is GameEvent.RaidStageReached && e.stage != RaidStage.RESULT) {
+                Sfx.play(context, SfxId.ALARM)
+                vibrate(context)
+            }
         }
     }
     val state by session.state.collectAsStateWithLifecycle()

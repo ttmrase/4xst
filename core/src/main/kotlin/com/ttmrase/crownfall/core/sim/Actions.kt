@@ -35,6 +35,7 @@ import com.ttmrase.crownfall.core.research.ResearchRules
 import com.ttmrase.crownfall.core.shop.ShopHooks
 import com.ttmrase.crownfall.core.shop.ShopLogic
 import com.ttmrase.crownfall.core.shop.VipCalculator
+import com.ttmrase.crownfall.core.title.Titles
 
 /** アクション失敗の理由（ID と数値のみ。表示文言は :app）。 */
 sealed interface ActionFailure {
@@ -780,6 +781,13 @@ object Actions {
         val (next, done) = HarvestBubble.collect(state, HarvestBubble.ready(state, data), data)
         return if (done.isEmpty()) fail(ActionFailure.NothingToClaim) else ActionResult.Success(next)
     }
+
+    /** 称号を選ぶ（null は「おまかせ」）。名乗れない称号は [ActionFailure.NotOwned]。 */
+    fun selectTitle(
+        state: GameState,
+        id: String?,
+        data: GameData,
+    ): ActionResult = Titles.select(state, id, data)?.let { ActionResult.Success(it) } ?: fail(ActionFailure.NotOwned)
 
     /** アバター番号の上限（生成済みの候補数。:app の PortraitView と揃える）。 */
     const val AVATAR_COUNT = 12

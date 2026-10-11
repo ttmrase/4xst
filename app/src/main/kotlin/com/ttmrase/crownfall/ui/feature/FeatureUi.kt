@@ -152,7 +152,7 @@ fun FeatureUnlockDialog(
     val scope = rememberCoroutineScope()
     val fly = remember(feature) { Animatable(0f) }
     var flying by remember(feature) { mutableStateOf(false) }
-    LaunchedEffect(feature) { Sfx.play(context, SfxId.FANFARE) }
+    LaunchedEffect(feature) { Sfx.play(context, SfxId.UNLOCK) }
     Dialog(
         onDismissRequest = onSkipAll,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false),
@@ -330,6 +330,8 @@ fun FeatureOverlays(
     modifier: Modifier = Modifier,
     /** 解放の演出が出ている間 true（オファーを上に重ねないため。VIP のシネマと同じ扱い）。 */
     onActive: (Boolean) -> Unit = {},
+    /** true のあいだは演出を出さずに待つ（城の昇格の演出が先）。 */
+    hold: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
     val fly = LocalRewardFly.current
@@ -337,7 +339,8 @@ fun FeatureOverlays(
         remember(session, data) {
             session.state.map { s -> if (s == null) emptyList() else pendingUnlocks(s, data) }.distinctUntilChanged()
         }
-    val pending by pendingFlow.collectAsStateWithLifecycle(emptyList())
+    val pendingAll by pendingFlow.collectAsStateWithLifecycle(emptyList())
+    val pending = if (hold) emptyList() else pendingAll
     val active = pending.isNotEmpty()
     LaunchedEffect(active) { onActive(active) }
     DisposableEffect(Unit) { onDispose { onActive(false) } }

@@ -43,6 +43,7 @@ import com.ttmrase.crownfall.core.alliance.DonationKind
 import com.ttmrase.crownfall.core.alliance.Personas
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.PersonaDef
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.map.TileRef
 import com.ttmrase.crownfall.core.march.MarchKind
 import com.ttmrase.crownfall.core.model.AiRally
@@ -51,9 +52,11 @@ import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.RequestKind
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.session.GameSession
+import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.sim.ActionFailure
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
+import com.ttmrase.crownfall.core.title.Titles
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.collectCalmState
@@ -69,6 +72,7 @@ import com.ttmrase.crownfall.ui.portrait.PortraitKeys
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.dispatchFly
+import com.ttmrase.crownfall.ui.titleLabel
 import kotlinx.coroutines.launch
 
 private const val SECONDS_PER_DAY = 86_400L
@@ -246,6 +250,18 @@ private fun MembersTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        item(key = "me") {
+            MemberRow(
+                name = s.playerName.ifBlank { stringResource(R.string.chat_you) },
+                rank = 1,
+                castleLv = FeatureGate.castleLevel(s),
+                login = stringResource(R.string.alliance_online),
+                hoursAgo = 0,
+                vip = VipCalculator.level(s, data),
+                portrait = PortraitKeys.avatar(s.avatar),
+                title = Titles.displayed(s, data),
+            )
+        }
         items(data.personas.personas, key = { it.id }) { def ->
             val ago = hoursSinceActive(def, s)
             MemberRow(
@@ -256,6 +272,7 @@ private fun MembersTab(
                 hoursAgo = ago,
                 vip = def.vipLv,
                 portrait = def.id,
+                title = def.title.ifEmpty { null },
             )
         }
         itemsIndexed(data.personas.fillerMembers, key = { _, f -> f.name }) { i, f ->
@@ -266,6 +283,7 @@ private fun MembersTab(
                 login = if (f.lastLoginHoursAgo <= 0) stringResource(R.string.alliance_online) else null,
                 hoursAgo = f.lastLoginHoursAgo,
                 vip = 0,
+                title = null,
                 portrait = PortraitKeys.filler(f.look, data.personas.fillerMembers.take(i).count { it.look == f.look }),
             )
         }
@@ -281,7 +299,9 @@ private fun MemberRow(
     hoursAgo: Int,
     vip: Int,
     portrait: String,
+    title: String?,
 ) {
+    val context = LocalContext.current
     Card(Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(10.dp),
@@ -295,6 +315,15 @@ private fun MemberRow(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(name, fontWeight = FontWeight.Bold)
+                    title?.let { id ->
+                        titleLabel(context, id)?.let {
+                            Text(
+                                "「$it」",
+                                color = MaterialTheme.colorScheme.tertiary,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                    }
                     if (vip > 0) {
                         Text(
                             stringResource(R.string.alliance_vip, vip),

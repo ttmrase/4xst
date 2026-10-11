@@ -224,6 +224,7 @@ private fun SettingsForm(
         if (session != null) {
             HorizontalDivider()
             AvatarSettingsSection(session)
+            if (data != null) TitleSettingsSection(session, data)
         }
         HorizontalDivider()
         SoundSettingsSection()

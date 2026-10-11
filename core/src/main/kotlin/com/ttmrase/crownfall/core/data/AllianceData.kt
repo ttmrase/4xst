@@ -47,6 +47,8 @@ data class PersonaDef(
     val troopTier: Int,
     /** 英語での呼び方（任意）。空ならプレイヤー名（敬称なし）。 */
     val callNameEn: String = "",
+    /** 名前の横に出す称号（titles.json の id。空なら無し）。M11 T11.3。 */
+    val title: String = "",
 )
 
 /** 名前・城 Lv・最終ログインだけの同盟メンバー。 */

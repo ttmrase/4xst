@@ -2,6 +2,7 @@
  "personas": [
   {
    "id": "kaede",
+   "title": "sunny",
    "displayName": "Kaede",
    "rank": 5,
    "vipLv": 9,
@@ -64,6 +65,7 @@
   },
   {
    "id": "marcus",
+   "title": "ironwall",
    "displayName": "Marcus_DE",
    "rank": 4,
    "vipLv": 11,
@@ -125,6 +127,7 @@
   },
   {
    "id": "ponzu",
+   "title": "quizmaster",
    "displayName": "ぽんず",
    "rank": 2,
    "vipLv": 1,
@@ -187,6 +190,7 @@
   },
   {
    "id": "sato",
+   "title": "farmer",
    "displayName": "Sato_Farm",
    "rank": 3,
    "vipLv": 4,
@@ -256,6 +260,7 @@
   },
   {
    "id": "lin",
+   "title": "tactician",
    "displayName": "Lin",
    "rank": 4,
    "vipLv": 7,
@@ -321,6 +326,7 @@
   },
   {
    "id": "johnny",
+   "title": "flashy",
    "displayName": "ジョニー",
    "rank": 2,
    "vipLv": 13,
@@ -386,6 +392,7 @@
   },
   {
    "id": "yuki",
+   "title": "snow",
    "displayName": "Yuki",
    "rank": 3,
    "vipLv": 5,
@@ -447,6 +454,7 @@
   },
   {
    "id": "gen",
+   "title": "veteran",
    "displayName": "老兵ゲン",
    "rank": 3,
    "vipLv": 6,

@@ -18,7 +18,7 @@ internal object QuestValidator {
         validateEvents(data)
     }
 
-    private fun validateCond(
+    fun validateCond(
         where: String,
         c: QuestCond,
     ) {

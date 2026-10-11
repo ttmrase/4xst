@@ -65,10 +65,16 @@ import com.ttmrase.crownfall.offers.ShopOfferHooks
 import com.ttmrase.crownfall.ui.alliance.AllianceScreen
 import com.ttmrase.crownfall.ui.alliance.unreadTotal
 import com.ttmrase.crownfall.ui.barracks.BarracksScreen
+import com.ttmrase.crownfall.ui.ceremony.AchievementToastHost
+import com.ttmrase.crownfall.ui.ceremony.CastleCeremonyHost
 import com.ttmrase.crownfall.ui.chat.ChatScreen
 import com.ttmrase.crownfall.ui.city.CityScreen
+import com.ttmrase.crownfall.ui.common.BgmHost
 import com.ttmrase.crownfall.ui.common.LocalClock
 import com.ttmrase.crownfall.ui.common.RaidBanner
+import com.ttmrase.crownfall.ui.common.Sfx
+import com.ttmrase.crownfall.ui.common.SfxId
+import com.ttmrase.crownfall.ui.common.SoundEvents
 import com.ttmrase.crownfall.ui.common.calmStateFlow
 import com.ttmrase.crownfall.ui.common.collectClock
 import com.ttmrase.crownfall.ui.common.showReplacing
@@ -145,6 +151,7 @@ fun CrownfallNavHost(
         }
     var vipActive by remember { mutableStateOf(false) }
     var featureActive by remember { mutableStateOf(false) }
+    var ceremonyActive by remember { mutableStateOf(false) }
     // 退出前オファーの流れ: 0 = なし、1 = 「待って！」を出している、2 = 閉じ終えたのでタイトルへ戻る確認
     var exitStage by rememberSaveable { mutableIntStateOf(0) }
     // 毎秒変わる状態を NavHost で読まない。必要な値だけを取り出し、変わったときだけ再構図する。
@@ -257,13 +264,14 @@ fun CrownfallNavHost(
     }
 
     val flyState = remember { RewardFlyState() }
+    BgmHost(destination?.route, ready?.session)
     CompositionLocalProvider(LocalClock provides clock, LocalRewardFly provides flyState) {
         var rootOrigin by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
         Box(
             Modifier
                 .fillMaxSize()
                 .onGloballyPositioned { rootOrigin = it.positionInWindow() }
-                .trackTaps(flyState) { rootOrigin },
+                .trackTaps(flyState, { rootOrigin }) { Sfx.play(context, SfxId.TAP) },
         ) {
             Scaffold(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -477,7 +485,7 @@ fun CrownfallNavHost(
             session = ready.session,
             data = ready.data,
             coordinator = sessionCoordinator,
-            busy = billingId != null || vipActive || featureActive,
+            busy = billingId != null || vipActive || featureActive || ceremonyActive,
             onBuy = {
                 billingId = it
                 // 退出オファーを買いに行ったら、タイトルへの確認は出さず城内に残る
@@ -486,12 +494,16 @@ fun CrownfallNavHost(
             onIdle = { if (exitStage == 1) exitStage = 2 },
         )
         VipCinematicHost(ready.session, ready.data, hold = billingId != null, onActive = { vipActive = it })
+        CastleCeremonyHost(ready.session, ready.data) { ceremonyActive = it }
+        SoundEvents(ready.session)
+        AchievementToastHost(ready.session, ready.data, Modifier.fillMaxSize().statusBarsPadding())
         FeatureOverlays(
             session = ready.session,
             data = ready.data,
             target = { f -> BottomDestination.entries.indexOfFirst { it.feature == f }.takeIf { it >= 0 } },
             modifier = Modifier.fillMaxSize().statusBarsPadding(),
             onActive = { featureActive = it },
+            hold = ceremonyActive,
         )
         lockedFeature?.let { f ->
             LockedFeatureDialog(

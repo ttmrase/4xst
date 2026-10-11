@@ -1,0 +1,24 @@
+{
+ "titles": [
+  {"id": "villager", "cond": {"type": "building", "building": "castle", "lv": 1}},
+  {"id": "landlord", "cond": {"type": "building", "building": "castle", "lv": 3}},
+  {"id": "knight", "cond": {"type": "building", "building": "castle", "lv": 5}},
+  {"id": "scholar", "cond": {"type": "research", "total": 8}},
+  {"id": "collector", "cond": {"type": "heroes", "count": 5}},
+  {"id": "baron", "cond": {"type": "building", "building": "castle", "lv": 8}},
+  {"id": "hunter", "cond": {"type": "counter", "key": "hunt", "target": 30}},
+  {"id": "duke", "cond": {"type": "building", "building": "castle", "lv": 10}},
+  {"id": "strategist", "cond": {"type": "research", "total": 28}},
+  {"id": "hero_master", "cond": {"type": "heroes", "count": 10}},
+  {"id": "king", "cond": {"type": "building", "building": "castle", "lv": 15}},
+  {"id": "emperor", "cond": {"type": "building", "building": "castle", "lv": 20}},
+  {"id": "sunny"},
+  {"id": "ironwall"},
+  {"id": "quizmaster"},
+  {"id": "farmer"},
+  {"id": "tactician"},
+  {"id": "flashy"},
+  {"id": "snow"},
+  {"id": "veteran"}
+ ]
+}

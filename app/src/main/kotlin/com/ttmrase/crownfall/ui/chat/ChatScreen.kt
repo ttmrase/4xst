@@ -45,6 +45,7 @@ import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
+import com.ttmrase.crownfall.core.title.Titles
 import com.ttmrase.crownfall.ui.alliance.unreadIn
 import com.ttmrase.crownfall.ui.channelName
 import com.ttmrase.crownfall.ui.common.collectCalmState
@@ -53,6 +54,7 @@ import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.portrait.PortraitKeys
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.speakerName
+import com.ttmrase.crownfall.ui.titleLabel
 import com.ttmrase.crownfall.ui.vip.VipBadge
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -158,7 +160,13 @@ fun ChatScreen(
                     } else {
                         data.personas.personas.firstOrNull { it.id == m.speaker }?.vipLv ?: 0
                     }
-                MessageRow(m, playerName, vip, portraitKey(m.speaker, s.avatar), timeFormat, onAnswer)
+                val title =
+                    if (m.speaker == "player") {
+                        Titles.displayed(s, data)
+                    } else {
+                        data.personas.personas.firstOrNull { it.id == m.speaker }?.title?.ifEmpty { null }
+                    }
+                MessageRow(m, playerName, vip, portraitKey(m.speaker, s.avatar), title, timeFormat, onAnswer)
             }
         }
         typingNow[channel]?.let { who ->
@@ -212,6 +220,7 @@ private fun MessageRow(
     playerName: String,
     vip: Int,
     portrait: String,
+    title: String?,
     timeFormat: DateFormat,
     onAnswer: (Long, Int) -> Unit,
 ) {
@@ -238,6 +247,15 @@ private fun MessageRow(
                 ) {
                     PortraitView(portrait, name, 32.dp, vip = vip)
                     Text(name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                    title?.let { id ->
+                        titleLabel(context, id)?.let {
+                            Text(
+                                "「$it」",
+                                color = MaterialTheme.colorScheme.tertiary,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
                     VipBadge(vip)
                     Text(time, style = MaterialTheme.typography.labelSmall)
                 }
