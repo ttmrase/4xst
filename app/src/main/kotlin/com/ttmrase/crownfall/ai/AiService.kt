@@ -98,7 +98,7 @@ class AiService(
                     ),
                 ).associateBy { it.id },
             scripted = scripted(data),
-            config = { current().toRouterConfig() },
+            config = { current().toRouterConfig(onDeviceProfile()) },
             usage = usage,
         )
 

@@ -23,7 +23,7 @@ data class AiSettings(
     val revealAi: RevealAi = RevealAi.AMBIGUOUS,
     /** 端末内 LLM は充電中だけ使う。 */
     val onDeviceChargingOnly: Boolean = false,
-    /** 端末内 LLM のタイムアウト（秒）。 */
+    /** 端末内 LLM のタイムアウト（秒）。0 は自動（プロファイルの既定: 標準 45 / 小型 30）。 */
     val onDeviceTimeoutSec: Int = DEFAULT_ON_DEVICE_TIMEOUT_SEC,
     /** 端末内 LLM のプロンプトの種類（`auto` / `standard` / `tiny`）。自動はモデルのファイル名で決める。 */
     val onDeviceProfile: String = OnDeviceProfile.AUTO,
@@ -37,20 +37,28 @@ data class AiSettings(
     override fun toString(): String =
         "AiSettings(order=$order, disabled=$disabled, geminiModel=$geminiModel, openAiModel=$openAiModel, keys=***)"
 
-    fun toRouterConfig(): RouterConfig =
+    fun toRouterConfig(profile: OnDeviceProfile = OnDeviceProfile.STANDARD): RouterConfig =
         RouterConfig(
             order = order,
             disabled = disabled,
             hourlyBudget = hourlyBudget,
             dailyBudget = dailyBudget,
-            onDeviceTimeoutMs = timeoutSec() * MILLIS,
+            onDeviceTimeoutMs = timeoutSec(profile) * MILLIS,
         )
 
-    private fun timeoutSec(): Int = onDeviceTimeoutSec.coerceIn(MIN_ON_DEVICE_TIMEOUT_SEC, MAX_ON_DEVICE_TIMEOUT_SEC)
+    /** 0（自動）と、1.1.1 までの既定値 30 は、プロファイルの既定にする。それ以外は設定の値。 */
+    fun timeoutSec(profile: OnDeviceProfile): Int =
+        if (onDeviceTimeoutSec == AUTO_TIMEOUT || onDeviceTimeoutSec == LEGACY_TIMEOUT_SEC) {
+            profile.defaultTimeoutSec
+        } else {
+            onDeviceTimeoutSec.coerceIn(MIN_ON_DEVICE_TIMEOUT_SEC, MAX_ON_DEVICE_TIMEOUT_SEC)
+        }
 
     companion object {
         val DEFAULT_ORDER = listOf(GeminiProvider.ID, OnDeviceProvider.ID, "openai_compat")
-        const val DEFAULT_ON_DEVICE_TIMEOUT_SEC = 30
+        const val AUTO_TIMEOUT = 0
+        private const val LEGACY_TIMEOUT_SEC = 30
+        const val DEFAULT_ON_DEVICE_TIMEOUT_SEC = AUTO_TIMEOUT
         const val BACKEND_AUTO = "auto"
         const val BACKEND_CPU = "cpu"
         const val BACKEND_GPU = "gpu"

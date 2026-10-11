@@ -35,7 +35,10 @@ class SmallModelPromptTest {
         speakers = speakers,
         seed = 1,
         vars = ChatVars(emptyMap(), emptyMap(), "領主さん"),
-        personas = speakers.mapNotNull { data.personas.persona(it) }.map { PromptContextBuilder.brief(it, "アレンはん") },
+        personas =
+            speakers.mapNotNull {
+                data.personas.persona(it)
+            }.map { PromptContextBuilder.brief(it, "アレンはん", 2, "Allen") },
         names = data.personas.personas.associate { it.id to it.displayName } + ("player" to "アレン"),
         situation = "プレイヤーが今日最初にログインした。挨拶する。二文目は出さない。",
         locale = locale,
@@ -101,11 +104,11 @@ class SmallModelPromptTest {
         assertFalse("状況" in free.prompt)
         val en = SmallModelPrompt.build(request(locale = "en"), "kaede")
         assertTrue("Reply in English" in en.system, en.system)
-        assertTrue("\"Kaede\"" in en.system && "アレンはん" in en.system)
+        assertTrue("\"Kaede\"" in en.system && "Allen" in en.system, en.system)
         assertTrue(en.prompt.endsWith("Kaede's reply:"))
         assertFalse("状況" in en.prompt)
         // 日本語の口調の説明や例文は入れない（英語の返事を日本語に引っ張らない）
-        assertFalse(Regex("[\\u3040-\\u30FF\\u4E00-\\u9FFF]").containsMatchIn(en.system.replace("アレンはん", "")))
+        assertFalse(Regex("[\\u3040-\\u30FF\\u4E00-\\u9FFF]").containsMatchIn(en.system))
     }
 
     @Test

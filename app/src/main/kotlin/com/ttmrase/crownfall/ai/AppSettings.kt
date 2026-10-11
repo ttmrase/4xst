@@ -78,7 +78,14 @@ class AppSettings(context: Context, private val cipher: SecretCipher = SecretCip
         p[REVEAL_ADMIT] = next.revealAi == RevealAi.ADMIT
         p[ON_DEVICE_CHARGING] = next.onDeviceChargingOnly
         p[ON_DEVICE_TIMEOUT] =
-            next.onDeviceTimeoutSec.coerceIn(AiSettings.MIN_ON_DEVICE_TIMEOUT_SEC, AiSettings.MAX_ON_DEVICE_TIMEOUT_SEC)
+            if (next.onDeviceTimeoutSec == AiSettings.AUTO_TIMEOUT) {
+                AiSettings.AUTO_TIMEOUT
+            } else {
+                next.onDeviceTimeoutSec.coerceIn(
+                    AiSettings.MIN_ON_DEVICE_TIMEOUT_SEC,
+                    AiSettings.MAX_ON_DEVICE_TIMEOUT_SEC,
+                )
+            }
         p[ON_DEVICE_PROFILE] = next.onDeviceProfile.takeIf { it in PROFILES } ?: OnDeviceProfile.AUTO
         p[ON_DEVICE_BACKEND] = next.onDeviceBackend.takeIf { it in BACKENDS } ?: AiSettings.BACKEND_AUTO
     }

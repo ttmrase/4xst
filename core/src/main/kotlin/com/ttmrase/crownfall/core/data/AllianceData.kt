@@ -45,6 +45,8 @@ data class PersonaDef(
     val favorThresholds: List<Int>,
     val nicknameSuffix: String,
     val troopTier: Int,
+    /** 英語での呼び方（任意）。空ならプレイヤー名（敬称なし）。 */
+    val callNameEn: String = "",
 )
 
 /** 名前・城 Lv・最終ログインだけの同盟メンバー。 */

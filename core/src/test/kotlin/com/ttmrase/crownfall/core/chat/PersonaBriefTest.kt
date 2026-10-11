@@ -89,4 +89,17 @@ class PersonaBriefTest {
         val system = PromptContextBuilder.build(state, pending(ChatEvent.DailyGreeting, "kaede"), data).system
         assertTrue("絵文字は使いすぎない" in system)
     }
+
+    @Test
+    fun theEnglishCallNameIsThePlayerNameWithoutHonorificOrMyLordWhileStrangers() {
+        val kaede = data.personas.persona("kaede")!!
+        assertEquals("", PromptContextBuilder.callNameEn(kaede, 1, "アレン"))
+        assertEquals("Allen", PromptContextBuilder.callNameEn(kaede, 2, " Allen "))
+        assertEquals("Allen", PromptContextBuilder.callNameEn(kaede, 4, "Allen"))
+        assertEquals("Boss", PromptContextBuilder.callNameEn(kaede.copy(callNameEn = "Boss"), 3, "Allen"))
+        val s = state.copy(alliance = state.alliance.copy(favorLevel = mapOf("kaede" to 4)))
+        val b = PromptContextBuilder.briefs(s, pending(ChatEvent.DailyGreeting, "kaede"), data).single()
+        assertEquals("アレンはん".take(3), b.callName.take(3))
+        assertEquals("アレン", b.callNameEn)
+    }
 }

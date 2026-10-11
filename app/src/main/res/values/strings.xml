@@ -933,7 +933,7 @@
     <string name="on_device_gpu_failed">GPU は使えませんでした（CPU で動作中）</string>
     <string name="on_device_gpu_retry">GPU を再試行</string>
     <string name="on_device_charging_only">充電中だけ使う</string>
-    <string name="on_device_timeout">タイムアウト（秒）</string>
+    <string name="on_device_timeout">タイムアウト（秒。0 で自動: 標準 45 / 小型 30）</string>
     <string name="on_device_advice_ram">RAM が少なめです。動作が遅い、またはアプリが終了することがあります（警告のみ・使えます）</string>
     <string name="on_device_advice_storage">空き容量が足りません</string>
     <string name="on_device_advice_model_big">モデルが RAM に対して大きめです</string>

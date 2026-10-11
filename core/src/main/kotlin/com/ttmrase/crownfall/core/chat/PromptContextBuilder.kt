@@ -39,6 +39,8 @@ data class PersonaBrief(
     val traits: String = "",
     /** プレイヤーとの関係を言葉にしたもの（初対面 / 顔なじみ / 親しい / 相棒）。 */
     val relation: String = "",
+    /** 英語での呼び方（敬称なし）。空なら "my lord"。 */
+    val callNameEn: String = "",
 )
 
 /**
@@ -85,20 +87,29 @@ object PromptContextBuilder {
         val default = data.templates.labels["call.default"] ?: "領主さん"
         return pending.speakers.mapNotNull { data.personas.persona(it) }.map { p ->
             val lv = state.alliance.favorLevel[p.id] ?: 0
-            brief(p, Personas.callName(p, lv, state.playerName, default), lv)
+            brief(p, Personas.callName(p, lv, state.playerName, default), lv, callNameEn(p, lv, state.playerName))
         }
     }
+
+    /** 英語の呼び方。好感度が低い間は空（= "my lord"）、そうでなければ personas.json の指定、無ければプレイヤー名（敬称なし）。 */
+    fun callNameEn(
+        p: PersonaDef,
+        favorLv: Int,
+        playerName: String,
+    ): String = if (favorLv < 2) "" else p.callNameEn.ifBlank { playerName.trim() }
 
     /** [p] の要約。[callName] はプレイヤーの呼び方、[favorLv] は好感度レベル（0..4）。 */
     fun brief(
         p: PersonaDef,
         callName: String,
         favorLv: Int = 0,
+        callNameEn: String = "",
     ): PersonaBrief =
         PersonaBrief(
             id = p.id,
             displayName = p.displayName,
             callName = callName,
+            callNameEn = callNameEn,
             voice = voiceOf(p),
             examples = p.speechStyle.samples.sortedBy { it.length }.take(BRIEF_EXAMPLES_MAX),
             role = roleOf(p),

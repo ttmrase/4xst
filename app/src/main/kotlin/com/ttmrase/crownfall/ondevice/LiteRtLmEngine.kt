@@ -3,11 +3,13 @@ package com.ttmrase.crownfall.ondevice
 import android.content.Context
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Contents
+import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.SamplerConfig
 import com.ttmrase.crownfall.ai.providers.OnDeviceProfile
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.takeWhile
@@ -43,6 +45,9 @@ class LiteRtLmEngine(
 
     /** GPU での読み込みに失敗した（例外、またはプロセスごと落ちた）モデル。自動のときは CPU を使う。 */
     @Volatile private var failedGpuKey: String? = null
+
+    /** 生成中の会話（時間切れ・キャンセルで取り消すため）。 */
+    @Volatile private var activeConversation: Conversation? = null
 
     @Volatile override var activeBackend: String = ""
         private set
@@ -102,7 +107,23 @@ class LiteRtLmEngine(
             busy.set(false)
             throw t
         }
-        return result.await()
+        try {
+            return result.await()
+        } catch (ce: CancellationException) {
+            // ルーターの時間切れ・キャンセル。ネイティブ側の生成も止める（busy が残り続けないように）
+            cancelGeneration()
+            throw ce
+        }
+    }
+
+    /** 実行中の会話の生成を取り消す。取り消せなくても、busy の間の要求は即 Failure("busy") で Scripted に回る。 */
+    private fun cancelGeneration() {
+        val c = activeConversation ?: return
+        try {
+            c.cancelProcess()
+        } catch (_: Throwable) {
+            // 取り消しに失敗しても、生成の終了を待つだけ
+        }
     }
 
     /**
@@ -124,17 +145,18 @@ class LiteRtLmEngine(
         val limit = profile.maxTokens * CHARS_PER_TOKEN
         val sb = StringBuilder()
         e.createConversation(config).use { c ->
-            runBlocking {
-                c.sendMessageAsync(prompt).takeWhile { part ->
-                    val chunk = part.toString()
-                    if (sb.isNotEmpty() && chunk.startsWith(sb)) {
-                        sb.setLength(0)
+            activeConversation = c
+            try {
+                runBlocking {
+                    c.sendMessageAsync(prompt).takeWhile { part ->
+                        val chunk = part.toString()
+                        if (sb.isNotEmpty() && chunk.startsWith(sb)) sb.setLength(0)
                         sb.append(chunk)
-                    } else {
-                        sb.append(chunk)
-                    }
-                    sb.length < limit
-                }.collect()
+                        sb.length < limit
+                    }.collect()
+                }
+            } finally {
+                activeConversation = null
             }
         }
         return sb.toString()

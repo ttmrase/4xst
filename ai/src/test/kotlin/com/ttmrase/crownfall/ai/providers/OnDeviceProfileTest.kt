@@ -42,4 +42,10 @@ class OnDeviceProfileTest {
         val t = OnDeviceProfile.TINY
         assertEquals(listOf(2, 120), listOf(t.maxSentences, t.maxChars))
     }
+
+    @Test
+    fun theTimeoutDefaultsAre45ForStandardAnd30ForTiny() {
+        assertEquals(45, OnDeviceProfile.STANDARD.defaultTimeoutSec)
+        assertEquals(30, OnDeviceProfile.TINY.defaultTimeoutSec)
+    }
 }

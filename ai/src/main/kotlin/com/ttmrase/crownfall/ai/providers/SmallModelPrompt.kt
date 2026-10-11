@@ -71,7 +71,7 @@ object SmallModelPrompt {
         brief: PersonaBrief,
         ja: Boolean,
     ): String {
-        val call = brief.callName.ifBlank { if (ja) "領主さん" else "my lord" }
+        val call = (if (ja) brief.callName else brief.callNameEn).ifBlank { if (ja) "領主さん" else "my lord" }
         for (count in brief.examples.size.coerceAtMost(MAX_EXAMPLES) downTo MIN_EXAMPLES_SHOWN) {
             val text = render(brief, call, ja, count, MAX_VOICE_CHARS)
             if (text.length <= MAX_SYSTEM_CHARS) return text

@@ -223,7 +223,7 @@ object StandardPrompt {
 
     private fun call(p: PersonaBrief): String = p.callName.ifBlank { "領主さん" }
 
-    private fun callEn(p: PersonaBrief): String = p.callName.ifBlank { "my lord" }
+    private fun callEn(p: PersonaBrief): String = p.callNameEn.ifBlank { "my lord" }
 
     private fun relationEn(relation: String): String =
         when (relation) {

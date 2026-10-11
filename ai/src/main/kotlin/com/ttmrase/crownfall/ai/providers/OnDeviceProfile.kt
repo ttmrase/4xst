@@ -14,8 +14,10 @@ enum class OnDeviceProfile(
     val topK: Int,
     val topP: Double,
     val maxTokens: Int,
+    /** タイムアウトの既定（秒）。標準は複数話者とフォールバックで長くなるので 45、小型は 30。 */
+    val defaultTimeoutSec: Int = 30,
 ) {
-    STANDARD("standard", 3, 160, 0.9, 40, 0.95, 96),
+    STANDARD("standard", 3, 160, 0.9, 40, 0.95, 96, 45),
     TINY("tiny", 2, 120, 0.85, 40, 0.95, 64),
     ;
 

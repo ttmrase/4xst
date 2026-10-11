@@ -934,7 +934,7 @@
     <string name="on_device_gpu_failed">The GPU could not be used (running on the CPU)</string>
     <string name="on_device_gpu_retry">Retry GPU</string>
     <string name="on_device_charging_only">Use only while charging</string>
-    <string name="on_device_timeout">Timeout (seconds)</string>
+    <string name="on_device_timeout">Timeout (seconds; 0 = auto: standard 45 / tiny 30)</string>
     <string name="on_device_advice_ram">RAM is low. It may be slow or the app may be closed (warning only; you can still use it)</string>
     <string name="on_device_advice_storage">Not enough free storage</string>
     <string name="on_device_advice_model_big">The model is large for this device\'s RAM</string>
