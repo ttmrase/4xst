@@ -536,8 +536,32 @@ internal object MapArt {
             for (tx in -1..CHUNK) {
                 val x = x0 + tx
                 val y = y0 + ty
-                if (!world.inBounds(x, y) || world.terrainAt(x, y) != Terrain.FOREST) continue
-                if (world.structureAt(x, y) != null) continue
+                if (!world.inBounds(x, y) || world.structureAt(x, y) != null) continue
+                val terrain = world.terrainAt(x, y)
+                if (terrain == Terrain.MOUNTAIN) {
+                    // 山のふもとの岩（峰の絵に添える）
+                    if (hash(x, y, seed, 80) < ROCK_CHANCE) {
+                        val rock = sprites.get(ROCKS[(hash(x, y, seed, 81) * ROCKS.size).toInt().coerceAtMost(1)])
+                        if (rock != null) {
+                            val rx = (tx + 0.15f + 0.7f * hash(x, y, seed, 82)) * px
+                            val ry = (ty + 0.9f) * px
+                            drawImage(
+                                rock.image,
+                                srcOffset = IntOffset.Zero,
+                                srcSize = IntSize(rock.image.width, rock.image.height),
+                                dstOffset = IntOffset((rx - rock.ax * s).roundToInt(), (ry - rock.ay * s).roundToInt()),
+                                dstSize =
+                                    IntSize(
+                                        (rock.vw * s).roundToInt().coerceAtLeast(1),
+                                        (rock.vh * s).roundToInt().coerceAtLeast(1),
+                                    ),
+                                filterQuality = FilterQuality.Medium,
+                            )
+                        }
+                    }
+                    continue
+                }
+                if (terrain != Terrain.FOREST) continue
                 val cold = snowT(x, y, world.size, seed) > 0.4f
                 val n = 1 + (hash(x, y, seed, 8) * 1.99f).toInt()
                 for (k in 0 until n) {
@@ -574,6 +598,11 @@ internal object MapArt {
             SpriteIds.TREE_BIRCH,
         )
     val TREES_COLD = intArrayOf(SpriteIds.TREE_PINE_A, SpriteIds.TREE_PINE_B)
+    private val ROCKS = intArrayOf(SpriteIds.ROCK_A, SpriteIds.ROCK_B)
+    private const val ROCK_CHANCE = 0.55f
+
+    /** 焼く前に読み込んでおくスプライト（木と岩）。 */
+    val BAKE_SPRITES: IntArray = TREES + ROCKS
     private const val TREE_TILE_DIV = 36f
 
     private fun DrawScope.decor(

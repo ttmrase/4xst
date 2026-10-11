@@ -168,7 +168,7 @@ private fun MapContent(
     // 城内と共有のスプライト（拠点・資源地・野営地・森の木）。画面を開いたとき先読みする
     val sprites = remember { SpriteCache.shared(context) }
     LaunchedEffect(sprites) {
-        sprites.preload(MapArt.TREES.toList())
+        sprites.preload(MapArt.BAKE_SPRITES.toList())
         sprites.preload(MapLive.spriteIdsFor(MAP_SPRITE_TIERS))
     }
     val chunks = remember(world) { MapChunkCache(world, s.map.seed, cacheScope, sprites) }

@@ -56,7 +56,7 @@ internal class MapChunkCache(
         if (spritesLoaded) return true
         val sp = sprites ?: return true
         // 全部を読み込み要求に出してから、揃ったか見る
-        val ready = MapArt.TREES.map { sp.get(it) != null }.all { it }
+        val ready = MapArt.BAKE_SPRITES.map { sp.get(it) != null }.all { it }
         if (ready) spritesLoaded = true
         return ready
     }
