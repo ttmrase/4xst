@@ -1,0 +1,73 @@
+run: 56
+commit: ba24de171e9b178616ec94053262e45a04a7367b
+job status: success
+images: 45
+bytes: 2557878
+actions: https://github.com/ttmrase/4xst/actions/runs/38113846763
+--- result ---
+gradle exit status: 0
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 1/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 2/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 4/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 5/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 7/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 8/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 9/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 10/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 11/14 completed. (0 skipped) (0 failed)
+--- per test (androidTest-results xml) ---
+PASS LaunchSmokeTest.titleScreenAppearsAndCanBeCaptured
+PASS NavUiTest.cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks
+PASS PerfUiTest.lateGameCityPanFrameTimesAndSpriteMemory
+PASS SeederSmokeTest.seededRichCastleReachesTheSession
+PASS ShopVipUiTest.offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured
+PASS ShopVipUiTest.vipCinematicAndRewardDialogCloseWithBack
+PASS ShopVipUiTest.raidBannerAndSettingsAreCaptured
+PASS SummonUiTest.ritualStagesAndTheTenRollListAreCaptured
+PASS SummonUiTest.tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce
+PASS TerritoryUiTest.tutorialBannerSteps
+PASS TerritoryUiTest.territoryScreenshotsForRichLateAndBuildingStates
+PASS TerritoryUiTest.panAndPinchOnTheTerritoryDoNotCrash
+PASS BackPressInstrumentedTest.systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups
+PASS BackPressInstrumentedTest.systemBackClosesTheBillingSheetBeforeAnyPayment
+--- TestRunner (started / finished / failed) ---
+10-11 05:13:13.761 14 tests
+10-11 05:13:13.763 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+10-11 05:13:17.024 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+10-11 05:13:17.035 cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks(com.ttmrase.crownfall.NavUiTest)
+10-11 05:13:30.591 cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks(com.ttmrase.crownfall.NavUiTest)
+10-11 05:13:30.961 lateGameCityPanFrameTimesAndSpriteMemory(com.ttmrase.crownfall.PerfUiTest)
+10-11 05:13:56.155 lateGameCityPanFrameTimesAndSpriteMemory(com.ttmrase.crownfall.PerfUiTest)
+10-11 05:13:56.583 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+10-11 05:13:58.317 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+10-11 05:13:58.353 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 05:14:15.581 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 05:14:16.105 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 05:14:28.363 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 05:14:28.926 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 05:14:33.586 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 05:14:34.081 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+10-11 05:14:41.762 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+10-11 05:14:42.262 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+10-11 05:14:48.985 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+10-11 05:14:49.325 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:14:55.554 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:14:56.062 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:15:10.969 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:15:11.331 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:15:16.316 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:15:16.751 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 05:15:19.900 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 05:15:19.912 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 05:15:23.001 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 05:15:23.105 14 tests, 0 failed, 0 ignored
+--- perf (logcat CrownfallPerf) ---
+city LATE_GAME idle 5s: frames=5 p50=116.9ms p95=117.1ms p99=117.1ms max=118.8ms janky(>16.7ms)=5 (100.0%)
+city LATE_GAME pan+pinch 10s: frames=66 p50=249.7ms p95=355.7ms p99=383.5ms max=385.0ms janky(>16.7ms)=66 (100.0%)
+memory: spriteCache=30.6MB/82 sprites pss=183MB javaHeap=17MB
+shop list scroll 5s: frames=64 p50=66.9ms p95=119.1ms p99=169.4ms max=200.3ms janky(>16.7ms)=64 (100.0%)
+--- instrumentation results ---
+Starting 14 tests on emulator-5554 - 14
+Finished 14 tests on emulator-5554 - 14
