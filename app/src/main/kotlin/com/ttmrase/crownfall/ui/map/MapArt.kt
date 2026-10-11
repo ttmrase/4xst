@@ -235,7 +235,7 @@ internal object MapArt {
         t: Terrain,
     ): Color {
         val n = noise(x * 0.18f, y * 0.18f, seed, 1)
-        val jitter = (hash(x, y, seed, 2) - 0.5f) * 0.08f
+        val jitter = (hash(x, y, seed, 2) - 0.5f) * 0.03f
         val c =
             when (t) {
                 Terrain.PLAIN -> {
@@ -603,7 +603,7 @@ internal object MapArt {
 
     /** 焼く前に読み込んでおくスプライト（木と岩）。 */
     val BAKE_SPRITES: IntArray = TREES + ROCKS
-    private const val TREE_TILE_DIV = 36f
+    private const val TREE_TILE_DIV = 54f
 
     private fun DrawScope.decor(
         t: Terrain,

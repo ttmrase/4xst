@@ -337,7 +337,7 @@ internal object MapLive {
         val cx = offX + (st.x + 0.5f) * tile
         val gy = offY + (st.y + 0.5f) * tile + tile * GROUND_DROP
         // 足元の輪（持ち主が分かる色）と影
-        drawOval(ring.copy(alpha = 0.45f), Offset(cx - tile * 1.0f, gy - tile * 0.28f), Size(tile * 2.0f, tile * 0.56f))
+        drawOval(ring.copy(alpha = 0.45f), Offset(cx - tile * 0.8f, gy - tile * 0.24f), Size(tile * 1.6f, tile * 0.48f))
         drawOval(Color(0x40000000), Offset(cx - tile * 0.85f, gy - tile * 0.2f), Size(tile * 1.7f, tile * 0.4f))
         val scale = tile * (if (st.type == StructureType.HOLY_LAND) HOLY_SPAN else CASTLE_SPAN) / FOOTPRINT_VP
         drawSprite(sp, cx, gy, scale)
@@ -561,9 +561,9 @@ internal object MapLive {
     /** これ以上（dp）大きいとき、拠点・資源地・野営地をスプライトで描く（それより遠いと簡易アイコン）。 */
     const val SPRITE_MIN_DP = 14f
     private const val FOOTPRINT_VP = 112f
-    private const val CASTLE_SPAN = 1.9f
-    private const val HOLY_SPAN = 2.2f
-    private const val NODE_SPAN = 1.15f
+    private const val CASTLE_SPAN = 1.5f
+    private const val HOLY_SPAN = 1.8f
+    private const val NODE_SPAN = 0.95f
     private const val NODE_DROP = 0.3f
     private const val GROUND_DROP = 0.3f
     private const val TENT_SPAN = 1.0f
