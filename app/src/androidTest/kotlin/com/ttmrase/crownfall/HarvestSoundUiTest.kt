@@ -99,8 +99,16 @@ class HarvestSoundUiTest {
             Thread.sleep(800)
             Screenshots.save("t112_quests")
             if (h.hasText(h.str(R.string.quest_claim))) {
+                // 城内以外の画面（クエスト）からも、受け取りで宝箱とアイコンが飛ぶ。時計を止めて段階ごとに撮る
+                rule.mainClock.autoAdvance = false
                 rule.onAllNodesWithText(h.str(R.string.quest_claim))[0].performClick()
-                for (i in 1..3) Screenshots.save("t112_quest_chest_$i")
+                for ((i, ms) in listOf(150L, 400L, 500L, 700L, 1_000L).withIndex()) {
+                    rule.mainClock.advanceTimeBy(ms)
+                    Screenshots.save("t112_quest_fly_${i + 1}")
+                }
+                rule.mainClock.autoAdvance = true
+                rule.waitForIdle()
+                Screenshots.save("t112_quest_claimed")
             }
         }
     }
