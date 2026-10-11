@@ -1,6 +1,5 @@
 package com.ttmrase.crownfall.offers
 
-import androidx.annotation.StringRes
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.model.Resources
@@ -22,7 +21,7 @@ class ShopOfferHooks(
     private val data: GameData,
     private val scope: CoroutineScope,
     private val openProduct: (String) -> Unit = {},
-    private val notify: (@StringRes Int) -> Unit = {},
+    private val notify: (Int) -> Unit = {},
 ) : OfferHooks {
     override fun onResourceShortage(missing: Resources) {
         scope.launch { session.dispatch { Actions.offerForShortage(it, missing, data) } }
