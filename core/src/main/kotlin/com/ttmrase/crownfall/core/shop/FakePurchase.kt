@@ -15,6 +15,7 @@ import com.ttmrase.crownfall.core.model.Receipt
 import com.ttmrase.crownfall.core.model.satAdd
 import com.ttmrase.crownfall.core.sim.ActionFailure
 import com.ttmrase.crownfall.core.sim.ActionResult
+import com.ttmrase.crownfall.core.skin.Skins
 import com.ttmrase.crownfall.core.util.Mix
 
 /** 商品 ID の組み立て（`Actions.fakePurchase` の引数）。 */
@@ -24,6 +25,9 @@ object ProductIds {
 
     /** 今日のデイリーディール。 */
     fun deal(packId: String) = "deal:$packId"
+
+    /** スキン（M11 T11.4）。 */
+    fun skin(id: String) = "skin:$id"
 }
 
 /** 決済シートに出す商品の見た目。[firstDoubleGems] が 0 でなければ初回 2 倍の追加ぶん（初回だけ）。 */
@@ -43,7 +47,7 @@ object FakePurchase {
     private const val ORDER_A = 11L
     private const val ORDER_B = 12L
 
-    private enum class Kind { GEMS, PACK, MONTH_PASS, GROWTH_FUND, PIGGY, WHEEL_EXTRA }
+    private enum class Kind { GEMS, PACK, MONTH_PASS, GROWTH_FUND, PIGGY, WHEEL_EXTRA, SKIN }
 
     private class Product(
         val sku: String,
@@ -55,6 +59,7 @@ object FakePurchase {
         val stock: Int? = null,
         val firstDoubleGems: Long = 0,
         val chainTier: Int = 0,
+        val skinId: String? = null,
     )
 
     private fun fail(reason: ActionFailure) = ActionResult.Failure(reason)
@@ -81,6 +86,11 @@ object FakePurchase {
                 stock = pack?.dailyStock,
                 chainTier = pack?.tier ?: 0,
             )
+        }
+        if (id.startsWith("skin:")) {
+            val skin = Skins.def(data, id.removePrefix("skin:")) ?: return null
+            if (!Skins.purchasable(s, skin, data)) return null
+            return Product(id, skin.priceYen, PackContents(), "skin", Kind.SKIN, skinId = skin.id)
         }
         if (id.startsWith("deal:")) {
             val card = DailyDeals.find(s, id.removePrefix("deal:"), data) ?: return null
@@ -178,6 +188,7 @@ object FakePurchase {
         if (p.stock != null && (s.shop.stockUsed[p.sku] ?: 0) >= p.stock) return fail(ActionFailure.SoldOut)
         if (p.kind == Kind.GROWTH_FUND && s.shop.growthFundOwned) return fail(ActionFailure.AlreadyOwned)
         if (p.kind == Kind.PIGGY && s.shop.piggyGems <= 0) return fail(ActionFailure.NothingToClaim)
+        if (p.kind == Kind.SKIN && p.skinId in Skins.owned(s, data)) return fail(ActionFailure.AlreadyOwned)
         val events = ArrayList<GameEvent>()
         val doubled = p.kind == Kind.GEMS && p.firstDoubleGems > 0 && p.sku !in s.shop.firstPurchased
         val contents = if (doubled) p.contents.copy(gems = p.contents.gems + p.firstDoubleGems) else p.contents
@@ -230,6 +241,7 @@ object FakePurchase {
             Kind.GROWTH_FUND -> s.copy(shop = s.shop.copy(growthFundOwned = true))
             Kind.PIGGY -> s.copy(shop = s.shop.copy(piggyGems = 0))
             Kind.WHEEL_EXTRA -> s.copy(shop = s.shop.copy(wheelExtra = s.shop.wheelExtra + 1))
+            Kind.SKIN -> p.skinId?.let { Skins.grant(s, it, data) } ?: s
             Kind.GEMS, Kind.PACK -> s
         }
 

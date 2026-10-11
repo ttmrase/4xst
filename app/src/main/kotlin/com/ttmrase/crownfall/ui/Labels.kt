@@ -317,6 +317,7 @@ fun eventMessage(
         is GameEvent.Purchased,
         is GameEvent.WheelResult,
         is GameEvent.FeatureUnlocked,
+        is GameEvent.SkinBag,
         is GameEvent.TimerCompleted,
         is GameEvent.BoostExpired,
         is GameEvent.HeroSummoned,

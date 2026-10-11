@@ -214,6 +214,7 @@ data class GameData(
     val notifyRules: NotificationRules,
     val features: FeaturesFile,
     val titles: TitlesFile,
+    val skins: SkinsFile,
 ) {
     /** 建物種 [type] の定義。 */
     fun building(type: BuildingType): BuildingDef = buildings.getValue(type)

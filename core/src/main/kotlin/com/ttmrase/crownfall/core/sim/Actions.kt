@@ -8,6 +8,7 @@ import com.ttmrase.crownfall.core.chat.ChatKeys
 import com.ttmrase.crownfall.core.chat.SpokenText
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.ResearchPrereq
+import com.ttmrase.crownfall.core.data.SkinCategory
 import com.ttmrase.crownfall.core.economy.CostCheck
 import com.ttmrase.crownfall.core.economy.Costs
 import com.ttmrase.crownfall.core.economy.GemSkip
@@ -35,6 +36,7 @@ import com.ttmrase.crownfall.core.research.ResearchRules
 import com.ttmrase.crownfall.core.shop.ShopHooks
 import com.ttmrase.crownfall.core.shop.ShopLogic
 import com.ttmrase.crownfall.core.shop.VipCalculator
+import com.ttmrase.crownfall.core.skin.Skins
 import com.ttmrase.crownfall.core.title.Titles
 
 /** アクション失敗の理由（ID と数値のみ。表示文言は :app）。 */
@@ -788,6 +790,48 @@ object Actions {
         id: String?,
         data: GameData,
     ): ActionResult = Titles.select(state, id, data)?.let { ActionResult.Success(it) } ?: fail(ActionFailure.NotOwned)
+
+    /** スキン [id]（null で外す）を部位 [category] に装備する。持っていなければ [ActionFailure.NotOwned]。 */
+    fun equipSkin(
+        state: GameState,
+        category: String,
+        id: String?,
+        data: GameData,
+    ): ActionResult {
+        val c = SkinCategory.fromId(category) ?: return fail(ActionFailure.InvalidArgument)
+        return Skins.equip(state, c, id, data)?.let { ActionResult.Success(it) } ?: fail(ActionFailure.NotOwned)
+    }
+
+    /** スキン福袋を引く（[ten] なら 10 連）。ジェムを引き、結果は [GameEvent.SkinBag] で返す。 */
+    fun pullSkinBag(
+        state: GameState,
+        ten: Boolean,
+        data: GameData,
+    ): ActionResult =
+        gated(state, data, Feature.SHOP) {
+            val rules = data.skins.bag
+            val cost = if (ten) rules.tenGems else rules.gems
+            if (state.gems < cost) {
+                fail(ActionFailure.NotEnoughGems(cost - state.gems))
+            } else {
+                val paid = state.copy(gems = state.gems - cost)
+                val (next, results) = Skins.pullBag(paid, if (ten) TEN_ROLL else 1, data)
+                ActionResult.Success(
+                    next,
+                    listOf(GameEvent.SkinBag(results.map { it.skinId }, results.count { it.isNew })),
+                )
+            }
+        }
+
+    /** 欠片でスキンを交換する。 */
+    fun exchangeSkin(
+        state: GameState,
+        id: String,
+        data: GameData,
+    ): ActionResult =
+        gated(state, data, Feature.SHOP) {
+            Skins.exchange(state, id, data)?.let { ActionResult.Success(it) } ?: fail(ActionFailure.NotOwned)
+        }
 
     /** アバター番号の上限（生成済みの候補数。:app の PortraitView と揃える）。 */
     const val AVATAR_COUNT = 12

@@ -61,6 +61,7 @@ kover {
                     "com.ttmrase.crownfall.core.notify",
                     "com.ttmrase.crownfall.core.bubble",
                     "com.ttmrase.crownfall.core.title",
+                    "com.ttmrase.crownfall.core.skin",
                 )
             }
         }

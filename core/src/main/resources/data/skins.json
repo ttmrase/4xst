@@ -1,0 +1,25 @@
+{
+ "featuredPerWeek": 2,
+ "bag": {"gems": 300, "tenGems": 2700, "pityAt": 30, "rates": {"N": 5500, "R": 3300, "SR": 1000, "SSR": 200}, "dupShards": {"N": 5, "R": 10, "SR": 30, "SSR": 80}, "exchange": {"N": 20, "R": 50, "SR": 150, "SSR": 400}},
+ "skins": [
+  {"id": "castle_ice", "category": "castle", "theme": "ice", "rarity": "SR", "priceYen": 1220, "bag": true},
+  {"id": "castle_gold", "category": "castle", "theme": "gold", "rarity": "SSR", "priceYen": 3060, "bag": true},
+  {"id": "castle_sakura", "category": "castle", "theme": "sakura", "rarity": "SR", "priceYen": 1840, "limited": true},
+  {"id": "castle_dragon", "category": "castle", "theme": "gold", "rarity": "SSR", "priceYen": 6100, "limited": true},
+  {"id": "territory_ice", "category": "territory", "theme": "ice", "rarity": "R", "priceYen": 1220, "bag": true},
+  {"id": "territory_gold", "category": "territory", "theme": "gold", "rarity": "SR", "priceYen": 2440, "bag": true},
+  {"id": "territory_sakura", "category": "territory", "theme": "sakura", "rarity": "R", "priceYen": 1220, "limited": true},
+  {"id": "trail_flame", "category": "trail", "theme": "flame", "rarity": "R", "priceYen": 1220, "bag": true},
+  {"id": "trail_aurora", "category": "trail", "theme": "ice", "rarity": "SR", "priceYen": 1840, "bag": true},
+  {"id": "trail_petal", "category": "trail", "theme": "sakura", "rarity": "R", "priceYen": 1220, "limited": true},
+  {"id": "frame_crystal", "category": "frame", "theme": "ice", "rarity": "R", "priceYen": 1220, "bag": true},
+  {"id": "frame_royal", "category": "frame", "theme": "gold", "rarity": "SSR", "unlock": {"type": "vip", "lv": 10}},
+  {"id": "frame_ember", "category": "frame", "theme": "flame", "rarity": "N", "bag": true},
+  {"id": "plate_frost", "category": "nameplate", "theme": "ice", "rarity": "R", "priceYen": 1220, "bag": true},
+  {"id": "plate_gold", "category": "nameplate", "theme": "gold", "rarity": "SR", "unlock": {"type": "vip", "lv": 12}},
+  {"id": "plate_plain", "category": "nameplate", "theme": "sakura", "rarity": "N", "bag": true},
+  {"id": "bubble_sakura", "category": "bubble", "theme": "sakura", "rarity": "R", "priceYen": 1220, "limited": true},
+  {"id": "bubble_night", "category": "bubble", "theme": "ice", "rarity": "N", "bag": true},
+  {"id": "bubble_scholar", "category": "bubble", "theme": "gold", "rarity": "SR", "unlock": {"type": "claimed", "id": "ch10"}}
+ ]
+}

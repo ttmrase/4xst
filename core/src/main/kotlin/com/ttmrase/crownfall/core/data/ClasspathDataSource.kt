@@ -23,6 +23,7 @@ object ClasspathDataSource {
             GameDataLoader.EVENTS,
             GameDataLoader.FEATURES,
             GameDataLoader.TITLES,
+            GameDataLoader.SKINS,
         )
 
     /** 全データファイルを「ファイル名 → 本文」で読む。 */

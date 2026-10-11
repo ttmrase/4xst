@@ -108,6 +108,21 @@ data class ShopState(
     val growthFundClaimed: Set<Int> = emptySet(),
     val purchaseCount: Long = 0,
     val ledger: Ledger = Ledger(),
+    /** スキンの所持・装備・欠片（M11 T11.4）。 */
+    val skins: SkinState = SkinState(),
+)
+
+/**
+ * スキンの状態。[owned] は購入・福袋・欠片の交換で得たもの（VIP・クエストの解放ぶんは状態から導くので入れない）、
+ * [equipped] は部位 id → スキン id、[shards] は福袋の重複の欠片、[bagSinceRare] は SR 以上が出ていない連続数（天井）。
+ */
+@Serializable
+data class SkinState(
+    val owned: Set<String> = emptySet(),
+    val equipped: Map<String, String> = emptyMap(),
+    val shards: Int = 0,
+    val bagSinceRare: Int = 0,
+    val bagPulls: Long = 0,
 )
 
 /** レシート（RECEIPT メールの本文）。[orderA]/[orderB] は注文番号 ORD-XXXX-XXXX の 2 つの 4 桁（36 進）。 */
