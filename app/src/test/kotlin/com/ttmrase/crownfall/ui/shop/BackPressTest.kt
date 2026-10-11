@@ -16,10 +16,13 @@ import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.ClasspathDataSource
+import com.ttmrase.crownfall.core.model.BuildingType
+import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.session.SaveStorage
 import com.ttmrase.crownfall.core.shop.OfferEngine
-import com.ttmrase.crownfall.core.sim.Actions
+import com.ttmrase.crownfall.core.shop.ShopHooks
+import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.util.FixedClock
 import com.ttmrase.crownfall.data.GameRepository
 import com.ttmrase.crownfall.data.SessionCoordinator
@@ -78,9 +81,13 @@ class BackPressTest {
         session = GameSession(data, FixedClock(20_000L * 86_400 + 43_200), MemoryStorage(), scope)
         runBlocking {
             session.newGame("QA", "hero_aldric", 42)
-            // 2 つの別のオファーを積む（戻るで止まるか、閉じても次が続けて出ないかを見る）
-            session.dispatch { Actions.offerForGemShortage(it, 80, data) }
-            session.dispatch { Actions.offerForGemShortage(it, 3000, data) }
+            // 自動のトリガー（城 Lv アップ・敗北）で 2 つのオファーを積む。タップで呼ぶ request は抑制の対象外なので使わない
+            session.dispatch { s ->
+                val castle = s.slots.first { it.type == BuildingType.CASTLE }.slotId
+                val events =
+                    listOf(GameEvent.BuildingLevelUp(castle, BuildingType.CASTLE, 3), GameEvent.PlayerDefeated(1))
+                ActionResult.Success(ShopHooks.onEvents(s, events, data), tracked = true)
+            }
         }
     }
 
