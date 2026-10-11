@@ -316,6 +316,7 @@ fun eventMessage(
         is GameEvent.VipLevelUp -> context.getString(R.string.event_vip_up, event.lv)
         is GameEvent.Purchased,
         is GameEvent.WheelResult,
+        is GameEvent.FeatureUnlocked,
         is GameEvent.TimerCompleted,
         is GameEvent.BoostExpired,
         is GameEvent.HeroSummoned,
