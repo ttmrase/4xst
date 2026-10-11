@@ -302,6 +302,7 @@ jobs:
 - 下部ナビの「城内」は、saveState と restoreState を使わずに城内まで戻す（popBackStack(City)）。他のタブを再選択したら、そのタブのルートへ戻す。
 - 戻るを繰り返すと、子画面 → タブのルート → 城内 → 退出の確認、の順になる。
 
+- ユーザー起点の導線は抑制の対象外（1.1.1 で決定）: ユーザーが自分でタップした購入・不足の導線（2 本目ビルダー、資源不足、ジェム不足、各購入ボタン）は、自動ポップアップの抑制（popupGapSec、popupsStopped、SKU のクールダウン、セッション上限）を受けず、必ず押したものを表示する（`OfferEngine.request` と `ShopState.requestedOfferId`）。タップして何も起きない状態は作らない。出せない場合も理由を表示する。
 - 実装（1.0.1）: `navigation/NavActions.kt` の `navigateBottom` / `openPendingRoute`、`OfferEngine.nextPopup`、`ShopState.lastPopupClosedEpochSec` / `popupsStopped`（beginSession で解除）。退出待ち（exitStage 1）でも城内の BackHandler は有効で、戻るで退出の確認へ進む（オファーの Dialog が出ている間は Dialog が先に戻るを受け取る）。決済シートには処理中の 9 秒ガード（進まなくなっても閉じられる）。
 
 ## 18. M10: 見た目と演出（Director が決定）
