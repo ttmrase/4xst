@@ -3,6 +3,7 @@ package com.ttmrase.crownfall
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ttmrase.crownfall.core.data.ClasspathDataSource
@@ -68,7 +69,10 @@ class ShopVipUiTest {
                 rule.waitForIdle()
                 Screenshots.save("shop_tab_${i + 1}")
             }
-            h.click(h.str(R.string.shop_tab_gems))
+            // タブの行は横に長い（スキンのタブが増えた）。画面の外に出たタブは、先にスクロールしてから押す
+            val gemsTab = rule.onAllNodesWithText(h.str(R.string.shop_tab_gems))[0]
+            runCatching { gemsTab.performScrollTo() }
+            gemsTab.performClick()
             rule.waitForIdle()
             payFirstYenButton(h)
             h.waitText(h.str(R.string.billing_done), timeoutMs = 30_000)

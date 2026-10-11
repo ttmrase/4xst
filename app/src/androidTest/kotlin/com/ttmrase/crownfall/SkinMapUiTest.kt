@@ -56,6 +56,14 @@ class SkinMapUiTest {
         Thread.sleep(800)
     }
 
+    /** タブの行は横に長い（7 つ）。画面の外のタブは、先にスクロールしてからでないと押せない。 */
+    private fun openShopTab(label: String) {
+        val node = rule.onAllNodesWithText(label)[0]
+        runCatching { node.performScrollTo() }
+        node.performClick()
+        rule.waitForIdle()
+    }
+
     private fun scrollToText(text: String) {
         runCatching {
             rule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text, substring = true))
@@ -97,7 +105,7 @@ class SkinMapUiTest {
             }
         }
         h.step("map_zooms") {
-            h.open("map")
+            h.open("world_map")
             h.waitMapLoaded()
             Screenshots.save("t114_map_overview")
             pinchMap(0.08f, 0.3f)
@@ -114,7 +122,7 @@ class SkinMapUiTest {
             Screenshots.save("t114_settings_map")
             rule.onNodeWithText(h.str(R.string.settings_map_night)).performClick()
             rule.waitForIdle()
-            h.open("map")
+            h.open("world_map")
             h.waitMapLoaded()
             Screenshots.save("t114_map_night")
             h.open("settings")
@@ -132,7 +140,7 @@ class SkinMapUiTest {
         h.step("skins_tab") {
             h.open("shop")
             h.waitText(h.str(R.string.shop_tab_gems), timeoutMs = 20_000)
-            h.click(h.str(R.string.shop_tab_skins))
+            openShopTab(h.str(R.string.shop_tab_skins))
             rule.waitForIdle()
             Thread.sleep(500)
             Screenshots.save("t114_skins_top")
@@ -162,7 +170,7 @@ class SkinMapUiTest {
         h.step("bag_ten") {
             h.open("shop")
             h.waitText(h.str(R.string.shop_tab_gems), timeoutMs = 20_000)
-            h.click(h.str(R.string.shop_tab_skins))
+            openShopTab(h.str(R.string.shop_tab_skins))
             rule.waitForIdle()
             val ten = h.str(R.string.skin_bag_ten).substringBefore("%1")
             scrollToText(ten)
@@ -200,7 +208,7 @@ class SkinMapUiTest {
         }
         h.step("map_with_skins") {
             h.wearSkins(all, mapOf("castle" to "castle_ice", "territory" to "territory_ice", "trail" to "trail_flame"))
-            h.open("map")
+            h.open("world_map")
             h.waitMapLoaded()
             Screenshots.save("t114_map_skins")
         }

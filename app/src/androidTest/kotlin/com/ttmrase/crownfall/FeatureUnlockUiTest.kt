@@ -151,9 +151,17 @@ class FeatureUnlockUiTest {
         h.step("unlock_lv4") {
             h.waitUnlockCeremony()
             Screenshots.save("feat_unlock_lv4_alliance")
-            Espresso.pressBack()
-            rule.waitForIdle()
-            assertTrue("back must close the ceremony", !h.ceremonyShown())
+            // 戻るで演出を飛ばす。演出が 2 段（城 Lv の演出 → 機能の解放）の場合は、戻るを重ねる回数を数えて報告する
+            var backs = 0
+            while (h.ceremonyShown() && backs < 3) {
+                Espresso.pressBack()
+                rule.waitForIdle()
+                Thread.sleep(500)
+                backs++
+                Screenshots.save("feat_unlock_lv4_after_back_$backs")
+            }
+            assertTrue("back must close the ceremony (backs=$backs)", !h.ceremonyShown())
+            assertTrue("one back should skip it all (backs=$backs)", backs <= 1)
             assertTrue(Feature.ALLIANCE.id in h.state().features.celebrated)
             Screenshots.save("feat_after_skip")
             // 同盟のタブはもう鍵ではなく、開ける
