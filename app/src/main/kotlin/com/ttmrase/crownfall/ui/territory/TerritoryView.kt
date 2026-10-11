@@ -21,6 +21,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -39,7 +40,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -61,9 +64,11 @@ import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Prereq
+import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.util.DurationFormat
+import com.ttmrase.crownfall.ui.glyph
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlinx.coroutines.flow.SharedFlow
@@ -143,6 +148,9 @@ fun TerritoryView(
     upgradable: Set<Int> = emptySet(),
     events: SharedFlow<GameEvent>? = null,
     live: StateFlow<GameState?>? = null,
+    /** いま出ている収穫バブル（スロット ID → 中身の資源）。タップは [onBubbleTap]（画面上の位置つき）。 */
+    bubbles: Map<Int, ResourceType> = emptyMap(),
+    onBubbleTap: (slotId: Int, windowPos: Offset) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val cache = remember { SpriteCache.shared(context) }
@@ -156,6 +164,9 @@ fun TerritoryView(
     val timers by remember(live) { (live?.map { it?.timers } ?: flowOf(null)).filterNotNull().distinctUntilChanged() }
         .collectAsState(initial = state.timers)
     val currentClick by rememberUpdatedState(onTileClick)
+    val currentBubbles by rememberUpdatedState(bubbles)
+    val currentBubbleTap by rememberUpdatedState(onBubbleTap)
+    var viewOrigin by remember { mutableStateOf(Offset.Zero) }
     val currentSlots by rememberUpdatedState(slots)
     val currentBandState = remember { mutableIntStateOf(1) }
 
@@ -242,6 +253,7 @@ fun TerritoryView(
                         viewW = it.width.toFloat()
                         viewH = it.height.toFloat()
                     }
+                    .onGloballyPositioned { viewOrigin = it.positionInWindow() }
                     .pointerInput(Unit) {
                         detectTransformGestures { centroid, pan, zoom, _ ->
                             cam.set(
@@ -264,6 +276,24 @@ fun TerritoryView(
                         detectTapGestures(
                             onTap = { tap ->
                                 val sc = cam.sc
+                                // バブルは建物より前面にあるので、先に当たりを見る
+                                val w = size.width / 2f
+                                val h = size.height / 2f
+                                val hit =
+                                    scene.buildingEnts.filter { it.slotId in currentBubbles }
+                                        .map { e ->
+                                            e to
+                                                Offset(
+                                                    w + (PlotLayout.wx(e.gx, e.gy) - cam.cx) * sc,
+                                                    h + (PlotLayout.wy(e.gx, e.gy) - cam.cy) * sc - BUBBLE_UP * sc,
+                                                )
+                                        }
+                                        .minByOrNull { (_, c) -> (tap - c).getDistance() }
+                                        ?.takeIf { (_, c) -> (tap - c).getDistance() <= BUBBLE_HIT_DP * density }
+                                if (hit != null) {
+                                    currentBubbleTap(hit.first.slotId, viewOrigin + hit.second)
+                                    return@detectTapGestures
+                                }
                                 var best: Ent? = null
                                 for (e in scene.buildingEnts) {
                                     val sx = size.width / 2f + (PlotLayout.wx(e.gx, e.gy) - cam.cx) * sc
@@ -310,6 +340,7 @@ fun TerritoryView(
             ) { lv ->
                 res.getString(R.string.tile_level, lv)
             }
+            if (currentBubbles.isNotEmpty()) painter.drawBubbles(frontToBack, currentBubbles)
         }
         // 画面の読み上げ・操作用: 区画ごとの透明なノード（ポインタ入力は受けず、タップは Canvas が処理する）
         val onScreen by remember(scene) {
@@ -386,6 +417,10 @@ private fun nowMs(): Long = System.nanoTime() / NANOS_PER_MS
 private const val HIT_HALF_W = 52f
 private const val HIT_UP = 98f
 private const val HIT_DOWN = 30f
+
+/** 収穫バブル: 建物の上に浮かせる高さ（ワールド座標）と、タップできる半径（dp）。 */
+private const val BUBBLE_UP = 84f
+private const val BUBBLE_HIT_DP = 24f
 private const val A11Y_SIZE_DP = 48
 private const val A11Y_HALF = 24f
 private const val A11Y_LIFT = 40f
@@ -962,6 +997,31 @@ private class TerritoryPainter {
         }
     }
 
+    /** 収穫バブル。建物の上にふわふわ揺れて浮かび、中に資源の絵文字が入る（拡大縮小しても大きさは一定）。 */
+    fun drawBubbles(
+        order: List<Ent>,
+        bubbles: Map<Int, ResourceType>,
+    ) {
+        for (ent in order) {
+            val type = bubbles[ent.slotId] ?: continue
+            val x = sx(ent.gx, ent.gy)
+            val bob = sin(seconds * 2.6f + ent.seed * 6f)
+            val y = sy(ent.gx, ent.gy) - BUBBLE_UP * sc + bob * 3f * scope.density
+            if (isOffScreen(x, y)) continue
+            val sway = sin(seconds * 1.9f + ent.seed * 3f) * 2f * scope.density
+            val r = 15f * scope.density * (1f + 0.05f * sin(seconds * 5f + ent.seed))
+            with(scope) {
+                val c = Offset(x + sway, y)
+                drawCircle(Color(0x66FFFFFF), radius = r * 1.25f, center = c)
+                drawCircle(Color(0xE6F4F9FF), radius = r, center = c)
+                drawCircle(BUBBLE_RIM, radius = r, center = c, style = Stroke(1.6f * density))
+                drawCircle(Color.White, radius = r * 0.22f, center = Offset(c.x - r * 0.4f, c.y - r * 0.45f))
+                val layout = texts.layout(type.glyph(), BUBBLE_STYLE)
+                drawText(layout, topLeft = Offset(c.x - layout.size.width / 2f, c.y - layout.size.height / 2f))
+            }
+        }
+    }
+
     /** 残り時間の文字列。同じ秒の間は作り直さない。 */
     private fun timerLabel(remainSec: Long): String {
         if (labelCache.size > MAX_LABELS) labelCache.clear()
@@ -1061,6 +1121,8 @@ private class TerritoryPainter {
         val RIVER_BANK = Color(0xFFC9B88A)
         val FOG = Color(0xFF0F1A33)
         val PILL_STYLE = TextStyle(fontFamily = CrownFonts.Numeric, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+        val BUBBLE_RIM = Color(0xFF7FB2E5)
+        val BUBBLE_STYLE = TextStyle(fontSize = 16.sp)
         val SIGN_STYLE = TextStyle(fontFamily = CrownFonts.Display, fontWeight = FontWeight.Bold, fontSize = 11.sp)
     }
 }

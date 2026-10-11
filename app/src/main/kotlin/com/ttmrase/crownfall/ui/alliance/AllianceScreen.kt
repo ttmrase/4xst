@@ -67,6 +67,8 @@ import com.ttmrase.crownfall.ui.namedString
 import com.ttmrase.crownfall.ui.personaName
 import com.ttmrase.crownfall.ui.portrait.PortraitKeys
 import com.ttmrase.crownfall.ui.portrait.PortraitView
+import com.ttmrase.crownfall.ui.reward.LocalRewardFly
+import com.ttmrase.crownfall.ui.reward.dispatchFly
 import kotlinx.coroutines.launch
 
 private const val SECONDS_PER_DAY = 86_400L
@@ -102,9 +104,11 @@ fun AllianceScreen(
     var sendingRally by remember { mutableStateOf(false) }
     val s = state ?: return
 
+    val fly = LocalRewardFly.current
+
     fun run(block: (GameState) -> ActionResult) {
         scope.launch {
-            val r = session.dispatch(block)
+            val r = session.dispatchFly(fly, block)
             // 押し直しで出る「ヘルプする相手がいない」は黙って無視する。
             if (r is ActionResult.Failure && r.reason != ActionFailure.NothingToHelp) {
                 snackbarHostState.showReplacing(failureMessage(context, r.reason))

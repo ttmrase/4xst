@@ -29,13 +29,14 @@ object HarvestBubble {
         data: GameData,
     ): Long = (state.lastBubbleCollect[slotId] ?: Long.MIN_VALUE / 2) + data.rules.bubbleIntervalSec
 
-    /** いまバブルが出ているスロット（スロット ID 順）。 */
+    /** [nowSec]（既定は状態の時刻。画面は毎秒の時計を渡す）にバブルが出ているスロット（スロット ID 順）。 */
     fun ready(
         state: GameState,
         data: GameData,
+        nowSec: Long = state.nowEpochSec,
     ): List<Int> =
         state.slots
-            .filter { produced(it) != null && state.nowEpochSec >= readyAt(state, it.slotId, data) }
+            .filter { produced(it) != null && nowSec >= readyAt(state, it.slotId, data) }
             .map { it.slotId }
             .sorted()
 

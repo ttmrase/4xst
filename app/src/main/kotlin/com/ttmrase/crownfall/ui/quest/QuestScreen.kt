@@ -49,6 +49,8 @@ import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.nameRes
+import com.ttmrase.crownfall.ui.reward.LocalRewardFly
+import com.ttmrase.crownfall.ui.reward.dispatchFly
 import com.ttmrase.crownfall.ui.shop.ContentsLines
 import kotlinx.coroutines.launch
 
@@ -71,11 +73,12 @@ fun QuestScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    val fly = LocalRewardFly.current
     val s = state ?: return
 
     fun claim(block: (GameState) -> ActionResult) {
         scope.launch {
-            val r = session.dispatch(block)
+            val r = session.dispatchFly(fly, block)
             if (r is ActionResult.Failure) snackbarHostState.showReplacing(failureMessage(context, r.reason))
         }
     }

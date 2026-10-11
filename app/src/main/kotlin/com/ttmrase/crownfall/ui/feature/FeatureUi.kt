@@ -63,6 +63,8 @@ import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
+import com.ttmrase.crownfall.ui.reward.LocalRewardFly
+import com.ttmrase.crownfall.ui.reward.dispatchFly
 import com.ttmrase.crownfall.ui.shop.Confetti
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -330,6 +332,7 @@ fun FeatureOverlays(
     onActive: (Boolean) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
+    val fly = LocalRewardFly.current
     val pendingFlow =
         remember(session, data) {
             session.state.map { s -> if (s == null) emptyList() else pendingUnlocks(s, data) }.distinctUntilChanged()
@@ -370,7 +373,13 @@ fun FeatureOverlays(
         Box(modifier) {
             FirstUseRewardCard(
                 feature = reward,
-                onClaim = { scope.launch { session.dispatch { Actions.claimFeatureReward(it, reward, data) } } },
+                onClaim = {
+                    scope.launch {
+                        session.dispatchFly(
+                            fly,
+                        ) { Actions.claimFeatureReward(it, reward, data) }
+                    }
+                },
                 modifier = Modifier.align(Alignment.TopCenter),
             )
         }

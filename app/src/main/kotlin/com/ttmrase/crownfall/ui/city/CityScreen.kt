@@ -23,6 +23,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
+import com.ttmrase.crownfall.core.bubble.HarvestBubble
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.TroopType
 import com.ttmrase.crownfall.core.economy.PowerCalculator
@@ -68,6 +70,8 @@ import com.ttmrase.crownfall.navigation.Screen
 import com.ttmrase.crownfall.navigation.requiredFeature
 import com.ttmrase.crownfall.offers.OfferHooks
 import com.ttmrase.crownfall.ui.common.LocalClock
+import com.ttmrase.crownfall.ui.common.Sfx
+import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.remainingUntil
 import com.ttmrase.crownfall.ui.event.eventNameRes
@@ -76,11 +80,17 @@ import com.ttmrase.crownfall.ui.feature.LockedFeatureDialog
 import com.ttmrase.crownfall.ui.feature.NextUnlockChip
 import com.ttmrase.crownfall.ui.glyph
 import com.ttmrase.crownfall.ui.nameRes
+import com.ttmrase.crownfall.ui.reward.FlyTarget
+import com.ttmrase.crownfall.ui.reward.LocalRewardFly
+import com.ttmrase.crownfall.ui.reward.flyTarget
 import com.ttmrase.crownfall.ui.territory.TerritoryView
 import com.ttmrase.crownfall.ui.theme.AnimatedNumber
 import com.ttmrase.crownfall.ui.theme.GoldPanel
 import com.ttmrase.crownfall.ui.theme.GoldText
 import com.ttmrase.crownfall.ui.titleRes
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 private val QuickLinks =
@@ -139,6 +149,19 @@ fun CityScreen(
     val locks = remember(s.slots) { UiQueries.lockedSlots(s, data) }
 
     val upgradable = remember(s.slots, s.resources, s.timers) { upgradableSlots(s, data) }
+    // 収穫バブル: 出ているかは「最後に回収した時刻」と毎秒の時計から導く（状態には持たない）
+    val clock = LocalClock.current
+    val fly = LocalRewardFly.current
+    val stamps by remember(session) {
+        session.state.map { it?.lastBubbleCollect }.filterNotNull().distinctUntilChanged()
+    }.collectAsStateWithLifecycle(s.lastBubbleCollect)
+    val bubbleKinds by remember(s.slots, stamps) {
+        derivedStateOf {
+            val view = s.copy(lastBubbleCollect = stamps)
+            HarvestBubble.ready(view, data, clock?.value ?: s.nowEpochSec)
+                .associateWith { id -> s.slots.first { it.slotId == id }.type.producedResource!! }
+        }
+    }
     // 領地ビューを全画面の背景にし、HUD（資源・キュー・イベント・クイックリンク）は上に重ねる
     Box(modifier = Modifier.fillMaxSize()) {
         TerritoryView(
@@ -149,6 +172,18 @@ fun CityScreen(
             events = session.events,
             live = session.state,
             tutorialSlotId = tutorialTargetSlotId(s),
+            bubbles = bubbleKinds,
+            onBubbleTap = { slotId, pos ->
+                scope.launch {
+                    val before = session.state.value
+                    val gain = before?.let { HarvestBubble.contents(it, slotId, data) }
+                    val r = session.dispatch { Actions.collectBubble(it, slotId, data) }
+                    if (r is ActionResult.Success && gain != null) {
+                        Sfx.play(context, SfxId.BUTTON)
+                        fly.flyAll(pos, gain)
+                    }
+                }
+            },
             onTileClick = { slot ->
                 sheetSlotId = slot.slotId
                 if (slot.slotId == tutorialTargetSlotId(s)) advanceTutorial(TUTORIAL_TAP_TILE_STEP)
@@ -320,7 +355,7 @@ private fun StatusBar(
                     stringResource(R.string.power_label) + "  " +
                         ShortNumber.format(PowerCalculator.total(state, data)),
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.flyTarget(FlyTarget.GEMS)) {
                     Text(stringResource(R.string.res_gems) + "  ", style = MaterialTheme.typography.titleSmall)
                     AnimatedNumber(state.gems, style = MaterialTheme.typography.titleSmall)
                 }
@@ -328,7 +363,10 @@ private fun StatusBar(
             Row(modifier = Modifier.fillMaxWidth()) {
                 ResourceType.entries.forEach { type ->
                     val full = cap > 0 && state.resources[type] >= cap
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        modifier = Modifier.weight(1f).flyTarget(FlyTarget.of(type)),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         Text(stringResource(type.nameRes()), style = MaterialTheme.typography.labelSmall)
                         AnimatedNumber(state.resources[type], color = MaterialTheme.colorScheme.onSurface)
                         // 満杯は数字を明るいままにして、下線を赤にする（暗い背景で赤文字は読めない）

@@ -1,0 +1,308 @@
+package com.ttmrase.crownfall.ui.reward
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.sp
+import com.ttmrase.crownfall.core.model.GameState
+import com.ttmrase.crownfall.core.model.ResourceType
+import com.ttmrase.crownfall.core.model.Resources
+import com.ttmrase.crownfall.core.session.GameSession
+import com.ttmrase.crownfall.core.sim.ActionResult
+import com.ttmrase.crownfall.ui.common.Sfx
+import com.ttmrase.crownfall.ui.common.SfxId
+import com.ttmrase.crownfall.ui.common.animationsEnabled
+import com.ttmrase.crownfall.ui.glyph
+import kotlin.math.min
+
+/** 飛んでいく先（HUD の資源・ジェムの表示位置）。 */
+enum class FlyTarget {
+    FOOD,
+    WOOD,
+    STONE,
+    GOLD,
+    GEMS,
+    ;
+
+    val glyph: String
+        get() =
+            when (this) {
+                FOOD -> ResourceType.FOOD.glyph()
+                WOOD -> ResourceType.WOOD.glyph()
+                STONE -> ResourceType.STONE.glyph()
+                GOLD -> ResourceType.GOLD.glyph()
+                GEMS -> GEM_GLYPH
+            }
+
+    companion object {
+        const val GEM_GLYPH = "💎"
+
+        fun of(type: ResourceType): FlyTarget =
+            when (type) {
+                ResourceType.FOOD -> FOOD
+                ResourceType.WOOD -> WOOD
+                ResourceType.STONE -> STONE
+                ResourceType.GOLD -> GOLD
+            }
+    }
+}
+
+internal class Flight(
+    val from: Offset,
+    val target: FlyTarget,
+    val startMs: Long,
+    val durationMs: Long,
+    val lift: Float,
+    val sway: Float,
+)
+
+/**
+ * 獲得アニメの状態（M11 T11.2）。画面のどこからでも [fly] で「ここから HUD の資源へ」アイコンを飛ばす。
+ * 飛ばす先の位置は HUD が [flyTarget] で登録する。アニメーションを削除した端末では何も飛ばさない（[enabled]）。
+ * ポインタ入力は受けない（描画だけ）。
+ */
+@Stable
+class RewardFlyState {
+    internal val targets = mutableStateMapOf<FlyTarget, Offset>()
+    internal val arrivals = mutableStateMapOf<FlyTarget, Long>()
+    internal val flights = mutableStateListOf<Flight>()
+    private var seq = 0L
+    private var lastSfx = 0L
+
+    /** false なら [fly] は何もしない（「アニメーションを削除」）。 */
+    var enabled: Boolean = true
+
+    /** 最後にタップされた位置（ウィンドウ座標）。受け取りボタンから飛ばすときの出発点。 */
+    var lastTap: Offset = Offset.Unspecified
+
+    /** 画面上（ウィンドウ座標）の [from] から、[target] へ [count] 個のアイコンを飛ばす。 */
+    fun fly(
+        from: Offset,
+        target: FlyTarget,
+        count: Int = DEFAULT_COUNT,
+    ) {
+        if (!enabled || count <= 0) return
+        val now = System.currentTimeMillis()
+        val n = count.coerceIn(MIN_ICONS, MAX_ICONS)
+        repeat(n) { i ->
+            seq++
+            val jitter = ((seq * 37) % 100) / 100f
+            flights.add(
+                Flight(
+                    from = from,
+                    target = target,
+                    startMs = now + i * STAGGER_MS,
+                    durationMs = FLIGHT_MS + (jitter * FLIGHT_JITTER_MS).toLong(),
+                    lift = LIFT_MIN + jitter * LIFT_RANGE,
+                    sway = (jitter - 0.5f) * SWAY,
+                ),
+            )
+        }
+    }
+
+    /** 資源と [gems] の獲得を、種類ごとに飛ばす。量が多いほど個数が増える（5〜12 個）。 */
+    fun flyAll(
+        from: Offset,
+        resources: Resources,
+        gems: Long = 0,
+    ) {
+        ResourceType.entries.forEach { t -> if (resources[t] > 0) fly(from, FlyTarget.of(t), iconsFor(resources[t])) }
+        if (gems > 0) fly(from, FlyTarget.GEMS, iconsFor(gems * GEM_WEIGHT))
+    }
+
+    internal fun playArrival(
+        context: android.content.Context,
+        now: Long,
+    ) {
+        if (now - lastSfx < SFX_GAP_MS) return
+        lastSfx = now
+        Sfx.play(context, SfxId.COIN)
+    }
+
+    companion object {
+        const val DEFAULT_COUNT = 8
+        const val MIN_ICONS = 5
+        const val MAX_ICONS = 12
+        private const val STAGGER_MS = 45L
+        private const val FLIGHT_MS = 650L
+        private const val FLIGHT_JITTER_MS = 200L
+        private const val LIFT_MIN = 90f
+        private const val LIFT_RANGE = 120f
+        private const val SWAY = 140f
+        private const val SFX_GAP_MS = 90L
+        private const val GEM_WEIGHT = 50L
+
+        /** 獲得量から飛ばす個数（5〜12）。 */
+        fun iconsFor(amount: Long): Int =
+            when {
+                amount >= 5000 -> MAX_ICONS
+                amount >= 1000 -> 10
+                amount >= 200 -> 8
+                amount >= 50 -> 6
+                else -> MIN_ICONS
+            }
+    }
+}
+
+/** 既定は何も描かない空の状態（プレビューやテストで host が無くても落ちない）。 */
+val LocalRewardFly = compositionLocalOf { RewardFlyState() }
+
+/** HUD の資源・ジェムの表示にこれを付けると、飛んできたアイコンの行き先になり、到着のたびにぽんと弾む。 */
+@Composable
+fun Modifier.flyTarget(target: FlyTarget): Modifier {
+    val fly = LocalRewardFly.current
+    val scale = remember { Animatable(1f) }
+    val arrived = fly.arrivals[target] ?: 0L
+    LaunchedEffect(arrived) {
+        if (arrived > 0L) {
+            scale.animateTo(BOUNCE, tween(BOUNCE_UP_MS))
+            scale.animateTo(1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium))
+        }
+    }
+    return this
+        .onGloballyPositioned { fly.targets[target] = it.boundsInWindow().center }
+        .graphicsLayer {
+            scaleX = scale.value
+            scaleY = scale.value
+        }
+}
+
+private const val BOUNCE = 1.25f
+private const val BOUNCE_UP_MS = 70
+private const val ICON_SP = 22
+private const val FALLBACK_TOP_DP = 48f
+private val ICON_STYLE = TextStyle(fontSize = ICON_SP.sp)
+
+/**
+ * 獲得アニメの描画層。アプリの一番上に全画面で重ねる。ポインタ入力は受けない。
+ * 放物線（出発点 → 持ち上がる → HUD）で飛ばし、到着で HUD を弾ませてコインの音を鳴らす。
+ */
+@Composable
+fun RewardFlyLayer(state: RewardFlyState) {
+    val context = LocalContext.current
+    val measurer = rememberTextMeasurer()
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    var frame by remember { mutableLongStateOf(0L) }
+    state.enabled = animationsEnabled()
+    val active = state.flights.isNotEmpty()
+    LaunchedEffect(active) {
+        while (state.flights.isNotEmpty()) {
+            withFrameMillis { ms -> frame = ms }
+            val now = System.currentTimeMillis()
+            val done = state.flights.filter { now >= it.startMs + it.durationMs }
+            if (done.isNotEmpty()) {
+                done.forEach { state.arrivals[it.target] = now }
+                state.playArrival(context, now)
+                state.flights.removeAll(done.toSet())
+            }
+        }
+    }
+    Canvas(
+        Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { origin = it.positionInWindow() },
+    ) {
+        if (frame < 0L || state.flights.isEmpty()) return@Canvas
+        val now = System.currentTimeMillis()
+        val fallback = Offset(size.width / 2f, FALLBACK_TOP_DP * density)
+        for (f in state.flights) {
+            if (now < f.startMs) continue
+            val t = ((now - f.startMs).toFloat() / f.durationMs).coerceIn(0f, 1f)
+            val e = t * t * (3f - 2f * t)
+            val from = f.from - origin
+            val to = (state.targets[f.target] ?: (fallback + origin)) - origin
+            val ctrl = Offset((from.x + to.x) / 2f + f.sway * density, min(from.y, to.y) - f.lift * density)
+            val u = 1f - e
+            val p =
+                Offset(
+                    u * u * from.x + 2f * u * e * ctrl.x + e * e * to.x,
+                    u * u * from.y + 2f * u * e * ctrl.y + e * e * to.y,
+                )
+            val layout = measurer.measure(f.target.glyph, ICON_STYLE)
+            val alpha = if (t > FADE_START) 1f - (t - FADE_START) / (1f - FADE_START) * 0.5f else 1f
+            drawText(
+                layout,
+                topLeft = Offset(p.x - layout.size.width / 2f, p.y - layout.size.height / 2f),
+                alpha = alpha,
+            )
+        }
+    }
+}
+
+private const val FADE_START = 0.85f
+
+/**
+ * [block] を [GameSession.dispatch] し、成功したら増えた資源・ジェムを、最後にタップした位置から HUD へ飛ばす
+ * （タップ位置が分からなければ画面中央の少し下から）。増減は行動の前後の差だけなので、生産の分は混ざらない。
+ */
+suspend fun GameSession.dispatchFly(
+    fly: RewardFlyState,
+    block: (GameState) -> ActionResult,
+): ActionResult {
+    var gain = Resources.ZERO
+    var gems = 0L
+    val result =
+        dispatch { cur ->
+            block(cur).also { r ->
+                if (r is ActionResult.Success) {
+                    gain =
+                        ResourceType.entries.fold(Resources.ZERO) { acc, t ->
+                            acc.with(t, maxOf(0L, r.state.resources[t] - cur.resources[t]))
+                        }
+                    gems = maxOf(0L, r.state.gems - cur.gems)
+                }
+            }
+        }
+    if (result is ActionResult.Success) fly.flyAll(fly.originOrDefault(), gain, gems)
+    return result
+}
+
+internal fun RewardFlyState.originOrDefault(): Offset =
+    if (lastTap.isSpecified) lastTap else Offset(DEFAULT_X, DEFAULT_Y)
+
+private const val DEFAULT_X = 540f
+private const val DEFAULT_Y = 1400f
+
+/** ルートに付けて、最後のタップ位置を記録する（ポインタ入力は消費しない）。 */
+fun Modifier.trackTaps(
+    fly: RewardFlyState,
+    windowOrigin: () -> Offset,
+): Modifier =
+    pointerInput(fly) {
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                event.changes.firstOrNull { it.pressed && !it.previousPressed }?.let {
+                    fly.lastTap = it.position + windowOrigin()
+                }
+            }
+        }
+    }

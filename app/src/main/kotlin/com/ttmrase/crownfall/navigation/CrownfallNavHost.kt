@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -34,6 +35,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -80,6 +83,10 @@ import com.ttmrase.crownfall.ui.mail.MailScreen
 import com.ttmrase.crownfall.ui.map.MapScreen
 import com.ttmrase.crownfall.ui.quest.QuestScreen
 import com.ttmrase.crownfall.ui.research.ResearchScreen
+import com.ttmrase.crownfall.ui.reward.LocalRewardFly
+import com.ttmrase.crownfall.ui.reward.RewardFlyLayer
+import com.ttmrase.crownfall.ui.reward.RewardFlyState
+import com.ttmrase.crownfall.ui.reward.trackTaps
 import com.ttmrase.crownfall.ui.screens.StubScreen
 import com.ttmrase.crownfall.ui.settings.SettingsScreen
 import com.ttmrase.crownfall.ui.shop.FakeBillingSheet
@@ -249,204 +256,218 @@ fun CrownfallNavHost(
         }
     }
 
-    CompositionLocalProvider(LocalClock provides clock) {
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            bottomBar = {
-                if (destination != null && destination.route != Screen.Title.route) {
-                    NavigationBar {
-                        BottomDestination.entries.forEach { item ->
-                            val locked = isLocked(item.feature)
-                            NavigationBarItem(
-                                selected = destination.hierarchy.any { it.route == item.screen.route },
-                                onClick = {
-                                    if (locked) lockedFeature = item.feature else navController.navigateBottom(item)
-                                },
-                                modifier = Modifier.alpha(if (locked) LOCKED_ALPHA else 1f),
-                                icon = {
-                                    val isAlliance = item == BottomDestination.Alliance
-                                    val isCity = item == BottomDestination.City
-                                    val count =
-                                        when {
-                                            isAlliance -> unread
-                                            isCity -> claimable
-                                            else -> 0
-                                        }
-                                    BadgedBox(
-                                        badge = {
-                                            if (locked) {
-                                                Badge { Text("🔒") }
-                                            } else if (count > 0) {
-                                                Badge { Text(count.toString()) }
+    val flyState = remember { RewardFlyState() }
+    CompositionLocalProvider(LocalClock provides clock, LocalRewardFly provides flyState) {
+        var rootOrigin by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+        Box(
+            Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { rootOrigin = it.positionInWindow() }
+                .trackTaps(flyState) { rootOrigin },
+        ) {
+            Scaffold(
+                snackbarHost = { SnackbarHost(snackbarHostState) },
+                bottomBar = {
+                    if (destination != null && destination.route != Screen.Title.route) {
+                        NavigationBar {
+                            BottomDestination.entries.forEach { item ->
+                                val locked = isLocked(item.feature)
+                                NavigationBarItem(
+                                    selected = destination.hierarchy.any { it.route == item.screen.route },
+                                    onClick = {
+                                        if (locked) lockedFeature = item.feature else navController.navigateBottom(item)
+                                    },
+                                    modifier = Modifier.alpha(if (locked) LOCKED_ALPHA else 1f),
+                                    icon = {
+                                        val isAlliance = item == BottomDestination.Alliance
+                                        val isCity = item == BottomDestination.City
+                                        val count =
+                                            when {
+                                                isAlliance -> unread
+                                                isCity -> claimable
+                                                else -> 0
                                             }
-                                        },
-                                    ) {
-                                        Icon(item.icon, contentDescription = null)
-                                    }
-                                },
-                                label = { Text(stringResource(item.labelRes)) },
-                            )
-                        }
-                    }
-                }
-            },
-        ) { padding ->
-            Column(Modifier.padding(padding)) {
-                (startup as? Startup.Ready)?.let {
-                    if (destination?.route != Screen.Title.route) {
-                        RaidBanner(it.session, it.data)
-                    }
-                }
-                NavHost(
-                    navController = navController,
-                    startDestination = Screen.Title.route,
-                    modifier = Modifier.weight(1f),
-                    enterTransition = {
-                        fadeIn(tween(TRANSITION_MS)) + slideInHorizontally(tween(TRANSITION_MS)) { it / SLIDE_DIV }
-                    },
-                    exitTransition = { fadeOut(tween(TRANSITION_MS)) },
-                    popEnterTransition = { fadeIn(tween(TRANSITION_MS)) },
-                    popExitTransition = {
-                        fadeOut(tween(TRANSITION_MS)) + slideOutHorizontally(tween(TRANSITION_MS)) { it / SLIDE_DIV }
-                    },
-                ) {
-                    composable(Screen.Title.route) {
-                        TitleScreen(
-                            repository = repository,
-                            onEnterGame = {
-                                navController.navigate(Screen.City.route) {
-                                    popUpTo(Screen.Title.route) { inclusive = true }
-                                }
-                            },
-                        )
-                    }
-                    composable(Screen.City.route) {
-                        val ready = startup as? Startup.Ready
-                        if (ready != null) {
-                            CityScreen(
-                                session = ready.session,
-                                data = ready.data,
-                                hooks = hooks,
-                                snackbarHostState = snackbarHostState,
-                                onNavigate = { navController.navigate(it.route) },
-                                onOpenBarracks = { tab -> navController.navigate("${Screen.Barracks.route}?tab=$tab") },
-                                castleRequest = castleRequest,
-                            )
-                        }
-                    }
-                    composable(
-                        route = "${Screen.Barracks.route}?tab={tab}",
-                        arguments =
-                            listOf(
-                                navArgument("tab") {
-                                    type = NavType.IntType
-                                    defaultValue = 0
-                                },
-                            ),
-                    ) { entry ->
-                        Guard(Screen.Barracks, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
-                            BarracksScreen(
-                                ready.session,
-                                ready.data,
-                                hooks,
-                                snackbarHostState,
-                                entry.arguments?.getInt("tab") ?: 0,
-                            )
-                        }
-                    }
-                    composable(Screen.Research.route) {
-                        Guard(Screen.Research, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
-                            ResearchScreen(ready.session, ready.data, hooks, snackbarHostState)
-                        }
-                    }
-                    composable(Screen.Heroes.route) {
-                        Guard(Screen.Heroes, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
-                            HeroesScreen(
-                                ready.session,
-                                ready.data,
-                                snackbarHostState,
-                            ) { navController.navigate(it.route) }
-                        }
-                    }
-                    composable(Screen.Summon.route) {
-                        Guard(Screen.Summon, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
-                            SummonScreen(ready.session, ready.data, hooks, snackbarHostState)
-                        }
-                    }
-                    composable(Screen.WorldMap.route) {
-                        Guard(Screen.WorldMap, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
-                            MapScreen(
-                                ready.session,
-                                ready.data,
-                                snackbarHostState,
-                            ) { navController.navigate(Screen.Mail.route) }
-                        }
-                    }
-                    composable(Screen.Mail.route) {
-                        val ready = startup as? Startup.Ready
-                        if (ready != null) MailScreen(ready.session, ready.data)
-                    }
-                    composable(Screen.Alliance.route) {
-                        Guard(Screen.Alliance, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
-                            AllianceScreen(ready.session, ready.data, snackbarHostState) {
-                                navController.navigate(Screen.Chat.route)
+                                        BadgedBox(
+                                            badge = {
+                                                if (locked) {
+                                                    Badge { Text("🔒") }
+                                                } else if (count > 0) {
+                                                    Badge { Text(count.toString()) }
+                                                }
+                                            },
+                                        ) {
+                                            Icon(item.icon, contentDescription = null)
+                                        }
+                                    },
+                                    label = { Text(stringResource(item.labelRes)) },
+                                )
                             }
                         }
                     }
-                    composable(Screen.Chat.route) {
-                        Guard(Screen.Chat, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
-                            ChatScreen(
-                                ready.session,
-                                ready.data,
-                                chat.typing,
-                                snackbarHostState,
-                                ai::warmUpOnDevice,
+                },
+            ) { padding ->
+                Column(Modifier.padding(padding)) {
+                    (startup as? Startup.Ready)?.let {
+                        if (destination?.route != Screen.Title.route) {
+                            RaidBanner(it.session, it.data)
+                        }
+                    }
+                    NavHost(
+                        navController = navController,
+                        startDestination = Screen.Title.route,
+                        modifier = Modifier.weight(1f),
+                        enterTransition = {
+                            fadeIn(tween(TRANSITION_MS)) + slideInHorizontally(tween(TRANSITION_MS)) { it / SLIDE_DIV }
+                        },
+                        exitTransition = { fadeOut(tween(TRANSITION_MS)) },
+                        popEnterTransition = { fadeIn(tween(TRANSITION_MS)) },
+                        popExitTransition = {
+                            fadeOut(tween(TRANSITION_MS)) +
+                                slideOutHorizontally(tween(TRANSITION_MS)) { it / SLIDE_DIV }
+                        },
+                    ) {
+                        composable(Screen.Title.route) {
+                            TitleScreen(
+                                repository = repository,
+                                onEnterGame = {
+                                    navController.navigate(Screen.City.route) {
+                                        popUpTo(Screen.Title.route) { inclusive = true }
+                                    }
+                                },
                             )
                         }
-                    }
-                    composable(Screen.Shop.route) {
-                        Guard(Screen.Shop, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
-                            ShopScreen(r.session, r.data, snackbarHostState) { billingId = it }
+                        composable(Screen.City.route) {
+                            val ready = startup as? Startup.Ready
+                            if (ready != null) {
+                                CityScreen(
+                                    session = ready.session,
+                                    data = ready.data,
+                                    hooks = hooks,
+                                    snackbarHostState = snackbarHostState,
+                                    onNavigate = { navController.navigate(it.route) },
+                                    onOpenBarracks = {
+                                            tab ->
+                                        navController.navigate("${Screen.Barracks.route}?tab=$tab")
+                                    },
+                                    castleRequest = castleRequest,
+                                )
+                            }
                         }
-                    }
-                    composable(Screen.Quests.route) {
-                        Guard(Screen.Quests, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
-                            QuestScreen(r.session, r.data, snackbarHostState)
+                        composable(
+                            route = "${Screen.Barracks.route}?tab={tab}",
+                            arguments =
+                                listOf(
+                                    navArgument("tab") {
+                                        type = NavType.IntType
+                                        defaultValue = 0
+                                    },
+                                ),
+                        ) { entry ->
+                            Guard(Screen.Barracks, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                                BarracksScreen(
+                                    ready.session,
+                                    ready.data,
+                                    hooks,
+                                    snackbarHostState,
+                                    entry.arguments?.getInt("tab") ?: 0,
+                                )
+                            }
                         }
-                    }
-                    composable(Screen.Event.route) {
-                        Guard(Screen.Event, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
-                            EventScreen(r.session, r.data)
+                        composable(Screen.Research.route) {
+                            Guard(Screen.Research, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                                ResearchScreen(ready.session, ready.data, hooks, snackbarHostState)
+                            }
                         }
-                    }
-                    composable(Screen.Settings.route) {
-                        val r = startup as? Startup.Ready
-                        SettingsScreen(ai, r?.session, snackbarHostState, r?.data)
-                    }
-                    val implemented =
-                        setOf(
-                            Screen.Title,
-                            Screen.City,
-                            Screen.Barracks,
-                            Screen.Research,
-                            Screen.Heroes,
-                            Screen.Summon,
-                            Screen.WorldMap,
-                            Screen.Mail,
-                            Screen.Alliance,
-                            Screen.Chat,
-                            Screen.Settings,
-                            Screen.Shop,
-                            Screen.Quests,
-                            Screen.Event,
-                        )
-                    Screen.entries
-                        .filter { it !in implemented }
-                        .forEach { screen ->
-                            composable(screen.route) { StubScreen(screen) }
+                        composable(Screen.Heroes.route) {
+                            Guard(Screen.Heroes, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                                HeroesScreen(
+                                    ready.session,
+                                    ready.data,
+                                    snackbarHostState,
+                                ) { navController.navigate(it.route) }
+                            }
                         }
+                        composable(Screen.Summon.route) {
+                            Guard(Screen.Summon, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                                SummonScreen(ready.session, ready.data, hooks, snackbarHostState)
+                            }
+                        }
+                        composable(Screen.WorldMap.route) {
+                            Guard(Screen.WorldMap, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                                MapScreen(
+                                    ready.session,
+                                    ready.data,
+                                    snackbarHostState,
+                                ) { navController.navigate(Screen.Mail.route) }
+                            }
+                        }
+                        composable(Screen.Mail.route) {
+                            val ready = startup as? Startup.Ready
+                            if (ready != null) MailScreen(ready.session, ready.data)
+                        }
+                        composable(Screen.Alliance.route) {
+                            Guard(Screen.Alliance, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                                AllianceScreen(ready.session, ready.data, snackbarHostState) {
+                                    navController.navigate(Screen.Chat.route)
+                                }
+                            }
+                        }
+                        composable(Screen.Chat.route) {
+                            Guard(Screen.Chat, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                                ChatScreen(
+                                    ready.session,
+                                    ready.data,
+                                    chat.typing,
+                                    snackbarHostState,
+                                    ai::warmUpOnDevice,
+                                )
+                            }
+                        }
+                        composable(Screen.Shop.route) {
+                            Guard(Screen.Shop, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
+                                ShopScreen(r.session, r.data, snackbarHostState) { billingId = it }
+                            }
+                        }
+                        composable(Screen.Quests.route) {
+                            Guard(Screen.Quests, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
+                                QuestScreen(r.session, r.data, snackbarHostState)
+                            }
+                        }
+                        composable(Screen.Event.route) {
+                            Guard(Screen.Event, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
+                                EventScreen(r.session, r.data)
+                            }
+                        }
+                        composable(Screen.Settings.route) {
+                            val r = startup as? Startup.Ready
+                            SettingsScreen(ai, r?.session, snackbarHostState, r?.data)
+                        }
+                        val implemented =
+                            setOf(
+                                Screen.Title,
+                                Screen.City,
+                                Screen.Barracks,
+                                Screen.Research,
+                                Screen.Heroes,
+                                Screen.Summon,
+                                Screen.WorldMap,
+                                Screen.Mail,
+                                Screen.Alliance,
+                                Screen.Chat,
+                                Screen.Settings,
+                                Screen.Shop,
+                                Screen.Quests,
+                                Screen.Event,
+                            )
+                        Screen.entries
+                            .filter { it !in implemented }
+                            .forEach { screen ->
+                                composable(screen.route) { StubScreen(screen) }
+                            }
+                    }
                 }
             }
+            RewardFlyLayer(flyState)
         }
     }
 
