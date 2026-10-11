@@ -16,12 +16,10 @@ import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.ClasspathDataSource
-import com.ttmrase.crownfall.core.model.BuildingType
-import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.session.SaveStorage
 import com.ttmrase.crownfall.core.shop.OfferEngine
-import com.ttmrase.crownfall.core.shop.ShopHooks
+import com.ttmrase.crownfall.core.shop.TriggerCtx
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.util.FixedClock
 import com.ttmrase.crownfall.data.GameRepository
@@ -83,10 +81,9 @@ class BackPressTest {
             session.newGame("QA", "hero_aldric", 42)
             // 自動のトリガー（城 Lv アップ・敗北）で 2 つのオファーを積む。タップで呼ぶ request は抑制の対象外なので使わない
             session.dispatch { s ->
-                val castle = s.slots.first { it.type == BuildingType.CASTLE }.slotId
-                val events =
-                    listOf(GameEvent.BuildingLevelUp(castle, BuildingType.CASTLE, 3), GameEvent.PlayerDefeated(1))
-                ActionResult.Success(ShopHooks.onEvents(s, events, data), tracked = true)
+                val defeated = OfferEngine.fire(s, "defeated", TriggerCtx(), data)
+                val castleUp = TriggerCtx(lv = 3, params = mapOf("lv" to 3L))
+                ActionResult.Success(OfferEngine.fire(defeated, "castleUp", castleUp, data), tracked = true)
             }
         }
     }
