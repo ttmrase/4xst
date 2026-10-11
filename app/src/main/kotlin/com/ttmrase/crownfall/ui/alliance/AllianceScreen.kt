@@ -262,7 +262,7 @@ private fun MembersTab(
                 login = if (f.lastLoginHoursAgo <= 0) stringResource(R.string.alliance_online) else null,
                 hoursAgo = f.lastLoginHoursAgo,
                 vip = 0,
-                portrait = PortraitKeys.filler(i),
+                portrait = PortraitKeys.filler(f.look, data.personas.fillerMembers.take(i).count { it.look == f.look }),
             )
         }
     }

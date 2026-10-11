@@ -51,7 +51,13 @@ data class PersonaDef(
 
 /** 名前・城 Lv・最終ログインだけの同盟メンバー。 */
 @Serializable
-data class FillerDef(val name: String, val castleLv: Int, val lastLoginHoursAgo: Int)
+data class FillerDef(
+    val name: String,
+    val castleLv: Int,
+    val lastLoginHoursAgo: Int,
+    /** 見た目の系統（m / f / n）。ポートレートの割り当てに使う。 */
+    val look: String = "n",
+)
 
 /** personas.json。 */
 @Serializable

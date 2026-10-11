@@ -3,8 +3,9 @@ VectorDrawable を書き出す。標準ライブラリのみ。出力は決定�
 
 - 英雄 12 とペルソナ 8（計 20）: 下の SPECS で 1 体ずつ設計する（heroes.json / personas.json の `portrait` と同じ指定）。
 - 名前だけのメンバー 22 とプレイヤーのアバター 12: 同じパーツを種（ID）のハッシュで決定論に組み合わせる。
+  見た目の系統 look（m / f / n）ごとに使えるパーツを絞る（f はひげなし、m は頬紅・サークレットなし、n は中性的な髪のみ）。
 実行: python3 tools/artgen/gen_portraits.py [出力ディレクトリ]   既定は app/src/main/res/drawable
-出力: pt_<id>.xml（英雄・ペルソナ）/ pt_gen_<nn>.xml（名前だけのメンバー）/ pt_avatar_<nn>.xml（プレイヤー）
+出力: pt_<id>.xml（英雄・ペルソナ）/ pt_gen_<look>_<nn>.xml（名前だけのメンバー）/ pt_avatar_<nn>.xml（プレイヤー）
 絵柄: 平らな塗りと縁取りの胸像。頭身は低め（顔が大きい）。枠（レアリティ・VIP）はアプリ側で重ねる。
 """
 import math
@@ -74,6 +75,8 @@ def crest(sc, kind, bg):
     c = shade(bg, 1.35)
     cx, cy = 48, 36
     a = 0.55
+    if kind in ("shield", "tower", "sword", "crown"):
+        a = 0.42
     if kind == "star":
         sc.poly(star_pts(cx, cy, 26, 11), c, None, 0, a)
     elif kind == "sun":
@@ -83,7 +86,10 @@ def crest(sc, kind, bg):
         ell(sc, cx, cy, 22, 22, c, None, 0, a)
         ell(sc, cx + 9, cy - 4, 18, 18, bg, None, 0, 1.0)
     elif kind == "shield":
-        sc.poly([(cx - 20, cy - 22), (cx + 20, cy - 22), (cx + 20, cy + 4), (cx, cy + 28), (cx - 20, cy + 4)], c, None, 0, a)
+        sc.poly([(cx - 20, cy - 20), (cx - 8, cy - 24), (cx, cy - 20), (cx + 8, cy - 24), (cx + 20, cy - 20), (cx + 20, cy + 4),
+                 (cx, cy + 28), (cx - 20, cy + 4)], c, shade(bg, 1.7), 1.2, a)
+        sc.line([(cx, cy - 18), (cx, cy + 20)], shade(bg, 1.7), 1.0, a)
+        sc.line([(cx - 15, cy - 4), (cx + 15, cy - 4)], shade(bg, 1.7), 1.0, a)
     elif kind == "sword":
         sc.poly([(cx - 3, cy - 30), (cx + 3, cy - 30), (cx + 3, cy + 14), (cx - 3, cy + 14)], c, None, 0, a)
         sc.poly([(cx - 14, cy + 12), (cx + 14, cy + 12), (cx + 14, cy + 17), (cx - 14, cy + 17)], c, None, 0, a)
@@ -95,7 +101,10 @@ def crest(sc, kind, bg):
         sc.poly([(cx, cy - 30), (cx + 16, cy - 4), (cx + 8, cy + 24), (cx - 8, cy + 24), (cx - 16, cy - 4), (cx - 4, cy - 12)], c, None, 0, a)
     elif kind == "tower":
         sc.poly([(cx - 14, cy + 24), (cx - 14, cy - 10), (cx - 18, cy - 10), (cx - 18, cy - 24), (cx - 8, cy - 24), (cx - 8, cy - 18),
-                 (cx + 8, cy - 18), (cx + 8, cy - 24), (cx + 18, cy - 24), (cx + 18, cy - 10), (cx + 14, cy - 10), (cx + 14, cy + 24)], c, None, 0, a)
+                 (cx + 8, cy - 18), (cx + 8, cy - 24), (cx + 18, cy - 24), (cx + 18, cy - 10), (cx + 14, cy - 10), (cx + 14, cy + 24)],
+                c, shade(bg, 1.7), 1.2, a)
+        sc.poly([(cx - 4, cy + 24), (cx - 4, cy + 12), (cx, cy + 8), (cx + 4, cy + 12), (cx + 4, cy + 24)], bg, None, 0, 0.9)
+        sc.poly([(cx - 2, cy - 8), (cx + 2, cy - 8), (cx + 2, cy), (cx - 2, cy)], bg, None, 0, 0.9)
     elif kind == "wheel":
         ell(sc, cx, cy, 24, 24, c, None, 0, a)
         ell(sc, cx, cy, 14, 14, bg, None, 0, 1.0)
@@ -107,6 +116,9 @@ def background(sc, spec):
     sc.poly(rrect(1, 1, 95, 95, 11), shade(bg, 0.8), None, 0)
     ell(sc, 48, 40, 52, 46, bg, None, 0, 1.0, 32)
     ell(sc, 48, 38, 34, 32, shade(bg, 1.18), None, 0, 0.55, 28)
+    if spec.get("halo"):
+        sc.poly(star_pts(48, 40, 62, 30, 16), shade(bg, 1.7), None, 0, 0.35)
+        ell(sc, 48, 40, 40, 38, shade(bg, 1.5), None, 0, 0.5, 32)
     crest(sc, spec.get("crest", "star"), bg)
 
 
@@ -173,9 +185,12 @@ def body(sc, spec):
         sc.line([(62, 72), (62, 66)], dk, 2.6)
         sc.poly([(40, 80), (56, 80), (56, 88), (40, 88)], shade(ac, 0.65), dk, 0.6)
     elif kind == "scarf":
-        sc.poly([(26, 66), (70, 66), (74, 76), (22, 76)], spec.get("sc", "#D85A5A"), shade(spec.get("sc", "#D85A5A"), 0.5), 0.8)
-        sc.poly([(58, 74), (68, 74), (70, 92), (60, 92)], spec.get("sc", "#D85A5A"), shade(spec.get("sc", "#D85A5A"), 0.5), 0.8)
-        sc.line([(34, 80), (62, 80)], shade(ac, 0.7), 1.0)
+        sc_c = spec.get("sc", "#D85A5A")
+        sd = shade(sc_c, 0.5)
+        sc.poly([(30, 68), (40, 64), (56, 64), (66, 68), (68, 74), (60, 79), (48, 81), (36, 79), (28, 74)], sc_c, sd, 0.8)
+        sc.line([(32, 72), (48, 77), (64, 72)], shade(sc_c, 1.25), 1.2, 0.8)
+        sc.poly([(56, 76), (65, 74), (68, 92), (63, 89), (60, 95), (55, 90)], sc_c, sd, 0.8)
+        ell(sc, 59, 75, 4.2, 3.6, shade(sc_c, 0.85), sd, 0.7, 1.0, 12)
     if spec.get("cloak"):
         ell(sc, 48, 72, 3.5, 3.5, trim, LINE, 0.7)
 
@@ -364,10 +379,11 @@ def gear(sc, spec):
     gc = spec.get("gc", "#8C95A6")
     dk = shade(gc, 0.5)
     if g in ("helm", "horned", "winged"):
-        sc.poly([(27, 42), (27, 26), (34, 14), (48, 10), (62, 14), (69, 26), (69, 42), (64, 42), (64, 32), (60, 26), (48, 22),
-                 (36, 26), (32, 32), (32, 42)], gc, dk, 0.9)
-        sc.poly([(45, 24), (51, 24), (51, 46), (45, 46)], shade(gc, 1.1), dk, 0.8)
-        sc.line([(30, 20), (66, 20)], shade(gc, 1.4), 1.0, 0.8)
+        outer = [(48 + 21 * math.cos(math.radians(a)), 29 + 19 * math.sin(math.radians(a))) for a in range(180, 361, 15)]
+        inner = [(48 + 16.5 * math.cos(math.radians(a)), 36 + 13 * math.sin(math.radians(a))) for a in range(360, 179, -15)]
+        sc.poly([(27, 42)] + outer + [(69, 42), (64, 42)] + inner + [(32, 42)], gc, dk, 0.9)
+        sc.poly([(46.6, 24), (49.4, 24), (49.6, 38), (48, 47), (46.4, 38)], shade(gc, 1.1), dk, 0.6)
+        sc.line([(30, 22), (66, 22)], shade(gc, 1.4), 1.0, 0.8)
         if g == "horned":
             for sx in (-1, 1):
                 sc.poly([(48 + sx * 20, 20), (48 + sx * 30, 14), (48 + sx * 36, 2), (48 + sx * 26, 6), (48 + sx * 18, 12)], "#E8E0CC", "#8A8068", 0.8)
@@ -396,8 +412,8 @@ def gear(sc, spec):
         sc.poly([(32, 26), (34, 12), (48, 6), (62, 12), (64, 26)], "#EAD07E", "#8A6A2A", 0.9)
         sc.line([(32, 22), (64, 22)], "#B24A3A", 1.8)
     elif g == "headband":
-        sc.line([(29, 34), (48, 30), (67, 34)], gc, 3.0)
-        sc.poly([(66, 33), (74, 36), (72, 42), (66, 38)], gc, None, 0)
+        sc.line([(29, 29), (48, 25), (67, 29)], gc, 3.0)
+        sc.poly([(66, 28), (74, 32), (72, 38), (66, 33)], gc, None, 0)
     elif g == "cap":
         sc.poly([(28, 34), (28, 26), (34, 16), (48, 12), (62, 16), (68, 26), (68, 34), (60, 28), (48, 24), (36, 28)], gc, dk, 0.9)
         sc.poly([(66, 30), (80, 34), (66, 36)], shade(gc, 0.8), dk, 0.7)
@@ -434,10 +450,10 @@ SPECS = {
     "hero_mira": S(skin="warm", hair="ponytail", hc="auburn", eyes="round", ic="#2E6A4A", brow="soft", mouth="smile", armor="leather",
                    ac="#4A7A4E", gear="headband", gc="#D8C04A", bg="teal", crest="leaf", extra=["blush"]),
     "hero_dunstan": S(skin="tan", face="round", hair="bald", hc="grey", beard="full", bc="grey", eyes="dot", brow="thick", mouth="flat",
-                      armor="mail", ac="#7C8494", gear="helm", gc="#8C95A6", bg="brown", crest="shield"),
+                      armor="mail", ac="#7C8494", gear="helm", gc="#8C95A6", bg="brown", crest="sun"),
     # 英雄: R
     "hero_aldric": S(skin="fair", hair="short", hc="blond", eyes="round", ic="#3A6AB8", brow="flat", mouth="smile", armor="plate",
-                     ac="#B4BCCB", cloak="#2F5AA8", bg="navy", crest="shield"),
+                     ac="#B4BCCB", cloak="#2F5AA8", bg="navy", crest="sun"),
     "hero_seren": S(skin="pale", hair="long", hc="silver", eyes="big", ic="#4AA8B8", brow="soft", mouth="smile", armor="robe", ac="#3E8E8A",
                     gear="circlet", gem="#7AD8E8", bg="cyan", crest="moon", extra=["blush"]),
     "hero_brann": S(skin="tan", face="square", hair="spiky", hc="red", beard="full", eyes="sharp", ic="#4A3A2A", brow="angry", mouth="grin",
@@ -450,11 +466,11 @@ SPECS = {
     "hero_yselda": S(skin="fair", hair="long", hc="purple", eyes="big", ic="#B86AD8", brow="soft", mouth="smile", armor="robe", ac="#6A3E9A",
                      trim=GOLD, gear="circlet", gem="#E86AB8", bg="violet", crest="star", extra=["blush"]),
     "hero_thorne": S(skin="tan", face="square", hair="short", hc="grey", beard="stubble", eyes="dot", brow="angry", mouth="frown",
-                     armor="plate", ac="#5A6070", gear="helm", gc="#6A7080", bg="olive", crest="shield", extra=["scar"]),
+                     armor="plate", ac="#5A6070", gear="helm", gc="#6A7080", bg="olive", crest="sun", extra=["scar"]),
     # 英雄: SSR
-    "hero_valeria": S(skin="warm", face="oval", hair="long", hc="gold", eyes="sharp", ic="#2E8AC8", brow="flat", mouth="smirk",
+    "hero_valeria": S(halo=1, skin="warm", face="oval", hair="long", hc="gold", eyes="sharp", ic="#2E8AC8", brow="flat", mouth="smirk",
                       armor="plate", ac="#E4E8F2", trim=GOLD, cloak="#B8303A", gear="winged", gc="#E8D890", bg="gold", crest="sun"),
-    "hero_ostrik": S(skin="tan", face="square", hair="long", hc="white", beard="long", eyes="dot", brow="thick", mouth="flat",
+    "hero_ostrik": S(halo=1, skin="tan", face="square", hair="long", hc="white", beard="long", eyes="dot", brow="thick", mouth="flat",
                      armor="furplate", ac="#C9A23A", trim="#FFE58A", cloak="#7A1F2A", gear="crown", bg="red", crest="crown"),
     # ペルソナ
     "kaede": S(skin="warm", hair="spiky", hc="brown", eyes="happy", brow="soft", mouth="grin", armor="noble", ac="#3A6AB8", trim=GOLD,
@@ -466,13 +482,13 @@ SPECS = {
     "sato": S(skin="tan", face="round", hair="short", hc="grey", beard="mustache", eyes="dot", brow="soft", mouth="smile", armor="farm",
               ac="#5A8A4A", gear="straw", bg="green", crest="leaf"),
     "lin": S(skin="fair", hair="bob", hc="black", eyes="dot", brow="flat", mouth="flat", armor="noble", ac="#2E6A7A", trim="#B8D8E0",
-             bg="cyan", crest="tower", extra=["glasses"]),
+             bg="cyan", crest="wheel", extra=["glasses"]),
     "johnny": S(skin="warm", hair="pompadour", hc="blond", eyes="happy", brow="flat", mouth="grin", armor="leather", ac="#E8C03A",
                 bg="magenta", crest="star", extra=["shades", "earring"]),
     "yuki": S(skin="pale", hair="long", hc="iceblue", eyes="soft", ic="#5A8AC8", brow="soft", mouth="smile", armor="scarf", ac="#3A4A7A",
               sc="#E8EEF8", bg="ice", crest="moon", extra=["blush"]),
     "gen": S(skin="tan", face="square", hair="bald", hc="grey", beard="long", bc="grey", eyes="dot", brow="thick", mouth="flat",
-             armor="furplate", ac="#7A6240", gear="helm", gc="#7A7468", bg="olive", crest="shield", extra=["scar"]),
+             armor="furplate", ac="#7A6240", gear="helm", gc="#7A7468", bg="olive", crest="sun", extra=["scar"]),
 }
 
 ARMOR_COLORS = ["#6A7A90", "#7A5A3A", "#3E6A4A", "#8A3A3A", "#4A4A7A", "#9A8A4A", "#5A5A60", "#3A6A7A"]
@@ -485,7 +501,7 @@ BEARDS = [None, None, None, "stubble", "full", "goatee", "mustache", "long"]
 GEARS = [None, None, None, "helm", "cap", "headband", "beret", "hood", "circlet"]
 EXTRAS = [[], [], ["blush"], ["freckles"], ["scar"], ["glasses"], ["earring"]]
 GC = ["#8C95A6", "#8A6A44", "#D8C04A", "#3E3458", "#B84A5A", "#4A7A9A"]
-CRESTS = ["star", "sun", "moon", "shield", "sword", "leaf", "flame", "tower", "wheel", "crown"]
+CRESTS = ["star", "sun", "moon", "sword", "leaf", "flame", "wheel", "crown"]
 
 
 def pick(seed, key, options):
@@ -493,28 +509,60 @@ def pick(seed, key, options):
     return options[h % len(options)]
 
 
-def generic_spec(seed):
-    sp = S(skin=pick(seed, "skin", list(SKINS)), hc=pick(seed, "hc", list(HAIRS)), hair=pick(seed, "hair", HAIR_STYLES),
-           eyes=pick(seed, "eyes", EYES_ALL), brow=pick(seed, "brow", BROWS), mouth=pick(seed, "mouth", MOUTHS),
+GENERIC_MOUTHS = ["smile", "smile", "grin", "flat", "smirk", "frown"]   # 驚き顔（open）は汎用では使わない
+HAIR_BY_LOOK = {
+    "m": ["short", "spiky", "short", "bald", "mohawk", "curly", "pompadour", "spiky"],
+    "f": ["long", "bun", "braid", "bob", "ponytail", "long", "curly", "bob"],
+    "n": ["bob", "short", "curly", "spiky", "short", "bob"],
+}
+GEARS_BY_LOOK = {
+    "m": [None, None, None, "helm", "cap", "headband", "hood"],
+    "f": [None, None, None, "beret", "circlet", "headband", "hood"],
+    "n": [None, None, None, "cap", "beret", "headband", "hood"],
+}
+EXTRAS_BY_LOOK = {
+    "m": [[], [], ["freckles"], ["scar"], ["glasses"], ["earring"]],
+    "f": [[], [], ["blush"], ["freckles"], ["glasses"], ["earring"], ["blush"]],
+    "n": [[], [], ["freckles"], ["glasses"], ["earring"]],
+}
+BEARDS_BY_LOOK = {"m": [None, None, "stubble", "full", "goatee", "mustache", "long"], "f": [None], "n": [None]}
+
+
+def generic_spec(seed, look="n"):
+    sp = S(skin=pick(seed, "skin", list(SKINS)), hc=pick(seed, "hc", list(HAIRS)), hair=pick(seed, "hair", HAIR_BY_LOOK[look]),
+           eyes=pick(seed, "eyes", EYES_ALL), brow=pick(seed, "brow", BROWS), mouth=pick(seed, "mouth", GENERIC_MOUTHS),
            armor=pick(seed, "armor", ARMOR_KINDS), ac=pick(seed, "ac", ARMOR_COLORS), bg=pick(seed, "bg", list(BGS)),
-           crest=pick(seed, "crest", CRESTS), face=pick(seed, "face", ["oval", "round", "square", "long"]),
-           beard=pick(seed, "beard", BEARDS), gear=pick(seed, "gear", GEARS), gc=pick(seed, "gc", GC),
-           extra=pick(seed, "extra", EXTRAS), sc=pick(seed, "sc", ["#D85A5A", "#5A8AD8", "#E8C03A", "#5AB87A"]))
+           crest=pick(seed, "crest", CRESTS), face=pick(seed, "face", ["oval", "round", "square", "long"] if look == "m" else ["oval", "round"]),
+           beard=pick(seed, "beard", BEARDS_BY_LOOK[look]), gear=pick(seed, "gear", GEARS_BY_LOOK[look]), gc=pick(seed, "gc", GC),
+           extra=pick(seed, "extra", EXTRAS_BY_LOOK[look]), sc=pick(seed, "sc", ["#D85A5A", "#5A8AD8", "#E8C03A", "#5AB87A"]))
     if sp["hair"] == "bald" and sp["beard"] is None:
         sp["beard"] = "stubble"
     if "glasses" in sp["extra"] and sp["eyes"] in ("happy", "closed"):
         sp["eyes"] = "dot"
+    if sp["gear"] in ("hood", "helm") and sp["hair"] in ("mohawk", "pompadour", "spiky"):
+        sp["gear"] = None
+    if look == "f":
+        sp["brow"] = pick(seed, "brow", ["flat", "soft", "soft"])
     return sp
 
 
-GENERIC_COUNT = 24   # 名前だけのメンバー（personas.json の fillers は 22 名）に 1 人ずつ
-AVATAR_COUNT = 12    # プレイヤーが選ぶアバター
+# 名前だけの同盟メンバー（personas.json の fillerMembers.look）ごとの枚数と、アバター 12 の配分（m 5 / f 5 / n 2）
+GENERIC_LOOKS = {"m": 8, "f": 8, "n": 6}
+AVATAR_LOOKS = ["m"] * 5 + ["f"] * 5 + ["n"] * 2
+AVATAR_COUNT = len(AVATAR_LOOKS)
+
+
+def generic_items():
+    return [("gen_%s_%02d" % (lk, i), generic_spec("gen%s%d" % (lk, i), lk)) for lk, n in GENERIC_LOOKS.items() for i in range(n)]
+
+
+def avatar_items():
+    return [("avatar_%02d" % i, generic_spec("avatar%d" % i, lk)) for i, lk in enumerate(AVATAR_LOOKS)]
 
 
 def all_portraits():
     out = [("pt_" + k, make(v)) for k, v in SPECS.items()]
-    out += [("pt_gen_%02d" % i, make(generic_spec("gen%d" % i))) for i in range(GENERIC_COUNT)]
-    out += [("pt_avatar_%02d" % i, make(generic_spec("avatar%d" % i))) for i in range(AVATAR_COUNT)]
+    out += [("pt_" + k, make(v)) for k, v in generic_items() + avatar_items()]
     return out
 
 

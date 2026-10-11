@@ -50,8 +50,7 @@ def decor_sheet(out):
 def portraits_sheet(out):
     """英雄 12 + ペルソナ 8（個別）→ 名前だけのメンバー 22（汎用）→ プレイヤーのアバター 12 を並べる。"""
     items = [(k, gen_portraits.make(v)) for k, v in gen_portraits.SPECS.items()]
-    items += [("gen_%02d" % i, gen_portraits.make(gen_portraits.generic_spec("gen%d" % i))) for i in range(22)]
-    items += [("avatar_%02d" % i, gen_portraits.make(gen_portraits.generic_spec("avatar%d" % i))) for i in range(gen_portraits.AVATAR_COUNT)]
+    items += [(k, gen_portraits.make(v)) for k, v in gen_portraits.generic_items() + gen_portraits.avatar_items()]
     cols = 8
     cw, ch = gen_portraits.W * 3 + 12, gen_portraits.W * 3 + 30
     rows = (len(items) + cols - 1) // cols

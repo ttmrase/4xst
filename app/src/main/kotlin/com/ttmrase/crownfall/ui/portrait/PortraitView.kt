@@ -40,13 +40,17 @@ import com.ttmrase.crownfall.ui.vip.vipColors
 
 /** ポートレートの描画リソース名（`pt_<key>`）の鍵。英雄・ペルソナは ID、名前だけのメンバーは番号、プレイヤーはアバター番号。 */
 object PortraitKeys {
-    private const val GENERIC_COUNT = 24
+    /** 順位表の NPC 用に使う中性的な顔の枚数（gen_n_00..）。 */
+    private const val NEUTRAL_COUNT = 6
 
-    /** 名前だけの同盟メンバー（並び順の [index]）。 */
-    fun filler(index: Int): String = "gen_%02d".format(Math.floorMod(index, GENERIC_COUNT))
+    /** 名前だけの同盟メンバー。[look]（m / f / n）の中での並び順 [indexInLook] で決める。 */
+    fun filler(
+        look: String,
+        indexInLook: Int,
+    ): String = "gen_%s_%02d".format(look, indexInLook)
 
-    /** 名前から決める（順位表の NPC。同じ名前はいつも同じ顔）。 */
-    fun byName(name: String): String = filler(name.hashCode())
+    /** 名前から決める（順位表の NPC。性別が分からないので中性的な顔だけ。同じ名前はいつも同じ顔）。 */
+    fun byName(name: String): String = filler("n", Math.floorMod(name.hashCode(), NEUTRAL_COUNT))
 
     /** プレイヤーのアバター（[GameState.avatar][com.ttmrase.crownfall.core.model.GameState.avatar]）。 */
     fun avatar(index: Int): String = "avatar_%02d".format(Math.floorMod(index, Actions.AVATAR_COUNT))

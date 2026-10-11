@@ -30,6 +30,6 @@
   <path android:strokeColor="#8A3A3A" android:strokeWidth="1.40" android:strokeLineJoin="round" android:pathData="M41.5,56.0L45.0,59.4L51.0,59.4L54.5,56.0" />
   <path android:fillColor="#9A4A2A" android:strokeColor="#552917" android:strokeWidth="0.90" android:strokeLineJoin="round" android:pathData="M29.0,40.0L28.0,28.0L34.0,18.0L48.0,14.0L62.0,18.0L68.0,28.0L67.0,40.0L60.0,30.0L48.0,26.0L38.0,30.0Z" />
   <path android:fillColor="#9A4A2A" android:strokeColor="#552917" android:strokeWidth="0.90" android:strokeLineJoin="round" android:pathData="M66.0,24.0L80.0,28.0L82.0,50.0L74.0,60.0L72.0,40.0L64.0,32.0Z" />
-  <path android:strokeColor="#D8C04A" android:strokeWidth="3.00" android:strokeLineJoin="round" android:pathData="M29.0,34.0L48.0,30.0L67.0,34.0" />
-  <path android:fillColor="#D8C04A" android:pathData="M66.0,33.0L74.0,36.0L72.0,42.0L66.0,38.0Z" />
+  <path android:strokeColor="#D8C04A" android:strokeWidth="3.00" android:strokeLineJoin="round" android:pathData="M29.0,29.0L48.0,25.0L67.0,29.0" />
+  <path android:fillColor="#D8C04A" android:pathData="M66.0,28.0L74.0,32.0L72.0,38.0L66.0,33.0Z" />
 </vector>

@@ -6,6 +6,9 @@ import com.ttmrase.crownfall.core.buff.BuffKey
 internal object AllianceValidator {
     private const val PERSONA_COUNT = 8
     private const val FILLER_COUNT = 22
+
+    /** ポートレート（pt_gen_<look>_<nn>）の生成枚数。tools/artgen/gen_portraits.py の GENERIC_LOOKS と揃える。 */
+    private val FILLER_LOOKS = mapOf("m" to 8, "f" to 8, "n" to 6)
     private const val HOURS_PER_DAY = 24
     private const val MAX_HOUR = 48
     private const val PERMILLE = 1000
@@ -26,6 +29,10 @@ internal object AllianceValidator {
         if (p.personas.size != PERSONA_COUNT) fail("personas.json: expected $PERSONA_COUNT personas")
         if (p.personas.map { it.id }.toSet().size != p.personas.size) fail("personas.json: duplicate persona id")
         if (p.fillerMembers.size != FILLER_COUNT) fail("personas.json: expected $FILLER_COUNT filler members")
+        val perLook = p.fillerMembers.groupingBy { it.look }.eachCount()
+        if (perLook.any { (look, n) -> n > (FILLER_LOOKS[look] ?: -1) }) {
+            fail("personas.json: filler look must be m/f/n and within the generated portrait counts $FILLER_LOOKS")
+        }
         if (p.worldNpcNames.isEmpty()) fail("personas.json: worldNpcNames is empty")
         for (d in p.personas) {
             if (d.rank !in 1..5) fail("personas.json: ${d.id} rank must be 1..5")
