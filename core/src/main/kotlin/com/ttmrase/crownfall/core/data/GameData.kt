@@ -186,6 +186,9 @@ data class Rules(
     val starterHeroes: List<String>,
     val healCostPct: Long,
     val healTimePct: Long,
+    /** 収穫バブル（M11 T11.2）: 前回の回収から出るまでの秒と、中身にする生産の分数。 */
+    val bubbleIntervalSec: Long = 600,
+    val bubbleMinutes: Long = 3,
     val newGame: NewGameRules,
 )
 

@@ -37,6 +37,8 @@ private class RulesDto(
     val starterHeroes: List<String> = emptyList(),
     val healCostPct: Long = 50,
     val healTimePct: Long = 40,
+    val bubbleIntervalSec: Long = 600,
+    val bubbleMinutes: Long = 3,
     val newGame: NewGameDto,
 )
 
@@ -331,6 +333,7 @@ object GameDataLoader {
             )
         }
         if (dto.healCostPct < 0 || dto.healTimePct < 0) fail("rules.json: heal percentages must be >= 0")
+        if (dto.bubbleIntervalSec < 1 || dto.bubbleMinutes < 0) fail("rules.json: bubble values are invalid")
         val ng = dto.newGame
         if (!nonNegative(ng.resources) || ng.gems < 0) fail("rules.json: newGame has negative resources/gems")
         for ((type, levels) in ng.initialLevels) {
@@ -356,6 +359,8 @@ object GameDataLoader {
             starterHeroes = dto.starterHeroes,
             healCostPct = dto.healCostPct,
             healTimePct = dto.healTimePct,
+            bubbleIntervalSec = dto.bubbleIntervalSec,
+            bubbleMinutes = dto.bubbleMinutes,
             newGame = NewGameRules(ng.resources, ng.gems, ng.initialLevels, ng.items),
         )
     }

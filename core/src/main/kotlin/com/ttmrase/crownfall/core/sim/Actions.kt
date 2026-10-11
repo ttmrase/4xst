@@ -1,6 +1,7 @@
 package com.ttmrase.crownfall.core.sim
 
 import com.ttmrase.crownfall.core.alliance.DonationKind
+import com.ttmrase.crownfall.core.bubble.HarvestBubble
 import com.ttmrase.crownfall.core.buff.BuffAggregator
 import com.ttmrase.crownfall.core.buff.BuffKey
 import com.ttmrase.crownfall.core.chat.ChatKeys
@@ -759,6 +760,26 @@ object Actions {
             data,
             Feature.ALLIANCE,
         ) { AllianceActions.answerQuiz(state, messageId, option, data) }
+
+    /** スロット [slotId] の収穫バブルを回収する（出ていなければ [ActionFailure.NothingToClaim]）。 */
+    fun collectBubble(
+        state: GameState,
+        slotId: Int,
+        data: GameData,
+    ): ActionResult {
+        if (state.slots.none { it.slotId == slotId }) return fail(ActionFailure.SlotNotFound)
+        val (next, done) = HarvestBubble.collect(state, listOf(slotId), data)
+        return if (done.isEmpty()) fail(ActionFailure.NothingToClaim) else ActionResult.Success(next)
+    }
+
+    /** 出ている収穫バブルをすべて回収する。 */
+    fun collectAllBubbles(
+        state: GameState,
+        data: GameData,
+    ): ActionResult {
+        val (next, done) = HarvestBubble.collect(state, HarvestBubble.ready(state, data), data)
+        return if (done.isEmpty()) fail(ActionFailure.NothingToClaim) else ActionResult.Success(next)
+    }
 
     /** アバター番号の上限（生成済みの候補数。:app の PortraitView と揃える）。 */
     const val AVATAR_COUNT = 12

@@ -27,6 +27,8 @@ data class GameState(
     val playerName: String = "",
     /** プレイヤーのアバター番号（0 始まり。表示側の候補数で割った余りを使う。M11 T11.5）。 */
     val avatar: Int = 0,
+    /** 収穫バブルを最後に回収した時刻（スロット ID → epoch 秒）。無い建物は未回収（すぐ出る）。M11 T11.2。 */
+    val lastBubbleCollect: Map<Int, Long> = emptyMap(),
     val starterHeroId: String? = null,
     val tutorialStep: Int = 0,
     val troops: Map<String, Long> = emptyMap(),
