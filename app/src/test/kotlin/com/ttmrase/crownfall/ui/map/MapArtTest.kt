@@ -107,4 +107,14 @@ class MapArtTest {
         assertTrue(river.first().y <= 0.5f && river.last().y >= world.size - 0.5f)
         for (p in river) assertTrue(p.x in 0f..world.size.toFloat())
     }
+
+    @Test
+    fun theMapEdgeNeverEntersTheScreenAndASmallMapIsCentered() {
+        // 大きい地図: 左上の端が画面の左上より内側に来ない／右下の端が画面の右下より内側に来ない
+        assertEquals(0f, clampOffset(50f, 1000f, 3000f), 0f)
+        assertEquals(-2000f, clampOffset(-5000f, 1000f, 3000f), 0f)
+        assertEquals(-300f, clampOffset(-300f, 1000f, 3000f), 0f)
+        // 画面より小さい地図は中央
+        assertEquals(100f, clampOffset(7f, 1000f, 800f), 0f)
+    }
 }

@@ -149,8 +149,9 @@ private fun MapContent(
             val cx = viewSize.width / 2f
             val cy = viewSize.height / 2f
             val mapPx = world.size * basePx * next
-            offX = (cx - (cx - offX) * k + panChange.x).coerceIn(cx - mapPx, cx)
-            offY = (cy - (cy - offY) * k + panChange.y).coerceIn(cy - mapPx, cy)
+            // 地図の端が画面の端より内側へ入らない（外の空白を見せない。地図が画面より小さいときは中央に置く）
+            offX = clampOffset((cx - (cx - offX) * k + panChange.x), viewSize.width.toFloat(), mapPx)
+            offY = clampOffset((cy - (cy - offY) * k + panChange.y), viewSize.height.toFloat(), mapPx)
             scale = next
         }
     val onTap by rememberUpdatedState<(Offset) -> Unit> { pos ->
@@ -393,6 +394,13 @@ private fun DrawScope.drawWorld(
         drawDayNight(dayNight, (((now + s.settings.utcOffsetSec) / SECONDS_PER_HOUR) % HOURS_PER_DAY).toInt())
     }
 }
+
+/** 地図の端が画面の端を越えないように [off] を収める。地図 [mapPx] が画面 [view] より小さければ中央に置く。 */
+internal fun clampOffset(
+    off: Float,
+    view: Float,
+    mapPx: Float,
+): Float = if (mapPx <= view) (view - mapPx) / 2f else off.coerceIn(view - mapPx, 0f)
 
 /** 城の見た目の段階（Lv1-5 = 1 … Lv21-25 = 5）。 */
 private fun castleTier(s: GameState): Int = ((castleLevel(s).toInt() - 1) / CASTLE_TIER_SPAN + 1).coerceIn(1, 5)

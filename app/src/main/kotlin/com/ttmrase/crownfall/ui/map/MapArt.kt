@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall.ui.map
 
+import android.graphics.Bitmap
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -8,10 +9,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.ttmrase.crownfall.core.map.StructureType
@@ -155,24 +158,28 @@ internal object MapArt {
         val n = world.size
         val start = n * (RIVER_START_MIN + RIVER_START_SPAN * hash(0, 0, seed, 90))
         val phase = hash(1, 0, seed, 91) * RIVER_PHASE
-        val out = ArrayList<Offset>()
+        val xs = FloatArray(n + 3)
         for (i in -1..n + 1) {
             val y = i.toFloat()
-            var x =
+            xs[i + 1] =
                 start + n * RIVER_DRIFT * (y / n) + sin(y * RIVER_FREQ + phase) * RIVER_SWAY +
-                    (noise(y * 0.1f, 0f, seed, 92) - 0.5f) * RIVER_NOISE
-            // 拠点の近くは避ける（押しのけた先で別の拠点に近づくことがあるので、数回くり返す）
-            repeat(RIVER_PASSES) {
+                (noise(y * 0.1f, 0f, seed, 92) - 0.5f) * RIVER_NOISE
+        }
+        // 拠点の近くは、急に折れず、なだらかに押しのける（距離が近いほど強く）。そのあと全体をならす
+        repeat(RIVER_PASSES) {
+            for (i in xs.indices) {
+                val y = (i - 1) + 0.5f
                 for (st in world.structures) {
-                    val dx = x - (st.x + 0.5f)
+                    val dx = xs[i] - (st.x + 0.5f)
                     val dy = y - (st.y + 0.5f)
-                    if (abs(dy) < RIVER_CLEAR && abs(dx) < RIVER_CLEAR) {
-                        x = st.x + 0.5f + (if (dx >= 0f) RIVER_CLEAR else -RIVER_CLEAR)
-                    }
+                    val d = hypot(dx, dy)
+                    if (d < RIVER_CLEAR) xs[i] += (if (dx >= 0f) 1f else -1f) * (RIVER_CLEAR - d) * RIVER_PUSH
                 }
             }
-            out += Offset(x.coerceIn(0.5f, n - 0.5f), y + 0.5f)
+            for (i in 1 until xs.lastIndex) xs[i] = (xs[i - 1] + 2f * xs[i] + xs[i + 1]) / 4f
         }
+        val out = ArrayList<Offset>()
+        for (i in xs.indices) out += Offset(xs[i].coerceIn(0.5f, n - 0.5f), (i - 1) + 0.5f)
         return out
     }
 
@@ -364,16 +371,9 @@ internal object MapArt {
     ) {
         val x0 = cx * CHUNK
         val y0 = cy * CHUNK
-        // 地面（隣のタイルへ少しはみ出して描き、チャンクの継ぎ目を消す）
-        for (ty in -1..CHUNK) {
-            for (tx in -1..CHUNK) {
-                val x = x0 + tx
-                val y = y0 + ty
-                if (!world.inBounds(x, y)) continue
-                val t = world.terrainAt(x, y)
-                drawRect(baseColor(world, x, y, seed, t), Offset(tx * px, ty * px), Size(px + 1f, px + 1f))
-            }
-        }
+        // 地面: 1 タイル = 1px の色の画像を、双一次補間で拡大して貼る（タイルの境目が市松に見えず、色がなだらかにつながる）。
+        // 隣のタイルへ 1 つはみ出して作るので、チャンクの継ぎ目も出ない
+        drawGround(world, x0, y0, px, seed)
         // 川: 川のタイルを岸の色にして、その上につながった水の線（丸い端）を引く
         drawRivers(world, x0, y0, px)
         // 境目のぼかし・海岸
@@ -404,6 +404,35 @@ internal object MapArt {
             }
             if (sprites != null) drawForest(world, x0, y0, px, seed, sprites)
         }
+    }
+
+    private fun DrawScope.drawGround(
+        world: WorldMap,
+        x0: Int,
+        y0: Int,
+        px: Float,
+        seed: Long,
+    ) {
+        val side = CHUNK + 2
+        val pixels = IntArray(side * side)
+        for (iy in 0 until side) {
+            for (ix in 0 until side) {
+                // 地図の外は、いちばん近い内側のタイルの色
+                val x = (x0 + ix - 1).coerceIn(0, world.size - 1)
+                val y = (y0 + iy - 1).coerceIn(0, world.size - 1)
+                pixels[iy * side + ix] = baseColor(world, x, y, seed, world.terrainAt(x, y)).toArgb()
+            }
+        }
+        val image = Bitmap.createBitmap(pixels, side, side, Bitmap.Config.ARGB_8888).asImageBitmap()
+        val dst = (side * px).roundToInt()
+        drawImage(
+            image,
+            srcOffset = IntOffset.Zero,
+            srcSize = IntSize(side, side),
+            dstOffset = IntOffset(-px.roundToInt(), -px.roundToInt()),
+            dstSize = IntSize(dst, dst),
+            filterQuality = FilterQuality.Medium,
+        )
     }
 
     private fun DrawScope.drawRivers(
@@ -745,7 +774,7 @@ internal object MapArt {
                         val a = Offset(ox + px * 0.15f, oy + px * (0.4f + 0.3f * r * 10f))
                         drawLine(Color(0x55B79A55), a, a + Offset(px * 0.6f, -px * 0.06f), strokeWidth = px * 0.05f)
                     }
-                } else if (snow > 0.5f && r < 0.1f) {
+                } else if (snow > 0.5f && r < 0.2f) {
                     // 雪だまり
                     drawOval(
                         Color(0xFFFFFFFF),
@@ -800,8 +829,9 @@ internal object MapArt {
     private const val RIVER_FREQ = 0.16f
     private const val RIVER_SWAY = 3.2f
     private const val RIVER_NOISE = 4f
-    private const val RIVER_CLEAR = 3.5f
+    private const val RIVER_CLEAR = 4.5f
     private const val RIVER_PASSES = 3
+    private const val RIVER_PUSH = 0.7f
     private const val EXTRA_ROADS = 2
     private const val ROAD_WOBBLE = 0.36f
     private const val RIVER_MAX_WATER = 11
