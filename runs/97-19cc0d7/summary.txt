@@ -1,0 +1,17 @@
+run: 97
+commit: 19cc0d750e6856809c48466e05b4571b3441b5df
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38125223434
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+e: app/src/main/kotlin/com/ttmrase/crownfall/ui/map/MapChunkCache.kt:83:46 Unresolved reference 'firstNotNullOfOrNull'.
+e: app/src/main/kotlin/com/ttmrase/crownfall/ui/map/MapChunkCache.kt:83:88 Unresolved reference 'it'.
+--- failed tests ---
+> Task :app:compileDebugKotlin FAILED
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
