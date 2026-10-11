@@ -1,0 +1,17 @@
+run: 60
+commit: 7f12a51b0c3832275b0b2805e415a6dbdb9fdeb3
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38114837982
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+e: app/src/androidTest/kotlin/com/ttmrase/crownfall/BuilderUnlockUiTest.kt:3:33 Unresolved reference 'SemanticsActions'.
+e: app/src/androidTest/kotlin/com/ttmrase/crownfall/BuilderUnlockUiTest.kt:44:41 Unresolved reference 'SemanticsActions'.
+--- failed tests ---
+> Task :app:compileDebugAndroidTestKotlin FAILED
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
