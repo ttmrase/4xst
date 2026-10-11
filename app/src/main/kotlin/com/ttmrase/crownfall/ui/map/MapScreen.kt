@@ -366,7 +366,16 @@ private fun DrawScope.drawWorld(
     with(MapLive) {
         drawTerritory(castleCenter, tile, style.territoryTheme, seconds)
         drawFog(fog, x0, y0, x1, y1, tile, offX, offY)
-        drawStructures(world, tile, offX, offY, style.castleTheme, castleTier(s), sprites, ::visible)
+        drawStructures(
+            world,
+            tile,
+            offX,
+            offY,
+            style.castleTheme,
+            { st -> structureTier(st, world, s, data, castleTier(s)) },
+            sprites,
+            ::visible,
+        )
         drawNodes(s, tile, offX, offY, seconds, glyph, sprites, ::visible)
         drawCamps(s, tile, offX, offY, seconds, sprites, ::visible)
         drawMarches(s, data, tile, offX, offY, now, seconds, style.trailTheme)

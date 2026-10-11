@@ -99,4 +99,12 @@ class MapArtTest {
         assertEquals(rivers + lakeInteriors, (0 until n * n).count { world.terrainAt(it % n, it / n) == Terrain.WATER })
         assertEquals(rivers, (0 until n * n).count { MapArt.isRiver(world, it % n, it / n) })
     }
+
+    @Test
+    fun theDecorativeRiverRunsNorthToSouthAndStaysOnTheMap() {
+        val river = MapArt.river(world, 42L)
+        assertEquals(river, MapArt.river(world, 42L))
+        assertTrue(river.first().y <= 0.5f && river.last().y >= world.size - 0.5f)
+        for (p in river) assertTrue(p.x in 0f..world.size.toFloat())
+    }
 }

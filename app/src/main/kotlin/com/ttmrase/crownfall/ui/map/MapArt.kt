@@ -144,6 +144,61 @@ internal object MapArt {
         return out
     }
 
+    /**
+     * 川（見た目だけの装飾）。北の端から南の端へ、ゆるく蛇行して流れる折れ線（タイル座標）。拠点は避ける。
+     * :core の地形にはほとんど水が無いので、マップに「つながった川」を足す。道は川の上に重ねて描く（橋に見える）。
+     */
+    fun river(
+        world: WorldMap,
+        seed: Long,
+    ): List<Offset> {
+        val n = world.size
+        val start = n * (RIVER_START_MIN + RIVER_START_SPAN * hash(0, 0, seed, 90))
+        val phase = hash(1, 0, seed, 91) * RIVER_PHASE
+        val out = ArrayList<Offset>()
+        for (i in -1..n + 1) {
+            val y = i.toFloat()
+            var x =
+                start + n * RIVER_DRIFT * (y / n) + sin(y * RIVER_FREQ + phase) * RIVER_SWAY +
+                    (noise(y * 0.1f, 0f, seed, 92) - 0.5f) * RIVER_NOISE
+            // 拠点の近くは避ける（押しのけた先で別の拠点に近づくことがあるので、数回くり返す）
+            repeat(RIVER_PASSES) {
+                for (st in world.structures) {
+                    val dx = x - (st.x + 0.5f)
+                    val dy = y - (st.y + 0.5f)
+                    if (abs(dy) < RIVER_CLEAR && abs(dx) < RIVER_CLEAR) {
+                        x = st.x + 0.5f + (if (dx >= 0f) RIVER_CLEAR else -RIVER_CLEAR)
+                    }
+                }
+            }
+            out += Offset(x.coerceIn(0.5f, n - 0.5f), y + 0.5f)
+        }
+        return out
+    }
+
+    private fun DrawScope.drawRiver(
+        river: List<Offset>,
+        x0: Int,
+        y0: Int,
+        px: Float,
+    ) {
+        if (river.size < 2) return
+        clipRect(0f, 0f, CHUNK * px, CHUNK * px) {
+            val p = Path()
+            p.moveTo((river[0].x - x0) * px, (river[0].y - y0) * px)
+            for (k in 1 until river.lastIndex) {
+                val mx = (river[k].x + river[k + 1].x) / 2f
+                val my = (river[k].y + river[k + 1].y) / 2f
+                p.quadraticTo((river[k].x - x0) * px, (river[k].y - y0) * px, (mx - x0) * px, (my - y0) * px)
+            }
+            p.lineTo((river.last().x - x0) * px, (river.last().y - y0) * px)
+            drawPath(p, SAND, style = Stroke(px * 1.45f, cap = StrokeCap.Round))
+            drawPath(p, DEEP, style = Stroke(px * 1.0f, cap = StrokeCap.Round))
+            drawPath(p, SHALLOW, style = Stroke(px * 0.55f, cap = StrokeCap.Round))
+            drawPath(p, FOAM, style = Stroke(px * 0.06f, cap = StrokeCap.Round))
+        }
+    }
+
     /** 折れ線の途中の点を、タイルの中でゆらがせる（両端は動かさない）。決定論。 */
     private fun wobble(
         line: List<Offset>,
@@ -305,6 +360,7 @@ internal object MapArt {
         roads: List<List<Offset>>,
         detail: Boolean,
         sprites: SpriteCache? = null,
+        river: List<Offset> = emptyList(),
     ) {
         val x0 = cx * CHUNK
         val y0 = cy * CHUNK
@@ -329,6 +385,8 @@ internal object MapArt {
                 edges(world, x, y, tx * px, ty * px, px, seed)
             }
         }
+        // 川（見た目だけの装飾）。道はその上に重ねる
+        if (px >= ROAD_MIN_PX) drawRiver(river, x0, y0, px)
         // 道
         if (px >= ROAD_MIN_PX) drawRoads(roads, x0, y0, px)
         // 飾り
@@ -735,6 +793,15 @@ internal object MapArt {
     }
 
     private const val ROAD_MIN_PX = 8f
+    private const val RIVER_START_MIN = 0.2f
+    private const val RIVER_START_SPAN = 0.2f
+    private const val RIVER_PHASE = 6.28f
+    private const val RIVER_DRIFT = 0.35f
+    private const val RIVER_FREQ = 0.16f
+    private const val RIVER_SWAY = 3.2f
+    private const val RIVER_NOISE = 4f
+    private const val RIVER_CLEAR = 3.5f
+    private const val RIVER_PASSES = 3
     private const val EXTRA_ROADS = 2
     private const val ROAD_WOBBLE = 0.36f
     private const val RIVER_MAX_WATER = 11

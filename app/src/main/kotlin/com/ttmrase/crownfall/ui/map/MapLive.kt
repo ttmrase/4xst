@@ -17,7 +17,9 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
+import com.ttmrase.crownfall.core.alliance.Personas
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.map.Structure
 import com.ttmrase.crownfall.core.map.StructureType
 import com.ttmrase.crownfall.core.map.WorldMap
 import com.ttmrase.crownfall.core.march.MarchKind
@@ -242,14 +244,14 @@ internal object MapLive {
         offX: Float,
         offY: Float,
         castleTheme: String?,
-        castleTier: Int,
+        tierOf: (Structure) -> Int,
         sprites: SpriteCache?,
         visible: (Int, Int) -> Boolean,
     ) {
         val near = sprites != null && tile >= SPRITE_MIN_DP * density
         for (st in world.structures) {
             if (!visible(st.x, st.y)) continue
-            if (near && drawStructureSprite(st, tile, offX, offY, castleTheme, castleTier, sprites!!)) continue
+            if (near && drawStructureSprite(st, tile, offX, offY, castleTheme, tierOf(st), sprites!!)) continue
             val color =
                 when (st.type) {
                     StructureType.PLAYER_CASTLE -> territoryColor(castleTheme) ?: CASTLE
@@ -297,12 +299,12 @@ internal object MapLive {
 
     /** 拠点のスプライト（城内と同じアイソメの絵）。読み込み前なら false（簡易アイコンで描く）。 */
     private fun DrawScope.drawStructureSprite(
-        st: com.ttmrase.crownfall.core.map.Structure,
+        st: Structure,
         tile: Float,
         offX: Float,
         offY: Float,
         castleTheme: String?,
-        castleTier: Int,
+        tier: Int,
         sprites: SpriteCache,
     ): Boolean {
         val id =
@@ -311,18 +313,13 @@ internal object MapLive {
                     if (castleTheme != null) {
                         SpriteIds.castleSkin(
                             castleTheme,
-                            castleTier,
+                            tier,
                         )
                     } else {
-                        SpriteIds.building(BuildingType.CASTLE, castleTier)
+                        SpriteIds.building(BuildingType.CASTLE, tier)
                     }
-                StructureType.ALLY_CASTLE -> SpriteIds.building(BuildingType.CASTLE, ALLY_TIER)
-                StructureType.NPC_CASTLE ->
-                    SpriteIds.building(
-                        BuildingType.CASTLE,
-                        NPC_TIER_MIN + (st.x * 7 + st.y * 13) % 3,
-                    )
-                StructureType.BARBARIAN_FORT -> SpriteIds.building(BuildingType.WATCHTOWER, FORT_TIER)
+                StructureType.ALLY_CASTLE, StructureType.NPC_CASTLE -> SpriteIds.building(BuildingType.CASTLE, tier)
+                StructureType.BARBARIAN_FORT -> SpriteIds.building(BuildingType.WATCHTOWER, tier)
                 StructureType.HOLY_LAND -> SpriteIds.TEMPLE
             }
         val sp = sprites.get(id) ?: return false
@@ -341,7 +338,71 @@ internal object MapLive {
         drawOval(Color(0x40000000), Offset(cx - tile * 0.85f, gy - tile * 0.2f), Size(tile * 1.7f, tile * 0.4f))
         val scale = tile * (if (st.type == StructureType.HOLY_LAND) HOLY_SPAN else CASTLE_SPAN) / FOOTPRINT_VP
         drawSprite(sp, cx, gy, scale)
+        // 持ち主ごとの旗（自城=金、同盟=青、NPC=赤、敵の砦=紫）。聖地には立てない
+        if (st.type != StructureType.HOLY_LAND) {
+            val top = gy - FLAG_BASE_VP[(tier - 1).coerceIn(0, 4)] * scale
+            val pole = tile * FLAG_POLE
+            val color = flagColor(st.type)
+            drawLine(Color(0xFF3A2A18), Offset(cx, top), Offset(cx, top - pole), strokeWidth = 2f)
+            val flag = scratch
+            flag.rewind()
+            flag.moveTo(cx, top - pole)
+            flag.lineTo(cx + tile * FLAG_WIDTH, top - pole + tile * FLAG_DROOP)
+            flag.lineTo(cx, top - pole + tile * FLAG_DROOP * 2f)
+            flag.close()
+            drawPath(flag, color)
+            drawPath(flag, Color.Black.copy(alpha = 0.5f), style = Stroke(1f))
+        }
         return true
+    }
+
+    private fun flagColor(type: StructureType): Color =
+        when (type) {
+            StructureType.PLAYER_CASTLE -> Color(0xFFFFC107)
+            StructureType.ALLY_CASTLE -> Color(0xFF1E88E5)
+            StructureType.NPC_CASTLE -> Color(0xFFC62828)
+            StructureType.BARBARIAN_FORT -> Color(0xFF6A1B9A)
+            StructureType.HOLY_LAND -> Color.White
+        }
+
+    /**
+     * 拠点の城の段階（1..5）。自城は [castleTier]、同盟はペルソナ / メンバーの城 Lv（データ）、NPC は戦力の順位、
+     * 砦は砦の Lv から決める。
+     */
+    fun structureTier(
+        st: Structure,
+        world: WorldMap,
+        s: GameState,
+        data: GameData,
+        castleTier: Int,
+    ): Int =
+        when (st.type) {
+            StructureType.PLAYER_CASTLE -> castleTier
+            StructureType.ALLY_CASTLE -> tierOfLv(allyLv(st, s, data))
+            StructureType.NPC_CASTLE -> {
+                val npcs = world.structures.filter { it.type == StructureType.NPC_CASTLE }
+                val rank = npcs.count { it.power < st.power }
+                (1 + rank * 5 / npcs.size.coerceAtLeast(1)).coerceIn(1, 5)
+            }
+            StructureType.BARBARIAN_FORT -> ((st.level - 1) / 2 + 1).coerceIn(1, 5)
+            StructureType.HOLY_LAND -> 5
+        }
+
+    private fun tierOfLv(lv: Int): Int = ((lv - 1) / TIER_LV_SPAN + 1).coerceIn(1, 5)
+
+    private fun allyLv(
+        st: Structure,
+        s: GameState,
+        data: GameData,
+    ): Int {
+        val slot = st.tag.substringAfterLast('_').toIntOrNull() ?: return DEFAULT_ALLY_LV
+        val personas = data.personas
+        return if (st.isPersona) {
+            val days = (s.nowEpochSec - s.alliance.startEpochSec).coerceAtLeast(0) / SECONDS_PER_DAY
+            personas.personas.getOrNull(slot)?.let { Personas.castleLv(it, days) } ?: DEFAULT_ALLY_LV
+        } else {
+            personas.fillerMembers.getOrNull(slot)?.castleLv ?: DEFAULT_ALLY_LV
+        }
     }
 
     private fun DrawScope.drawSprite(
@@ -412,7 +473,7 @@ internal object MapLive {
             }
             ids += SpriteIds.building(BuildingType.CASTLE, t)
         }
-        ids += SpriteIds.building(BuildingType.WATCHTOWER, FORT_TIER)
+        for (t in 1..tiers) ids += SpriteIds.building(BuildingType.WATCHTOWER, t)
         ids += SpriteIds.TENT
         ids += SpriteIds.TEMPLE
         return ids
@@ -561,6 +622,15 @@ internal object MapLive {
     /** これ以上（dp）大きいとき、拠点・資源地・野営地をスプライトで描く（それより遠いと簡易アイコン）。 */
     const val SPRITE_MIN_DP = 14f
     private const val FOOTPRINT_VP = 112f
+    private const val TIER_LV_SPAN = 5
+    private const val DEFAULT_ALLY_LV = 8
+    private const val SECONDS_PER_DAY = 86_400L
+    private const val FLAG_POLE = 0.42f
+    private const val FLAG_WIDTH = 0.3f
+    private const val FLAG_DROOP = 0.1f
+
+    /** 段階ごとの、スプライトの足元から旗を立てる高さ（viewport 単位。城の屋根の少し上）。 */
+    private val FLAG_BASE_VP = floatArrayOf(52f, 78f, 100f, 112f, 130f)
     private const val CASTLE_SPAN = 1.5f
     private const val HOLY_SPAN = 1.8f
     private const val NODE_SPAN = 0.95f
@@ -568,9 +638,6 @@ internal object MapLive {
     private const val GROUND_DROP = 0.3f
     private const val TENT_SPAN = 1.0f
     private const val TENT_FOOTPRINT_VP = 36f
-    private const val ALLY_TIER = 3
-    private const val NPC_TIER_MIN = 2
-    private const val FORT_TIER = 3
     private const val FOG_SOFT_TILES = 5f
     private const val FOG_MAX_ALPHA = 0.7f
     private const val NIGHT_ALPHA = 0.28f

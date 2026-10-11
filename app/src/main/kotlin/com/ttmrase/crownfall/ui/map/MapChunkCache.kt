@@ -31,6 +31,7 @@ internal class MapChunkCache(
     private val maxBytes: Long = DEFAULT_MAX_BYTES,
 ) {
     private val roads = MapArt.roads(world)
+    private val river = MapArt.river(world, seed)
     private val images = LinkedHashMap<Long, ImageBitmap>(64, 0.75f, true)
     private var bytes = 0L
     private val loading = ConcurrentHashMap.newKeySet<Long>()
@@ -119,7 +120,7 @@ internal class MapChunkCache(
         val image = ImageBitmap(side, side)
         val scopeDraw = CanvasDrawScope()
         scopeDraw.draw(Density(1f), LayoutDirection.Ltr, Canvas(image), Size(side.toFloat(), side.toFloat())) {
-            with(MapArt) { drawChunk(world, cx, cy, px.toFloat(), seed, roads, px >= DETAIL_MIN_PX, sprites) }
+            with(MapArt) { drawChunk(world, cx, cy, px.toFloat(), seed, roads, px >= DETAIL_MIN_PX, sprites, river) }
         }
         return image
     }
