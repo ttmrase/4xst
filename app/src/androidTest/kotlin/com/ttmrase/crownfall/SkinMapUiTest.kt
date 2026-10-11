@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
+import androidx.compose.ui.test.swipe
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ttmrase.crownfall.core.data.ClasspathDataSource
@@ -130,6 +131,53 @@ class SkinMapUiTest {
             rule.waitForIdle()
             rule.onNodeWithText(h.str(R.string.settings_map_day)).performScrollTo()
             rule.onNodeWithText(h.str(R.string.settings_map_day)).performClick()
+        }
+    }
+
+    /** マップを [dx], [dy]（画面の幅・高さに対する割合）だけ、指で動かす（地図の内容が指の向きに動く）。 */
+    private fun panMap(
+        dx: Float,
+        dy: Float,
+    ) = rule.onRoot().performTouchInput {
+        val from = Offset(width * (0.5f - dx / 2), height * (0.5f - dy / 2))
+        val to = Offset(width * (0.5f + dx / 2), height * (0.5f + dy / 2))
+        swipe(from, to, durationMillis = 350)
+    }
+
+    @Test
+    fun theNorthSnowTheSoutheastDesertAndTheRiversAreShot() {
+        val h = AppHarness(rule)
+        h.seed(Preset.RICH_CASTLE)
+        h.launchToCity()
+        h.step("map_regions") {
+            h.open("world_map")
+            h.waitMapLoaded()
+            pinchMap(0.08f, 0.2f)
+            rule.waitForIdle()
+            // 城は地図の中央（64x64 の (32,32)）。北の雪原 = 地図が下へ動くように、南東の砂漠 = 左上へ動くように引く
+            for (i in 1..3) {
+                panMap(0f, 0.6f)
+                rule.waitForIdle()
+                Screenshots.save("t114_map_north_$i")
+            }
+            repeat(3) { panMap(0f, -0.6f) }
+            for (i in 1..3) {
+                panMap(-0.6f, -0.45f)
+                rule.waitForIdle()
+                Screenshots.save("t114_map_southeast_$i")
+            }
+            repeat(3) { panMap(0.6f, 0.45f) }
+            for (i in 1..2) {
+                panMap(0.6f, 0f)
+                rule.waitForIdle()
+                Screenshots.save("t114_map_west_$i")
+            }
+            repeat(2) { panMap(-0.6f, 0f) }
+            for (i in 1..2) {
+                panMap(-0.6f, 0f)
+                rule.waitForIdle()
+                Screenshots.save("t114_map_east_$i")
+            }
         }
     }
 
