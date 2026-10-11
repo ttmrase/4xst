@@ -4,6 +4,8 @@ import com.ttmrase.crownfall.core.chat.ChatEvent
 import com.ttmrase.crownfall.core.chat.ChatKeys
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.PersonaDef
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.map.StructureType
 import com.ttmrase.crownfall.core.map.TileRef
 import com.ttmrase.crownfall.core.march.Marching
@@ -119,6 +121,9 @@ object AllianceScheduler {
             s = s.copy(alliance = AllianceLogic.enqueue(a, ChatEvent.DailyGreeting, t, who, ChatKeys.ALLIANCE, data))
         }
 
+        // 段階解放（M11）: ラリーは RALLY、ワールドチャットは WORLD_CHAT の解放まで、AI も作らない
+        val rallyOpen = FeatureGate.unlocked(start, data, Feature.RALLY)
+        val worldChatOpen = FeatureGate.unlocked(start, data, Feature.WORLD_CHAT)
         data.personas.personas.forEachIndexed { i, p ->
             val idx = i.toLong()
             if (Personas.startsAt(p, t, offset) && p.id == YUKI && roll(s, minute, K_YUKI) < chances.yukiReturn) {
@@ -142,7 +147,7 @@ object AllianceScheduler {
             }
             val buy = if (p.specialty == "spender") chances.johnnyPurchase else chances.purchase
             if (chance(s, minute, K_PURCHASE + idx, buy)) s = addPurchase(s, p, t, minute, idx, data)
-            if (p.id in rules.rally.hosts && s.alliance.rallies.size < rules.caps.openRallies &&
+            if (rallyOpen && p.id in rules.rally.hosts && s.alliance.rallies.size < rules.caps.openRallies &&
                 chance(s, minute, K_RALLY + idx, chances.aiRally)
             ) {
                 s = addRally(s, p, t, minute, active, data)
@@ -157,7 +162,7 @@ object AllianceScheduler {
         if (roomForHelp && chance(s, minute, K_HELP_REQ, chances.memberHelpRequest)) {
             s = addHelpEntry(s, t, minute, active, data)
         }
-        if (chance(s, minute, K_WORLD, chances.worldAmbient)) {
+        if (worldChatOpen && chance(s, minute, K_WORLD, chances.worldAmbient)) {
             val topic = AMBIENT_TOPICS[roll(s, minute, K_PICK + K_WORLD, AMBIENT_TOPICS.size)]
             s = enqueue(s, ChatEvent.WorldAmbient(topic), t, emptyList(), ChatKeys.WORLD, data)
         }

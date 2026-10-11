@@ -15,8 +15,8 @@ android {
         applicationId = "com.ttmrase.crownfall"
         minSdk = 26
         targetSdk = 35
-        versionCode = 112
-        versionName = "1.1.2"
+        versionCode = 120
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // 端末内 LLM のネイティブライブラリで APK が大きくなるので、個人の実機（arm64）向けだけにする
         ndk {

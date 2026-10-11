@@ -136,8 +136,10 @@ object NotificationPlanner {
             add(raid, NoticeType.RAID_ARRIVAL, NoticeChannel.RAID)
         }
         if (FeatureGate.unlocked(state, data, Feature.ALLIANCE)) {
-            for (r in state.alliance.rallies) {
-                add(r.joinDeadlineEpochSec - RALLY_LEAD_SEC, NoticeType.RALLY_DEADLINE, NoticeChannel.ALLIANCE)
+            if (FeatureGate.unlocked(state, data, Feature.RALLY)) {
+                for (r in state.alliance.rallies) {
+                    add(r.joinDeadlineEpochSec - RALLY_LEAD_SEC, NoticeType.RALLY_DEADLINE, NoticeChannel.ALLIANCE)
+                }
             }
             for (q in state.alliance.requests) {
                 add(q.expiresEpochSec - REQUEST_LEAD_SEC, NoticeType.REQUEST_EXPIRING, NoticeChannel.ALLIANCE)

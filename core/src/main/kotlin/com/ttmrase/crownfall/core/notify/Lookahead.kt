@@ -3,6 +3,8 @@ package com.ttmrase.crownfall.core.notify
 import com.ttmrase.crownfall.core.chat.ChatEvent
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.event.WeeklyEvents
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.OfferFrequency
@@ -45,11 +47,14 @@ internal object Lookahead {
         NotificationPlanner.plan(state, data)
             .filter { it.type.category != NoticeCategory.RAID && it.epochSec <= limit }
             .forEach { out.add(it) }
-        offerLastCall(state, data, out, limit)
-        offerRevived(state, out, limit)
-        troopsIdle(state, out, limit)
+        // 段階解放（M11）: 未解放の機能の通知は出さない
+        if (FeatureGate.unlocked(state, data, Feature.SHOP)) {
+            offerLastCall(state, data, out, limit)
+            offerRevived(state, out, limit)
+        }
+        if (FeatureGate.unlocked(state, data, Feature.TRAINING)) troopsIdle(state, out, limit)
         simulate(state, data, now, limit, out)
-        eventNotices(state, data, limit, out)
+        if (FeatureGate.unlocked(state, data, Feature.EVENTS)) eventNotices(state, data, limit, out)
         engagement(state, data, limit, out)
         comeback(state, data, out)
         return group(out, now)
@@ -181,20 +186,25 @@ internal object Lookahead {
         val r = data.notifyRules
         val off = state.settings.utcOffsetSec
         val now = state.nowEpochSec
-        val chestMax = data.quests.chests.maxOfOrNull { it.points } ?: 0
-        if (QuestLogic.dailyPoints(state, data) < chestMax) {
+        // 出ているデイリーを全部こなせば最上段に届く（閾値は出ている項目に比例する）ので、それと比べる
+        val chestMax = QuestLogic.chestMax(state, data)
+        if (FeatureGate.unlocked(state, data, Feature.QUESTS) && QuestLogic.dailyPoints(state, data) < chestMax) {
             nextLocal(
                 now,
                 off,
                 r.dailyReminderLocalMinute,
             )?.let { if (it <= limit) out.add(note(it, NoticeType.DAILY_LEFT)) }
         }
-        nextLocal(now, off, r.loginBonusLocalMinute, skipToday = true)?.let {
-            if (it <= limit) out.add(note(it, NoticeType.LOGIN_BONUS))
+        if (FeatureGate.unlocked(state, data, Feature.SHOP)) {
+            nextLocal(now, off, r.loginBonusLocalMinute, skipToday = true)?.let {
+                if (it <= limit) out.add(note(it, NoticeType.LOGIN_BONUS))
+            }
         }
-        val usedToday = state.shop.wheelFreeDay == ShopLogic.localDay(state)
-        nextLocal(now, off, r.freeWheelLocalMinute, skipToday = usedToday)?.let {
-            if (it <= limit) out.add(note(it, NoticeType.FREE_WHEEL))
+        if (FeatureGate.unlocked(state, data, Feature.WHEEL)) {
+            val usedToday = state.shop.wheelFreeDay == ShopLogic.localDay(state)
+            nextLocal(now, off, r.freeWheelLocalMinute, skipToday = usedToday)?.let {
+                if (it <= limit) out.add(note(it, NoticeType.FREE_WHEEL))
+            }
         }
     }
 

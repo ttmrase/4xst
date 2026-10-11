@@ -863,7 +863,7 @@ object Actions {
     fun refreshOffers(
         state: GameState,
         data: GameData,
-    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.refreshOffers(state, data) }
+    ): ActionResult = gated(state, data, Feature.SHOP, mark = false) { ShopActions.refreshOffers(state, data) }
 
     /** オファー [offerId] を閉じる（期限までは棚に残る）。[byBack] は「戻る」で閉じたとき（自動ポップアップを止める）。 */
     fun dismissOffer(
@@ -877,20 +877,29 @@ object Actions {
         state: GameState,
         missing: Resources,
         data: GameData,
-    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.offerForShortage(state, missing, data) }
+    ): ActionResult =
+        gated(
+            state,
+            data,
+            Feature.SHOP,
+            mark = false,
+        ) { ShopActions.offerForShortage(state, missing, data) }
 
     /** ジェム不足のタップ。不足以上で最小の SKU を積む。 */
     fun offerForGemShortage(
         state: GameState,
         missing: Long,
         data: GameData,
-    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.offerForGemShortage(state, missing, data) }
+    ): ActionResult =
+        gated(state, data, Feature.SHOP, mark = false) {
+            ShopActions.offerForGemShortage(state, missing, data)
+        }
 
     /** 2 本目ビルダー枠のタップ。 */
     fun offerForSecondBuilder(
         state: GameState,
         data: GameData,
-    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.offerForSecondBuilder(state, data) }
+    ): ActionResult = gated(state, data, Feature.SHOP, mark = false) { ShopActions.offerForSecondBuilder(state, data) }
 
     /** イベント集計で 2〜4 位（1 位との差 [gapPt]）。 */
     fun offerForRanking(
@@ -898,13 +907,16 @@ object Actions {
         rank: Int,
         gapPt: Long,
         data: GameData,
-    ): ActionResult = gated(state, data, Feature.EVENTS) { ShopActions.offerForRanking(state, rank, gapPt, data) }
+    ): ActionResult =
+        gated(state, data, Feature.EVENTS, mark = false) {
+            ShopActions.offerForRanking(state, rank, gapPt, data)
+        }
 
     /** 退出前の「待って！」を 1 日 1 回積む。 */
     fun exitOffer(
         state: GameState,
         data: GameData,
-    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.exitOffer(state, data) }
+    ): ActionResult = gated(state, data, Feature.SHOP, mark = false) { ShopActions.exitOffer(state, data) }
 
     /** 擬似購入。[offerId] は [com.ttmrase.crownfall.core.shop.ProductIds] かカタログの SKU。実通信なし。 */
     fun fakePurchase(
@@ -923,19 +935,19 @@ object Actions {
     fun claimVipChest(
         state: GameState,
         data: GameData,
-    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.claimVipChest(state, data) }
+    ): ActionResult = claimOwned(state, data) { ShopActions.claimVipChest(state, data) }
 
     /** 月パスの今日の分を受け取る。 */
     fun claimMonthPass(
         state: GameState,
         data: GameData,
-    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.claimMonthPass(state, data) }
+    ): ActionResult = claimOwned(state, data) { ShopActions.claimMonthPass(state, data) }
 
     /** 成長ファンドの到達済みの分をまとめて受け取る。 */
     fun claimGrowthFund(
         state: GameState,
         data: GameData,
-    ): ActionResult = gated(state, data, Feature.SHOP) { ShopActions.claimGrowthFund(state, data) }
+    ): ActionResult = claimOwned(state, data) { ShopActions.claimGrowthFund(state, data) }
 
     /** ラッキーホイールを回す（無料 → 追加分 → [payGems] ならジェム）。 */
     fun spinWheel(
@@ -968,7 +980,43 @@ object Actions {
     ): ActionResult = gated(state, data, Feature.QUESTS) { QuestActions.claimDailyChest(state, tier, data) }
 
     /** ショップ画面を開いた（デイリーの進捗用）。 */
-    fun recordShopOpened(state: GameState): ActionResult = QuestActions.recordShopOpened(state)
+    fun recordShopOpened(
+        state: GameState,
+        data: GameData,
+    ): ActionResult {
+        val r = QuestActions.recordShopOpened(state) as ActionResult.Success
+        // ショップの画面を開くのは、人の意図した行動（ショップの「最初の使用」）
+        val marked =
+            if (FeatureGate.unlocked(
+                    state,
+                    data,
+                    Feature.SHOP,
+                )
+            ) {
+                FeatureGate.markUsed(r.state, Feature.SHOP)
+            } else {
+                r.state
+            }
+        return r.copy(state = marked)
+    }
+
+    /** イベント画面を開いた（イベントの「最初の使用」。解放済みのときだけ印を付ける）。 */
+    fun recordEventOpened(
+        state: GameState,
+        data: GameData,
+    ): ActionResult =
+        ActionResult.Success(
+            if (FeatureGate.unlocked(
+                    state,
+                    data,
+                    Feature.EVENTS,
+                )
+            ) {
+                FeatureGate.markUsed(state, Feature.EVENTS)
+            } else {
+                state
+            },
+        )
 
     /** 機能 [feature] の解放の演出を見せた印を付ける（解放済みのときだけ。何度呼んでも同じ）。 */
     fun markFeatureCelebrated(
@@ -1001,16 +1049,31 @@ object Actions {
 
     private fun fail(reason: ActionFailure) = ActionResult.Failure(reason)
 
-    /** 未解放なら [ActionFailure.FeatureLocked]、解放済みなら [block] を実行し、成功したら最初の使用の印を付ける。 */
+    /**
+     * 購入済みの権利（月パス・VIP チェスト・成長ファンド）の受け取り。ショップが未解放でも受け取れる（古いセーブで権利を失わない）。
+     * ショップが解放済みなら「最初の使用」の印も付ける。
+     */
+    private inline fun claimOwned(
+        state: GameState,
+        data: GameData,
+        block: () -> ActionResult,
+    ): ActionResult =
+        if (FeatureGate.unlocked(state, data, Feature.SHOP)) gated(state, data, Feature.SHOP) { block() } else block()
+
+    /**
+     * 機能 [feature] が解放済みのときだけ [block] を実行する。成功したら「最初の使用」の印を付ける（[mark] が false なら付けない）。
+     * 自動で走る処理（オファーの更新・退出オファーなど）は [mark] = false にする。印は人の意図した行動でだけ付く。
+     */
     private inline fun gated(
         state: GameState,
         data: GameData,
         feature: Feature,
+        mark: Boolean = true,
         block: () -> ActionResult,
     ): ActionResult {
         if (!FeatureGate.unlocked(state, data, feature)) return locked(data, feature)
         val r = block()
-        return if (r is ActionResult.Success) r.copy(state = FeatureGate.markUsed(r.state, feature)) else r
+        return if (mark && r is ActionResult.Success) r.copy(state = FeatureGate.markUsed(r.state, feature)) else r
     }
 
     private fun locked(

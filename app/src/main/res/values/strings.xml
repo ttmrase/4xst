@@ -1132,4 +1132,8 @@
     <string name="settings_map_auto">自動（端末の時刻）</string>
     <string name="settings_map_day">昼のまま</string>
     <string name="settings_map_night">夜のまま</string>
+    <string name="shop_claim_only_title">購入済みの特典の受け取り（ショップは城 Lv3 で解放）</string>
+    <string name="shop_claim_pass">月パスの今日の分を受け取る</string>
+    <string name="shop_claim_vip_chest">VIP チェストを受け取る</string>
+    <string name="shop_claim_fund">成長ファンドを受け取る</string>
 </resources>

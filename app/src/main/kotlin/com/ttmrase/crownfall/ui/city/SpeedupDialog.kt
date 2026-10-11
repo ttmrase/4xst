@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.session.UiQueries
@@ -186,6 +188,13 @@ fun SpeedupHost(
             is ActionResult.Success -> onSuccess()
             is ActionResult.Failure -> {
                 val reason = result.reason
+                val shopLocked = !FeatureGate.unlocked(s, data, Feature.SHOP)
+                if (reason is ActionFailure.NotEnoughGems && shopLocked) {
+                    // ショップが未解放のあいだは、ジェム不足の代わりに最初からロックの案内を出す（本当のエラーを一瞬出さない）
+                    val locked = ActionFailure.FeatureLocked(Feature.SHOP, FeatureGate.requiredLv(data, Feature.SHOP))
+                    scope.launch { snackbarHostState.showReplacing(failureMessage(context, locked)) }
+                    return
+                }
                 if (reason is ActionFailure.NotEnoughGems) hooks.onGemShortage(reason.missing)
                 scope.launch { snackbarHostState.showReplacing(failureMessage(context, reason)) }
             }

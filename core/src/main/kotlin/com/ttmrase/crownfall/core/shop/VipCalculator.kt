@@ -5,6 +5,8 @@ import com.ttmrase.crownfall.core.chat.ChatEvent
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.core.data.VipLevelDef
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.GameEvent
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.mulDiv
@@ -112,7 +114,10 @@ object VipCalculator {
         var out = s
         for (lv in before + 1..after) {
             events.add(GameEvent.VipLevelUp(lv))
-            out = AllianceLogic.enqueueReactive(out, ChatEvent.VipUp(lv), listOf("johnny", "kaede"), data)
+            // 同盟のお祝いのチャットは、同盟の解放（城 Lv4）から
+            if (FeatureGate.unlocked(out, data, Feature.ALLIANCE)) {
+                out = AllianceLogic.enqueueReactive(out, ChatEvent.VipUp(lv), listOf("johnny", "kaede"), data)
+            }
         }
         return out
     }

@@ -83,6 +83,8 @@ object PiggyBank {
         gems: Long,
         data: GameData,
     ): GameState {
+        // 貯まり始めるのは PIGGY の解放から（解放前に満杯になって、解放後に「満杯」のオファーが出ないのを防ぐ）
+        if (!FeatureGate.unlocked(state, data, Feature.PIGGY)) return state
         val cap = data.shopRules.piggy.cap
         val next = minOf(cap, state.shop.piggyGems + gems)
         return state.copy(shop = state.shop.copy(piggyGems = next))

@@ -100,6 +100,12 @@ object QuestLogic {
         return maxOf(1, (chest.points * total + top - 1) / top).coerceAtMost(total.coerceAtLeast(1))
     }
 
+    /** 宝箱の最上段の閾値（デイリーのポイントバーの最大。出ている項目の合計に合わせて縮む）。 */
+    fun chestMax(
+        state: GameState,
+        data: GameData,
+    ): Int = data.quests.chests.maxOfOrNull { chestThreshold(it, state, data) } ?: 1
+
     /** メインの現在のチャプター（最初の未受け取り）。全部受け取り済みなら null。 */
     fun currentChapter(
         state: GameState,

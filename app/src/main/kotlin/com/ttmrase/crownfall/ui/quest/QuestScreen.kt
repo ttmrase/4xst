@@ -101,7 +101,7 @@ fun QuestScreen(
     val mainBadge = QuestLogic.currentChapter(s, data)?.let { QuestLogic.chapterDone(it, s, data) } == true
     val q = QuestLogic.view(s)
     val dailyBadge =
-        data.quests.dailies.any { it.id !in q.dailyClaimed && QuestLogic.dailyProgress(it, s).done } ||
+        QuestLogic.dailies(s, data).any { it.id !in q.dailyClaimed && QuestLogic.dailyProgress(it, s).done } ||
             QuestLogic.claimableChests(s, data).isNotEmpty()
     val oneShots = QuestLogic.claimableOneShots(s, data)
     val allianceBadge = data.quests.alliance.any { it in oneShots }
@@ -196,7 +196,7 @@ private fun LazyListScope.dailyTab(
 ) {
     val q = QuestLogic.view(s)
     val points = QuestLogic.dailyPoints(s, data)
-    val max = (data.quests.chests.maxOfOrNull { it.points } ?: 1).coerceAtLeast(1)
+    val max = QuestLogic.chestMax(s, data).coerceAtLeast(1)
     item {
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp)) {
@@ -213,10 +213,13 @@ private fun LazyListScope.dailyTab(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.quest_chest, chest.points))
+                            Text(stringResource(R.string.quest_chest, QuestLogic.chestThreshold(chest, s, data)))
                             ContentsLines(chest.reward, data)
                         }
-                        Button(onClick = { onChest(chest.tier) }, enabled = !opened && points >= chest.points) {
+                        Button(
+                            onClick = { onChest(chest.tier) },
+                            enabled = !opened && points >= QuestLogic.chestThreshold(chest, s, data),
+                        ) {
                             Text(stringResource(if (opened) R.string.quest_claimed else R.string.quest_claim))
                         }
                     }
@@ -224,7 +227,7 @@ private fun LazyListScope.dailyTab(
             }
         }
     }
-    items(data.quests.dailies, key = { it.id }) { d ->
+    items(QuestLogic.dailies(s, data), key = { it.id }) { d ->
         val p = QuestLogic.dailyProgress(d, s)
         val claimed = d.id in q.dailyClaimed
         QuestRow(

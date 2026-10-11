@@ -49,6 +49,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.VipLevelDef
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.sim.Actions
@@ -166,7 +168,19 @@ fun VipCinematicHost(
     }
     // 保存の反映は 5 秒サンプリングの state より早いので、閉じた Lv はここでも覚えておく
     var dismissedLv by remember(session) { mutableIntStateOf(-1) }
-    val show = s != null && celebrated >= 0 && level > maxOf(celebrated, dismissedLv) && !hold
+    // 段階解放: ショップ（SHOP）が解放されるまでは、VIP の演出は出さずに黙って追従させる
+    val shopOpen = s != null && FeatureGate.unlocked(s, data, Feature.SHOP)
+    LaunchedEffect(s != null, shopOpen, level, celebrated) {
+        if (s != null && !shopOpen && celebrated in 0 until level) {
+            session.dispatch {
+                Actions.markVipCelebrated(
+                    it,
+                    level,
+                )
+            }
+        }
+    }
+    val show = s != null && shopOpen && celebrated >= 0 && level > maxOf(celebrated, dismissedLv) && !hold
     LaunchedEffect(show) { onActive(show) }
     // 画面から外れたときに「表示中」を残さない（オファーが止まったままにならない）
     DisposableEffect(Unit) { onDispose { onActive(false) } }

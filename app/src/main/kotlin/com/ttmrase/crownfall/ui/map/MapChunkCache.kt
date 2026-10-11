@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
  * ワールドマップの地面を 8×8 タイルのチャンクごとにビットマップへ焼いて貯める（M11 T11.4）。
  * ズームが近いとき（[hi]）は 1 タイル 32px・飾りあり、遠いときは 12px・飾りなし（LOD）。
  * 焼くのはバックグラウンド。まだ無いチャンクは null を返し、焼けたら [version] を進めて再描画させる。
- * 容量は [maxBytes]（アクセス順の LRU。既定 12MB。スプライトの 56MB とは別に、マップ画面を開いている間だけ使う）。
+ * 容量は [maxBytes]（アクセス順の LRU。既定 20MB。スプライトの 56MB とは別に、マップ画面を開いている間だけ使う）。
  */
 internal class MapChunkCache(
     private val world: WorldMap,
@@ -100,10 +100,10 @@ internal class MapChunkCache(
         const val LO_PX = 12
         private const val BYTES_PER_PIXEL = 4L
         private const val KEY_X_SHIFT = 33
-        const val DEFAULT_MAX_BYTES = 12L * 1024 * 1024
+        const val DEFAULT_MAX_BYTES = 20L * 1024 * 1024
 
         /** 画面上の 1 タイルがこれ以上（px）なら hi を使う。 */
-        const val HI_MIN_TILE_PX = 24f
+        const val HI_MIN_TILE_PX = 32f
 
         fun newScope(): CoroutineScope = CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Default)
     }

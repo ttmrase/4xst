@@ -101,7 +101,7 @@ fun ShopScreen(
     LaunchedEffect(recorded) {
         if (!recorded) {
             recorded = true
-            session.dispatch { Actions.recordShopOpened(it) }
+            session.dispatch { Actions.recordShopOpened(it, data) }
         }
     }
 

@@ -14,6 +14,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -26,6 +27,7 @@ import com.ttmrase.crownfall.core.data.EventDef
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.event.WeeklyEvents
 import com.ttmrase.crownfall.core.session.GameSession
+import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.collectCalmState
@@ -55,6 +57,8 @@ fun EventScreen(
     data: GameData,
 ) {
     val state by session.collectCalmState()
+    // 画面を開いた = イベントの「最初の使用」（解放済みのときだけ印が付く）
+    LaunchedEffect(Unit) { session.dispatch { Actions.recordEventOpened(it, data) } }
     val s = state ?: return
     val def = WeeklyEvents.current(s, data)
     val end = WeeklyEvents.endEpochSec(s)

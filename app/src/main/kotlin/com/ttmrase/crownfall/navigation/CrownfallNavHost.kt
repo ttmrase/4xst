@@ -81,6 +81,8 @@ import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.event.EventScreen
 import com.ttmrase.crownfall.ui.eventMessage
 import com.ttmrase.crownfall.ui.feature.FeatureOverlays
+import com.ttmrase.crownfall.ui.feature.LocalCastleLevel
+import com.ttmrase.crownfall.ui.feature.LocalCastleUpgrade
 import com.ttmrase.crownfall.ui.feature.LockedFeatureDialog
 import com.ttmrase.crownfall.ui.feature.LockedScreenBody
 import com.ttmrase.crownfall.ui.heroes.HeroesScreen
@@ -97,6 +99,7 @@ import com.ttmrase.crownfall.ui.screens.StubScreen
 import com.ttmrase.crownfall.ui.settings.SettingsScreen
 import com.ttmrase.crownfall.ui.shop.FakeBillingSheet
 import com.ttmrase.crownfall.ui.shop.OfferPresenter
+import com.ttmrase.crownfall.ui.shop.ShopClaimOnly
 import com.ttmrase.crownfall.ui.shop.ShopScreen
 import com.ttmrase.crownfall.ui.title.TitleScreen
 import com.ttmrase.crownfall.ui.vip.VipCinematicHost
@@ -176,17 +179,20 @@ fun CrownfallNavHost(
     val clock = readySession?.collectClock()
 
     // 段階解放: 城 Lv と、タップで開くロックのダイアログ、城のアップグレードを開く要求
+    // null は「まだ読み込み中」（0 と区別する。コールドスタートの直後に一瞬ロック画面が出ないように）
     val castleFlow =
         remember(readySession) {
-            readySession?.state?.map { s -> s?.let { FeatureGate.castleLevel(it) } ?: 0 }?.distinctUntilChanged()
-                ?: flowOf(0)
+            readySession?.state?.map { s -> s?.let { FeatureGate.castleLevel(it) } }?.distinctUntilChanged()
+                ?: flowOf(null)
         }
-    val castleLv by castleFlow.collectAsStateWithLifecycle(0)
+    val castleLvOrNull by castleFlow.collectAsStateWithLifecycle(null)
+    val castleLv = castleLvOrNull ?: 0
     var lockedFeature by remember { mutableStateOf<Feature?>(null) }
-    var castleRequest by remember { mutableIntStateOf(0) }
+    var castleRequest by rememberSaveable { mutableIntStateOf(0) }
 
     fun isLocked(feature: Feature?): Boolean =
-        feature != null && ready != null && !FeatureGate.unlockedAt(ready.data, castleLv, feature)
+        feature != null && ready != null && castleLvOrNull != null &&
+            !FeatureGate.unlockedAt(ready.data, castleLv, feature)
     val upgradeCastle = {
         castleRequest++
         navController.navigateBottom(BottomDestination.City)
@@ -265,7 +271,12 @@ fun CrownfallNavHost(
 
     val flyState = remember { RewardFlyState() }
     BgmHost(destination?.route, ready?.session)
-    CompositionLocalProvider(LocalClock provides clock, LocalRewardFly provides flyState) {
+    CompositionLocalProvider(
+        LocalClock provides clock,
+        LocalRewardFly provides flyState,
+        LocalCastleUpgrade provides upgradeCastle,
+        LocalCastleLevel provides castleLv,
+    ) {
         var rootOrigin by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
         Box(
             Modifier
@@ -371,7 +382,7 @@ fun CrownfallNavHost(
                                     },
                                 ),
                         ) { entry ->
-                            Guard(Screen.Barracks, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                            Guard(Screen.Barracks, startup as? Startup.Ready, castleLvOrNull, upgradeCastle) { ready ->
                                 BarracksScreen(
                                     ready.session,
                                     ready.data,
@@ -382,12 +393,12 @@ fun CrownfallNavHost(
                             }
                         }
                         composable(Screen.Research.route) {
-                            Guard(Screen.Research, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                            Guard(Screen.Research, startup as? Startup.Ready, castleLvOrNull, upgradeCastle) { ready ->
                                 ResearchScreen(ready.session, ready.data, hooks, snackbarHostState)
                             }
                         }
                         composable(Screen.Heroes.route) {
-                            Guard(Screen.Heroes, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                            Guard(Screen.Heroes, startup as? Startup.Ready, castleLvOrNull, upgradeCastle) { ready ->
                                 HeroesScreen(
                                     ready.session,
                                     ready.data,
@@ -396,12 +407,12 @@ fun CrownfallNavHost(
                             }
                         }
                         composable(Screen.Summon.route) {
-                            Guard(Screen.Summon, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                            Guard(Screen.Summon, startup as? Startup.Ready, castleLvOrNull, upgradeCastle) { ready ->
                                 SummonScreen(ready.session, ready.data, hooks, snackbarHostState)
                             }
                         }
                         composable(Screen.WorldMap.route) {
-                            Guard(Screen.WorldMap, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                            Guard(Screen.WorldMap, startup as? Startup.Ready, castleLvOrNull, upgradeCastle) { ready ->
                                 MapScreen(
                                     ready.session,
                                     ready.data,
@@ -414,14 +425,14 @@ fun CrownfallNavHost(
                             if (ready != null) MailScreen(ready.session, ready.data)
                         }
                         composable(Screen.Alliance.route) {
-                            Guard(Screen.Alliance, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                            Guard(Screen.Alliance, startup as? Startup.Ready, castleLvOrNull, upgradeCastle) { ready ->
                                 AllianceScreen(ready.session, ready.data, snackbarHostState) {
                                     navController.navigate(Screen.Chat.route)
                                 }
                             }
                         }
                         composable(Screen.Chat.route) {
-                            Guard(Screen.Chat, startup as? Startup.Ready, castleLv, upgradeCastle) { ready ->
+                            Guard(Screen.Chat, startup as? Startup.Ready, castleLvOrNull, upgradeCastle) { ready ->
                                 ChatScreen(
                                     ready.session,
                                     ready.data,
@@ -432,17 +443,17 @@ fun CrownfallNavHost(
                             }
                         }
                         composable(Screen.Shop.route) {
-                            Guard(Screen.Shop, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
+                            Guard(Screen.Shop, startup as? Startup.Ready, castleLvOrNull, upgradeCastle) { r ->
                                 ShopScreen(r.session, r.data, snackbarHostState) { billingId = it }
                             }
                         }
                         composable(Screen.Quests.route) {
-                            Guard(Screen.Quests, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
+                            Guard(Screen.Quests, startup as? Startup.Ready, castleLvOrNull, upgradeCastle) { r ->
                                 QuestScreen(r.session, r.data, snackbarHostState)
                             }
                         }
                         composable(Screen.Event.route) {
-                            Guard(Screen.Event, startup as? Startup.Ready, castleLv, upgradeCastle) { r ->
+                            Guard(Screen.Event, startup as? Startup.Ready, castleLvOrNull, upgradeCastle) { r ->
                                 EventScreen(r.session, r.data)
                             }
                         }
@@ -554,14 +565,18 @@ fun CrownfallNavHost(
 private fun Guard(
     screen: Screen,
     ready: Startup.Ready?,
-    castleLv: Int,
+    castleLv: Int?,
     onUpgrade: () -> Unit,
     content: @Composable (Startup.Ready) -> Unit,
 ) {
-    if (ready == null) return
+    if (ready == null || castleLv == null) return
     val feature = screen.requiredFeature()
     if (feature != null && !FeatureGate.unlockedAt(ready.data, castleLv, feature)) {
-        LockedScreenBody(feature, ready.data, castleLv, onUpgrade, Modifier.fillMaxSize())
+        Column(Modifier.fillMaxSize()) {
+            LockedScreenBody(feature, ready.data, castleLv, onUpgrade, Modifier.weight(1f).fillMaxWidth())
+            // 古いセーブで買ってある権利（月パス・VIP チェスト・成長ファンド）は、ショップが未解放でも受け取れる
+            if (screen == Screen.Shop) ShopClaimOnly(ready.session, ready.data)
+        }
     } else {
         content(ready)
     }

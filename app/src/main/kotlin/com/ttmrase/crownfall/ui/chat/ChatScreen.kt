@@ -43,6 +43,8 @@ import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.chat.ChatKeys
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.SkinCategory
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.ChatMessage
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.VipCalculator
@@ -55,6 +57,7 @@ import com.ttmrase.crownfall.ui.channelName
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.feature.LockedFeatureCard
 import com.ttmrase.crownfall.ui.portrait.PortraitKeys
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.shop.skinThemeColor
@@ -94,6 +97,10 @@ fun ChatScreen(
     val channels = listOf(ChatKeys.ALLIANCE, ChatKeys.WORLD) + data.personas.personas.map { ChatKeys.dm(it.id) }
     val messages = s.alliance.history[channel].orEmpty()
     val writable = channel != ChatKeys.WORLD
+    // 段階解放: ワールドと DM のタブは WORLD_CHAT（城 Lv8）の解放まで鍵
+    val worldChatOpen = FeatureGate.unlocked(s, data, Feature.WORLD_CHAT)
+
+    fun locked(ch: String) = ch != ChatKeys.ALLIANCE && !worldChatOpen
     val timeFormat = remember { DateFormat.getTimeInstance(DateFormat.SHORT) }
     val unreadByChannel =
         remember(s.alliance.history, s.alliance.chatRead) {
@@ -134,7 +141,7 @@ fun ChatScreen(
                     onClick = { channel = ch },
                     text = {
                         BadgedBox(badge = { if (unread > 0) Badge { Text(unread.toString()) } }) {
-                            Text(channelName(context, ch))
+                            Text((if (locked(ch)) "🔒 " else "") + channelName(context, ch))
                         }
                     },
                 )
@@ -152,6 +159,10 @@ fun ChatScreen(
                 PortraitView(id, n, 44.dp, vip = def?.vipLv ?: 0)
                 Text(n, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             }
+        }
+        if (locked(channel)) {
+            LockedFeatureCard(Feature.WORLD_CHAT, data)
+            return@Column
         }
         LazyColumn(
             state = listState,

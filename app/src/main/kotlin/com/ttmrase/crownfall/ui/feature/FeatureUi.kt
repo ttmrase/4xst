@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -258,7 +259,13 @@ fun FirstUseRewardCard(
     }
 }
 
-/** 解放前の機能（ショップのピギーバンクなど）の場所に出す、鍵つきの小さなカード。 */
+/** 城のアップグレードを開く（NavHost が提供する）。ロックの札が「城をアップグレード」で呼ぶ。 */
+val LocalCastleUpgrade = staticCompositionLocalOf<() -> Unit> { {} }
+
+/** いまの城 Lv（NavHost が提供する。読み込み前は 0）。 */
+val LocalCastleLevel = staticCompositionLocalOf { 0 }
+
+/** 解放前の機能（ショップのピギーバンクなど）の場所に出す、鍵つきの小さなカード。タップで「あと n Lv」と城のアップグレード。 */
 @Composable
 fun LockedFeatureCard(
     feature: Feature,
@@ -266,12 +273,27 @@ fun LockedFeatureCard(
     modifier: Modifier = Modifier,
 ) {
     val need = FeatureGate.requiredLv(data, feature)
+    var open by remember { mutableStateOf(false) }
+    val upgrade = LocalCastleUpgrade.current
+    if (open) {
+        LockedFeatureDialog(
+            feature = feature,
+            data = data,
+            castleLv = LocalCastleLevel.current,
+            onUpgrade = {
+                open = false
+                upgrade()
+            },
+            onDismiss = { open = false },
+        )
+    }
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 6.dp)
                 .alpha(LOCKED_CARD_ALPHA)
+                .clickable { open = true }
                 .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
                 .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,

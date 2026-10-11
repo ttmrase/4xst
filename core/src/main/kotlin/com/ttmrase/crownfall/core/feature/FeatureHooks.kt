@@ -1,6 +1,7 @@
 package com.ttmrase.crownfall.core.feature
 
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.model.EventState
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.satAdd
 import com.ttmrase.crownfall.core.shop.OfferEngine
@@ -15,6 +16,8 @@ internal object FeatureHooks {
         when (feature) {
             Feature.SHOP -> OfferEngine.onShopUnlocked(state, data)
             Feature.RAIDS -> scheduleFirstRaid(state, data)
+            // 旧セーブの古い週の集計を、解放の時点で捨てる（順位の報酬やメールを出さず、新しい週から始める）
+            Feature.EVENTS -> state.copy(event = EventState())
             else -> state
         }
 

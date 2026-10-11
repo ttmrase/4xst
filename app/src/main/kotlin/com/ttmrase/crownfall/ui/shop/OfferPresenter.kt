@@ -41,6 +41,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.core.feature.FeatureGate
 import com.ttmrase.crownfall.core.model.Offer
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.OfferEngine
@@ -93,13 +95,24 @@ fun OfferPresenter(
 
     // 閉じた直後（間隔内）や「戻る」で止めたあとは自動では出さない。棚とバッジには残る
     val offer = OfferEngine.nextPopup(s, data)
+    // ギフトの段は、同盟が解放済みで、開けるギフトがあるときだけ（未解放だと openGift が断って無反応になる）
+    val giftOpen = s.alliance.gifts.isNotEmpty() && FeatureGate.unlocked(s, data, Feature.ALLIANCE)
     val stopped = s.shop.popupsStopped
     // 閉じた直後に残りが無くなったら、ログインの連鎖の続きや退出の確認へ進める
     LaunchedEffect(offer == null, chain, busy, stopped) {
         if (offer == null && !busy) {
             if (chain && step == STEP_NONE) {
                 // 「戻る」で閉じたあとは、ログインの連鎖ごと終える
-                if (stopped) coordinator.consumeLoginChain() else step = STEP_ANNOUNCE
+                if (stopped) {
+                    coordinator.consumeLoginChain()
+                } else if (FeatureGate.unlocked(s, data, Feature.EVENTS)) {
+                    step = STEP_ANNOUNCE
+                } else if (giftOpen) {
+                    // イベントの告知は EVENTS の解放後だけ。ギフトの段だけ出す
+                    step = STEP_GIFT
+                } else {
+                    coordinator.consumeLoginChain()
+                }
             }
             onIdle()
         }
@@ -128,7 +141,7 @@ fun OfferPresenter(
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                if (s.alliance.gifts.isNotEmpty()) {
+                                if (giftOpen) {
                                     step = STEP_GIFT
                                 } else {
                                     step = STEP_NONE

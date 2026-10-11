@@ -219,6 +219,13 @@ object FakePurchase {
         s = VipCalculator.addPoints(s, p.priceYen / data.shopRules.yenPerVipPoint, data, events)
         s = OfferEngine.onVipChanged(s, data)
         s = OfferEngine.afterPurchase(s, p.sku, data)
+        // ピギーを割った・ホイールの追加を買ったのは、それぞれの機能の「最初の使用」
+        s =
+            when (p.kind) {
+                Kind.PIGGY -> FeatureGate.markUsed(s, Feature.PIGGY)
+                Kind.WHEEL_EXTRA -> FeatureGate.markUsed(s, Feature.WHEEL)
+                else -> s
+            }
         return ActionResult.Success(s, events)
     }
 
