@@ -1,0 +1,18 @@
+run: 50
+commit: a7c119edda7066407a8cf4279d1a31686936e5d7
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38111197087
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+e: app/src/androidTest/kotlin/com/ttmrase/crownfall/ui/BackPressInstrumentedTest.kt:18:40 Cannot access 'object ShopHooks : Any': it is internal in file.
+e: app/src/androidTest/kotlin/com/ttmrase/crownfall/ui/BackPressInstrumentedTest.kt:81:38 Cannot access 'object ShopHooks : Any': it is internal in file.
+e: app/src/androidTest/kotlin/com/ttmrase/crownfall/ui/BackPressInstrumentedTest.kt:81:48 Cannot access 'object ShopHooks : Any': it is internal in file.
+--- failed tests ---
+> Task :app:compileDebugAndroidTestKotlin FAILED
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
