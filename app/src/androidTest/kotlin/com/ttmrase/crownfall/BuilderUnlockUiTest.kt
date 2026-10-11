@@ -53,7 +53,9 @@ class BuilderUnlockUiTest {
             }
             Screenshots.save("builder_pack")
             if (!h.hasText(h.str(R.string.billing_title))) {
-                rule.onAllNodesWithText("¥", substring = true)[0].performClick()
+                // カードには定価・割引後の価格・「価値 ¥…」も出るので、押すのは最後の「¥」（購入ボタン）
+                val prices = rule.onAllNodesWithText("¥", substring = true)
+                prices[prices.fetchSemanticsNodes().size - 1].performClick()
                 h.waitText(h.str(R.string.billing_title), timeoutMs = 20_000)
             }
             Screenshots.save("builder_billing")
