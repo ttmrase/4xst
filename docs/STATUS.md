@@ -1,12 +1,13 @@
 # STATUS（Director が更新）
 
-- 現在のマイルストーン: **M11 段階解放・ポートレート・獲得演出・音と BGM・マップとスキン**（T11.1 から）。1.1.1 / 1.1.2 は ✅ 完了（1.1.2 として配布）。M0〜M10 と 1.0.1 ホットフィックスは ✅ 完了
+- 現在のマイルストーン: なし（M11 まで ✅ 完了。1.2.0 の実機スモークと、ユーザーの次の要望待ち）。M0〜M10 と 1.0.1 ホットフィックスは ✅ 完了
 - 統合ブランチ: `claude/4x-strategy-game-planning-oxo80w`
-- 最終更新: 2026-10-11 Director（M11 T11.1〜T11.5 了承、T11.6 へ）
+- 最終更新: 2026-10-11 Director（M11 完了、1.2.0）
 
 ## 完了
 | マイルストーン | 完了 | 根拠 |
 | --- | --- | --- |
+| M11 段階解放・ポートレート・獲得演出・音と BGM・マップとスキン（1.2.0） | 2026-10-11 | 89a6811〜a9078c8、android run 238（38130763060）と ui run 116（androidTest 34 本、画像 129 枚）が緑、release APK 33.7MB（1.1.0 から +0.2MB）、:core 560 テスト、セーブ互換（QaFeatureCompatTest）、Debugger QA-OK、Director Approve |
 | 1.1.1 + 1.1.2 ホットフィックス（兵種アイコン、タップした購入が必ず開く、端末内 LLM のプロンプト） | 2026-10-11 | 1.1.1: fffebb6〜4aa294f、1.1.2: a32e452 / e041cb9 / ba24de1 / b53a3c3。android run 179（38114047946）と ui run 57 が緑。Director Approve。1.1.2 として配布 |
 | M10 見た目と演出（1.1.0） | 2026-10-10 | d31c18a〜6f5c1cf、android run 164（38080642934）と ui run 42 が緑（androidTest 14 本、ui は required 化）、画像は qa-screenshots runs/42-6f5c1cf の 45 枚、release APK 33.5MB（1.0.1 から +1MB）、Debugger QA-OK、Director Approve |
 | 1.0.1 ホットフィックス（S1 × 2: ポップアップから戻れない、城内へ戻れない） | 2026-10-10 | e85e283 / d2b41e4 + レビュー修正 ac75fb4（退出待ちでも戻るが効く）、HEAD 4986231 で CI run 111（38061992582）が緑（jvm / apk。APK は debug 36.5MB / release 32.5MB で M9 と同等）、Debugger QA-OK（QaPopupTest 4、NavActionsTest 9、BackPressTest 4。Robolectric を導入）、Director Approve |
@@ -27,11 +28,10 @@
 | README の細部修正（台帳の項目、頻度の表記、LAN の許可範囲）、Gemini モデルのヒント文言 | Implementer | ✅ 完了 | 403b52a |
 | 実機でのスモークチェック | ユーザー | ✅ 実施済み（S1 × 2 と見た目への不満） | - |
 | M10 T10.1〜T10.8 と QA（ui ワークフロー、qa-screenshots、SMOKE 第 12 章） | Implementer / Debugger | ✅ 完了 | d31c18a〜6f5c1cf |
-| M11 T11.1〜T11.5（段階解放・ポートレート・獲得アニメとバブル・音と BGM と達成感・マップとスキン） | Implementer | ✅ 修正済み・了承（REVIEW の M1〜M8 と未対応の片付け、マップのスプライト化、解放の演出の統一。ui run 107 が 33/33）。マップの最終確認（城の重なり・地面の格子・NPC の城の段階・雪原と砂漠と川の画像）は T11.6 の画像で | 89a6811〜799ca1f |
-| M11 T11.6 仕上げ（性能・サイズ・SMOKE 第 13 章・1.2.0） | Implementer / Debugger | 発行済み | - |
 
-| M11 の QA（撮影の対象、1.1.x のセーブ互換、androidTest、SMOKE 第 13 章）と 1.1.1 の残りの androidTest | Debugger | 発行済み | - |
-| 1.1.2 の実機確認（テスト発話の生成時間とバックエンド、返事の質） | ユーザー | 依頼済み（Planner 経由） | - |
+| M11 T11.1〜T11.6 と QA | Implementer / Debugger | ✅ 完了 | 89a6811〜a9078c8 |
+| 1.2.0 の実機スモーク（SMOKE 第 13 章: BGM・音声フォーカス・マップの滑らかさ）と、1.1.2 の端末内 LLM のテスト発話 | ユーザー | 依頼予定（Planner 経由） | - |
+| マップの木の群れの周りのブロック感（任意の磨き込み） | Implementer | 保留（次の要望に合わせて判断） | - |
 | 1.1.0 の実機スモーク | ユーザー | ✅ 実施（BUG 2 件と M11 の要望） | - |
 | 1.0.1 ホットフィックスと回帰テスト | Implementer / Debugger | ✅ 完了 | e85e283〜4986231 |
 | T9.1・T9.2a・T9.2b + 修正 | Implementer | ✅ 完了 | 6857b81〜7d5ed68, ec6bcc3 |
