@@ -41,6 +41,8 @@ class AppHarness(private val rule: ComposeTestRule) {
         // チュートリアル完了のシードで通知権限のシステムダイアログが出て、以降のテストがフォーカスを失うのを防ぐ
         NotificationPrefs(context).permissionAsked = true
         runBlocking { DebugStateSeeder.seed(app.container, preset) }
+        // 決済の「エラー: もう一度お試しください」演出は 2% で乱数で出る（設計どおり）。テストが不安定にならないよう切る
+        update { s -> s.copy(shop = s.shop.copy(settings = s.shop.settings.copy(errorAnimation = false))) }
     }
 
     fun hasText(
