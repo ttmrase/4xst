@@ -67,6 +67,14 @@ class AppHarness(private val rule: ComposeTestRule) {
         rule.waitUntil(timeoutMs) { hasText(text, substring) }
     }
 
+    /** 下部ナビの項目を押す（同じ文言が画面の上の方に出る画面もあるので、最後の 1 つ = 下端のナビを押す）。 */
+    fun tapNav(label: String) {
+        waitText(label)
+        val nodes = rule.onAllNodesWithText(label)
+        nodes[nodes.fetchSemanticsNodes().size - 1].performClick()
+        rule.waitForIdle()
+    }
+
     fun click(
         text: String,
         substring: Boolean = false,
