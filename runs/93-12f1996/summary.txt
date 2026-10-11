@@ -1,0 +1,16 @@
+run: 93
+commit: 12f19961fb1aeeb718cf1b23d2cc4c942aaf5c12
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/38124202155
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+e: app/src/androidTest/kotlin/com/ttmrase/crownfall/SkinMapUiTest.kt:61:70 Argument type mismatch: actual type is 'Boolean', but 'SemanticsMatcher' was expected.
+--- failed tests ---
+> Task :app:compileDebugAndroidTestKotlin FAILED
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
