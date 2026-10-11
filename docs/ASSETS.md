@@ -17,7 +17,11 @@ Crownfall の画像・フォント・効果音の出所とライセンスを記�
 | tools/artgen/iso.py | （共通ライブラリ） | アイソメトリックの図形・色・VectorDrawable の書き出し |
 | tools/artgen/gen_buildings.py | app/src/main/res/drawable/bld_<type>_t<1..5>.xml（18 種 × 5 = 90） | 建物。段階ごとに屋根・旗・塔・装飾・材質（木 → 石 → 大理石 + 金）が増える |
 | tools/artgen/gen_decor.py | res/drawable/deco_*.xml（38）、ui/territory/SpriteIds.kt（生成） | 木・岩・家・街灯・井戸・噴水・看板・城壁 / 塔 / 門 × 5 段階・工事現場 |
-| tools/artgen/preview.py | （開発用。Pillow があるときだけ。成果物ではない） | 見本の PNG（Director のレビューに使用） |
+| tools/artgen/gen_buildings.py（M11） | res/drawable/bld_castle_{ice,gold,sakura,dragon}_t1..5.xml | 城のスキン 4 種 × 5 段階（専用の装飾つき） |
+| tools/artgen/gen_decor.py（M11） | res/drawable/deco_tent.xml、deco_temple.xml | ワールドマップの野営地と聖地 |
+| tools/artgen/gen_portraits.py（M11） | res/drawable/pt_<id>.xml、pt_gen_<m|f|n>_<nn>.xml、アバター 12（計 54 枚） | 英雄・ペルソナ・同盟のメンバー・プレイヤーのポートレート（パーツ合成） |
+| （:app の手続き生成、M11） | 実行時に描画（MapArt / MapChunkCache） | ワールドマップのバイオーム・道・霧・雲（seed から決定論） |
+| tools/artgen/preview.py | （開発用。Pillow があるときだけ。成果物ではない） | 見本の PNG（建物・装飾・ポートレート・城のスキン。Director のレビューに使用） |
 
 ## フォント
 - Compose の Downloadable Fonts（`androidx.compose.ui:ui-text-google-fonts`、Google Fonts のプロバイダ）を使う。ライセンスは SIL Open Font License 1.1（OFL）。
