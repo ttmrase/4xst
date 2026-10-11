@@ -41,6 +41,11 @@ class FeatureUnlockUiTest {
         hasText(str(R.string.feature_unlock_title)) ||
             hasText(str(R.string.castle_up_title).substringBefore("%1"), true)
 
+    /** 演出を閉じたあと、機能のアイコンがタブへ飛び終えてから「祝済み」になる（約 1 秒）。 */
+    private fun AppHarness.waitCelebrated(vararg features: Feature) {
+        rule.waitUntil(15_000) { features.all { it.id in state().features.celebrated } }
+    }
+
     private fun AppHarness.waitUnlockCeremony() {
         rule.waitUntil(60_000) { ceremonyShown() }
     }
@@ -84,25 +89,21 @@ class FeatureUnlockUiTest {
         h.launchToCity(keepOfferPopup = true)
         h.step("unlock_lv3") {
             h.waitUnlockCeremony()
-            var shots = 0
-            // 解放の演出は 1 つずつ（クエスト → ショップ）。OK で次へ。途中（アイコンが飛ぶ間）も撮る
-            while (h.ceremonyShown() && shots < 4) {
-                // 解放の演出の最中は、オファーのポップアップ（閉じるボタン）が出ない
-                assertTrue(
-                    "no offer popup while the unlock ceremony is shown",
-                    !h.hasDescription(h.str(R.string.common_close)),
-                )
-                Screenshots.save("feat_unlock_lv3_${shots + 1}")
-                h.click(h.str(R.string.feature_unlock_ok))
-                Thread.sleep(250)
-                Screenshots.save("feat_unlock_lv3_flight_${shots + 1}")
-                rule.waitForIdle()
-                Thread.sleep(1_200)
-                shots++
-            }
-            assertTrue("the ceremony must run for the unlocked features", shots >= 1)
-            val celebrated = h.state().features.celebrated
-            assertTrue(Feature.QUESTS.id in celebrated && Feature.SHOP.id in celebrated)
+            // 城の昇格の演出 1 枚に解放の行が入る。別の「新機能解放！」の全画面は出ない。オファーのポップアップも重ならない
+            assertTrue("no separate unlock screen", !h.hasText(h.str(R.string.feature_unlock_title)))
+            assertTrue(
+                "no offer popup while the ceremony is shown",
+                !h.hasDescription(h.str(R.string.common_close)),
+            )
+            Screenshots.save("feat_unlock_lv3_1")
+            Espresso.pressBack()
+            rule.waitForIdle()
+            // 閉じると、解放された機能のアイコンが下部ナビのタブへ飛ぶ（飛行中を撮る）
+            Thread.sleep(350)
+            Screenshots.save("feat_unlock_lv3_flight")
+            assertTrue("back closes the ceremony at once", !h.ceremonyShown())
+            h.waitCelebrated(Feature.QUESTS, Feature.SHOP)
+            assertTrue("no separate unlock screen after it either", !h.hasText(h.str(R.string.feature_unlock_title)))
             Screenshots.save("feat_after_ceremony")
         }
         h.step("first_use_reward") {
@@ -151,19 +152,13 @@ class FeatureUnlockUiTest {
         h.step("unlock_lv4") {
             h.waitUnlockCeremony()
             Screenshots.save("feat_unlock_lv4_alliance")
-            // 戻るで演出を飛ばす。演出が 2 段（城 Lv の演出 → 機能の解放）の場合は、戻るを重ねる回数を数えて報告する
-            var backs = 0
-            while (h.ceremonyShown() && backs < 3) {
-                Espresso.pressBack()
-                rule.waitForIdle()
-                Thread.sleep(500)
-                backs++
-                Screenshots.save("feat_unlock_lv4_after_back_$backs")
-            }
-            assertTrue("back must close the ceremony (backs=$backs)", !h.ceremonyShown())
-            // Lv4 は「城 Lv4 達成！」→「新機能の解放: 同盟」の 2 段で、戻るが 2 回要る（run 98）。3 回以上は不具合
-            assertTrue("the ceremony needs too many backs (backs=$backs)", backs <= 2)
-            assertTrue(Feature.ALLIANCE.id in h.state().features.celebrated)
+            // 戻る 1 回で演出（解放の行を含む 1 枚）を閉じる。別の「新機能解放！」は出ない
+            Espresso.pressBack()
+            rule.waitForIdle()
+            Thread.sleep(500)
+            Screenshots.save("feat_unlock_lv4_after_back_1")
+            assertTrue("one back must close the ceremony", !h.ceremonyShown())
+            h.waitCelebrated(Feature.ALLIANCE)
             Screenshots.save("feat_after_skip")
             // 同盟のタブはもう鍵ではなく、開ける
             h.tapNav(h.str(R.string.nav_alliance))
