@@ -15,10 +15,13 @@ import com.ttmrase.crownfall.core.chat.PersonaBrief
  */
 object StandardPrompt {
     const val MAX_SYSTEM_CHARS = 700
+
+    /** 英語は同じ内容でも文字数が増えるので、少し広げる（トークン数は日本語より少ない）。 */
+    const val MAX_SYSTEM_CHARS_EN = 800
     const val MIN_SYSTEM_CHARS = 400
     const val MAX_HISTORY = 10
     const val MIN_HISTORY = 3
-    const val USER_BUDGET_CHARS = 1_100
+    const val USER_BUDGET_CHARS = 650
     const val MAX_SPEAKERS = 3
     private const val MAX_EXAMPLES = 5
     private const val SITUATION_SENTENCES = 3
@@ -32,9 +35,8 @@ object StandardPrompt {
         val ja = request.locale != "en"
         val brief = briefOf(request, speaker)
         val system =
-            fit {
-                    level ->
-                if (ja) systemJa(request, listOf(brief), false, level) else systemEn(listOf(brief), false)
+            fit(ja) { level ->
+                if (ja) systemJa(request, listOf(brief), false, level) else systemEn(listOf(brief), false, level)
             }
         return SmallModelPrompt.Built(system, user(request, listOf(brief), ja, spoken, false))
     }
@@ -46,7 +48,8 @@ object StandardPrompt {
     ): SmallModelPrompt.Built {
         val ja = request.locale != "en"
         val briefs = speakers.take(MAX_SPEAKERS).map { briefOf(request, it) }
-        val system = fit { level -> if (ja) systemJa(request, briefs, true, level) else systemEn(briefs, true) }
+        val system =
+            fit(ja) { level -> if (ja) systemJa(request, briefs, true, level) else systemEn(briefs, true, level) }
         return SmallModelPrompt.Built(system, user(request, briefs, ja, emptyList(), true))
     }
 
@@ -63,14 +66,21 @@ object StandardPrompt {
         request.personas.firstOrNull { it.id == speaker }
             ?: PersonaBrief(speaker, request.names[speaker] ?: DEFAULT_NAME, "", "", emptyList())
 
-    /** 詳細度を下げながら（例文 → 性格 → 口調）、[MAX_SYSTEM_CHARS] 以内に収まる最初の文を返す。 */
-    private inline fun fit(render: (Int) -> String): String {
+    /**
+     * 詳細度を下げながら（例文 → 性格 → 口調・役職）、上限に収まる最初の文を返す。削るのは人物の部分だけで、
+     * 出力の指示は各 render が必ず最後に付ける。収まらなくても途中で切らない（出力の指示が欠けるため）。
+     */
+    private inline fun fit(
+        ja: Boolean,
+        render: (Int) -> String,
+    ): String {
+        val limit = if (ja) MAX_SYSTEM_CHARS else MAX_SYSTEM_CHARS_EN
         var last = ""
         for (level in 0..MAX_LEVEL) {
             last = render(level)
-            if (last.length <= MAX_SYSTEM_CHARS) return last
+            if (last.length <= limit) return last
         }
-        return last.take(MAX_SYSTEM_CHARS)
+        return last
     }
 
     private fun examplesFor(
@@ -142,12 +152,16 @@ object StandardPrompt {
     private fun systemEn(
         briefs: List<PersonaBrief>,
         multi: Boolean,
+        level: Int,
     ): String {
         val lead = briefs.first()
         val b = StringBuilder()
         if (multi) {
             b.appendLine("You write a conversation in the alliance chat of the mobile strategy game \"Crownfall\".")
-            b.appendLine("Characters: " + briefs.joinToString(", ") { "\"${it.displayName}\"" } + ".")
+            b.appendLine("Characters:")
+            for (p in briefs) b.appendLine(
+                "- ${p.displayName}" + personEn(p, level).let { if (it.isEmpty()) "" else ": $it" },
+            )
             b.appendLine(
                 "They call the player: " + briefs.joinToString(", ") { "${it.displayName} -> \"${callEn(it)}\"" } + ".",
             )
@@ -156,6 +170,7 @@ object StandardPrompt {
                 "You are \"${lead.displayName}\", chatting in the alliance chat of the mobile strategy game " +
                     "\"Crownfall\".",
             )
+            personEn(lead, level).takeIf { it.isNotEmpty() }?.let { b.appendLine("About you: $it.") }
             b.appendLine(
                 "You call the player \"${callEn(
                     lead,
@@ -183,6 +198,27 @@ object StandardPrompt {
             b.append("Output: write only the line itself, with no name, label or symbols. Reply in English.")
         }
         return b.toString()
+    }
+
+    /** 英語の人物描写（役職と性格）。データは日本語なので、小さな英訳表で置き換える。 */
+    private fun personEn(
+        p: PersonaBrief,
+        level: Int,
+    ): String {
+        if (level >= LEVEL_DROP_PERSON) return ""
+        val parts = ArrayList<String>()
+        roleEn(p.role)?.let { parts += it }
+        if (level < LEVEL_DROP_TRAITS) {
+            val traits = p.traits.split("、").mapNotNull { TRAIT_EN[it] }
+            if (traits.isNotEmpty()) parts += "personality: " + traits.joinToString(", ")
+        }
+        return parts.joinToString("; ")
+    }
+
+    private fun roleEn(role: String): String? {
+        val m = ROLE.matchEntire(role) ?: return null
+        val job = JOB_EN[m.groupValues[2]] ?: return null
+        return "rank R${m.groupValues[1]} $job"
     }
 
     private fun call(p: PersonaBrief): String = p.callName.ifBlank { "領主さん" }
@@ -303,6 +339,33 @@ object StandardPrompt {
             ?: if (speaker.startsWith("world:")) speaker.removePrefix("world:") else DEFAULT_NAME
 
     private const val DEFAULT_NAME = "メンバー"
+    private const val LEVEL_DROP_PERSON = 5
+    private val ROLE = Regex("R(\\d)の(.+)")
+    private val JOB_EN =
+        mapOf(
+            "同盟のリーダー" to "alliance leader",
+            "戦闘担当" to "combat specialist",
+            "初心者" to "newcomer",
+            "採集担当" to "resource gatherer",
+            "分析担当" to "analyst",
+            "課金が大好きなメンバー" to "big spender",
+            "久しぶりに戻ってきたメンバー" to "returning member",
+            "古参のメンバー" to "veteran member",
+            "メンバー" to "member",
+        )
+    private val TRAIT_EN =
+        mapOf(
+            "社交的" to "sociable",
+            "控えめ" to "reserved",
+            "面倒見がよい" to "caring",
+            "ドライ" to "detached",
+            "好戦的" to "aggressive",
+            "穏やか" to "gentle",
+            "几帳面" to "meticulous",
+            "おおらか" to "easygoing",
+            "ユーモアがある" to "humorous",
+            "真面目" to "serious",
+        )
     private const val EN_FREE_TEXT = "react to what the player said and sometimes ask a question back"
     private const val EN_CONTINUE = "keep the chat going naturally"
     private const val MAX_LEVEL = 6

@@ -5,11 +5,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class ResponseParserPlainTest {
+    private val names = listOf("Kaede", "ぽんず", "アレン")
+
     private fun ja(
         text: String,
         prompt: String = "",
         previous: List<String> = emptyList(),
-    ) = ResponseParser.plain(text, "ja", prompt, previous)
+    ) = ResponseParser.plain(text, "ja", prompt, previous, names = names)
 
     @Test
     fun aPlainLineIsKept() {
@@ -33,6 +35,33 @@ class ResponseParserPlainTest {
         assertEquals("ありがとなぁ", ja("**ありがとなぁ**"))
         assertEquals("ありがとなぁ", ja("- ありがとなぁ"))
         assertEquals("ありがとなぁ", ja("```\nありがとなぁ\n```"))
+    }
+
+    @Test
+    fun markdownAndBracketsAreStrippedBeforeTheNameLabelSoTheNameDoesNotLeak() {
+        assertEquals("こんにちは、元気？", ja("**Kaede**: こんにちは、元気？"))
+        assertEquals("こんにちは", ja("「Kaede: こんにちは」"))
+        assertEquals("こんにちは", ja("[Kaede]: こんにちは"))
+        assertEquals("こんにちは", ja("> **ぽんず**：こんにちは"))
+    }
+
+    @Test
+    fun onlyKnownDisplayNamesAreStrippedAsLabels() {
+        assertEquals("今日は寒いね: でも元気だよ", ja("今日は寒いね: でも元気だよ"))
+        assertEquals(
+            "Honestly I think so: let's go",
+            ResponseParser.plain("Honestly I think so: let's go", "en", names = names),
+        )
+        assertEquals("Let's go", ResponseParser.plain("Kaede: Let's go", "en", names = names))
+        // 名前の一覧が無ければ、ラベルは剥がさない
+        assertEquals("Kaede: ありがとなぁ", ResponseParser.plain("Kaede: ありがとなぁ", "ja"))
+    }
+
+    @Test
+    fun aShortOverlapWithThePromptIsNotAnEcho() {
+        val prompt = "You need not mention the game every time."
+        assertEquals("I think you need not worry", ResponseParser.plain("I think you need not worry", "en", prompt))
+        assertNull(ResponseParser.plain("Honestly you need not mention the game, right?", "en", prompt))
     }
 
     @Test

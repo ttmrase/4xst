@@ -58,7 +58,6 @@ object ResponseParser {
     private val JA_CHARS = Regex("[\\u3040-\\u30FF\\u4E00-\\u9FFF]")
     private val EN_CHARS = Regex("[A-Za-z]")
     private val LEADING_MARKUP = Regex("^[\\s>＞#*\\-•`_~]+")
-    private val NAME_LABEL = Regex("^[\\p{L}\\p{N}_ \\u3000・\\-]{1,20}[:：]\\s*")
     private val OPEN_QUOTES = Regex("^[\"'“”‘「『（(]+")
     private val CLOSE_QUOTES = Regex("[\"'“”’」』）)]+$")
     private val MARKUP_INSIDE = Regex("(\\*\\*|__|`|~~)")
@@ -67,7 +66,7 @@ object ResponseParser {
     private const val MAX_SENTENCES = 2
     private const val MIN_CHARS = 2
     private const val MAX_CHARS = 120
-    private const val ECHO_WINDOW = 12
+    private const val ECHO_WINDOW = 20
 
     /**
      * 小型モデルのプレーンテキスト出力を、1 人分のセリフ（最大 2 文）に整える。使えない出力は null（次のプロバイダへ回す）。
@@ -82,19 +81,32 @@ object ResponseParser {
         previous: List<String> = emptyList(),
         maxSentences: Int = MAX_SENTENCES,
         maxChars: Int = MAX_CHARS,
+        names: Collection<String> = emptyList(),
     ): String? {
         if ('{' in text || '}' in text || text.contains("speaker", ignoreCase = true)) return null
         val first =
             text.lineSequence().map { it.trim() }
                 .firstOrNull { it.isNotEmpty() && !it.startsWith("```") } ?: return null
-        var line = first.replace(LEADING_MARKUP, "")
-        line = line.replace(NAME_LABEL, "").replace(OPEN_QUOTES, "").replace(MARKUP_INSIDE, "").trim()
+        // 先に Markdown と括弧を剥がし、そのあと「既知の表示名:」のラベルだけを剥がす（普通の文の「…: …」は削らない）
+        var line = first.replace(LEADING_MARKUP, "").replace(OPEN_QUOTES, "").replace(MARKUP_INSIDE, "").trim()
+        labelRegex(names)?.let { line = line.replace(it, "") }
+        line = line.replace(OPEN_QUOTES, "")
         line = firstSentences(line, maxSentences).replace(CLOSE_QUOTES, "").trim()
         val chars = if (locale == "en") EN_CHARS else JA_CHARS
         val bad =
             line.length < MIN_CHARS || line.length > maxChars || !chars.containsMatchIn(line) ||
                 echoesPrompt(line, prompt) || previous.any { same(it, line) }
         return if (bad) null else line
+    }
+
+    /** 既知の表示名（と、[ ] で囲んだもの）に続く `:` / `：` だけにマッチする。名前が無ければ null。 */
+    private fun labelRegex(names: Collection<String>): Regex? {
+        val alt =
+            names.filter { it.isNotBlank() }.sortedByDescending { it.length }.joinToString(
+                "|",
+            ) { Regex.escape(it) }
+        if (alt.isEmpty()) return null
+        return Regex("^[\\[［【]?(?:$alt)[\\]］】]?\\s*[:：]\\s*", RegexOption.IGNORE_CASE)
     }
 
     private fun firstSentences(
@@ -125,7 +137,7 @@ object ResponseParser {
         b: String,
     ): Boolean = normalize(a).let { it.isNotEmpty() && it == normalize(b) }
 
-    /** 返事の中の [ECHO_WINDOW] 文字以上が、そのままプロンプトにあれば反復とみなす（短い返事は完全一致だけ）。 */
+    /** 返事の中の [ECHO_WINDOW] 文字（正規化後。英語なら 4 語ほど）以上が、そのままプロンプトにあれば反復とみなす。 */
     private fun echoesPrompt(
         line: String,
         prompt: String,

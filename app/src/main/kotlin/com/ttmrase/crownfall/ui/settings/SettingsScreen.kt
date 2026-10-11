@@ -74,6 +74,7 @@ private fun SettingsForm(
     val scope = rememberCoroutineScope()
     var draft by remember { mutableStateOf(base) }
     var stats by remember { mutableStateOf(ai.usageStats()) }
+    var gpuFailed by remember { mutableStateOf(ai.onDeviceGpuFailed()) }
     val saved = stringResource(R.string.settings_saved)
     val badUrl = stringResource(R.string.settings_url_rejected)
     val saveFailed = stringResource(R.string.settings_save_failed)
@@ -164,6 +165,11 @@ private fun SettingsForm(
             backend = draft.onDeviceBackend,
             onProfile = { draft = draft.copy(onDeviceProfile = it) },
             onBackend = { draft = draft.copy(onDeviceBackend = it) },
+            gpuFailed = gpuFailed,
+            onRetryGpu = {
+                ai.retryOnDeviceGpu()
+                gpuFailed = false
+            },
         )
         OnDeviceDebugSection(ai, data)
         HorizontalDivider()

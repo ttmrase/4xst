@@ -352,7 +352,15 @@ fun CrownfallNavHost(
                     }
                     composable(Screen.Chat.route) {
                         val ready = startup as? Startup.Ready
-                        if (ready != null) ChatScreen(ready.session, ready.data, chat.typing, snackbarHostState)
+                        if (ready != null) {
+                            ChatScreen(
+                                ready.session,
+                                ready.data,
+                                chat.typing,
+                                snackbarHostState,
+                                ai::warmUpOnDevice,
+                            )
+                        }
                     }
                     composable(Screen.Shop.route) {
                         val r = startup as? Startup.Ready

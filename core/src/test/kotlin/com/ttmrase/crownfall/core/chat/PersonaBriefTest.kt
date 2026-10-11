@@ -79,4 +79,14 @@ class PersonaBriefTest {
         val plenty = state.copy(resources = Resources(10_000_000, 10_000_000, 10_000_000, 10_000_000))
         assertTrue("満杯近い" in PromptContextBuilder.statusLine(plenty, data))
     }
+
+    @Test
+    fun theQuizIdDoesNotLeakIntoTheSituationAndTheBigPromptKeepsTheEmojiHint() {
+        val quiz = data.templates.quizzes.keys.first()
+        val text = PromptContextBuilder.situation(state, pending(ChatEvent.PonzuQuiz(quiz), "ponzu"), data)
+        assertFalse(quiz in text, text)
+        assertTrue("ぽんず" in text || "ポンズ" in text || "初心者" in text, text)
+        val system = PromptContextBuilder.build(state, pending(ChatEvent.DailyGreeting, "kaede"), data).system
+        assertTrue("絵文字は使いすぎない" in system)
+    }
 }

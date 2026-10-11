@@ -70,7 +70,10 @@ fun ChatScreen(
     data: GameData,
     typing: StateFlow<Map<String, String>>,
     snackbarHostState: SnackbarHostState,
+    /** チャットを開いたとき（端末内 LLM が有効なら、先にモデルを読み込んでおく）。 */
+    onOpen: () -> Unit = {},
 ) {
+    LaunchedEffect(Unit) { onOpen() }
     val state by session.collectCalmState()
     val typingNow by typing.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()

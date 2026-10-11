@@ -9,6 +9,9 @@ import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.SamplerConfig
 import com.ttmrase.crownfall.ai.providers.OnDeviceProfile
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -29,6 +32,7 @@ class LiteRtLmEngine(
     private val app = context.applicationContext
     private val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "ondevice-llm") }
     private val busy = AtomicBoolean(false)
+    private val warming = AtomicBoolean(false)
     private val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     @Volatile private var engine: Engine? = null
@@ -42,6 +46,9 @@ class LiteRtLmEngine(
 
     @Volatile override var activeBackend: String = ""
         private set
+
+    /** 読み込み直後で、まだ生成に成功していない（読み込み中の記録を残している）。 */
+    @Volatile private var firstGenerationPending = false
 
     init {
         // 前回、読み込み中に落ちたモデルは失敗扱いにする（ネイティブのクラッシュで毎回落ちるのを防ぐ）。
@@ -77,17 +84,13 @@ class LiteRtLmEngine(
                 try {
                     val e = ensureEngine()
                     val text =
-                        e.createConversation(
-                            ConversationConfig(
-                                systemInstruction = Contents.of(system),
-                                samplerConfig =
-                                    SamplerConfig(
-                                        topK = profile.topK,
-                                        topP = profile.topP,
-                                        temperature = profile.temperature,
-                                    ),
-                            ),
-                        ).use { c -> c.sendMessage(prompt).toString() }
+                        try {
+                            generateStreaming(e, system, prompt, profile)
+                        } catch (t: Throwable) {
+                            onGenerationFailed()
+                            throw t
+                        }
+                    confirmLoaded()
                     result.complete(text)
                 } catch (t: Throwable) {
                     result.completeExceptionally(t)
@@ -102,29 +105,89 @@ class LiteRtLmEngine(
         return result.await()
     }
 
+    /**
+     * 会話 1 回分をストリーミングで受け取り、プロファイルの上限（文字数の目安 = maxTokens x 3）に達したら打ち切る。
+     * 受け取る単位が差分でも累積でも読めるようにしてある（新しい断片が、いまの文字列で始まっていれば累積とみなす）。
+     */
+    private fun generateStreaming(
+        e: Engine,
+        system: String,
+        prompt: String,
+        profile: OnDeviceProfile,
+    ): String {
+        val config =
+            ConversationConfig(
+                systemInstruction = Contents.of(system),
+                samplerConfig =
+                    SamplerConfig(topK = profile.topK, topP = profile.topP, temperature = profile.temperature),
+            )
+        val limit = profile.maxTokens * CHARS_PER_TOKEN
+        val sb = StringBuilder()
+        e.createConversation(config).use { c ->
+            runBlocking {
+                c.sendMessageAsync(prompt).takeWhile { part ->
+                    val chunk = part.toString()
+                    if (sb.isNotEmpty() && chunk.startsWith(sb)) {
+                        sb.setLength(0)
+                        sb.append(chunk)
+                    } else {
+                        sb.append(chunk)
+                    }
+                    sb.length < limit
+                }.collect()
+            }
+        }
+        return sb.toString()
+    }
+
+    /** この backend での最初の生成が成功した。落ちたら記録が残るよう、読み込み中の記録はここで消す。 */
+    private fun confirmLoaded() {
+        if (!firstGenerationPending) return
+        firstGenerationPending = false
+        prefs.edit().remove(KEY_LOADING).commit()
+    }
+
+    /** 最初の生成が例外で失敗した。GPU なら、そのモデルの GPU を失敗扱いにして、次からは CPU で読み込む。 */
+    private fun onGenerationFailed() {
+        if (!firstGenerationPending) return
+        firstGenerationPending = false
+        val key = loadedKey
+        if (activeBackend == "gpu" && key != null) {
+            failedGpuKey = key
+            prefs.edit().putString(KEY_FAILED_GPU, key).remove(KEY_LOADING).commit()
+        } else {
+            prefs.edit().remove(KEY_LOADING).commit()
+        }
+        closeEngine()
+    }
+
     private fun ensureEngine(): Engine {
         val file = store.current() ?: error("no_model")
         val key = keyOf(file)
+        check(key != failedKey) { "model_failed" }
         val pref = backendPref()
-        engine?.let { if (loadedKey == key && backendMatches(pref)) return it }
+        engine?.let { if (loadedKey == key && backendMatches(pref, key)) return it }
         closeEngine()
-        // 自動: GPU を先に試し、例外（またはクラッシュの記録）があれば CPU。GPU 指定は記録を無視してもう一度試す。
-        val tryGpu = pref == "gpu" || (pref == "auto" && failedGpuKey != key)
-        if (tryGpu) {
+        // GPU を使うのは、設定が CPU 以外で、このモデルの GPU が失敗していないとき。GPU が落ちた記録（例外・クラッシュ）が
+        // あれば、設定が GPU でも CPU で読む（ユーザーが「GPU を再試行」を押したときだけ記録を消す）。
+        if (pref != "cpu" && failedGpuKey != key) {
             try {
                 return load(file, key, gpu = true)
             } catch (t: Throwable) {
                 failedGpuKey = key
                 prefs.edit().putString(KEY_FAILED_GPU, key).remove(KEY_LOADING).commit()
-                if (pref == "gpu") throw t
             }
         }
         return load(file, key, gpu = false)
     }
 
-    private fun backendMatches(pref: String): Boolean =
+    /** 読み込み済みの engine が、いまの設定でそのまま使えるか。GPU が失敗したモデルでは CPU のままでよい。 */
+    private fun backendMatches(
+        pref: String,
+        key: String,
+    ): Boolean =
         when (pref) {
-            "gpu" -> activeBackend == "gpu"
+            "gpu" -> activeBackend == "gpu" || failedGpuKey == key
             "cpu" -> activeBackend == "cpu"
             else -> true
         }
@@ -135,23 +198,20 @@ class LiteRtLmEngine(
         gpu: Boolean,
     ): Engine {
         prefs.edit().putString(KEY_LOADING, key + if (gpu) GPU_SUFFIX else CPU_SUFFIX).commit()
-        return try {
-            val backend = if (gpu) Backend.GPU() else Backend.CPU()
-            val config =
-                EngineConfig(
-                    modelPath = file.path,
-                    backend = backend,
-                    maxNumTokens = MAX_NUM_TOKENS,
-                    cacheDir = app.cacheDir.path,
-                )
-            Engine(config).also {
-                it.initialize()
-                engine = it
-                loadedKey = key
-                activeBackend = if (gpu) "gpu" else "cpu"
-                prefs.edit().remove(KEY_LOADING).commit()
-            }
+        val backend = if (gpu) Backend.GPU() else Backend.CPU()
+        val config =
+            EngineConfig(
+                modelPath = file.path,
+                backend = backend,
+                maxNumTokens = MAX_NUM_TOKENS,
+                cacheDir = app.cacheDir.path,
+            )
+        val e = Engine(config)
+        try {
+            e.initialize()
         } catch (t: Throwable) {
+            // 初期化に失敗した Engine は閉じる（GPU の資源を持ったまま CPU を読み込まない）
+            runCatching { e.close() }
             // GPU の失敗は呼び出し側が CPU に戻す。CPU の失敗（OOM や UnsatisfiedLinkError も含む）はモデルを失敗扱いにする
             if (!gpu) {
                 failedKey = key
@@ -159,6 +219,38 @@ class LiteRtLmEngine(
             }
             throw t
         }
+        engine = e
+        loadedKey = key
+        activeBackend = if (gpu) "gpu" else "cpu"
+        // 読み込み中の記録は、この backend での最初の生成が成功するまで残す（GPU は最初の推論で落ちることが多い）
+        firstGenerationPending = true
+        return e
+    }
+
+    /** 先にモデルを読み込んでおく（チャットを開いたとき）。生成中や、読み込みに失敗したモデルでは何もしない。 */
+    override fun warmUp() {
+        if (!isModelReady() || engine != null) return
+        if (!warming.compareAndSet(false, true)) return
+        // 専用の 1 本のスレッドで読み込むので、読み込み中に来た生成は、その後ろに並んで待つ（busy にはしない）
+        executor.execute {
+            try {
+                ensureEngine()
+            } catch (_: Throwable) {
+                // 失敗は次の生成で改めて扱う（記録は load が残す）
+            } finally {
+                warming.set(false)
+            }
+        }
+    }
+
+    override val gpuFailed: Boolean
+        get() = store.current()?.let { keyOf(it) == failedGpuKey } == true
+
+    /** 「GPU を再試行」。GPU が落ちた記録を消して、次の読み込みでもう一度 GPU を試す。 */
+    override fun retryGpu() {
+        failedGpuKey = null
+        prefs.edit().remove(KEY_FAILED_GPU).commit()
+        if (!busy.get()) executor.execute { closeEngine() }
     }
 
     override fun release() {
@@ -173,6 +265,11 @@ class LiteRtLmEngine(
         engine = null
         loadedKey = null
         activeBackend = ""
+        // きれいに閉じたので、「読み込み中」の記録（最初の生成の前に閉じた場合）は残さない
+        if (firstGenerationPending) {
+            firstGenerationPending = false
+            prefs.edit().remove(KEY_LOADING).commit()
+        }
     }
 
     private companion object {
@@ -180,8 +277,9 @@ class LiteRtLmEngine(
         const val KEY_LOADING = "loading_model"
         const val KEY_FAILED = "failed_model"
 
-        /** 読み込み時の KV キャッシュなどの上限（プロンプト 600〜700 トークン + 生成 96 トークンが収まる大きさ）。 */
-        const val MAX_NUM_TOKENS = 1280
+        /** 全体のトークン数の上限（日本語のプロンプト 1,300 文字 ≒ 1,000〜1,300 トークン + 生成 96 が収まる大きさ。E2B の文脈長内）。 */
+        const val MAX_NUM_TOKENS = 2048
+        const val CHARS_PER_TOKEN = 3
         const val KEY_FAILED_GPU = "failed_gpu_model"
         const val GPU_SUFFIX = "|gpu"
         const val CPU_SUFFIX = "|cpu"

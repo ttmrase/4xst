@@ -57,6 +57,8 @@ fun OnDeviceSettingsSection(
     onTimeoutSec: (Int) -> Unit,
     onProfile: (String) -> Unit,
     onBackend: (String) -> Unit,
+    gpuFailed: Boolean,
+    onRetryGpu: () -> Unit,
 ) {
     val context = LocalContext.current
     val state by store.state.collectAsStateWithLifecycle()
@@ -190,6 +192,10 @@ fun OnDeviceSettingsSection(
             selected = backend,
             onSelect = onBackend,
         )
+        if (gpuFailed) {
+            Text(stringResource(R.string.on_device_gpu_failed), style = MaterialTheme.typography.bodySmall)
+            OutlinedButton(onClick = onRetryGpu) { Text(stringResource(R.string.on_device_gpu_retry)) }
+        }
     }
 }
 

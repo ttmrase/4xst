@@ -19,6 +19,14 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.Crownfall">
+        <!-- GPU（OpenCL）を使うための宣言。API 31 以降は、宣言が無いと GPU の初期化に失敗する。端末に無くても起動は妨げない -->
+        <uses-native-library
+            android:name="libOpenCL.so"
+            android:required="false" />
+        <uses-native-library
+            android:name="libvndksupport.so"
+            android:required="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

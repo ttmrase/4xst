@@ -154,6 +154,23 @@ class AiService(
         }
     }
 
+    /**
+     * チャットを開いたとき、端末内 LLM が有効（順序に入っていて、無効化されておらず、モデルがあり、充電条件を満たす）なら、
+     * 先にモデルを読み込んでおく。読み込みの時間を、最初の返事のタイムアウトに含めないため。
+     */
+    fun warmUpOnDevice() {
+        val s = current()
+        val enabled = OnDeviceProvider.ID in s.order && OnDeviceProvider.ID !in s.disabled
+        if (!enabled || (s.onDeviceChargingOnly && !isCharging())) return
+        onDeviceEngine.warmUp()
+    }
+
+    /** いまのモデルの GPU が使えなくなっているか（設定画面の表示用）。 */
+    fun onDeviceGpuFailed(): Boolean = onDeviceEngine.gpuFailed
+
+    /** 「GPU を再試行」。 */
+    fun retryOnDeviceGpu() = onDeviceEngine.retryGpu()
+
     /** 背景に入るとき、端末内 LLM のメモリを空ける。 */
     fun releaseOnDevice() = onDeviceEngine.release()
 

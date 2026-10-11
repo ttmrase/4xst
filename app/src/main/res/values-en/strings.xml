@@ -931,6 +931,8 @@
     <string name="on_device_backend_auto">Auto (GPU → CPU)</string>
     <string name="on_device_backend_cpu">CPU</string>
     <string name="on_device_backend_gpu">GPU</string>
+    <string name="on_device_gpu_failed">The GPU could not be used (running on the CPU)</string>
+    <string name="on_device_gpu_retry">Retry GPU</string>
     <string name="on_device_charging_only">Use only while charging</string>
     <string name="on_device_timeout">Timeout (seconds)</string>
     <string name="on_device_advice_ram">RAM is low. It may be slow or the app may be closed (warning only; you can still use it)</string>

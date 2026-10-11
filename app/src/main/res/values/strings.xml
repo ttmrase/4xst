@@ -930,6 +930,8 @@
     <string name="on_device_backend_auto">自動（GPU → CPU）</string>
     <string name="on_device_backend_cpu">CPU</string>
     <string name="on_device_backend_gpu">GPU</string>
+    <string name="on_device_gpu_failed">GPU は使えませんでした（CPU で動作中）</string>
+    <string name="on_device_gpu_retry">GPU を再試行</string>
     <string name="on_device_charging_only">充電中だけ使う</string>
     <string name="on_device_timeout">タイムアウト（秒）</string>
     <string name="on_device_advice_ram">RAM が少なめです。動作が遅い、またはアプリが終了することがあります（警告のみ・使えます）</string>

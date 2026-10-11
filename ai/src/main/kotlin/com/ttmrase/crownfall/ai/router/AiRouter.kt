@@ -61,14 +61,15 @@ class AiRouter(
         return ChatResponse(scripted.generate(request))
     }
 
-    /** 端末内 LLM は 1 リクエストで話せる人数に上限がある。話者が余ったぶんは Scripted で埋める。 */
+    /** 端末内 LLM は 1 リクエストで話せる人数に上限がある。まだ話していない話者（ID で判定）は Scripted で埋める。 */
     private fun fillRest(
         providerId: String,
         lines: List<com.ttmrase.crownfall.ai.SpokenLine>,
         request: ChatRequest,
     ): List<com.ttmrase.crownfall.ai.SpokenLine> {
         if (providerId != OnDeviceProvider.ID) return emptyList()
-        val rest = request.speakers.drop(lines.size)
+        val spoken = lines.map { it.speaker }.toSet()
+        val rest = request.speakers.filter { it !in spoken }
         return if (rest.isEmpty()) emptyList() else scripted.generate(request.copy(speakers = rest))
     }
 
@@ -84,7 +85,7 @@ class AiRouter(
         val result =
             try {
                 val limit = if (provider.id == OnDeviceProvider.ID) cfg.onDeviceTimeoutMs else cfg.timeoutMs
-                withTimeoutOrNull(limit) { provider.complete(request) } ?: AiResult.Failure("timeout", true)
+                withTimeoutOrNull(limit) { provider.complete(request) } ?: timedOut(provider)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -105,6 +106,12 @@ class AiRouter(
                 null
             }
         }
+    }
+
+    /** タイムアウト。端末内 LLM は、それまでに生成できた行があれば捨てずに返す（残りは呼び出し側で Scripted が埋める）。 */
+    private fun timedOut(provider: AiProvider): AiResult {
+        val partial = (provider as? OnDeviceProvider)?.partial().orEmpty()
+        return if (partial.isNotEmpty()) AiResult.Success(ChatResponse(partial)) else AiResult.Failure("timeout", true)
     }
 
     /** 全ペルソナ ID（LLM が登場人物の別の id を使ったときに弾きすぎないため、既知の id は通す）。 */

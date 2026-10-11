@@ -253,7 +253,7 @@ object PromptContextBuilder {
         b.appendLine(stateSummary(state, data))
         b.appendLine()
         b.appendLine("## ルール")
-        b.appendLine("- 短く自然に、1 行 1〜2 文の日本語で。毎回ゲームの状況に触れなくてよい。軽い脱線やユーモアは歓迎。")
+        b.appendLine("- 短く自然に、1 行 1〜2 文の日本語で。絵文字は使いすぎない。毎回ゲームの状況に触れなくてよい。軽い脱線やユーモアは歓迎。")
         b.appendLine("- 個人情報（本名・住所・連絡先など）を聞かない。URL を書かない。現実のお金の話は「擬似課金」の世界観の範囲で。")
         b.appendLine(
             when (reveal) {
@@ -372,7 +372,9 @@ object PromptContextBuilder {
                 is ChatEvent.PlayerFreeText -> "プレイヤーが次のように発言した: 「${e.text}」。活動中のキャラクターが1〜2人返事をする。"
                 is ChatEvent.EventRanking -> "イベントのランキングは現在${e.rank}位。励ます。"
                 is ChatEvent.FavorMilestone -> "${e.persona}がプレイヤーとの絆がLv${e.lv}になり、個別にお礼を言う（DM）。"
-                is ChatEvent.PonzuQuiz -> "ぽんずが初心者らしい質問をする（クイズID: ${e.quizId}）。"
+                is ChatEvent.PonzuQuiz ->
+                    "ぽんずが初心者らしい質問をする" +
+                        (data.templates.quizzes[e.quizId]?.question?.let { "（例: 「$it」）" } ?: "") + "。"
                 is ChatEvent.QuizResult -> "プレイヤーがぽんずの質問に${if (e.correct) "正しく" else "間違って"}答えた。反応する。"
                 is ChatEvent.RaidStage -> "NPC の襲撃が近づいている（段階: ${e.stage}）。プレイヤーに備えを促す・励ます。"
                 is ChatEvent.VipUp -> "プレイヤーのVIPがVIP${e.lv}に上がった。祝福する。"

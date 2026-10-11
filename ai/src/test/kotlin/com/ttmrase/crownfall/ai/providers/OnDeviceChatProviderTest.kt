@@ -213,6 +213,31 @@ class OnDeviceChatProviderTest {
         assertEquals("それはええなあ。うちも行きたいわ。", t.response.lines.single().text)
     }
 
+    @Test
+    fun aGenerationFailureInTheMultiLineAttemptIsReturnedWithoutASecondLoad() {
+        var calls = 0
+        val p =
+            standard { _, _ ->
+                calls++
+                error("out of memory while loading")
+            }
+        val res = run(p) as AiResult.Failure
+        assertTrue(res.reason.startsWith("on_device_"))
+        assertEquals(1, calls, "no second load/generation after a failure")
+    }
+
+    @Test
+    fun theLinesGeneratedBeforeAFailureAreKeptAsPartial() {
+        var n = 0
+        val p =
+            provider { _, _ ->
+                if (n++ == 0) "おはようさん、よう来たな" else error("boom")
+            }
+        val res = run(p) as AiResult.Success
+        assertEquals(listOf("kaede"), res.response.lines.map { it.speaker })
+        assertEquals(res.response.lines, p.partial())
+    }
+
     private fun router(
         cfg: RouterConfig,
         vararg providers: AiProvider,
@@ -242,6 +267,30 @@ class OnDeviceChatProviderTest {
         assertEquals(listOf("kaede", "gen", "yuki"), res.lines.map { it.speaker })
         assertTrue(res.lines[0].text.startsWith("うん、今日も") && res.lines[1].text.startsWith("うん、今日も"))
         assertTrue(!res.lines[2].text.startsWith("うん、今日も"), "the third line is scripted")
+    }
+
+    @Test
+    fun aTimeoutKeepsTheLinesAlreadyGeneratedAndScriptedFillsTheRest() {
+        var n = 0
+        val p =
+            provider { _, _ ->
+                if (n++ == 0) "おはようさん、よう来たな" else delay(5_000).let { "" }
+            }
+        val cfg = RouterConfig(order = listOf("on_device"), onDeviceTimeoutMs = 300)
+        val res = runBlocking { router(cfg, p).complete(request()) }
+        assertEquals("おはようさん、よう来たな", res.lines.first().text)
+        assertEquals(listOf("kaede", "gen", "yuki"), res.lines.map { it.speaker }, "the rest is scripted, by speaker")
+    }
+
+    @Test
+    fun routerFillsTheSpeakersThatDidNotSpeakByIdNotByPosition() {
+        // [kaede, gen, yuki] に対し、モデルが gen と yuki だけを返した
+        val p = standard { _, _ -> "老兵ゲン: 焦るな、ゆっくりでよい\nYuki: おはようございます！" }
+        val res = runBlocking { router(RouterConfig(order = listOf("on_device")), p).complete(request()) }
+        val speakers = res.lines.map { it.speaker }
+        assertEquals(setOf("kaede", "gen", "yuki"), speakers.toSet())
+        assertEquals(3, speakers.size, "nobody speaks twice: $speakers")
+        assertEquals("焦るな、ゆっくりでよい", res.lines.first { it.speaker == "gen" }.text)
     }
 
     @Test

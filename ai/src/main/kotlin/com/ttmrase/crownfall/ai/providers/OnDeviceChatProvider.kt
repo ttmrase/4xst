@@ -34,6 +34,10 @@ class OnDeviceChatProvider(
 ) : OnDeviceProvider {
     private var lastFinishedMs = Long.MIN_VALUE / 2
 
+    @Volatile private var partialLines: List<SpokenLine> = emptyList()
+
+    override fun partial(): List<SpokenLine> = partialLines
+
     override fun isModelReady(): Boolean = ready()
 
     override suspend fun complete(request: ChatRequest): AiResult {
@@ -41,12 +45,20 @@ class OnDeviceChatProvider(
         if (chargingOnly() && !charging()) return AiResult.Failure("not_charging", false)
         // 連続生成の間隔を空ける（発熱・電池への配慮）。同じリクエストの 2 人目以降は免除する
         if (nowMs() - lastFinishedMs < minIntervalMs) return AiResult.Failure("cooldown", true)
+        partialLines = emptyList()
         val prof = profile()
         val all = request.speakers.ifEmpty { listOf(DEFAULT_SPEAKER) }
-        // 標準: まず 1 回の生成で複数話者の「表示名: セリフ」を試す。読めなければ 1 人ずつ（小型と同じ経路）へ
+        // 標準: まず 1 回の生成で複数話者の「表示名: セリフ」を試す。読めなければ 1 人ずつ（小型と同じ経路）へ。
+        // 生成そのものの失敗（モデルの読み込みの失敗など）は、2 回目の読み込みを走らせずにここで返す
         if (prof == OnDeviceProfile.STANDARD && all.size >= 2) {
-            val lines = tryMulti(request, all, prof)
-            if (lines != null) return AiResult.Success(ChatResponse(lines))
+            when (val multi = tryMulti(request, all, prof)) {
+                is Multi.Lines -> {
+                    partialLines = multi.lines
+                    return AiResult.Success(ChatResponse(multi.lines))
+                }
+                is Multi.Failed -> return AiResult.Failure(multi.reason, true)
+                Multi.Unreadable -> Unit
+            }
         }
         val speakers = all.take(MAX_SPEAKERS)
         val spoken = ArrayList<SpokenLine>()
@@ -78,6 +90,7 @@ class OnDeviceChatProvider(
                     previous,
                     prof.maxSentences,
                     prof.maxChars,
+                    knownNames(request),
                 )
             debug?.record(OnDeviceDebugLog.Entry(speaker, built.system, built.prompt, raw, cleaned, nowMs() - started))
             if (cleaned == null) {
@@ -85,16 +98,27 @@ class OnDeviceChatProvider(
                 break
             }
             spoken += SpokenLine(speaker, cleaned)
+            partialLines = spoken.toList()
         }
         return AiResult.Success(ChatResponse(spoken))
     }
 
-    /** 標準プロファイルの複数話者: 1 回の生成で最大 3 行。読めた行が無ければ null（1 人ずつにフォールバック）。 */
+    private sealed interface Multi {
+        data class Lines(val lines: List<SpokenLine>) : Multi
+
+        /** 読めなかった（1 人ずつにフォールバックしてよい）。 */
+        data object Unreadable : Multi
+
+        /** 生成そのものが失敗した（読み込みの失敗など。続けない）。 */
+        data class Failed(val reason: String) : Multi
+    }
+
+    /** 標準プロファイルの複数話者: 1 回の生成で最大 3 行。 */
     private suspend fun tryMulti(
         request: ChatRequest,
         speakers: List<String>,
         prof: OnDeviceProfile,
-    ): List<SpokenLine>? {
+    ): Multi {
         val built = StandardPrompt.multi(request, speakers)
         val started = nowMs()
         val raw =
@@ -103,7 +127,7 @@ class OnDeviceChatProvider(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                return null
+                return Multi.Failed("on_device_${e::class.simpleName}")
             } finally {
                 lastFinishedMs = nowMs()
             }
@@ -120,8 +144,12 @@ class OnDeviceChatProvider(
             )
         val joined = lines.joinToString(" / ") { it.text }.ifEmpty { null }
         debug?.record(OnDeviceDebugLog.Entry("multi", built.system, built.prompt, raw, joined, nowMs() - started))
-        return lines.ifEmpty { null }
+        return if (lines.isEmpty()) Multi.Unreadable else Multi.Lines(lines)
     }
+
+    /** 後処理で「既知の表示名:」のラベルだけを剥がすための、表示名（ペルソナ、プレイヤー名）の一覧。 */
+    private fun knownNames(request: ChatRequest): List<String> =
+        (request.names.values + request.personas.map { it.displayName }).distinct()
 
     companion object {
         const val MAX_SPEAKERS = 2

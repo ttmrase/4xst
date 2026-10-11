@@ -143,4 +143,32 @@ class StandardPromptTest {
         assertTrue(built.prompt.endsWith("Kaede's reply:"))
         assertFalse("例:" in built.prompt, "Japanese examples are not shown for English")
     }
+
+    @Test
+    fun theOutputInstructionIsAlwaysLastAndNeverCutForEveryPersonaLocaleAndShape() {
+        for (locale in listOf("ja", "en")) {
+            val limit = if (locale == "ja") StandardPrompt.MAX_SYSTEM_CHARS else StandardPrompt.MAX_SYSTEM_CHARS_EN
+            val tail =
+                mapOf(
+                    "ja" to ("セリフだけを書く。名前・ラベル・記号は付けない。" to "セリフ以外は書かない。"),
+                    "en" to ("Reply in English." to "Write nothing else."),
+                ).getValue(locale)
+            for (id in ids) {
+                val r = request(listOf(id, "kaede", "gen"), locale)
+                val single = StandardPrompt.single(r, id).system
+                val multi = StandardPrompt.multi(r, listOf(id, "kaede", "gen")).system
+                assertTrue(single.endsWith(tail.first), "$locale/$id single: ${single.takeLast(50)}")
+                assertTrue(multi.endsWith(tail.second), "$locale/$id multi: ${multi.takeLast(50)}")
+                assertTrue(single.length <= limit, "$locale/$id single ${single.length}")
+                assertTrue(multi.length <= limit, "$locale/$id multi ${multi.length}")
+            }
+        }
+    }
+
+    @Test
+    fun theEnglishPromptDescribesTheRoleAndPersonalityInEnglish() {
+        val en = StandardPrompt.single(request(locale = "en"), "kaede").system
+        assertTrue("rank R5 alliance leader" in en && "sociable" in en && "caring" in en, en)
+        assertFalse(Regex("[\\u3040-\\u30FF\\u4E00-\\u9FFF]").containsMatchIn(en.replace("アレンはん", "")))
+    }
 }

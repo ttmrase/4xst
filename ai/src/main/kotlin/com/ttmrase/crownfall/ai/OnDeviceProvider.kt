@@ -13,6 +13,12 @@ interface OnDeviceProvider : AiProvider {
 
     override fun isConfigured(): Boolean = isModelReady()
 
+    /**
+     * 直前のリクエストで、タイムアウトや途中の失敗までに生成できた行。ルーターはタイムアウトのとき、これを捨てずに使い、
+     * 残りの話者だけを Scripted で埋める。
+     */
+    fun partial(): List<SpokenLine> = emptyList()
+
     companion object {
         const val ID = "on_device"
     }

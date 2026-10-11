@@ -17,6 +17,15 @@ interface OnDeviceLlmEngine {
         profile: OnDeviceProfile = OnDeviceProfile.STANDARD,
     ): String
 
+    /** 先にモデルを読み込んでおく（チャットを開いたとき）。何もできないときは黙って戻る。 */
+    fun warmUp()
+
+    /** いまのモデルの GPU が、例外やクラッシュで使えなくなっているか（CPU で動作中）。 */
+    val gpuFailed: Boolean
+
+    /** GPU が落ちた記録を消して、次の読み込みでもう一度 GPU を試す。 */
+    fun retryGpu()
+
     /** いま読み込まれているバックエンド（`cpu` / `gpu`。まだ読み込んでいなければ空）。 */
     val activeBackend: String
 
