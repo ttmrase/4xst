@@ -35,12 +35,13 @@ class BuilderUnlockUiTest {
                 s.copy(shop = s.shop.copy(popupsStopped = true, lastPopupClosedEpochSec = s.nowEpochSec))
             }
             rule.waitForIdle()
-            // 城をタップして詳細シートを開く（領地の各建物には TalkBack 用のノードがある）
-            val castle = h.str(R.string.building_castle)
+            // 製材所をタップして詳細シートを開く（領地の各建物には TalkBack 用のノードがある。城は前提の建物が足りず
+            // 「建設キューが満杯」より先にその理由が出るので使わない）
+            val sawmill = h.str(R.string.building_sawmill)
             rule.waitUntil(20_000) {
-                rule.onAllNodesWithContentDescription(castle, substring = true).fetchSemanticsNodes().isNotEmpty()
+                rule.onAllNodesWithContentDescription(sawmill, substring = true).fetchSemanticsNodes().isNotEmpty()
             }
-            rule.onAllNodesWithContentDescription(castle, substring = true)[0]
+            rule.onAllNodesWithContentDescription(sawmill, substring = true)[0]
                 .performSemanticsAction(SemanticsActions.OnClick)
             h.waitText(h.str(R.string.sheet_unlock_builder), timeoutMs = 20_000)
             Screenshots.save("builder_sheet")
@@ -69,7 +70,7 @@ class BuilderUnlockUiTest {
         h.launchToCity()
         h.step("barracks") {
             h.open("barracks")
-            h.waitText(h.str(R.string.screen_barracks), substring = true)
+            h.waitText(h.str(R.string.barracks_train))
             Screenshots.save("barracks_troop_icons")
         }
     }
