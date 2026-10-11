@@ -4,7 +4,7 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from PIL import Image, ImageDraw
-import iso, gen_buildings, gen_decor
+import iso, gen_buildings, gen_decor, gen_portraits
 
 SS = 3
 
@@ -47,7 +47,28 @@ def decor_sheet(out):
     print("wrote", out, sheet.size)
 
 
+def portraits_sheet(out):
+    """英雄 12 + ペルソナ 8（個別）→ 名前だけのメンバー 22（汎用）→ プレイヤーのアバター 12 を並べる。"""
+    items = [(k, gen_portraits.make(v)) for k, v in gen_portraits.SPECS.items()]
+    items += [("gen_%02d" % i, gen_portraits.make(gen_portraits.generic_spec("gen%d" % i))) for i in range(22)]
+    items += [("avatar_%02d" % i, gen_portraits.make(gen_portraits.generic_spec("avatar%d" % i))) for i in range(gen_portraits.AVATAR_COUNT)]
+    cols = 8
+    cw, ch = gen_portraits.W * 3 + 12, gen_portraits.W * 3 + 30
+    rows = (len(items) + cols - 1) // cols
+    sheet = Image.new("RGB", (cols * cw, rows * ch), "#303036")
+    d = ImageDraw.Draw(sheet)
+    for k, (name, sc) in enumerate(items):
+        im = render(sc, "#303036").resize((gen_portraits.W * 3, gen_portraits.W * 3), Image.LANCZOS)
+        x, y = (k % cols) * cw + 6, (k // cols) * ch + 4
+        sheet.paste(im, (x, y))
+        d.text((x + 2, y + gen_portraits.W * 3 + 4), name, fill="#DDDDDD")
+    sheet.save(out)
+    print("wrote", out, sheet.size)
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "portraits":
+        return portraits_sheet(sys.argv[2] if len(sys.argv) > 2 else "/tmp/portraits.png")
     if len(sys.argv) > 1 and sys.argv[1] == "decor":
         return decor_sheet(sys.argv[2] if len(sys.argv) > 2 else "/tmp/decor.png")
     out = sys.argv[1] if len(sys.argv) > 1 else "/tmp/preview.png"
