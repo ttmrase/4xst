@@ -1,0 +1,80 @@
+run: 54
+commit: 7f37510701d1892d1ea5054de34ba2329694b519
+job status: failure
+images: 46
+bytes: 2659057
+actions: https://github.com/ttmrase/4xst/actions/runs/38112848643
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 1/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 2/14 completed. (0 skipped) (0 failed)
+	java.lang.IllegalArgumentException: Detected multithreaded access to SnapshotStateObserver: previousThreadId=2), currentThread={id=44, name=DefaultDispatcher-worker-2}. Note that observation on multiple threads in layout/draw is not supported. Make sure your measure/layout/draw for each Owner (AndroidComposeView) is executed on the same thread.
+emulator-5554 - 14 Tests 4/14 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 5/14 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 6/14 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 7/14 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 9/14 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 10/14 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 11/14 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 13/14 completed. (0 skipped) (1 failed)
+Tests on emulator-5554 - 14 failed: There was 1 failure(s).
+> Task :app:connectedDebugAndroidTest FAILED
+> There were failing tests. See the report at: file:///home/runner/work/4xst/4xst/app/build/reports/androidTests/connected/debug/index.html
+--- per test (androidTest-results xml) ---
+PASS LaunchSmokeTest.titleScreenAppearsAndCanBeCaptured
+PASS NavUiTest.cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks
+FAIL PerfUiTest.lateGameCityPanFrameTimesAndSpriteMemory
+      java.lang.IllegalArgumentException: Detected multithreaded access to SnapshotStateObserver: previousThreadId=2), currentThread={id=44, name=DefaultDispatcher-worker-2}. Note that observation on multip
+      at androidx.compose.runtime.PreconditionsKt.throwIllegalArgumentException(Preconditions.kt:26)
+      at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:649)
+      at androidx.compose.ui.node.OwnerSnapshotObserver.observeReads$ui_release(OwnerSnapshotObserver.kt:124)
+PASS SeederSmokeTest.seededRichCastleReachesTheSession
+PASS ShopVipUiTest.offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured
+PASS ShopVipUiTest.vipCinematicAndRewardDialogCloseWithBack
+PASS ShopVipUiTest.raidBannerAndSettingsAreCaptured
+PASS SummonUiTest.ritualStagesAndTheTenRollListAreCaptured
+PASS SummonUiTest.tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce
+PASS TerritoryUiTest.tutorialBannerSteps
+PASS TerritoryUiTest.territoryScreenshotsForRichLateAndBuildingStates
+PASS TerritoryUiTest.panAndPinchOnTheTerritoryDoNotCrash
+PASS BackPressInstrumentedTest.systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups
+PASS BackPressInstrumentedTest.systemBackClosesTheBillingSheetBeforeAnyPayment
+--- TestRunner (started / finished / failed) ---
+10-11 04:57:47.610 14 tests
+10-11 04:57:47.612 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+10-11 04:57:52.157 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+10-11 04:57:52.161 cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks(com.ttmrase.crownfall.NavUiTest)
+10-11 04:58:12.203 cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks(com.ttmrase.crownfall.NavUiTest)
+10-11 04:58:13.108 lateGameCityPanFrameTimesAndSpriteMemory(com.ttmrase.crownfall.PerfUiTest)
+10-11 04:58:59.746 lateGameCityPanFrameTimesAndSpriteMemory(com.ttmrase.crownfall.PerfUiTest)
+10-11 04:58:59.768 lateGameCityPanFrameTimesAndSpriteMemory(com.ttmrase.crownfall.PerfUiTest)
+10-11 04:59:00.371 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+10-11 04:59:02.619 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+10-11 04:59:02.628 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 04:59:21.549 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 04:59:22.413 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 04:59:35.509 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 04:59:36.063 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 04:59:40.467 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+10-11 04:59:40.896 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+10-11 04:59:48.680 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+10-11 04:59:49.181 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+10-11 04:59:55.992 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+10-11 04:59:56.385 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:00:02.502 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:00:02.936 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:00:17.670 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:00:18.157 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:00:23.372 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+10-11 05:00:23.787 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 05:00:26.621 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 05:00:26.637 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 05:00:29.455 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+10-11 05:00:29.461 14 tests, 1 failed, 0 ignored
+--- perf (logcat CrownfallPerf) ---
+city LATE_GAME idle 5s: frames=5 p50=239.9ms p95=242.9ms p99=242.9ms max=262.1ms janky(>16.7ms)=5 (100.0%)
+--- instrumentation results ---
+Starting 14 tests on emulator-5554 - 14
+Finished 14 tests on emulator-5554 - 14
