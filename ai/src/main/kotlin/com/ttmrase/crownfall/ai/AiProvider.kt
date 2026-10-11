@@ -2,6 +2,7 @@ package com.ttmrase.crownfall.ai
 
 import com.ttmrase.crownfall.core.chat.ChatEvent
 import com.ttmrase.crownfall.core.chat.ChatVars
+import com.ttmrase.crownfall.core.chat.PersonaBrief
 
 /** 直近チャットの 1 行。 */
 data class ChatTurn(val speaker: String, val text: String)
@@ -23,6 +24,14 @@ data class ChatRequest(
     val vars: ChatVars,
     /** 全ペルソナ ID（LLM が使ってよい発話者）。空なら [speakers] だけ。 */
     val knownSpeakers: Set<String> = emptySet(),
+    /** 小型モデル向け: 発言者ごとの要約（表示名・呼び方・口調・例文）。[speakers] と同じ順。 */
+    val personas: List<PersonaBrief> = emptyList(),
+    /** 小型モデル向け: 会話履歴の発言者 ID → 表示名。 */
+    val names: Map<String, String> = emptyMap(),
+    /** 小型モデル向け: きっかけの説明（1 文）。空なら書かない。 */
+    val situation: String = "",
+    /** アプリの言語（`ja` / `en`）。小型モデルは、この言語で返事をする。 */
+    val locale: String = "ja",
 ) {
     companion object {
         const val DEFAULT_MAX_TOKENS = 300

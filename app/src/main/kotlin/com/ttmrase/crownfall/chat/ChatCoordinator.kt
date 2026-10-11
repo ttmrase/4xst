@@ -84,6 +84,7 @@ class ChatCoordinator(
                         data,
                         recent = recentTexts(state, pending.channel),
                         reveal = ai.settings.value?.revealAi ?: RevealAi.AMBIGUOUS,
+                        locale = java.util.Locale.getDefault().language,
                     )
                 val backlog = SystemClock.nowEpochSec() - pending.createdEpochSec > BACKLOG_SEC
                 if (backlog) {

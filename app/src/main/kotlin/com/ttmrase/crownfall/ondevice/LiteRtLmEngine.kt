@@ -6,6 +6,7 @@ import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.SamplerConfig
 import kotlinx.coroutines.CompletableDeferred
 import java.io.File
 import java.util.concurrent.Executors
@@ -56,9 +57,12 @@ class LiteRtLmEngine(
                 try {
                     val e = ensureEngine()
                     val text =
-                        e.createConversation(ConversationConfig(systemInstruction = Contents.of(system))).use { c ->
-                            c.sendMessage(prompt).toString()
-                        }
+                        e.createConversation(
+                            ConversationConfig(
+                                systemInstruction = Contents.of(system),
+                                samplerConfig = SamplerConfig(topK = TOP_K, topP = TOP_P, temperature = TEMPERATURE),
+                            ),
+                        ).use { c -> c.sendMessage(prompt).toString() }
                     result.complete(text)
                 } catch (t: Throwable) {
                     result.completeExceptionally(t)
@@ -112,6 +116,11 @@ class LiteRtLmEngine(
         const val PREFS = "ondevice_engine"
         const val KEY_LOADING = "loading_model"
         const val KEY_FAILED = "failed_model"
+
+        /** 小型モデルは、既定のままだと決まり文句に偏る。少しばらつかせ、突飛な語は切る。 */
+        const val TOP_K = 40
+        const val TOP_P = 0.95
+        const val TEMPERATURE = 0.85
     }
 
     private fun keyOf(file: File): String = "${file.name}:${file.length()}:${file.lastModified()}"

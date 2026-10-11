@@ -38,6 +38,7 @@ import com.ttmrase.crownfall.ai.OnDeviceProvider
 import com.ttmrase.crownfall.ai.providers.GeminiProvider
 import com.ttmrase.crownfall.ai.providers.UrlPolicy
 import com.ttmrase.crownfall.core.chat.RevealAi
+import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.ui.common.showReplacing
 import kotlinx.coroutines.launch
@@ -51,6 +52,7 @@ fun SettingsScreen(
     ai: AiService,
     session: GameSession?,
     snackbarHostState: SnackbarHostState,
+    data: GameData? = null,
 ) {
     val loaded by ai.settings.collectAsStateWithLifecycle()
     val base = loaded
@@ -58,7 +60,7 @@ fun SettingsScreen(
         Text(stringResource(R.string.settings_loading), modifier = Modifier.padding(16.dp))
         return
     }
-    SettingsForm(ai, base, session, snackbarHostState)
+    SettingsForm(ai, base, session, snackbarHostState, data)
 }
 
 @Composable
@@ -67,6 +69,7 @@ private fun SettingsForm(
     base: AiSettings,
     session: GameSession?,
     snackbarHostState: SnackbarHostState,
+    data: GameData?,
 ) {
     val scope = rememberCoroutineScope()
     var draft by remember { mutableStateOf(base) }
@@ -158,6 +161,7 @@ private fun SettingsForm(
             onChargingOnly = { draft = draft.copy(onDeviceChargingOnly = it) },
             onTimeoutSec = { draft = draft.copy(onDeviceTimeoutSec = it) },
         )
+        OnDeviceDebugSection(ai, data)
         HorizontalDivider()
 
         Text(stringResource(R.string.settings_budget), style = MaterialTheme.typography.titleSmall)

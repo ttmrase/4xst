@@ -368,7 +368,7 @@ fun CrownfallNavHost(
                     }
                     composable(Screen.Settings.route) {
                         val r = startup as? Startup.Ready
-                        SettingsScreen(ai, r?.session, snackbarHostState)
+                        SettingsScreen(ai, r?.session, snackbarHostState, r?.data)
                     }
                     val implemented =
                         setOf(

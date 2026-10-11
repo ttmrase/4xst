@@ -54,4 +54,81 @@ object ResponseParser {
             unquote(m.groupValues[1])?.let { SpokenLine(fallbackSpeaker, it) }
         }.toList()
     }
+
+    private val JA_CHARS = Regex("[\\u3040-\\u30FF\\u4E00-\\u9FFF]")
+    private val EN_CHARS = Regex("[A-Za-z]")
+    private val LEADING_MARKUP = Regex("^[\\s>＞#*\\-•`_~]+")
+    private val NAME_LABEL = Regex("^[\\p{L}\\p{N}_ \\u3000・\\-]{1,20}[:：]\\s*")
+    private val OPEN_QUOTES = Regex("^[\"'“”‘「『（(]+")
+    private val CLOSE_QUOTES = Regex("[\"'“”’」』）)]+$")
+    private val MARKUP_INSIDE = Regex("(\\*\\*|__|`|~~)")
+    private const val SENTENCE_ENDS = "。！？!?"
+    private const val CLOSERS = "」』）)\"'”’"
+    private const val MAX_SENTENCES = 2
+    private const val MIN_CHARS = 2
+    private const val MAX_CHARS = 120
+    private const val ECHO_WINDOW = 12
+
+    /**
+     * 小型モデルのプレーンテキスト出力を、1 人分のセリフ（最大 2 文）に整える。使えない出力は null（次のプロバイダへ回す）。
+     * 最初の空でない行だけを採り、先頭の「名前:」「名前：」「>」「"」「「」や Markdown の記号を剥がす。
+     * 次のどれかなら null: `{` `}` "speaker" を含む / [locale] の文字（ja はかな・漢字、en は英字）が無い /
+     * 2 文字未満か 120 文字超 / [prompt] の反復 / [previous]（直前の行）と同じ。
+     */
+    fun plain(
+        text: String,
+        locale: String,
+        prompt: String = "",
+        previous: List<String> = emptyList(),
+    ): String? {
+        if ('{' in text || '}' in text || text.contains("speaker", ignoreCase = true)) return null
+        val first =
+            text.lineSequence().map { it.trim() }
+                .firstOrNull { it.isNotEmpty() && !it.startsWith("```") } ?: return null
+        var line = first.replace(LEADING_MARKUP, "")
+        line = line.replace(NAME_LABEL, "").replace(OPEN_QUOTES, "").replace(MARKUP_INSIDE, "").trim()
+        line = firstSentences(line).replace(CLOSE_QUOTES, "").trim()
+        val chars = if (locale == "en") EN_CHARS else JA_CHARS
+        val bad =
+            line.length < MIN_CHARS || line.length > MAX_CHARS || !chars.containsMatchIn(line) ||
+                echoesPrompt(line, prompt) || previous.any { same(it, line) }
+        return if (bad) null else line
+    }
+
+    private fun firstSentences(s: String): String {
+        var count = 0
+        var i = 0
+        while (i < s.length) {
+            val c = s[i]
+            val end = c in SENTENCE_ENDS || (c == '.' && (i + 1 == s.length || s[i + 1].isWhitespace()))
+            if (!end) {
+                i++
+                continue
+            }
+            var j = i + 1
+            while (j < s.length && (s[j] in SENTENCE_ENDS || s[j] in CLOSERS)) j++
+            if (++count == MAX_SENTENCES) return s.substring(0, j)
+            i = j
+        }
+        return s
+    }
+
+    private fun normalize(s: String): String = s.filter { it.isLetterOrDigit() }.lowercase()
+
+    private fun same(
+        a: String,
+        b: String,
+    ): Boolean = normalize(a).let { it.isNotEmpty() && it == normalize(b) }
+
+    /** 返事の中の [ECHO_WINDOW] 文字以上が、そのままプロンプトにあれば反復とみなす（短い返事は完全一致だけ）。 */
+    private fun echoesPrompt(
+        line: String,
+        prompt: String,
+    ): Boolean {
+        if (prompt.isEmpty()) return false
+        val n = normalize(line)
+        val p = normalize(prompt)
+        if (n.length < ECHO_WINDOW) return false
+        return (0..n.length - ECHO_WINDOW).any { p.contains(n.substring(it, it + ECHO_WINDOW)) }
+    }
 }

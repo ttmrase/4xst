@@ -56,9 +56,20 @@ class AiRouter(
                 continue
             }
             val lines = attempt(provider, request, cfg)
-            if (lines != null) return ChatResponse(lines)
+            if (lines != null) return ChatResponse(lines + fillRest(id, lines, request))
         }
         return ChatResponse(scripted.generate(request))
+    }
+
+    /** 端末内 LLM は 1 リクエストで話せる人数に上限がある。話者が余ったぶんは Scripted で埋める。 */
+    private fun fillRest(
+        providerId: String,
+        lines: List<com.ttmrase.crownfall.ai.SpokenLine>,
+        request: ChatRequest,
+    ): List<com.ttmrase.crownfall.ai.SpokenLine> {
+        if (providerId != OnDeviceProvider.ID) return emptyList()
+        val rest = request.speakers.drop(lines.size)
+        return if (rest.isEmpty()) emptyList() else scripted.generate(request.copy(speakers = rest))
     }
 
     private fun overBudget(cfg: RouterConfig): Boolean =

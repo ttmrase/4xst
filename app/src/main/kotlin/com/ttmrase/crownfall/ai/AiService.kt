@@ -4,8 +4,11 @@ import android.content.Context
 import android.os.BatteryManager
 import com.ttmrase.crownfall.ai.providers.GeminiProvider
 import com.ttmrase.crownfall.ai.providers.OnDeviceChatProvider
+import com.ttmrase.crownfall.ai.providers.OnDeviceDebugLog
 import com.ttmrase.crownfall.ai.providers.OpenAiCompatProvider
+import com.ttmrase.crownfall.ai.providers.ResponseParser
 import com.ttmrase.crownfall.ai.providers.ScriptedProvider
+import com.ttmrase.crownfall.ai.providers.SmallModelPrompt
 import com.ttmrase.crownfall.ai.router.AiRouter
 import com.ttmrase.crownfall.ai.router.UsageLog
 import com.ttmrase.crownfall.core.data.GameData
@@ -13,6 +16,7 @@ import com.ttmrase.crownfall.core.util.SystemClock
 import com.ttmrase.crownfall.ondevice.LiteRtLmEngine
 import com.ttmrase.crownfall.ondevice.OnDeviceLlmEngine
 import com.ttmrase.crownfall.ondevice.OnDeviceModelStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
@@ -38,6 +43,9 @@ class AiService(
 
     /** 端末内 LLM の実行エンジン（ランタイムはここに閉じ込める）。 */
     private val onDeviceEngine: OnDeviceLlmEngine = LiteRtLmEngine(context, modelStore)
+
+    /** 端末内 LLM の直近の入出力（設定のデバッグ表示用。メモリ上だけで、保存しない）。 */
+    val debugLog = OnDeviceDebugLog()
 
     private val _settings = MutableStateFlow<AiSettings?>(null)
     private val usage = UsageLog(PrefsUsageStore(context)) { SystemClock.nowEpochSec() }
@@ -77,6 +85,7 @@ class AiService(
                         generator = { system, prompt -> onDeviceEngine.generate(system, prompt) },
                         chargingOnly = { current().onDeviceChargingOnly },
                         charging = ::isCharging,
+                        debug = debugLog,
                     ),
                     OpenAiCompatProvider(
                         client,
@@ -90,6 +99,38 @@ class AiService(
             usage = usage,
         )
 
+    /** 設定の「テスト発話」の結果。[text] が null なら失敗（[error] に理由）。[millis] は生成にかかった時間。 */
+    data class TestUtterance(
+        val text: String?,
+        val millis: Long,
+        val error: String? = null,
+    )
+
+    /** いまのモデルで Kaede に一言言わせる（ルーターも予算も通さない）。生成時間も返す。 */
+    suspend fun testUtterance(data: GameData): TestUtterance {
+        if (!onDeviceEngine.isModelReady()) return TestUtterance(null, 0, "no_model")
+        val locale = Locale.getDefault().language
+        val request = SmallModelPrompt.testRequest(data, locale)
+        val speaker = request.speakers.first()
+        val built = SmallModelPrompt.build(request, speaker)
+        val started = System.nanoTime()
+        return try {
+            val raw = onDeviceEngine.generate(built.system, built.prompt)
+            val millis = (System.nanoTime() - started) / NANOS_PER_MS
+            val cleaned = ResponseParser.plain(raw, locale, built.system + "\n" + built.prompt)
+            debugLog.record(OnDeviceDebugLog.Entry(speaker, built.system, built.prompt, raw, cleaned, millis))
+            TestUtterance(
+                cleaned ?: raw.trim().take(RAW_PREVIEW_CHARS),
+                millis,
+                if (cleaned == null) "rejected" else null,
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            TestUtterance(null, (System.nanoTime() - started) / NANOS_PER_MS, e::class.simpleName ?: "error")
+        }
+    }
+
     /** 背景に入るとき、端末内 LLM のメモリを空ける。 */
     fun releaseOnDevice() = onDeviceEngine.release()
 
@@ -99,5 +140,7 @@ class AiService(
         const val CONNECT_SEC = 5L
         const val READ_SEC = 10L
         const val CALL_SEC = 12L
+        const val RAW_PREVIEW_CHARS = 200
+        const val NANOS_PER_MS = 1_000_000L
     }
 }

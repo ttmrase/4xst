@@ -2,6 +2,7 @@ package com.ttmrase.crownfall.core.chat
 
 import com.ttmrase.crownfall.core.alliance.Personas
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.data.PersonaDef
 import com.ttmrase.crownfall.core.economy.PowerCalculator
 import com.ttmrase.crownfall.core.march.Marching
 import com.ttmrase.crownfall.core.model.BattleKind
@@ -23,6 +24,18 @@ data class PromptTurn(val speaker: String, val text: String)
 data class Prompt(val system: String, val turns: List<PromptTurn>)
 
 /**
+ * 小型モデル向けに絞ったペルソナの要約。[displayName] は表示名（ID ではない）、[callName] はプレイヤーの呼び方、
+ * [voice] は口調と性格の短い説明、[examples] は口調の例（定型文から）。
+ */
+data class PersonaBrief(
+    val id: String,
+    val displayName: String,
+    val callName: String,
+    val voice: String,
+    val examples: List<String>,
+)
+
+/**
  * プロンプトの組み立て（純粋な文字列生成。03 §4）。
  * 端末 ID・連絡先・API キーは決して含めない。ゲーム内の名前（プレイヤー名）と、ゲーム状態の要約だけを渡す。
  */
@@ -33,6 +46,11 @@ object PromptContextBuilder {
     private const val HIGH_PCT = 80
     private const val PERCENT = 100
     private const val SECONDS_PER_DAY = 86_400L
+    private const val BRIEF_EXAMPLES = 3
+    private const val BRIEF_ENDINGS = 3
+    private const val BRIEF_TRAITS = 2
+    private const val TRAIT_HIGH = 700
+    private const val TRAIT_LOW = 300
 
     /** [pending] に対するプロンプト。 */
     fun build(
@@ -45,6 +63,77 @@ object PromptContextBuilder {
         val trigger = PromptTurn("system", describe(state, pending, data))
         val turns = history.map { PromptTurn(it.speaker, it.text) } + trigger
         return Prompt(system(state, pending, data, reveal), turns)
+    }
+
+    /** 小型モデル向けに、発言者ごとの要約（表示名・呼び方・口調・例文）を作る。 */
+    fun briefs(
+        state: GameState,
+        pending: PendingChat,
+        data: GameData,
+    ): List<PersonaBrief> {
+        val default = data.templates.labels["call.default"] ?: "領主さん"
+        return pending.speakers.mapNotNull { data.personas.persona(it) }.map { p ->
+            val lv = state.alliance.favorLevel[p.id] ?: 0
+            brief(p, Personas.callName(p, lv, state.playerName, default))
+        }
+    }
+
+    /** [p] の要約。[callName] はプレイヤーの呼び方。 */
+    fun brief(
+        p: PersonaDef,
+        callName: String,
+    ): PersonaBrief =
+        PersonaBrief(
+            id = p.id,
+            displayName = p.displayName,
+            callName = callName,
+            voice = voiceOf(p),
+            examples = p.speechStyle.samples.sortedBy { it.length }.take(BRIEF_EXAMPLES),
+        )
+
+    /** 会話履歴の発言者 ID から表示名を引く表（ペルソナ、プレイヤー、ワールドの NPC）。 */
+    fun names(
+        state: GameState,
+        data: GameData,
+    ): Map<String, String> =
+        data.personas.personas.associate { it.id to it.displayName } +
+            ("player" to state.playerName.ifBlank { data.templates.labels["call.default"] ?: "領主" })
+
+    /** きっかけの説明（1 文）。小型モデルのユーザーメッセージの先頭に置く。 */
+    fun situation(
+        state: GameState,
+        pending: PendingChat,
+        data: GameData,
+    ): String {
+        // きっかけの文には内部の ID（kaede など）が入ることがある。小型モデルには表示名だけを見せる。
+        var text = situationText(state, pending, data)
+        for (p in data.personas.personas) {
+            text = text.replace(Regex("(?<![A-Za-z0-9_])${Regex.escape(p.id)}(?![A-Za-z0-9_])"), p.displayName)
+        }
+        return text
+    }
+
+    private fun voiceOf(p: PersonaDef): String {
+        val region =
+            when (p.region) {
+                "kansai" -> "関西弁"
+                "de" -> "英語まじり"
+                "us" -> "ノリが軽い"
+                else -> ""
+            }
+        val traits =
+            buildList {
+                val t = p.personality
+                if (t.extraversion >= TRAIT_HIGH) add("社交的")
+                if (t.extraversion <= TRAIT_LOW) add("寡黙")
+                if (t.caring >= TRAIT_HIGH) add("面倒見がよい")
+                if (t.aggression >= TRAIT_HIGH) add("好戦的")
+                if (t.meticulous >= TRAIT_HIGH) add("几帳面")
+                if (t.humor >= TRAIT_HIGH) add("ユーモアがある")
+            }
+        val ends = p.speechStyle.endings.take(BRIEF_ENDINGS).joinToString("・")
+        val head = listOf(region, "語尾は$ends").filter { it.isNotEmpty() }.joinToString("、")
+        return if (traits.isEmpty()) head else "$head。${traits.take(BRIEF_TRAITS).joinToString("で")}"
     }
 
     private fun system(
@@ -70,16 +159,14 @@ object PromptContextBuilder {
         b.appendLine(stateSummary(state, data))
         b.appendLine()
         b.appendLine("## ルール")
-        b.appendLine("- 1 行は 1〜2 文、日本語。絵文字はキャラクターの口調に合わせ、使いすぎない。")
-        b.appendLine("- ゲーム外の話題は軽く。現実のお金の話は「擬似課金」というゲーム内の世界観の範囲で（ジョニーの自慢は可）。")
-        b.appendLine("- 個人情報（本名・住所・連絡先など）を聞かない。URL を書かない。")
+        b.appendLine("- 短く自然に、1 行 1〜2 文の日本語で。毎回ゲームの状況に触れなくてよい。軽い脱線やユーモアは歓迎。")
+        b.appendLine("- 個人情報（本名・住所・連絡先など）を聞かない。URL を書かない。現実のお金の話は「擬似課金」の世界観の範囲で。")
         b.appendLine(
             when (reveal) {
-                RevealAi.AMBIGUOUS -> "- 「あなたは AI ですか」と聞かれても、否定も断定もせず軽くはぐらかす。"
-                RevealAi.ADMIT -> "- 「あなたは AI ですか」と聞かれたら、AI が演じるキャラクターであることを正直に答える。"
+                RevealAi.AMBIGUOUS -> "- 「あなたは AI ですか」と聞かれても、否定も断定もせず軽くはぐらかす。ゲームの状態は変えない。"
+                RevealAi.ADMIT -> "- 「あなたは AI ですか」と聞かれたら、AI が演じるキャラクターだと正直に答える。ゲームの状態は変えない。"
             },
         )
-        b.appendLine("- ゲームの状態は変えない（会話だけ）。")
         b.appendLine()
         b.appendLine("## 出力形式")
         b.append("次の JSON だけを出力する: {\"lines\":[{\"speaker\":\"<キャラクターのid>\",\"text\":\"<発言>\"}]}")
@@ -158,6 +245,14 @@ object PromptContextBuilder {
         state: GameState,
         pending: PendingChat,
         data: GameData,
+    ): String =
+        "${state.playerName.ifBlank { "領主" }}への発言のきっかけ: ${situationText(state, pending, data)} " +
+            "発言できるキャラクター: ${pending.speakers.joinToString()}"
+
+    private fun situationText(
+        state: GameState,
+        pending: PendingChat,
+        data: GameData,
     ): String {
         val labels = data.templates.labels
         val vars = ChatContext.vars(state, pending.event, data)
@@ -194,6 +289,6 @@ object PromptContextBuilder {
                         "Yuki が久しぶりにログインした。みんなに挨拶する。"
                     }
             }
-        return "${state.playerName.ifBlank { "領主" }}への発言のきっかけ: $text 発言できるキャラクター: ${pending.speakers.joinToString()}"
+        return text
     }
 }

@@ -17,6 +17,7 @@ object ChatRequestFactory {
         data: GameData,
         recent: List<String> = emptyList(),
         reveal: RevealAi = RevealAi.AMBIGUOUS,
+        locale: String = "ja",
     ): ChatRequest {
         val prompt = PromptContextBuilder.build(state, pending, data, reveal)
         return ChatRequest(
@@ -31,6 +32,10 @@ object ChatRequestFactory {
             knownSpeakers =
                 data.personas.personas.map { it.id }.toSet() +
                     data.personas.worldNpcNames.map { "world:$it" },
+            personas = PromptContextBuilder.briefs(state, pending, data),
+            names = PromptContextBuilder.names(state, data),
+            situation = PromptContextBuilder.situation(state, pending, data),
+            locale = locale,
         )
     }
 
