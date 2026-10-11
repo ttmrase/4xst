@@ -137,6 +137,7 @@ fun CrownfallNavHost(
             }
         }
     var vipActive by remember { mutableStateOf(false) }
+    var featureActive by remember { mutableStateOf(false) }
     // 退出前オファーの流れ: 0 = なし、1 = 「待って！」を出している、2 = 閉じ終えたのでタイトルへ戻る確認
     var exitStage by rememberSaveable { mutableIntStateOf(0) }
     // 毎秒変わる状態を NavHost で読まない。必要な値だけを取り出し、変わったときだけ再構図する。
@@ -455,7 +456,7 @@ fun CrownfallNavHost(
             session = ready.session,
             data = ready.data,
             coordinator = sessionCoordinator,
-            busy = billingId != null || vipActive,
+            busy = billingId != null || vipActive || featureActive,
             onBuy = {
                 billingId = it
                 // 退出オファーを買いに行ったら、タイトルへの確認は出さず城内に残る
@@ -469,6 +470,7 @@ fun CrownfallNavHost(
             data = ready.data,
             target = { f -> BottomDestination.entries.indexOfFirst { it.feature == f }.takeIf { it >= 0 } },
             modifier = Modifier.fillMaxSize().statusBarsPadding(),
+            onActive = { featureActive = it },
         )
         lockedFeature?.let { f ->
             LockedFeatureDialog(

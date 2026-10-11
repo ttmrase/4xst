@@ -61,7 +61,8 @@ class CastleProgressionTest {
         )
         val elapsed = s.nowEpochSec - start
         System.err.println("CASTLE5 game-time=${elapsed}s (${elapsed / 60} min)")
-        assertTrue(elapsed < 3600, "took ${elapsed}s")
+        // M11 T11.1 の調整で序盤を延ばした（クエスト報酬を使わない自動ビルダーで Lv5 まで約 70 分。現実的なプレイヤーは約 25 分）
+        assertTrue(elapsed < 2 * 3600, "took ${elapsed}s")
         assertEquals(0, s.gems - data.rules.newGame.gems) // ジェムは一切使っていない
     }
 }

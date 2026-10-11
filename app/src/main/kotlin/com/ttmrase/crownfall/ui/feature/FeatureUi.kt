@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -325,6 +326,8 @@ fun FeatureOverlays(
     data: GameData,
     target: (Feature) -> Int?,
     modifier: Modifier = Modifier,
+    /** 解放の演出が出ている間 true（オファーを上に重ねないため。VIP のシネマと同じ扱い）。 */
+    onActive: (Boolean) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val pendingFlow =
@@ -332,6 +335,9 @@ fun FeatureOverlays(
             session.state.map { s -> if (s == null) emptyList() else pendingUnlocks(s, data) }.distinctUntilChanged()
         }
     val pending by pendingFlow.collectAsStateWithLifecycle(emptyList())
+    val active = pending.isNotEmpty()
+    LaunchedEffect(active) { onActive(active) }
+    DisposableEffect(Unit) { onDispose { onActive(false) } }
     val claimFlow =
         remember(session, data) {
             session.state.map { s -> if (s == null) emptyList() else claimableRewards(s, data) }.distinctUntilChanged()

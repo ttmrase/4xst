@@ -44,7 +44,7 @@ class UiQueriesTest {
         assertTrue(p.missing.isZero)
         assertNull(p.blocker)
         assertTrue(p.unmetPrereqs.isEmpty())
-        assertEquals(10, p.durationSec)
+        assertEquals(data.building(BuildingType.CASTLE).level(2).seconds, p.durationSec)
         assertTrue(p.currentEffects.isNotEmpty() && p.nextEffects.isNotEmpty())
         assertNull(p.upgrading)
     }

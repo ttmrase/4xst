@@ -230,7 +230,7 @@ class GameSessionTest {
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { s.events.collect { seen.add(it) } }
             val castle = TestSupport.slotOf(s.state.value!!, BuildingType.CASTLE)
             s.dispatch { Actions.startUpgrade(it, castle, data) }
-            clock.advance(60)
+            clock.advance(data.building(BuildingType.CASTLE).level(2).seconds + 10)
             s.advanceToNow()
             assertTrue(seen.any { it is GameEvent.BuildingLevelUp && it.newLevel == 2 }, "$seen")
             assertIs<GameEvent.TimerCompleted>(seen.first { it is GameEvent.TimerCompleted })

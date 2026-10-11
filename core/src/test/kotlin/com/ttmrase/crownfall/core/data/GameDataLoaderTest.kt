@@ -68,11 +68,10 @@ class GameDataLoaderTest {
     @Test
     fun castleSecondsHitAnchors() {
         val castle = data.building(BuildingType.CASTLE)
-        mapOf(5 to 300L, 10 to 3600L, 15 to 43200L, 20 to 172800L, 25 to 604800L).forEach { (lv, target) ->
+        mapOf(2 to 140L, 5 to 1000L, 10 to 14400L, 15 to 43200L, 20 to 172800L, 25 to 604800L).forEach { (lv, target) ->
             val got = castle.level(lv).seconds
             assertTrue(got in (target * 9 / 10)..(target * 11 / 10), "Castle Lv$lv seconds=$got target=$target")
         }
-        assertTrue(castle.level(2).seconds in 5..20)
     }
 
     @Test
