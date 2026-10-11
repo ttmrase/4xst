@@ -1,9 +1,12 @@
 package com.ttmrase.crownfall
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ttmrase.crownfall.core.data.ClasspathDataSource
@@ -77,6 +80,11 @@ class FeatureUnlockUiTest {
             var shots = 0
             // 解放の演出は 1 つずつ（クエスト → ショップ）。OK で次へ。途中（アイコンが飛ぶ間）も撮る
             while (h.hasText(h.str(R.string.feature_unlock_title)) && shots < 4) {
+                // 解放の演出の最中は、オファーのポップアップ（閉じるボタン）が出ない
+                assertTrue(
+                    "no offer popup while the unlock ceremony is shown",
+                    !h.hasDescription(h.str(R.string.common_close)),
+                )
                 Screenshots.save("feat_unlock_lv3_${shots + 1}")
                 h.click(h.str(R.string.feature_unlock_ok))
                 Thread.sleep(250)
@@ -108,6 +116,23 @@ class FeatureUnlockUiTest {
             assertTrue(Feature.SHOP.id in h.state().features.firstUseClaimed)
             // もう一度受け取れない
             assertTrue(!FeatureGate.rewardClaimable(h.state(), data, Feature.SHOP))
+        }
+    }
+
+    @Test
+    fun theFirstCastleUpgradeOfAFreshGameShowsItsDuration() {
+        val h = AppHarness(rule)
+        h.seed(Preset.FRESH_START)
+        h.launchToCity()
+        h.step("fresh_castle_sheet") {
+            val castle = h.str(R.string.building_castle)
+            rule.waitUntil(20_000) {
+                rule.onAllNodesWithContentDescription(castle, substring = true).fetchSemanticsNodes().isNotEmpty()
+            }
+            rule.onAllNodesWithContentDescription(castle, substring = true)[0]
+                .performSemanticsAction(SemanticsActions.OnClick)
+            h.waitText(h.str(R.string.sheet_upgrade), timeoutMs = 20_000)
+            Screenshots.save("feat_fresh_castle_upgrade")
         }
     }
 
