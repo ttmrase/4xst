@@ -105,6 +105,9 @@ internal object MapLive {
             "gold" -> Color(0xFFFFD54F)
             "sakura" -> Color(0xFFFF9EC0)
             "dragon" -> Color(0xFFE03A4E)
+            "spring" -> Color(0xFFA5D6A7)
+            "autumn" -> Color(0xFFFFB74D)
+            "winter" -> Color(0xFFB3E5FC)
             else -> null
         }
 
@@ -128,7 +131,14 @@ internal object MapLive {
             val p = Offset(center.x + cos(a) * d, center.y + sin(a) * d)
             when (theme) {
                 "sakura" -> drawCircle(Color(0xCCFFC1D3), tile * 0.07f, p + Offset(0f, (seconds * 14f + i * 11f) % 12f))
-                "ice" -> drawCircle(Color(0xCCFFFFFF), tile * 0.05f, p + Offset(0f, (seconds * 10f + i * 7f) % 10f))
+                "ice", "winter" ->
+                    drawCircle(
+                        Color(0xCCFFFFFF),
+                        tile * 0.05f,
+                        p + Offset(0f, (seconds * 10f + i * 7f) % 10f),
+                    )
+                "spring" -> drawCircle(Color(0xCCFFD1DC), tile * 0.06f, p + Offset(0f, (seconds * 12f + i * 9f) % 12f))
+                "autumn" -> drawCircle(Color(0xCCE0792A), tile * 0.06f, p + Offset(0f, (seconds * 13f + i * 5f) % 12f))
                 // 竜: 火の粉が昇る
                 "dragon" -> drawCircle(Color(0xCCFF8A2A), tile * 0.05f, p - Offset(0f, (seconds * 16f + i * 9f) % 14f))
                 else -> drawCircle(Color(0xCCFFE082), tile * 0.05f * (0.6f + 0.4f * sin(seconds * 3f + i)), p)

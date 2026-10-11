@@ -1093,6 +1093,7 @@
     <string name="skin_bag_title">Skin lucky bag</string>
     <string name="skin_bag_sub">What you get is up to the bag. The rates are listed below.</string>
     <string name="skin_bag_rate">%1$s  %2$.1f%%  %3$s</string>
+    <string name="list_separator">, </string>
     <string name="skin_bag_pity">An SR or better is guaranteed within %1$d pulls (pity)</string>
     <string name="skin_bag_dup">A skin you already own becomes shards (N %1$d, R %2$d, SR %3$d, SSR %4$d). Exchange shards below.</string>
     <string name="skin_bag_one">1 pull 💎%1$d</string>
@@ -1125,11 +1126,16 @@
     <string name="skin_territory_ice">Frozen Territory</string>
     <string name="skin_territory_gold">Golden Territory</string>
     <string name="skin_territory_sakura">Sakura Territory</string>
+    <string name="skin_territory_spring">Spring Domain</string>
+    <string name="skin_territory_autumn">Autumn Domain</string>
+    <string name="skin_territory_winter">Winter Domain</string>
     <string name="skin_trail_flame">Flame March Trail</string>
     <string name="skin_trail_aurora">Aurora March Trail</string>
     <string name="skin_trail_petal">Petal March Trail</string>
     <string name="skin_frame_crystal">Crystal Avatar Frame</string>
     <string name="skin_frame_royal">Royal Avatar Frame</string>
+    <string name="skin_frame_champion">Champion avatar frame</string>
+    <string name="skin_champion_hint">Finish 1st in a weekly event to earn the Champion avatar frame.</string>
     <string name="skin_frame_ember">Ember Avatar Frame</string>
     <string name="skin_plate_frost">Frost Nameplate</string>
     <string name="skin_plate_gold">Golden Nameplate</string>

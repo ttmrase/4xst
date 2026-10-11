@@ -92,6 +92,19 @@ class SkinsTest {
     }
 
     @Test
+    fun theChampionFrameComesFromWinningAWeeklyEventAndSeasonalTerritoriesAreForSale() {
+        val s = shopGame()
+        assertFalse("frame_champion" in Skins.owned(s, data))
+        assertFalse("frame_champion" in Skins.owned(s.copy(eventBestRank = 2), data))
+        assertTrue("frame_champion" in Skins.owned(s.copy(eventBestRank = 1), data))
+        listOf("territory_spring", "territory_autumn", "territory_winter").forEach { id ->
+            val def = Skins.def(data, id)!!
+            assertEquals("territory", def.category)
+            assertTrue(def.priceYen > 0 && !def.limited)
+        }
+    }
+
+    @Test
     fun equipNeedsOwnershipAndTheRightCategory() {
         val s = Actions.fakePurchase(shopGame(), ProductIds.skin("castle_ice"), data).ok()
         assertEquals(ActionFailure.NotOwned, failure(Actions.equipSkin(s, "castle", "castle_gold", data)))

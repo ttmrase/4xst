@@ -1092,6 +1092,7 @@
     <string name="skin_bag_title">スキン福袋</string>
     <string name="skin_bag_sub">何が出るかは福袋次第。提供割合は下のとおりです。</string>
     <string name="skin_bag_rate">%1$s  %2$.1f%%  %3$s</string>
+    <string name="list_separator">・</string>
     <string name="skin_bag_pity">あと %1$d 回以内に SR 以上が必ず出ます（天井）</string>
     <string name="skin_bag_dup">持っているスキンが出ると欠片になります（N %1$d・R %2$d・SR %3$d・SSR %4$d 個）。欠片は下で交換できます。</string>
     <string name="skin_bag_one">1 回 💎%1$d</string>
@@ -1124,11 +1125,16 @@
     <string name="skin_territory_ice">氷結の領土</string>
     <string name="skin_territory_gold">黄金の領土</string>
     <string name="skin_territory_sakura">桜の領土</string>
+    <string name="skin_territory_spring">春の領地</string>
+    <string name="skin_territory_autumn">秋の領地</string>
+    <string name="skin_territory_winter">冬の領地</string>
     <string name="skin_trail_flame">炎の行軍跡</string>
     <string name="skin_trail_aurora">オーロラの行軍跡</string>
     <string name="skin_trail_petal">花びらの行軍跡</string>
     <string name="skin_frame_crystal">水晶のアバター枠</string>
     <string name="skin_frame_royal">王家のアバター枠</string>
+    <string name="skin_frame_champion">王者のアバター枠</string>
+    <string name="skin_champion_hint">週替わりイベントで 1 位になると「王者のアバター枠」がもらえます。</string>
     <string name="skin_frame_ember">熾火のアバター枠</string>
     <string name="skin_plate_frost">霜のネームプレート</string>
     <string name="skin_plate_gold">黄金のネームプレート</string>

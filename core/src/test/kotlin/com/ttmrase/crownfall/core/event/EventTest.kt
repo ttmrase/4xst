@@ -115,6 +115,8 @@ class EventTest {
         assertEquals(week + 1, s1.event.weekId)
         assertEquals(0L, s1.event.selfScore)
         assertTrue((results[0].params["rank"] ?: 0) in 1..11)
+        // 取った順位が記録される（イベント報酬スキンの解放条件）
+        assertEquals((results[0].params["rank"] ?: 0).toInt(), s1.eventBestRank)
         // さらに 1 日進めても二重に配られない
         val s2 = Simulation.tick(s1, 86_400, data).state
         assertEquals(1, s2.mails.count { it.systemCode == "event_result" })

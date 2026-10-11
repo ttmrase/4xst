@@ -34,6 +34,7 @@ object Skins {
                 when (s.unlock?.type) {
                     "vip" -> vip >= s.unlock.lv
                     "claimed" -> s.unlock.id in state.quest.claimed
+                    "event_rank" -> state.eventBestRank in 1..s.unlock.lv
                     else -> false
                 }
             }.map { it.id }

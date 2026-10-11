@@ -65,6 +65,10 @@ fun skinThemeColor(theme: String): Color =
         "sakura" -> Color(0xFFF08CAB)
         "flame" -> Color(0xFFEF6C3A)
         "dragon" -> Color(0xFFB0243A)
+        "spring" -> Color(0xFF8BC34A)
+        "autumn" -> Color(0xFFE08A2E)
+        "winter" -> Color(0xFF90CAF9)
+        "champion" -> Color(0xFFFFEE58)
         else -> Color(0xFF9AA0A6)
     }
 
@@ -92,6 +96,7 @@ fun LazyListScope.skinTab(
     data.skins.skins.filter { !it.limited && it.priceYen > 0 }.forEach { skin ->
         item(key = "r_" + skin.id) { SkinCard(skin, s, data, owned, onBuy, onPreview, onEquip) }
     }
+    item { Text(stringResource(R.string.skin_champion_hint), style = MaterialTheme.typography.bodySmall) }
     item { Text(stringResource(R.string.skin_bag_title), style = MaterialTheme.typography.titleMedium) }
     item { SkinBagCard(s, data, bagBusy, onBag) }
     item {
@@ -216,7 +221,7 @@ private fun SkinBagCard(
                         R.string.skin_bag_rate,
                         rarityName(rarity),
                         bp / 100.0,
-                        list.joinToString("・") { skinName(ctx, it.id) },
+                        list.joinToString(stringResource(R.string.list_separator)) { skinName(ctx, it.id) },
                     ),
                     color = rarityColor(rarityOf(rarity)),
                     style = MaterialTheme.typography.bodySmall,

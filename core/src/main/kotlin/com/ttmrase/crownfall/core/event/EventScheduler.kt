@@ -90,6 +90,7 @@ internal object EventScheduler {
                 "gems" to reward.gems,
             )
         s = MailBox.system(s, s.nowEpochSec, "event_result", params, events)
+        s = s.copy(eventBestRank = if (s.eventBestRank == 0) rank else minOf(s.eventBestRank, rank))
         return AllianceLogic.enqueueReactive(s, ChatEvent.EventRanking(rank), listOf(CHEER_LEADER), data)
     }
 

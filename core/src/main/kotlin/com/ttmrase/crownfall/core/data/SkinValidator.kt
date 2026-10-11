@@ -2,6 +2,8 @@ package com.ttmrase.crownfall.core.data
 
 /** skins.json の整合検証（違反は [GameDataException]）。 */
 internal object SkinValidator {
+    private val UNLOCK_TYPES = setOf("vip", "claimed", "event_rank")
+
     private const val BP_TOTAL = 10_000
     private const val MIN_PRICE = 1_220L
     private const val MAX_PRICE = 6_100L
@@ -20,7 +22,8 @@ internal object SkinValidator {
             if (s.limited && s.bag) fail("skins.json: ${s.id} cannot be both limited and in the bag")
             if (s.priceYen == 0L && !s.bag && s.unlock == null) fail("skins.json: ${s.id} cannot be obtained")
             s.unlock?.let { u ->
-                if (u.type !in setOf("vip", "claimed")) fail("skins.json: ${s.id} unknown unlock ${u.type}")
+                if (u.type !in UNLOCK_TYPES) fail("skins.json: ${s.id} unknown unlock ${u.type}")
+                if (u.type == "event_rank" && u.lv < 1) fail("skins.json: ${s.id} event_rank unlock needs lv")
                 if (u.type == "vip" && u.lv < 1) fail("skins.json: ${s.id} vip unlock needs lv")
                 if (u.type == "claimed" && u.id.isBlank()) fail("skins.json: ${s.id} claimed unlock needs id")
             }

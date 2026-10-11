@@ -153,6 +153,7 @@ fun TerritoryView(
     onBubbleTap: (slotId: Int, windowPos: Offset) -> Unit = { _, _ -> },
     /** 装備中の城のスキンのテーマ（ice / gold / sakura。null は標準）。 */
     castleSkin: String? = null,
+    territorySeason: String? = null,
 ) {
     val context = LocalContext.current
     val cache = remember { SpriteCache.shared(context) }
@@ -248,6 +249,7 @@ fun TerritoryView(
     }
     val painter = remember { TerritoryPainter() }
     painter.castleSkin = castleSkin
+    painter.season = territorySeason
     val res = context.resources
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -347,6 +349,7 @@ fun TerritoryView(
             ) { lv ->
                 res.getString(R.string.tile_level, lv)
             }
+            painter.drawSeason()
             if (currentBubbles.isNotEmpty()) painter.drawBubbles(frontToBack, currentBubbles)
         }
         // 画面の読み上げ・操作用: 区画ごとの透明なノード（ポインタ入力は受けず、タップは Canvas が処理する）
@@ -462,6 +465,9 @@ private class TerritoryPainter {
 
     /** 装備中の城のスキン（theme。無ければ標準）。M11 T11.4。 */
     var castleSkin: String? = null
+
+    /** 装備中の領地のテーマ（spring / autumn / winter は地面の色も変わる。無ければ標準）。M11 T11.4。 */
+    var season: String? = null
     private val iso = Matrix()
     private val ringPath = Path()
     private val arrowPath = Path()
@@ -529,12 +535,13 @@ private class TerritoryPainter {
 
     fun drawGround() {
         with(scope) {
-            drawRect(Color(0xFF1B3524))
+            drawRect(if (season == "winter") WINTER_BG else Color(0xFF1B3524))
+            val lawn = lawnColor()
             val m = isoMatrix()
             withTransform({ transform(m) }) {
                 // 草地（開かれた土地）。帯が進むと広がる
-                drawPath(scene.lawn[fromBand - 1], LAWN)
-                if (!settled && toBand != fromBand) drawPath(scene.lawn[toBand - 1], LAWN, alpha = ease)
+                drawPath(scene.lawn[fromBand - 1], lawn)
+                if (!settled && toBand != fromBand) drawPath(scene.lawn[toBand - 1], lawn, alpha = ease)
                 // 通り
                 drawPath(scene.streets[fromBand - 1], streetColor(fromBand))
                 if (!settled && toBand != fromBand) {
@@ -552,6 +559,34 @@ private class TerritoryPainter {
                     RIVER_FOAM,
                     style = FOAM_STROKE,
                 )
+            }
+        }
+    }
+
+    private fun lawnColor(): Color =
+        when (season) {
+            "spring" -> LAWN_SPRING
+            "autumn" -> LAWN_AUTUMN
+            "winter" -> LAWN_WINTER
+            else -> LAWN
+        }
+
+    /** 領地のテーマの粒（春・桜: 花びら / 秋: 落ち葉 / 冬・氷: 雪 / 金: きらめき / 竜: 火の粉）。画面の上から降る。 */
+    fun drawSeason() {
+        val theme = season ?: return
+        val spec = SEASON_PARTICLES[theme] ?: return
+        with(scope) {
+            val w = size.width
+            val h = size.height
+            val r = spec.radiusDp * density
+            for (i in 0 until SEASON_COUNT) {
+                val speed = spec.speed * (0.6f + (i % 5) * 0.2f)
+                val phase = (i * 0.6180339f) % 1f
+                val rise = spec.rising
+                val t = ((seconds * speed / h * density * 40f + phase) % 1f)
+                val y = if (rise) h * (1f - t) else h * t
+                val x = (phase * 7.3f % 1f) * w + sin(seconds * spec.sway + i) * 14f * density
+                drawCircle(spec.color, r * (0.7f + (i % 3) * 0.3f), Offset(x, y))
             }
         }
     }
@@ -1144,6 +1179,30 @@ private class TerritoryPainter {
         val FOAM_STROKE = Stroke(0.5f, cap = StrokeCap.Round, pathEffect = DASH)
         val GOLD = Color(0xFFC9A227)
         val LAWN = Color(0xFF5C9944)
+        val LAWN_SPRING = Color(0xFF6DBA55)
+        val LAWN_AUTUMN = Color(0xFF8E8A3A)
+        val LAWN_WINTER = Color(0xFFE3EBF0)
+        val WINTER_BG = Color(0xFF2C3B49)
+        const val SEASON_COUNT = 26
+
+        class SeasonParticle(
+            val color: Color,
+            val radiusDp: Float,
+            val speed: Float,
+            val sway: Float,
+            val rising: Boolean = false,
+        )
+
+        val SEASON_PARTICLES =
+            mapOf(
+                "spring" to SeasonParticle(Color(0xCCFFC1D3), 2.6f, 0.9f, 1.3f),
+                "sakura" to SeasonParticle(Color(0xCCFFC1D3), 2.6f, 0.9f, 1.3f),
+                "autumn" to SeasonParticle(Color(0xDDE0792A), 2.8f, 1.1f, 1.8f),
+                "winter" to SeasonParticle(Color(0xEEFFFFFF), 2.2f, 0.8f, 0.9f),
+                "ice" to SeasonParticle(Color(0xEEFFFFFF), 2.2f, 0.8f, 0.9f),
+                "gold" to SeasonParticle(Color(0xCCFFE082), 1.9f, 0.4f, 2.2f),
+                "dragon" to SeasonParticle(Color(0xCCFF8A2A), 1.9f, 0.9f, 1.6f, rising = true),
+            )
         val STREET_DIRT = Color(0xFF8E7B57)
         val STREET_COBBLE = Color(0xFF9A9486)
         val RIVER = Color(0xFF3E7FC4)

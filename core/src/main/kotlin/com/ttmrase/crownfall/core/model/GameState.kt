@@ -33,6 +33,8 @@ data class GameState(
     val lastBubbleCollect: Map<Int, Long> = emptyMap(),
     /** 城の昇格の演出を見せ終えた最高の Lv。0 は未記録（旧セーブ。最初に現在の Lv へ黙って追従する）。M11 T11.3。 */
     val celebratedCastleLv: Int = 0,
+    /** 週替わりイベントでこれまでに取った一番良い順位（1 が最高。0 は未参加）。スキンの解放条件に使う。M11 T11.4。 */
+    val eventBestRank: Int = 0,
     val starterHeroId: String? = null,
     val tutorialStep: Int = 0,
     val troops: Map<String, Long> = emptyMap(),

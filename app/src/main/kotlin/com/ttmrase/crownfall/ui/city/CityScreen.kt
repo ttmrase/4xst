@@ -178,6 +178,7 @@ fun CityScreen(
             tutorialSlotId = tutorialTargetSlotId(s),
             bubbles = bubbleKinds,
             castleSkin = Skins.equipped(s, data)[SkinCategory.CASTLE]?.theme,
+            territorySeason = Skins.equipped(s, data)[SkinCategory.TERRITORY]?.theme,
             onBubbleTap = { slotId, pos ->
                 scope.launch {
                     val before = session.state.value

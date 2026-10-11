@@ -14,7 +14,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +71,7 @@ private fun skinFrameColor(theme: String): Color =
         "flame" -> Color(0xFFFF7043)
         "sakura" -> Color(0xFFFF9EC0)
         "dragon" -> Color(0xFFE03A4E)
+        "champion" -> Color(0xFFFFF59D)
         else -> Color(0xFFB0B6BE)
     }
 
@@ -93,7 +96,8 @@ fun PortraitView(
     val skinPad = if (frameTheme != null) SKIN_WIDTH + 1.dp else 0.dp
     val pad = skinPad + (if (vip > 0) VIP_WIDTH + 1.dp else 0.dp) + (if (rarity != null) FRAME_WIDTH else 0.dp)
     val shine = rarity == HeroRarity.SSR && animationsEnabled()
-    val phase =
+    // 光の位相は描画の段で読む（毎フレーム再構図しない）
+    val phase: State<Float> =
         if (shine) {
             val t = rememberInfiniteTransition(label = "ptShine")
             t.animateFloat(
@@ -101,9 +105,9 @@ fun PortraitView(
                 1f,
                 infiniteRepeatable(tween(SHINE_MS, easing = LinearEasing), RepeatMode.Restart),
                 "p",
-            ).value
+            )
         } else {
-            0f
+            remember { mutableFloatStateOf(0f) }
         }
     val vipBrush = vipColors(vip)
     Box(
@@ -140,7 +144,7 @@ fun PortraitView(
                         val base = rarityColor(rarity)
                         val brush =
                             if (shine) {
-                                val x = (phase * 2.4f - 0.7f) * this.size.width
+                                val x = (phase.value * 2.4f - 0.7f) * this.size.width
                                 Brush.linearGradient(
                                     listOf(base, Color.White, base),
                                     Offset(x - this.size.width * 0.4f, 0f),

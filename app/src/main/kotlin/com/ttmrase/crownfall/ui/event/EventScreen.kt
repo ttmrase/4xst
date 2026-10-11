@@ -27,6 +27,7 @@ import com.ttmrase.crownfall.core.data.EventDef
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.event.WeeklyEvents
 import com.ttmrase.crownfall.core.session.GameSession
+import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
@@ -60,6 +61,7 @@ fun EventScreen(
     // 画面を開いた = イベントの「最初の使用」（解放済みのときだけ印が付く）
     LaunchedEffect(Unit) { session.dispatch { Actions.recordEventOpened(it, data) } }
     val s = state ?: return
+    val vip = VipCalculator.level(s, data)
     val def = WeeklyEvents.current(s, data)
     val end = WeeklyEvents.endEpochSec(s)
     // 順位表とスコアは 1 回だけ計算する（戦力の計算を伴う）。順位の差は表から導く
@@ -100,12 +102,12 @@ fun EventScreen(
         }
         item { Text(stringResource(R.string.event_standings), style = MaterialTheme.typography.titleMedium) }
         itemsIndexed(rows.take(TOP_ROWS), key = { i, _ -> i }) { i, row ->
-            StandingLine(i + 1, row.name, row.alliance, row.score, row.isPlayer, s.avatar)
+            StandingLine(i + 1, row.name, row.alliance, row.score, row.isPlayer, s.avatar, if (row.isPlayer) vip else 0)
         }
         if (rank > TOP_ROWS) {
             item {
                 val me = rows[rank - 1]
-                StandingLine(rank, me.name, me.alliance, me.score, true, s.avatar)
+                StandingLine(rank, me.name, me.alliance, me.score, true, s.avatar, vip)
             }
         }
         item { Text(stringResource(R.string.event_rewards), style = MaterialTheme.typography.titleMedium) }
@@ -147,6 +149,7 @@ private fun StandingLine(
     score: Long,
     isPlayer: Boolean,
     avatar: Int,
+    vip: Int,
 ) {
     val colors =
         if (isPlayer) {
@@ -160,7 +163,12 @@ private fun StandingLine(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PortraitView(if (isPlayer) PortraitKeys.avatar(avatar) else PortraitKeys.byName(name), name, 32.dp)
+            PortraitView(
+                if (isPlayer) PortraitKeys.avatar(avatar) else PortraitKeys.byName(name),
+                name,
+                32.dp,
+                vip = vip,
+            )
             val label = "$place  $name" + (alliance?.let { "  [$it]" } ?: "")
             Text(label, fontWeight = if (isPlayer) FontWeight.Bold else null, modifier = Modifier.weight(1f))
             Text(ShortNumber.format(score))

@@ -2,12 +2,21 @@ package com.ttmrase.crownfall.ui.shop
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,13 +28,16 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.core.model.ResourceType
+import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.glyph
@@ -42,6 +54,9 @@ private const val FLY_STAGGER_MS = 160L
 private const val CHEST_SFX_DELAY_MS = 600L
 private const val COIN_SFX_DELAY_MS = 350L
 private const val ICONS_START_MS = 1500L
+private const val CARD_STAGGER_MS = 220L
+private const val CARD_HOLD_MS = 900L
+private const val MAX_CARDS = 6
 
 private class Coin(
     val x: Float,
@@ -111,21 +126,69 @@ fun PurchaseCelebration(
         delay(COIN_SFX_DELAY_MS)
         Sfx.play(context, SfxId.COIN)
     }
-    val glyphs = remember(contents) { flyingGlyphs(contents) }
-    Box(modifier = modifier.fillMaxWidth().height(170.dp)) {
+    val cards = remember(contents) { celebrationCards(contents) }
+    val glyphs = remember(cards) { cards.map { it.glyph } }
+    // 宝箱が開いたあと、中身のカードが 1 枚ずつ並び、少し見せてから所持品へ飛ぶ
+    val flyStart = ICONS_START_MS + cards.size * CARD_STAGGER_MS + CARD_HOLD_MS
+    Box(modifier = modifier.fillMaxWidth().height(190.dp)) {
         TreasureChest(modifier = Modifier.align(Alignment.TopCenter))
-        Text("🎒", fontSize = 30.sp, modifier = Modifier.align(Alignment.BottomEnd))
-        glyphs.forEachIndexed { i, glyph -> FlyingIcon(glyph, delayMs = ICONS_START_MS + i * FLY_STAGGER_MS) }
+        Text("🎒", fontSize = 30.sp, modifier = Modifier.align(Alignment.CenterEnd))
+        Row(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            cards.forEachIndexed { i, card -> ItemCard(card, delayMs = ICONS_START_MS + i * CARD_STAGGER_MS) }
+        }
+        glyphs.forEachIndexed { i, glyph -> FlyingIcon(glyph, delayMs = flyStart + i * FLY_STAGGER_MS) }
     }
 }
 
-private fun flyingGlyphs(contents: PackContents): List<String> {
-    val list = mutableListOf<String>()
-    if (contents.gems > 0) list += "💎"
-    ResourceType.entries.forEach { if (contents.resources[it] > 0) list += it.glyph() }
-    if (contents.items.isNotEmpty()) list += "🎁"
-    if (contents.heroShards.isNotEmpty()) list += "⭐"
-    return list.take(6)
+/** 並べる 1 枚のカード（絵文字と量）。 */
+data class CelebrationCard(
+    val glyph: String,
+    val amount: String,
+)
+
+/** 宝箱の中身のカード（ジェム → 資源 → アイテム → 英雄のかけら。最大 6 枚）。純関数。 */
+fun celebrationCards(contents: PackContents): List<CelebrationCard> {
+    val list = mutableListOf<CelebrationCard>()
+    if (contents.gems > 0) list += CelebrationCard("💎", ShortNumber.format(contents.gems))
+    ResourceType.entries.forEach {
+        if (contents.resources[it] > 0) list += CelebrationCard(it.glyph(), ShortNumber.format(contents.resources[it]))
+    }
+    if (contents.items.isNotEmpty()) list += CelebrationCard("🎁", contents.items.values.sum().toString())
+    if (contents.heroShards.isNotEmpty()) list += CelebrationCard("⭐", contents.heroShards.values.sum().toString())
+    return list.take(MAX_CARDS)
+}
+
+@Composable
+private fun ItemCard(
+    card: CelebrationCard,
+    delayMs: Long,
+) {
+    val pop = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        delay(delayMs)
+        pop.animateTo(1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium))
+    }
+    val p = pop.value
+    if (p <= 0f) return
+    Column(
+        modifier =
+            Modifier
+                .graphicsLayer {
+                    scaleX = p
+                    scaleY = p
+                    alpha = p.coerceIn(0f, 1f)
+                }
+                .background(Color(0x66FFFFFF), RoundedCornerShape(8.dp))
+                .border(1.dp, FoilGold, RoundedCornerShape(8.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(card.glyph, fontSize = 20.sp)
+        Text(card.amount, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold))
+    }
 }
 
 @Composable
@@ -146,7 +209,7 @@ private fun androidx.compose.foundation.layout.BoxScope.FlyingIcon(
         modifier =
             Modifier
                 .align(Alignment.TopCenter)
-                .offset(x = (150f * p).dp, y = (40f + 110f * p).dp)
+                .offset(x = (150f * p).dp, y = (60f + 40f * p).dp)
                 .graphicsLayer {
                     val scale = 1f - 0.6f * p
                     scaleX = scale

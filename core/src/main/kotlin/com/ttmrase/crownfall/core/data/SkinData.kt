@@ -21,7 +21,8 @@ enum class SkinCategory(val id: String) {
 enum class SkinRarity { N, R, SR, SSR }
 
 /**
- * 解放の条件（購入以外）。`vip`: VIP Lv が [lv] 以上、`claimed`: クエスト [id] を受け取り済み。
+ * 解放の条件（購入以外）。`vip`: VIP Lv が [lv] 以上、`claimed`: クエスト [id] を受け取り済み、
+ * `event_rank`: 週替わりイベントで [lv] 位以内になったことがある。
  * 条件を満たすと自動で所持扱いになる（保存はしない）。
  */
 @Serializable
