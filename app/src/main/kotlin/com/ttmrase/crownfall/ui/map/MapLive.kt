@@ -1,26 +1,34 @@
 package com.ttmrase.crownfall.ui.map
 
+import android.graphics.Bitmap
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.map.StructureType
 import com.ttmrase.crownfall.core.map.WorldMap
 import com.ttmrase.crownfall.core.march.MarchKind
+import com.ttmrase.crownfall.core.march.MarchPhase
 import com.ttmrase.crownfall.core.march.MarchViews
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /** 装備中のスキンから決まる、マップの見た目（M11 T11.4）。null はすべて標準。 */
@@ -54,7 +62,14 @@ internal object MapLive {
     private val HOLY = Color(0xFFF5F0DC)
     private val FOG = Color(0xFF0F1A33)
     private val DUST = Color(0xFFD9C7A0)
+    private val HILL_DARK = Color(0xFF5B8A3F)
+    private val HILL_LIGHT = Color(0xFF7BA650)
+    private val HILL_ROCKS = listOf(-0.78f to 0.12f, 0.6f to 0.18f, -0.1f to 0.3f)
     private val GLYPH_STYLE = TextStyle(fontSize = 14.sp)
+
+    /** 描画のたびに作り直さず使い回す Path（メインスレッドの描画だけが使う）。 */
+    private val scratch = Path()
+    private val scratch2 = Path()
 
     fun nodeColor(t: ResourceType): Color =
         when (t) {
@@ -102,7 +117,9 @@ internal object MapLive {
     ) {
         val c = territoryColor(theme) ?: return
         val r = tile * 6f
-        drawCircle(Brush.radialGradient(listOf(c.copy(alpha = 0.28f), Color.Transparent), center, r), r, center)
+        drawCircle(c.copy(alpha = 0.08f), r, center)
+        drawCircle(c.copy(alpha = 0.08f), r * 0.8f, center)
+        drawCircle(c.copy(alpha = 0.08f), r * 0.55f, center)
         drawCircle(c.copy(alpha = 0.6f), r * 0.98f, center, style = Stroke(width = 2.5f))
         if (tile < LOD_FAR_DP * density) return
         repeat(14) { i ->
@@ -119,11 +136,30 @@ internal object MapLive {
         }
     }
 
-    /** 霧: 自城から遠いほど暗くなる（見える範囲は城の Lv で広がる）。 */
-    fun DrawScope.drawFog(
+    /**
+     * 霧のビットマップを焼く（1 タイル = 1px、城の Lv ごとに 1 回）。見える範囲の外ほど濃く、境目はなだらか。
+     * 描くときは拡大（双一次補間）で貼るので、毎フレームのタイルごとの矩形描画が要らない。
+     */
+    fun bakeFog(
         world: WorldMap,
         center: Pair<Int, Int>,
         radiusTiles: Float,
+    ): ImageBitmap {
+        val n = world.size
+        val pixels = IntArray(n * n)
+        for (y in 0 until n) {
+            for (x in 0 until n) {
+                val d = hypot((x - center.first).toFloat(), (y - center.second).toFloat())
+                val a = MapArt.smooth((d - radiusTiles) / FOG_SOFT_TILES) * FOG_MAX_ALPHA
+                pixels[y * n + x] = FOG.copy(alpha = a).toArgb()
+            }
+        }
+        return Bitmap.createBitmap(pixels, n, n, Bitmap.Config.ARGB_8888).asImageBitmap()
+    }
+
+    /** 焼いた霧を、見えているタイル範囲だけ貼る。 */
+    fun DrawScope.drawFog(
+        fog: ImageBitmap,
         x0: Int,
         y0: Int,
         x1: Int,
@@ -132,19 +168,17 @@ internal object MapLive {
         offX: Float,
         offY: Float,
     ) {
-        for (y in y0..y1) {
-            for (x in x0..x1) {
-                val d = hypot((x - center.first).toFloat(), (y - center.second).toFloat())
-                val a = MapArt.smooth((d - radiusTiles) / FOG_SOFT_TILES) * FOG_MAX_ALPHA
-                if (a > 0.01f) {
-                    drawRect(
-                        FOG.copy(alpha = a),
-                        Offset(offX + x * tile, offY + y * tile),
-                        Size(tile + 1f, tile + 1f),
-                    )
-                }
-            }
-        }
+        val w = x1 - x0 + 1
+        val h = y1 - y0 + 1
+        if (w <= 0 || h <= 0) return
+        drawImage(
+            fog,
+            srcOffset = IntOffset(x0, y0),
+            srcSize = IntSize(w, h),
+            dstOffset = IntOffset((offX + x0 * tile).roundToInt(), (offY + y0 * tile).roundToInt()),
+            dstSize = IntSize((w * tile).roundToInt(), (h * tile).roundToInt()),
+            filterQuality = FilterQuality.Low,
+        )
     }
 
     /** 昼夜の色味（全面に薄く重ねる）。 */
@@ -232,13 +266,12 @@ internal object MapLive {
             drawRect(Color(0xFF3A2A18), Offset(bx + bw * 0.4f, by + bh * 0.4f), Size(bw * 0.2f, bh * 0.6f))
             if (tile >= LOD_FAR_DP * density) {
                 drawLine(Color.Black, Offset(bx + bw / 2, by - tile * 0.22f), Offset(bx + bw / 2, by - tile * 0.5f), 2f)
-                val flag =
-                    Path().apply {
-                        moveTo(bx + bw / 2, by - tile * 0.5f)
-                        lineTo(bx + bw / 2 + tile * 0.22f, by - tile * 0.42f)
-                        lineTo(bx + bw / 2, by - tile * 0.34f)
-                        close()
-                    }
+                val flag = scratch
+                flag.rewind()
+                flag.moveTo(bx + bw / 2, by - tile * 0.5f)
+                flag.lineTo(bx + bw / 2 + tile * 0.22f, by - tile * 0.42f)
+                flag.lineTo(bx + bw / 2, by - tile * 0.34f)
+                flag.close()
                 drawPath(flag, if (st.type == StructureType.PLAYER_CASTLE) Color(0xFFD32F2F) else color)
             }
         }
@@ -259,8 +292,12 @@ internal object MapLive {
             val c = Offset(offX + (n.x + 0.5f) * tile, offY + (n.y + 0.5f) * tile)
             val pulse = 0.85f + 0.15f * sin(seconds * 2.4f + n.x * 0.7f + n.y)
             val color = nodeColor(n.type)
+            if (n.type == ResourceType.STONE) drawHill(c, tile)
             val r = tile * 0.55f * pulse
-            drawCircle(Brush.radialGradient(listOf(color.copy(alpha = 0.55f), Color.Transparent), c, r), r, c)
+            // 光は重ねた半透明の円（毎フレーム Brush を作らない）
+            drawCircle(color.copy(alpha = 0.16f), r, c)
+            drawCircle(color.copy(alpha = 0.22f), r * 0.72f, c)
+            drawCircle(color.copy(alpha = 0.3f), r * 0.45f, c)
             drawCircle(color, tile * 0.2f, c)
             drawCircle(Color.Black.copy(alpha = 0.5f), tile * 0.2f, c, style = Stroke(1.5f))
             if (tile >= LOD_FAR_DP * density) {
@@ -268,6 +305,20 @@ internal object MapLive {
                     drawText(it, topLeft = Offset(c.x - it.size.width / 2f, c.y - it.size.height / 2f - tile * 0.02f))
                 }
             }
+        }
+    }
+
+    /** 石のノードのまわりの丘: 草色のこんもりした盛り上がりと小さな岩（地面のキャッシュには入れず、ノードと一緒に描く）。 */
+    private fun DrawScope.drawHill(
+        c: Offset,
+        tile: Float,
+    ) {
+        if (tile < LOD_FAR_DP * density * 0.5f) return
+        drawOval(Color(0x33000000), Offset(c.x - tile * 0.95f, c.y + tile * 0.05f), Size(tile * 1.9f, tile * 0.7f))
+        drawOval(HILL_DARK, Offset(c.x - tile * 0.9f, c.y - tile * 0.45f), Size(tile * 1.8f, tile * 0.95f))
+        drawOval(HILL_LIGHT, Offset(c.x - tile * 0.7f, c.y - tile * 0.52f), Size(tile * 1.35f, tile * 0.7f))
+        for ((dx, dy) in HILL_ROCKS) {
+            drawOval(Color(0xFF8E8B82), Offset(c.x + tile * dx, c.y + tile * dy), Size(tile * 0.2f, tile * 0.13f))
         }
     }
 
@@ -285,13 +336,12 @@ internal object MapLive {
             val x = offX + b.x * tile
             val y = offY + b.y * tile
             drawOval(Color(0x40000000), Offset(x + tile * 0.1f, y + tile * 0.75f), Size(tile * 0.8f, tile * 0.2f))
-            val tent =
-                Path().apply {
-                    moveTo(x + tile * 0.12f, y + tile * 0.82f)
-                    lineTo(x + tile * 0.4f, y + tile * 0.3f)
-                    lineTo(x + tile * 0.68f, y + tile * 0.82f)
-                    close()
-                }
+            val tent = scratch
+            tent.rewind()
+            tent.moveTo(x + tile * 0.12f, y + tile * 0.82f)
+            tent.lineTo(x + tile * 0.4f, y + tile * 0.3f)
+            tent.lineTo(x + tile * 0.68f, y + tile * 0.82f)
+            tent.close()
             drawPath(tent, Color(0xFF8B3A2E))
             drawPath(tent, Color.Black, style = Stroke(1.5f))
             // 焚き火（炎の大きさと揺れは時間で変える）
@@ -299,18 +349,17 @@ internal object MapLive {
             val fy = y + tile * 0.78f
             val flick = 0.8f + 0.25f * sin(seconds * 9f + b.x * 1.7f) + 0.1f * sin(seconds * 17f + b.y)
             drawCircle(Color(0x55FF8A3D), tile * 0.3f * flick, Offset(fx, fy - tile * 0.12f))
-            val flame =
-                Path().apply {
-                    moveTo(fx - tile * 0.07f, fy)
-                    quadraticTo(
-                        fx - tile * 0.05f,
-                        fy - tile * 0.2f * flick,
-                        fx + sin(seconds * 6f) * tile * 0.03f,
-                        fy - tile * 0.3f * flick,
-                    )
-                    quadraticTo(fx + tile * 0.07f, fy - tile * 0.15f, fx + tile * 0.07f, fy)
-                    close()
-                }
+            val flame = scratch2
+            flame.rewind()
+            flame.moveTo(fx - tile * 0.07f, fy)
+            flame.quadraticTo(
+                fx - tile * 0.05f,
+                fy - tile * 0.2f * flick,
+                fx + sin(seconds * 6f) * tile * 0.03f,
+                fy - tile * 0.3f * flick,
+            )
+            flame.quadraticTo(fx + tile * 0.07f, fy - tile * 0.15f, fx + tile * 0.07f, fy)
+            flame.close()
             drawPath(flame, Color(0xFFFF8F00))
             drawCircle(Color(0xFFFFEB3B), tile * 0.04f, Offset(fx, fy - tile * 0.07f))
         }
@@ -335,13 +384,17 @@ internal object MapLive {
             drawLine(color.copy(alpha = 0.35f), castle, target, strokeWidth = 3f)
             val (mx, my) = MarchViews.position(m, nowSec, data)
             val head = Offset(offX + (mx + 0.5f) * tile, offY + (my + 0.5f) * tile)
+            // 進む向き: 往路は目標へ、復路は城へ。止まっている（待機・作業中）ときは向きだけ保ち、土ぼこりは出さない
+            val moving = m.phase == MarchPhase.OUTBOUND || m.phase == MarchPhase.RETURNING
+            val goal = if (m.phase == MarchPhase.RETURNING) castle else target
+            val aim = if (moving) goal - head else target - castle
             val dir =
-                (target - head).let { v ->
+                aim.let { v ->
                     val l = hypot(v.x, v.y).coerceAtLeast(1f)
                     Offset(v.x / l, v.y / l)
                 }
             // 土ぼこり（進行方向の後ろに、時間差で薄れる粒）
-            if (tile >= LOD_FAR_DP * density * 0.5f) {
+            if (moving && tile >= LOD_FAR_DP * density * 0.5f) {
                 repeat(6) { i ->
                     val u = i / 6f
                     val rise = -tile * 0.12f * u * (1f + sin(seconds * 5f + i))

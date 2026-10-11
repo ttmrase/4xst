@@ -35,7 +35,9 @@
   <path android:fillColor="#E8F6FF" android:strokeColor="#9CCBE6" android:strokeWidth="0.30" android:strokeLineJoin="round" android:pathData="M46.2,97.7L48.2,98.7L47.2,105.2Z" />
   <path android:fillColor="#E8F6FF" android:strokeColor="#9CCBE6" android:strokeWidth="0.30" android:strokeLineJoin="round" android:pathData="M51.8,100.5L53.8,101.5L52.8,110.0Z" />
   <path android:fillColor="#E8F6FF" android:strokeColor="#9CCBE6" android:strokeWidth="0.30" android:strokeLineJoin="round" android:pathData="M57.4,103.3L59.4,104.3L58.4,109.8Z" />
-  <path android:fillColor="#FFFFFF" android:fillAlpha="0.95" android:strokeColor="#CFE4F2" android:strokeWidth="0.40" android:strokeLineJoin="round" android:pathData="M75.0,89.0L73.9,90.8L70.9,92.3L66.4,93.1L61.6,93.1L57.1,92.3L54.1,90.8L53.0,89.0L54.1,87.2L57.1,85.7L61.6,84.9L66.4,84.9L70.9,85.7L73.9,87.2Z" />
+  <path android:fillColor="#C1C4C7" android:strokeColor="#636466" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M57.7,79.0L82.9,91.7L76.6,89.3L51.4,76.7Z" />
+  <path android:fillColor="#F7FBFF" android:strokeColor="#636466" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M45.1,85.4L70.3,97.9L76.6,89.3L51.4,76.7Z" />
+  <path android:fillColor="#949799" android:strokeColor="#636466" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M82.9,91.7L70.3,97.9L76.6,89.3Z" />
   <path android:fillColor="#D1F1FF" android:strokeColor="#536066" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M61.0,144.5L61.2,145.0L61.5,145.4L62.0,145.9L62.7,146.2L63.5,146.5L64.4,146.6L65.4,146.7L65.4,121.5Z" />
   <path android:fillColor="#99B2BD" android:strokeColor="#536066" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M65.4,146.7L66.4,146.6L67.3,146.5L68.1,146.2L68.8,145.9L69.3,145.4L69.6,145.0L69.8,144.5L65.4,121.5Z" />
   <path android:fillColor="#9FD8F7" android:strokeColor="#3E5663" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M58.5,143.7L58.6,143.9L58.8,144.2L59.1,144.4L59.4,144.6L59.9,144.7L60.4,144.8L60.9,144.8L60.9,131.0Z" />

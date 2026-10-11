@@ -176,13 +176,20 @@ def skin_front(sc, m, t, skin):
         for i, (x, y, z) in enumerate(edges):
             ln = 5 + (i * 7) % 5
             sc.poly([P(x - 0.07, y, z), P(x + 0.07, y, z), P(x, y, z - ln)], "#E8F6FF", "#9CCBE6", 0.3)
-        # 屋根の雪（主塔と塔の頂）
-        top = P(2.0, 2.0, kh + (rh * 0.55 if t >= 2 else 5))
-        sc.ellipse(top[0], top[1], 11, 4.2, "#FFFFFF", "#CFE4F2", 0.4, 0.95, 14)
+        # 屋根の雪（屋根の面に沿った白い帽子。主塔は上半分、塔は円錐の上半分）
+        white, edge = "#F7FBFF", "#C5DCEC"
         if t >= 2:
-            for (x, y) in ((0.55, 0.55), (3.45, 0.55), (0.55, 3.45), (3.45, 3.45)):
-                p = P(x, y, [0, 30, 38, 46, 56][t - 1] + 5)
-                sc.ellipse(p[0], p[1], 6, 2.6, "#FFFFFF", None, 0, 0.95, 10)
+            sc.pyramid(1.45, 1.45, 2.55, 2.55, kh + rh * 0.5, rh * 0.5, white, over=0.0)
+            snow_towers = ((0.55, 0.55), (3.45, 0.55), (0.55, 3.45), (3.45, 3.45)) if t >= 3 else \
+                ((0.55, 0.55), (3.45, 3.45))
+            for (x, y) in snow_towers:
+                th = [0, 30, 38, 46, 56][t - 1]
+                ch = 10 + t * 2
+                if (x, y) == (3.45, 3.45) and t == 2:
+                    th -= 4
+                sc.cone(x, y, 0.27, th + ch * 0.5, ch * 0.5, white, 0.0)
+        else:
+            sc.gable(1.1, 1.55, 2.9, 2.45, kh + 5.5, 5.5, white, over=0.0)
         # 手前の水晶の尖塔と、舞う雪の結晶
         for (x, y, h) in ((3.8, 3.7, 20 + t * 3), (0.2, 3.9, 14 + t * 2)):
             sc.cone(x, y, 0.22, 0, h, "#CFF0FF", 0.0)

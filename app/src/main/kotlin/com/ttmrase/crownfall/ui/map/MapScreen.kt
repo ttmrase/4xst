@@ -1,11 +1,5 @@
 package com.ttmrase.crownfall.ui.map
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -24,6 +18,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -31,11 +26,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -71,6 +68,7 @@ import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.glyph
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.ceil
@@ -167,13 +165,19 @@ private fun MapContent(
     val cacheScope = remember { MapChunkCache.newScope() }
     DisposableEffect(cacheScope) { onDispose { cacheScope.cancel() } }
     val chunks = remember(world) { MapChunkCache(world, s.map.seed, cacheScope) }
-    val tickTransition = rememberInfiniteTransition(label = "mapTick")
-    val tick by tickTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(TICK_MS, easing = LinearEasing), RepeatMode.Restart),
-        label = "tick",
-    )
+    // 動きのある部分（焚き火・光・行軍）は 24Hz で描き直す（街の画面と同じ。ドラッグ・ズーム中は操作のたびに即時に描く）
+    var tick by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            withFrameMillis { tick = it }
+            delay(TICK_GAP_MS)
+        }
+    }
+    val fogLv = castleLevel(s).toInt()
+    val fog =
+        remember(world, fogLv) {
+            MapLive.bakeFog(world, data.mapRules.center.x to data.mapRules.center.y, FOG_BASE + FOG_PER_LV * fogLv)
+        }
     val measurer = rememberTextMeasurer()
     val glyphs = remember(measurer) { HashMap<ResourceType, TextLayoutResult>() }
     val equipped = Skins.equipped(s, data)
@@ -193,10 +197,10 @@ private fun MapContent(
                     .transformable(transformState)
                     .pointerInput(Unit) { detectTapGestures { onTap(it) } },
         ) {
-            if (tick < 0f || chunks.version < 0) return@Canvas
+            if (tick < 0L || chunks.version < 0) return@Canvas
             if (!offX.isNaN() && !offY.isNaN()) {
                 drawWorld(
-                    world, chunks, s, data, basePx * scale, offX, offY, selected, style, dayNight,
+                    world, chunks, fog, s, data, basePx * scale, offX, offY, selected, style, dayNight,
                     { t -> glyphs.getOrPut(t) { measurer.measure(t.glyph(), GLYPH_STYLE) } },
                 ) {
                     clock?.value ?: s.nowEpochSec
@@ -283,6 +287,7 @@ private fun MapContent(
 private fun DrawScope.drawWorld(
     world: WorldMap,
     chunks: MapChunkCache,
+    fog: ImageBitmap,
     s: GameState,
     data: GameData,
     tile: Float,
@@ -352,7 +357,7 @@ private fun DrawScope.drawWorld(
     val castleCenter = Offset(offX + (center.x + HALF) * tile, offY + (center.y + HALF) * tile)
     with(MapLive) {
         drawTerritory(castleCenter, tile, style.territoryTheme, seconds)
-        drawFog(world, center.x to center.y, FOG_BASE + FOG_PER_LV * castleLevel(s), x0, y0, x1, y1, tile, offX, offY)
+        drawFog(fog, x0, y0, x1, y1, tile, offX, offY)
         drawStructures(world, tile, offX, offY, style.castleTheme, ::visible)
         drawNodes(s, tile, offX, offY, seconds, glyph, ::visible)
         drawCamps(s, tile, offX, offY, seconds, ::visible)
@@ -384,7 +389,9 @@ private fun flatColor(t: Terrain): Color =
     }
 
 private const val LOOP_MS = 600_000L
-private const val TICK_MS = 1000
+
+/** 24Hz 相当（フレーム待ち 約 16ms の前に挟む待ち）。 */
+private const val TICK_GAP_MS = 25L
 private val GLYPH_STYLE = androidx.compose.ui.text.TextStyle(fontSize = 14.sp)
 private const val FOG_BASE = 24f
 private const val FOG_PER_LV = 1.5f

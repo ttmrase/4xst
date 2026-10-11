@@ -52,4 +52,36 @@ class MapArtTest {
             assertTrue(MapChunkCache.resolutionFor(px * 2f) <= px.coerceAtLeast(MapChunkCache.LEVELS.last()))
         }
     }
+
+    @Test
+    fun snowIsInTheNorthSandInTheSouthEastAndTheCastleSurroundingsAreClear() {
+        val n = world.size
+        assertTrue(MapArt.snowT(n / 2, 0, n, 42L) > 0.9f)
+        assertTrue(MapArt.sandT(n - 1, n - 1, n, 42L) > 0.9f)
+        val c = data.mapRules.center
+        assertEquals(0f, MapArt.snowT(c.x, c.y, n, 42L), 0f)
+        assertEquals(0f, MapArt.sandT(c.x, c.y, n, 42L), 0f)
+        // 雪と砂は重ならない
+        for (i in 0 until n step 7) {
+            for (j in 0 until n step 7) {
+                assertTrue(MapArt.snowT(i, j, n, 42L) == 0f || MapArt.sandT(i, j, n, 42L) == 0f)
+            }
+        }
+    }
+
+    @Test
+    fun narrowWaterIsARiverAndLakesAreNot() {
+        val n = world.size
+        var rivers = 0
+        var lakeInteriors = 0
+        for (y in 0 until n) {
+            for (x in 0 until n) {
+                if (world.terrainAt(x, y) != Terrain.WATER) continue
+                if (MapArt.isRiver(world, x, y)) rivers++ else lakeInteriors++
+            }
+        }
+        // 判定は決定論（二度呼んでも同じ）で、水が少しでもあれば分類される
+        assertEquals(rivers + lakeInteriors, (0 until n * n).count { world.terrainAt(it % n, it / n) == Terrain.WATER })
+        assertEquals(rivers, (0 until n * n).count { MapArt.isRiver(world, it % n, it / n) })
+    }
 }
