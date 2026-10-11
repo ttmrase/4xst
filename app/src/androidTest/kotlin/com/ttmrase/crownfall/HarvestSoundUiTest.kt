@@ -79,8 +79,15 @@ class HarvestSoundUiTest {
         h.step("chest") {
             h.open("shop")
             h.click(h.str(R.string.shop_tab_vip))
-            h.click(h.str(R.string.vip_chest_claim))
-            for (i in 1..4) Screenshots.save("t112_chest_stage_$i")
+            // 演出（揺れ → ひび → 光 → 中身）は有限アニメなので、時計を止めて段階ごとに撮る
+            h.waitText(h.str(R.string.vip_chest_claim))
+            rule.mainClock.autoAdvance = false
+            rule.onAllNodesWithText(h.str(R.string.vip_chest_claim))[0].performClick()
+            for ((i, ms) in listOf(150L, 450L, 450L, 700L, 1_200L).withIndex()) {
+                rule.mainClock.advanceTimeBy(ms)
+                Screenshots.save("t112_chest_stage_${i + 1}")
+            }
+            rule.mainClock.autoAdvance = true
             h.waitText(h.str(R.string.common_ok), timeoutMs = 20_000)
             Screenshots.save("t112_chest_done")
             Espresso.pressBack()

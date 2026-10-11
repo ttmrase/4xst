@@ -36,7 +36,14 @@ class FeatureUnlockUiTest {
         vararg args: Any,
     ): String = context.getString(id, *args)
 
-    private fun AppHarness.waitUnlockCeremony() = waitText(str(R.string.feature_unlock_title), timeoutMs = 60_000)
+    /** 解放の演出（T11.3 から「城 Lv n 達成！」の演出に解放の行が入った。古い「新機能の解放」の表示も見る）。 */
+    private fun AppHarness.ceremonyShown(): Boolean =
+        hasText(str(R.string.feature_unlock_title)) ||
+            hasText(str(R.string.castle_up_title).substringBefore("%1"), true)
+
+    private fun AppHarness.waitUnlockCeremony() {
+        rule.waitUntil(60_000) { ceremonyShown() }
+    }
 
     @Test
     fun freshStartShowsLocksAndEveryLockedTabAnswersAndBackWorks() {
@@ -79,7 +86,7 @@ class FeatureUnlockUiTest {
             h.waitUnlockCeremony()
             var shots = 0
             // 解放の演出は 1 つずつ（クエスト → ショップ）。OK で次へ。途中（アイコンが飛ぶ間）も撮る
-            while (h.hasText(h.str(R.string.feature_unlock_title)) && shots < 4) {
+            while (h.ceremonyShown() && shots < 4) {
                 // 解放の演出の最中は、オファーのポップアップ（閉じるボタン）が出ない
                 assertTrue(
                     "no offer popup while the unlock ceremony is shown",
@@ -146,7 +153,7 @@ class FeatureUnlockUiTest {
             Screenshots.save("feat_unlock_lv4_alliance")
             Espresso.pressBack()
             rule.waitForIdle()
-            assertTrue("back must close the ceremony", !h.hasText(h.str(R.string.feature_unlock_title)))
+            assertTrue("back must close the ceremony", !h.ceremonyShown())
             assertTrue(Feature.ALLIANCE.id in h.state().features.celebrated)
             Screenshots.save("feat_after_skip")
             // 同盟のタブはもう鍵ではなく、開ける
