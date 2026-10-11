@@ -1,7 +1,7 @@
 package com.ttmrase.crownfall.ui
 
+import com.ttmrase.crownfall.core.data.TroopType
 import com.ttmrase.crownfall.core.model.ResourceType
-import com.ttmrase.crownfall.core.model.TroopType
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
