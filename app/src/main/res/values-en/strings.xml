@@ -1082,7 +1082,7 @@
     <string name="settings_title_auto">Auto (highest)</string>
     <string name="achievement_toast">🏅 Achievement unlocked! %1$s</string>
     <string name="shop_tab_skins">Skins</string>
-    <string name="skin_week_title">This week's limited (rotates weekly, with revivals)</string>
+    <string name="skin_week_title">This week\'s limited (rotates weekly, with revivals)</string>
     <string name="skin_regular_title">Regular skins</string>
     <string name="skin_bag_title">Skin lucky bag</string>
     <string name="skin_bag_sub">What you get is up to the bag. The rates are listed below.</string>
@@ -1134,7 +1134,7 @@
     <string name="settings_map_day">Always day</string>
     <string name="settings_map_night">Always night</string>
     <string name="shop_claim_only_title">Claim your purchased perks (the shop opens at castle Lv3)</string>
-    <string name="shop_claim_pass">Claim today's Month Pass reward</string>
+    <string name="shop_claim_pass">Claim today\'s Month Pass reward</string>
     <string name="shop_claim_vip_chest">Claim the VIP chest</string>
     <string name="shop_claim_fund">Claim the Growth Fund</string>
 </resources>
