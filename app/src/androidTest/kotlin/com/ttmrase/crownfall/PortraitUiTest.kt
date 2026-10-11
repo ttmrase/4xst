@@ -1,14 +1,19 @@
 package com.ttmrase.crownfall
 
 import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ttmrase.crownfall.core.data.ClasspathDataSource
 import com.ttmrase.crownfall.core.model.HeroState
+import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.debug.DebugStateSeeder.Preset
 import org.junit.Rule
 import org.junit.Test
@@ -27,7 +32,10 @@ class PortraitUiTest {
         update { s ->
             val owned = s.heroes.associateBy { it.heroId }
             val all = data.heroes.keys.map { id -> owned[id] ?: HeroState(heroId = id, level = 20, star = 3) }
-            s.copy(heroes = all, shop = s.shop.copy(vipPoints = 40_000))
+            // VIP の昇格の演出が一覧にかぶらないよう、祝い済みの Lv も合わせて上げる
+            val points = 40_000L
+            val lv = VipCalculator.level(points, data)
+            s.copy(heroes = all, shop = s.shop.copy(vipPoints = points, vipCelebrated = lv))
         }
 
     private fun scrollTo(text: String) {
@@ -54,10 +62,12 @@ class PortraitUiTest {
             rule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Lv", substring = true))
             Screenshots.save("portrait_heroes_list_2")
             if (sr.isNotEmpty()) {
-                rule.onAllNodesWithText("Lv", substring = true)[0].performClick()
+                // SSR の英雄の詳細（レアリティの表示 "SSR" のカードを押す）
+                rule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("SSR", substring = true))
+                rule.onAllNodesWithText("SSR", substring = true)[0].performClick()
                 rule.waitForIdle()
                 Thread.sleep(500)
-                Screenshots.save("portrait_hero_detail")
+                Screenshots.save("portrait_hero_detail_ssr")
             }
         }
     }
@@ -76,6 +86,12 @@ class PortraitUiTest {
             rule.waitForIdle()
             Thread.sleep(800)
             Screenshots.save("portrait_chat_dm")
+            // 1 通送って返事（吹き出しのアバター）を待つ
+            rule.onNode(hasSetTextAction()).performTextInput("Hello")
+            h.click(h.str(R.string.chat_send))
+            h.waitText("Hello")
+            Thread.sleep(8_000) // ペルソナの返事（入力中の表示のあと）を待つ
+            Screenshots.save("portrait_chat_bubbles")
         }
     }
 
@@ -95,7 +111,10 @@ class PortraitUiTest {
         h.step("settings_avatar") {
             h.open("settings")
             rule.waitForIdle()
-            scrollTo(h.str(R.string.settings_avatar_title))
+            // 設定は通常のスクロール列（遅延リストではない）なので、見出しのノードに scrollTo する
+            rule.onNodeWithText(h.str(R.string.settings_avatar_title)).performScrollTo()
+            rule.waitForIdle()
+            Thread.sleep(300)
             Screenshots.save("portrait_settings_avatar")
         }
     }
