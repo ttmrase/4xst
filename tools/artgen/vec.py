@@ -253,3 +253,193 @@ class Vec:
         return '<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s" viewBox="0 0 %s %s"><defs>%s</defs>%s</svg>' % (
             _f(w), _f(h), _f(self.w), _f(self.h), "".join(defs), "".join(body),
         )
+
+
+# ---- 曲線・帯・切り抜き・色の部品（ポートレート gen_portraits.py 用。既存の API はそのまま） --------
+def _f1(v):
+    s = "%.1f" % v
+    if s.endswith(".0"):
+        s = s[:-2]
+    return "0" if s in ("-0", "") else s
+
+
+def _pt(p):
+    return "%s,%s" % (_f1(p[0]), _f1(p[1]))
+
+
+def _tangent(pts, i, closed):
+    n = len(pts)
+    p = pts[i]
+    s = p[2] if len(p) > 2 else 1.0
+    if s == 0:
+        return (0.0, 0.0)
+    if closed:
+        a, b = pts[(i - 1) % n], pts[(i + 1) % n]
+    else:
+        a, b = pts[max(i - 1, 0)], pts[min(i + 1, n - 1)]
+    return ((b[0] - a[0]) / 6.0 * s, (b[1] - a[1]) / 6.0 * s)
+
+
+def _segments(pts, closed):
+    """Catmull-Rom の各区間を 3 次ベジェ (p0, c1, c2, p1) にして返す。"""
+    n = len(pts)
+    out = []
+    for i in range(n if closed else n - 1):
+        j = (i + 1) % n
+        t0, t1 = _tangent(pts, i, closed), _tangent(pts, j, closed)
+        p0, p1 = pts[i], pts[j]
+        out.append(((p0[0], p0[1]), (p0[0] + t0[0], p0[1] + t0[1]), (p1[0] - t1[0], p1[1] - t1[1]), (p1[0], p1[1])))
+    return out
+
+
+def spline(pts, closed=True):
+    """点列を通るなめらかな曲線（Catmull-Rom → 3 次ベジェ）のパス文字列。座標は小数 1 桁。
+
+    点は (x, y) か (x, y, s)。s は接線の強さ（0 = 角、1 = 標準、その間 = きつめの曲がり）。
+    """
+    segs = _segments(pts, closed)
+    d = ["M" + _pt(pts[0])]
+    for p0, c1, c2, p1 in segs:
+        if c1 == p0 and c2 == p1:
+            d.append("L" + _pt(p1))
+        else:
+            d.append("C%s %s %s" % (_pt(c1), _pt(c2), _pt(p1)))
+    return " ".join(d) + (" Z" if closed else "")
+
+
+def spline_pts(pts, closed=True, n=6):
+    """spline() と同じ曲線を折れ線にした点列（計算用）。"""
+    out = []
+    for p0, c1, c2, p1 in _segments(pts, closed):
+        for k in range(n):
+            t = k / n
+            u = 1 - t
+            out.append((
+                u * u * u * p0[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * p1[0],
+                u * u * u * p0[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * p1[1],
+            ))
+    if not closed:
+        out.append((pts[-1][0], pts[-1][1]))
+    return out
+
+
+def quad_pts(p0, c, p1, n=8):
+    """2 次ベジェを折れ線にした点列（両端を含む）。"""
+    out = []
+    for k in range(n + 1):
+        t = k / n
+        u = 1 - t
+        out.append((u * u * p0[0] + 2 * u * t * c[0] + t * t * p1[0], u * u * p0[1] + 2 * u * t * c[1] + t * t * p1[1]))
+    return out
+
+
+def poly1(pts, closed=True):
+    """poly() の小数 1 桁版。"""
+    d = "M" + " L".join(_pt(p) for p in pts)
+    return d + (" Z" if closed else "")
+
+
+def ribbon(pts, widths):
+    """中心線 pts（なめらかにつなぐ）に沿った、太さの変わる帯の閉じたパス。widths は各点での太さ（0 で尖る）。
+
+    髪の束・まゆ・ハイライトなど、入り抜きのある線に使う。
+    """
+    n = len(pts)
+    if not isinstance(widths, (list, tuple)):
+        widths = [widths] * n
+    if len(widths) != n:  # (始点, 中央, 終点) の 3 値を線形に補間
+        ws = []
+        for i in range(n):
+            t = i / (n - 1) * (len(widths) - 1)
+            k = min(int(t), len(widths) - 2)
+            ws.append(widths[k] + (widths[k + 1] - widths[k]) * (t - k))
+        widths = ws
+    left, right = [], []
+    for i in range(n):
+        a, b = pts[max(i - 1, 0)], pts[min(i + 1, n - 1)]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        ln = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / ln, dx / ln
+        h = widths[i] / 2.0
+        if h <= 0.01:
+            left.append((pts[i][0], pts[i][1], 0))
+            right.append(None)
+        else:
+            left.append((pts[i][0] + nx * h, pts[i][1] + ny * h))
+            right.append((pts[i][0] - nx * h, pts[i][1] - ny * h))
+    loop = left + [p for p in reversed(right) if p is not None]
+    return spline(loop, closed=True)
+
+
+def clip_convex(subject, clip):
+    """多角形 subject を凸多角形 clip で切り抜く（Sutherland–Hodgman）。clipPath を使わずに目の虹彩などを収める。"""
+    area = 0.0
+    for i in range(len(clip)):
+        x0, y0 = clip[i]
+        x1, y1 = clip[(i + 1) % len(clip)]
+        area += x0 * y1 - x1 * y0
+    sign = 1.0 if area > 0 else -1.0
+    out = [(p[0], p[1]) for p in subject]
+    for i in range(len(clip)):
+        ax, ay = clip[i]
+        bx, by = clip[(i + 1) % len(clip)]
+        src, out = out, []
+        if not src:
+            break
+
+        def inside(p):
+            return sign * ((bx - ax) * (p[1] - ay) - (by - ay) * (p[0] - ax)) >= 0
+
+        def cross(p, q):
+            x1, y1, x2, y2 = p[0], p[1], q[0], q[1]
+            den = (x1 - x2) * (ay - by) - (y1 - y2) * (ax - bx)
+            if abs(den) < 1e-9:
+                return q
+            t = ((x1 - ax) * (ay - by) - (y1 - ay) * (ax - bx)) / den
+            return (x1 + t * (x2 - x1), y1 + t * (y2 - y1))
+
+        prev = src[-1]
+        for cur in src:
+            if inside(cur):
+                if not inside(prev):
+                    out.append(cross(prev, cur))
+                out.append(cur)
+            elif inside(prev):
+                out.append(cross(prev, cur))
+            prev = cur
+    return out
+
+
+def ellipse_pts(cx, cy, rx, ry, n=20, a0=0.0):
+    return [(cx + rx * math.cos(a0 + 2 * math.pi * i / n), cy + ry * math.sin(a0 + 2 * math.pi * i / n)) for i in range(n)]
+
+
+def mirror_pts(pts, cx):
+    """x = cx で左右を反転した点列（向きが変わらないよう順序も逆にする）。"""
+    return [((2 * cx - p[0],) + tuple(p[1:])) for p in reversed(pts)]
+
+
+def _rgb(c):
+    c = c.lstrip("#")
+    if len(c) == 8:
+        c = c[2:]
+    return int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
+
+
+def mix(c1, c2, t):
+    """2 色を混ぜる（t = 0 で c1、1 で c2）。"""
+    a, b = _rgb(c1), _rgb(c2)
+    return "#%02X%02X%02X" % tuple(max(0, min(255, round(a[i] + (b[i] - a[i]) * t))) for i in range(3))
+
+
+def lighten(c, t):
+    return mix(c, "#FFFFFF", t)
+
+
+def darken(c, t):
+    return mix(c, "#000000", t)
+
+
+def rgba(c, a):
+    """'#RRGGBB' と不透明度から、グラデーションの stop に使う '#AARRGGBB'。"""
+    return _argb(c, a)
