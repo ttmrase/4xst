@@ -59,6 +59,7 @@ import com.ttmrase.crownfall.ui.kit.GameTab
 import com.ttmrase.crownfall.ui.kit.GameTabRow
 import com.ttmrase.crownfall.ui.kit.Glyph
 import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.breathe
 import com.ttmrase.crownfall.ui.kit.gameFrame
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
@@ -191,7 +192,11 @@ private fun LazyListScope.mainTab(
                 GameButton(
                     onClick = { onClaim(chapter.id) },
                     enabled = QuestLogic.chapterDone(chapter, s, data),
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .breathe(0.025f, enabled = QuestLogic.chapterDone(chapter, s, data)),
                     style = GameButtonStyle.Emerald,
                     size = GameButtonSize.Large,
                     sound = true,

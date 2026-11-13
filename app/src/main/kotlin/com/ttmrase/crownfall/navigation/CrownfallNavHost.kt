@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -83,6 +84,7 @@ import com.ttmrase.crownfall.ui.feature.LockedFeatureDialog
 import com.ttmrase.crownfall.ui.feature.LockedScreenBody
 import com.ttmrase.crownfall.ui.heroes.HeroesScreen
 import com.ttmrase.crownfall.ui.heroes.SummonScreen
+import com.ttmrase.crownfall.ui.kit.BackdropMotes
 import com.ttmrase.crownfall.ui.kit.BottomItem
 import com.ttmrase.crownfall.ui.kit.Cf
 import com.ttmrase.crownfall.ui.kit.GameBottomBar
@@ -114,7 +116,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.background
 
 /** 単一 Activity 用の NavHost と下部ナビ（Title では非表示）。 */
 private const val CLAIM_PERIOD_MS = 30_000L
@@ -300,10 +301,19 @@ fun CrownfallNavHost(
             Modifier
                 .fillMaxSize()
                 // 全面を自分で描く画面（タイトル・城内・マップ）では、隠れる地紋を描かない
-                .then(if (destination?.route in FullBleedRoutes) Modifier.background(Cf.Night0) else Modifier.screenBackdrop())
+                .then(
+                    if (destination?.route in FullBleedRoutes) {
+                        Modifier.background(
+                            Cf.Night0,
+                        )
+                    } else {
+                        Modifier.screenBackdrop()
+                    },
+                )
                 .onGloballyPositioned { rootOrigin = it.positionInWindow() }
                 .trackTaps(flyState, { rootOrigin }) { Sfx.play(context, SfxId.TAP) },
         ) {
+            if (destination?.route !in FullBleedRoutes) BackdropMotes()
             Scaffold(
                 containerColor = Color.Transparent,
                 contentColor = Cf.Ivory,

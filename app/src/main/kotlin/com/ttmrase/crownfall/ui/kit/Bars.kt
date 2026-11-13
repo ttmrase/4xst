@@ -505,6 +505,7 @@ private fun BottomTab(
         spring(dampingRatio = 0.55f, stiffness = 500f),
         label = "nav",
     )
+    val pulse = rememberLoop(NAV_PULSE_MS, "navGlow")
     Column(
         modifier =
             modifier
@@ -527,13 +528,15 @@ private fun BottomTab(
                         if (lift > 0.01f) {
                             val c = Offset(size.width / 2, size.height / 2)
                             val r = size.height * 0.62f
+                            // 選んだタブの後光は、ゆっくり明滅する
+                            val glow = 1.35f + 0.18f * kotlin.math.sin(pulse.value * 2f * Math.PI.toFloat())
                             drawCircle(
                                 Brush.radialGradient(
                                     listOf(Cf.Gold.copy(alpha = 0.55f * lift), Cf.Gold.copy(alpha = 0f)),
                                     c,
-                                    r * 1.35f,
+                                    r * glow,
                                 ),
-                                r * 1.35f,
+                                r * glow,
                                 c,
                             )
                             val d = 1.dp.toPx()
@@ -574,7 +577,10 @@ private fun BottomTab(
             if (item.locked) {
                 GlyphIcon(Glyph.LOCK, Modifier.align(Alignment.BottomEnd).offset(x = (-8).dp), size = 18.dp)
             } else if (item.badge > 0) {
-                CountBadge(item.badge, Modifier.align(Alignment.TopEnd).offset(x = (-4).dp, y = 1.dp))
+                CountBadge(
+                    item.badge,
+                    Modifier.align(Alignment.TopEnd).offset(x = (-4).dp, y = 1.dp).idleBob(2.dp, 1400),
+                )
             }
         }
         Text(
@@ -596,4 +602,5 @@ private fun BottomTab(
 }
 
 private const val SELECT_GROW = 0.12f
+private const val NAV_PULSE_MS = 2200
 private const val LOCKED_ICON_ALPHA = 0.5f

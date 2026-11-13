@@ -25,14 +25,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -121,6 +126,8 @@ fun GameButton(
     style: GameButtonStyle = GameButtonStyle.Gold,
     size: GameButtonSize = GameButtonSize.Normal,
     sound: Boolean = false,
+    /** 面を光の帯がときどき横切る（null なら、大きい実ボタンだけ光らせる）。 */
+    shine: Boolean? = null,
     contentPadding: PaddingValues? = null,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
@@ -133,6 +140,9 @@ fun GameButton(
         label = "press",
     )
     val look = if (enabled) style else GameButtonStyle.Disabled
+    val shining =
+        enabled && (shine ?: (size == GameButtonSize.Large && style != GameButtonStyle.Ghost))
+    val sweep = if (shining) rememberLoop(SHINE_PERIOD_MS, "shine") else null
     val context = LocalContext.current
     val textStyle =
         (
@@ -156,7 +166,44 @@ fun GameButton(
                     scaleX = k
                     scaleY = k
                 }
-                .drawBehind { drawButton(look, size, press) }
+                .drawWithCache {
+                    val lip = size.lip.toPx()
+                    val face =
+                        Path().apply {
+                            addRoundRect(
+                                RoundRect(
+                                    0f,
+                                    0f,
+                                    this@drawWithCache.size.width,
+                                    this@drawWithCache.size.height - lip,
+                                    CornerRadius(size.corner.toPx()),
+                                ),
+                            )
+                        }
+                    val bandW = this.size.width * SHINE_BAND
+                    val band =
+                        Brush.horizontalGradient(
+                            listOf(Color.Transparent, Color.White.copy(alpha = 0.42f), Color.Transparent),
+                            0f,
+                            bandW,
+                        )
+                    onDrawBehind {
+                        drawButton(look, size, press)
+                        val s = sweep?.value ?: return@onDrawBehind
+                        // 周期の最初の 3 割だけ帯が走り、残りは休む
+                        if (s < SHINE_ACTIVE) {
+                            val x = -bandW + (this.size.width + 2 * bandW) * (s / SHINE_ACTIVE)
+                            clipPath(face) {
+                                withTransform({
+                                    translate(x, 0f)
+                                    rotate(SHINE_TILT, Offset(bandW / 2, this@onDrawBehind.size.height / 2))
+                                }) {
+                                    drawRect(band, Offset(0f, -this.size.height), Size(bandW, this.size.height * 3))
+                                }
+                            }
+                        }
+                    }
+                }
                 .clickable(
                     interactionSource = source,
                     indication = null,
@@ -364,6 +411,10 @@ fun GlyphMedallion(
     }
 }
 
+private const val SHINE_PERIOD_MS = 3400
+private const val SHINE_ACTIVE = 0.3f
+private const val SHINE_BAND = 0.28f
+private const val SHINE_TILT = 18f
 private const val MIN_WIDTH_RATIO = 1.6f
 private const val PRESS_SHRINK = 0.03f
 private const val PRESS_TRAVEL = 0.7f

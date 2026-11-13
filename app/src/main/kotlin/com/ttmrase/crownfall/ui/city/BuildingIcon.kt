@@ -26,6 +26,7 @@ import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.ui.kit.Cf
 import com.ttmrase.crownfall.ui.kit.FrameStyle
 import com.ttmrase.crownfall.ui.kit.gameFrame
+import com.ttmrase.crownfall.ui.kit.idleBob
 import com.ttmrase.crownfall.ui.territory.PlotLayout
 import com.ttmrase.crownfall.ui.territory.SpriteIds
 import com.ttmrase.crownfall.ui.theme.CrownFonts
@@ -64,7 +65,7 @@ fun BuildingArt(
         Image(
             painter = painterResource(SpriteIds.building(type, PlotLayout.tierOfLevel(level.coerceAtLeast(1)))),
             contentDescription = null,
-            modifier = Modifier.size(size * ART_SCALE).offset(y = -size * ART_LIFT),
+            modifier = Modifier.size(size * ART_SCALE).offset(y = -size * ART_LIFT).idleBob(2.dp, 3200),
             colorFilter = if (level <= 0) Unbuilt else null,
             alpha = if (level <= 0) UNBUILT_ALPHA else 1f,
         )

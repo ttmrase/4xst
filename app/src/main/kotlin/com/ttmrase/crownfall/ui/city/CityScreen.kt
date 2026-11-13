@@ -90,7 +90,9 @@ import com.ttmrase.crownfall.ui.kit.Glyph
 import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.kit.GlyphMedallion
 import com.ttmrase.crownfall.ui.kit.Pill
+import com.ttmrase.crownfall.ui.kit.breathe
 import com.ttmrase.crownfall.ui.kit.gameFrame
+import com.ttmrase.crownfall.ui.kit.idleBob
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.reward.FlyTarget
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
@@ -384,7 +386,7 @@ private fun StatusBar(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                GlyphIcon(Glyph.POWER, size = 30.dp)
+                GlyphIcon(Glyph.POWER, Modifier.breathe(0.08f, 2400), size = 30.dp)
                 Column {
                     Text(
                         stringResource(R.string.power_label),
@@ -416,7 +418,7 @@ private fun StatusBar(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                GlyphIcon(Glyph.GEM, size = 24.dp)
+                GlyphIcon(Glyph.GEM, Modifier.idleBob(1.5.dp, 2200), size = 24.dp)
                 val gemsLabel = stringResource(R.string.res_gems)
                 AnimatedNumber(
                     state.gems,
@@ -641,7 +643,7 @@ private fun QuickLinkColumn(
             val count = if (screen == Screen.Quests) claimable else 0
             val name = stringResource(screen.titleRes)
             val isLocked = screen in locked
-            Box {
+            Box(Modifier.idleBob(3.dp, 1800, enabled = count > 0)) {
                 GlyphMedallion(
                     glyph = QUICK_ICONS[screen] ?: Glyph.INFO,
                     onClick = { onNavigate(screen) },

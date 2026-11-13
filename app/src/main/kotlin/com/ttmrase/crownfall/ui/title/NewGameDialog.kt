@@ -3,6 +3,7 @@ package com.ttmrase.crownfall.ui.title
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -13,22 +14,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
+import com.ttmrase.crownfall.core.model.HeroRarity
 import com.ttmrase.crownfall.core.util.PlayerName
 import com.ttmrase.crownfall.core.util.PlayerNameResult
 import com.ttmrase.crownfall.ui.heroDescRes
 import com.ttmrase.crownfall.ui.heroNameRes
+import com.ttmrase.crownfall.ui.kit.Cf
 import com.ttmrase.crownfall.ui.kit.FrameStyle
 import com.ttmrase.crownfall.ui.kit.GameCard
 import com.ttmrase.crownfall.ui.kit.GameDialog
 import com.ttmrase.crownfall.ui.kit.GameTextButton
-import androidx.compose.foundation.layout.Row
-import androidx.compose.ui.Alignment
-import com.ttmrase.crownfall.core.model.HeroRarity
-import com.ttmrase.crownfall.ui.kit.Cf
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 
 /** 新規ゲームの導入: 名前入力（1〜12 文字）→ 初期英雄の 3 択。 */

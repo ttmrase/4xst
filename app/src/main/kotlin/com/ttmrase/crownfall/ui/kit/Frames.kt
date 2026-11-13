@@ -332,7 +332,7 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        GlyphIcon(glyph, size = 72.dp, alpha = 0.75f)
+        GlyphIcon(glyph, Modifier.idleBob(4.dp, 3000), size = 72.dp, alpha = 0.75f)
         Text(text, color = Cf.Muted, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
     }
 }
