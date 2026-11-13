@@ -25,6 +25,11 @@ import com.ttmrase.crownfall.ui.kit.FrameStyle
 import com.ttmrase.crownfall.ui.kit.GameCard
 import com.ttmrase.crownfall.ui.kit.GameDialog
 import com.ttmrase.crownfall.ui.kit.GameTextButton
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
+import com.ttmrase.crownfall.core.model.HeroRarity
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.portrait.PortraitView
 
 /** 新規ゲームの導入: 名前入力（1〜12 文字）→ 初期英雄の 3 択。 */
 @Composable
@@ -88,14 +93,23 @@ fun NewGameDialog(
                             modifier = Modifier.fillMaxWidth().clickable { onStart(name, heroId) },
                             style = FrameStyle.Panel,
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    heroNameRes(heroId)?.let { stringResource(it) } ?: heroId,
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                                heroDescRes(
-                                    heroId,
-                                )?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall) }
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                val heroName = heroNameRes(heroId)?.let { stringResource(it) } ?: heroId
+                                PortraitView(heroId, heroName, size = 60.dp, rarity = HeroRarity.N)
+                                Column {
+                                    Text(heroName, style = MaterialTheme.typography.titleMedium, color = Cf.GoldHi)
+                                    heroDescRes(heroId)?.let {
+                                        Text(
+                                            stringResource(it),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Cf.Muted,
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
