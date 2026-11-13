@@ -62,6 +62,11 @@ DARKM = ("#B8B4CC", "#6E6A88", "#46425C", "#2A2638", "#18141F")
 GOLD = "#F2C340"
 
 
+def _n(v):
+    s = "%.1f" % v
+    return s[:-2] if s.endswith(".0") else s
+
+
 def lg(x0, y0, x1, y1, *stops):
     return Linear(x0, y0, x1, y1, list(stops))
 
@@ -149,14 +154,14 @@ SPARK_SLOTS = [(13, 14, 3.4), (82, 20, 2.8), (9, 44, 2.0), (88, 46, 2.4), (22, 6
 
 
 def sparkle(cx, cy, r):
-    k = r * 0.22
-    return poly1([(cx, cy - r), (cx + k, cy - k), (cx + r, cy), (cx + k, cy + k), (cx, cy + r), (cx - k, cy + k), (cx - r, cy), (cx - k, cy - k)])
+    c = "%s,%s" % (_n(cx), _n(cy))
+    return "M%s,%s Q%s %s,%s Q%s %s,%s Q%s %s,%s Q%s %s,%s Z" % (_n(cx), _n(cy - r), c, _n(cx + r), _n(cy), c, _n(cx), _n(cy + r), c, _n(cx - r), _n(cy), c, _n(cx), _n(cy - r))
 
 
 def background(c):
     v, s = c.v, c.s
     lt, mid, dk, deco = BGS[s.get("bg", "slate")]
-    v.path("M0,0 H96 V96 H0 Z", rg(44, 36, 74, (0, lt), (0.5, mid), (1, dk)))
+    v.path("M0,0 H96 V96 H0 Z", rg(44, 36, 74, lt, mid, dk))
     motif = s.get("motif", "ring")
     hx, hy = 48, 38
     if s.get("rays"):
@@ -182,12 +187,8 @@ def background(c):
         v.path(star(hx, hy, 46, 30, 8, -90), deco, alpha=0.2)
         v.path(star(hx, hy, 40, 33, 8, -67.5), deco, alpha=0.14)
     elif motif == "diamond":
-        d = []
-        for gy in range(-1, 7):
-            for gx in range(-1, 7):
-                x, y = gx * 16 + (8 if gy % 2 else 0), gy * 14 + 4
-                d.append(poly1([(x, y - 5), (x + 4, y), (x, y + 5), (x - 4, y)]))
-        v.path(" ".join(d), deco, alpha=0.09)
+        d = ["M%d,-2 L%d,98 M%d,-2 L%d,98" % (x, x + 60, x + 60, x) for x in range(-54, 96, 18)]
+        v.path(" ".join(d), None, deco, 0.9, salpha=0.14)
         v.path(circle(hx, hy, 32), None, deco, 1.2, salpha=0.3)
     elif motif == "flame":
         d = []
@@ -247,11 +248,11 @@ def bust_pts(c, grow=0.0):
 
 
 def cloth(col, x0=22, y0=62, x1=80, y1=100):
-    return Linear(x0, y0, x1, y1, [(0, lighten(col, 0.26)), (0.42, col), (1, darken(col, 0.42))])
+    return Linear(x0, y0, x1, y1, [lighten(col, 0.26), col, darken(col, 0.42)])
 
 
 def leather(col="#7A4E2C", x0=22, y0=62, x1=80, y1=100):
-    return Linear(x0, y0, x1, y1, [(0, lighten(col, 0.3)), (0.4, col), (1, darken(col, 0.5))])
+    return Linear(x0, y0, x1, y1, [lighten(col, 0.3), col, darken(col, 0.5)])
 
 
 def rim_right(c, pts, color="#FFF2D0", a=0.6, sw=0.8):
@@ -327,10 +328,10 @@ def gem(c, x, y, r, col, setting=GOLDM, shape="diamond"):
     """金の台座つきの宝石。"""
     v = c.v
     if shape == "round":
-        v.path(circle(x, y, r + 1.1), lg(0, y - r - 1, 0, y + r + 1, setting[1], setting[3]), INK, 0.7)
+        v.path(circle(x, y, r + 1.1), setting[2], INK, 0.7)
         v.path(circle(x, y, r), rg(x - r * 0.3, y - r * 0.3, r * 1.5, (0, lighten(col, 0.55)), (0.5, col), (1, darken(col, 0.45))), darken(col, 0.6), 0.4)
     else:
-        v.path(poly1([(x, y - r - 1.4), (x + r + 1.1, y), (x, y + r + 1.4), (x - r - 1.1, y)]), lg(0, y - r - 1, 0, y + r + 1, setting[1], setting[3]), INK, 0.7)
+        v.path(poly1([(x, y - r - 1.4), (x + r + 1.1, y), (x, y + r + 1.4), (x - r - 1.1, y)]), setting[2], INK, 0.7)
         v.path(poly1([(x, y - r), (x + r * 0.78, y), (x, y + r), (x - r * 0.78, y)]), lg(x - r, y - r, x + r, y + r, lighten(col, 0.55), col, darken(col, 0.4)), darken(col, 0.6), 0.4)
     v.path(circle(x - r * 0.3, y - r * 0.35, r * 0.26), WHITE, alpha=0.9)
 
@@ -350,13 +351,17 @@ def pauldron(c, side, m=STEEL, trim=None, lames=1, spikes=0, k=None, dy=0.0):
         return q if side > 0 else list(reversed(q))
 
     dome = [(-15, 3), (-13.5, -6), (-6, -10.8), (4, -10.2), (12.5, -5), (17, 4), (16, 12), (8, 14.8), (-4, 12.6), (-12, 8.8)]
-    grad = rg(px - 5 * k, py - 8 * k, 27 * k, (0, m[1]), (0.4, m[2]), (0.85, m[3]), (1, m[4]))
+    grad = rg(px - 5 * k, py - 8 * k, 27 * k, m[1], m[2], mix(m[3], m[4], 0.5))
+    lam_d, lam_t = [], []
     for i in range(lames, 0, -1):
         off = 6.5 * i
-        lam = [(-12 + i, 6 + off), (-2, 2 + off), (10, 5 + off), (17 - i, 12 + off), (9, 15.5 + off), (-5, 13 + off)]
-        v.path(spline(R(lam)), rg(px - 4 * k, py + off * k - 2, 22 * k, (0, m[1]), (0.5, m[2]), (1, m[4])), INK, 1.0)
+        lam_d.append(spline(R([(-12 + i, 6 + off), (-2, 2 + off), (10, 5 + off), (17 - i, 12 + off), (9, 15.5 + off), (-5, 13 + off)])))
+        lam_t.append(ribbon(P([(-10, 10.5 + off), (2, 13.6 + off), (13, 11 + off)]), [1.2 * k, 1.5 * k, 1.2 * k]))
+    if lam_d:
+        for dd in lam_d:   # 重なりの順に 1 枚ずつ（輪郭を出すため）。塗りは同じグラデーション
+            v.path(dd, lg(px - 12 * k, py + 6 * k, px + 14 * k, py + 26 * k, m[1], m[2], m[4]), INK, 1.0)
         if trim:
-            v.path(ribbon(P([(-10, 10.5 + off), (2, 13.6 + off), (13, 11 + off)]), [1.2 * k, 1.5 * k, 1.2 * k]), trim[2], alpha=0.9)
+            v.path(" ".join(lam_t), trim[2], alpha=0.9)
     if spikes:
         for (sx_, sy_, ang) in ((-3, -9.5, -12), (7, -8, 22))[:spikes]:
             bx, by = px + side * sx_ * k, py + sy_ * k
@@ -369,8 +374,8 @@ def pauldron(c, side, m=STEEL, trim=None, lames=1, spikes=0, k=None, dy=0.0):
         v.path(ribbon(rim_pts, [2.4 * k] * 4), lg(0, py + 4 * k, 0, py + 14 * k, trim[1], trim[2], trim[3]), INK, 0.6)
         v.path(" ".join(circle(px + side * x * k, py + y * k, 0.75 * k) for x, y in ((-9, 8.2), (-1, 11), (8, 12.2))), trim[0], trim[4], 0.3)
     # ハイライトと反射光（左上が光源）
-    v.path(ribbon([(px - 11.5 * k, py - 1.5 * k), (px - 8.5 * k, py - 7.2 * k), (px - 1 * k, py - 9 * k)], [0.3, 2.0 * k, 0.3]), m[0], alpha=0.85)
-    v.path(ribbon([(px - 2 * k, py - 5 * k), (px + 4 * k, py - 6 * k), (px + 9 * k, py - 3 * k)], [0.2, 1.0 * k, 0.2]), m[0], alpha=0.35)
+    v.path(ribbon([(px - 11.5 * k, py - 1.5 * k), (px - 8.5 * k, py - 7.2 * k), (px - 1 * k, py - 9 * k)], [0.3, 2.0 * k, 0.3]) + " "
+           + ribbon([(px - 2 * k, py - 5.4 * k), (px + 4 * k, py - 6 * k), (px + 9 * k, py - 3 * k)], [0.2, 0.7 * k, 0.2]), m[0], alpha=0.8)
     if side > 0:
         rim_right(c, P([(8, -8.2), (13.2, -4), (16.2, 4), (15.4, 11)]), a=0.75, sw=0.9)
 
@@ -534,21 +539,21 @@ def body_leather(c):
         strap(c, (CX + sw - 14, 68.6), (CX - 16, 98), 4.6, s.get("strapc", "#4E3020"), buckle=0.55, studs=0)
     bust_rim(c)
     if s.get("pauldron_r"):
-        pauldron(c, 1, s["pauldron_r"], None, 1)
+        pauldron(c, 1, s["pauldron_r"], IRON, 1, k=0.8, dy=-1.0)
     if s.get("cowl"):
         cowl(c, s["cowl"])
 
 
-def mail_rows(x0, x1, y0, y1, step=3.2):
+def mail_rows(x0, x1, y0, y1, step=4.0):
+    """鎖かたびらの輪の列（1 行 = 1 本の波線）。"""
     d = []
     row = 0
     y = y0
     while y < y1:
         x = x0 + (step / 2 if row % 2 else 0)
-        while x < x1:
-            d.append("M%.1f,%.1f q%.1f,%.1f %.1f,0" % (x, y, step / 2, step * 0.7, step))
-            x += step
-        y += step * 0.8
+        n = int((x1 - x) / step)
+        d.append("M%s,%s q" % (_n(x), _n(y)) + " ".join(["%s,%s %s,0" % (_n(step / 2), _n(step * 0.8), _n(step))] * n))
+        y += step * 0.72
         row += 1
     return " ".join(d)
 
@@ -566,8 +571,7 @@ def body_mail(c):
     pts = [(p[0], p[1]) for p in low] + top
     pts[0] = pts[0] + (0.5,)
     v.path(spline(pts), lg(20, 62, 78, 86, IRON[1], IRON[2], IRON[3]), INK, 1.1)
-    v.path(mail_rows(CX - 26, CX + 26, 68.5, 80), None, IRON[4], 0.55, salpha=0.55)
-    v.path(mail_rows(CX - 25, CX + 26, 67.9, 79.4), None, IRON[0], 0.45, salpha=0.4)
+    v.path(mail_rows(CX - 26, CX + 26, 68.4, 80), None, IRON[4], 0.6, salpha=0.6)
     head_shadow(c, 0.4)
     if s.get("strap", True):
         strap(c, (CX - sw + 14, 70), (CX + 13, 98), 4.6, "#5E3A20", buckle=0.6)
@@ -580,7 +584,7 @@ def body_plate(c):
     m = s.get("metal", STEEL)
     orn = s.get("ornate", 0)
     trim = s.get("trimm", GOLDM if orn else None)
-    bust_base(c, lg(22, 62, 78, 100, m[1], m[2], m[3], m[4]), shade=0.12)
+    bust_base(c, lg(22, 62, 78, 100, m[1], m[2], mix(m[3], m[4], 0.4)), shade=0.12)
     sw = c.sw
     # 胸の稜線と上端の板
     v.path("M%.1f,74 V97" % (CX + 0.4), None, m[4], 0.9, salpha=0.7)
@@ -839,7 +843,7 @@ def draw_neck(c):
     x0 = CX - nw + (c.fx - CX) * 0.6
     x1 = CX + nw + (c.fx - CX) * 0.2 + 0.4
     pts = [(x0 + 0.6, 50), (x1 - 0.4, 50), (x1 + 0.2, 60), (x1 + 2.6, 66), (x1 + 8, 70.5), (x1 + 9, 84, 0), (x0 - 9, 84, 0), (x0 - 8, 70.5), (x0 - 2.6, 66), (x0 - 0.2, 60)]
-    v.path(spline(pts), lg(0, 57, 0, 70, (0, sk["dp"]), (0.5, sk["sh"]), (1, sk["base"])), c.skline, 1.0)
+    v.path(spline(pts), lg(0, 57, 0, 70, sk["dp"], sk["sh"], sk["base"]), c.skline, 1.0)
     # 首の影側と、明るい側
     v.path(spline([(x1 - 2.8, 56), (x1 + 0.1, 60), (x1 + 2.4, 66), (x1 + 5, 69), (x1 - 2, 69.5), (x1 - 3.4, 63)]), sk["dp"], alpha=0.4)
     v.path(spline([(x0 + 0.8, 61), (x0 + 3.2, 65), (x0 + 2.2, 68.5), (x0 - 1.4, 67.5)]), sk["lt"], alpha=0.35)
@@ -870,11 +874,11 @@ def draw_ears(c):
     kw = c.face[0]
     x = CX + kw * c.sr - 0.6
     if c.get("ears") == "elf":
-        pts = [(x - 1, 38.5), (x + 4.2, 34.5), (x + 9.6, 27.5, 0), (x + 6.2, 38.5), (x + 3.4, 45.5), (x + 0.4, 48.6)]
+        pts = [(x - 1.6, 38.5), (x + 3, 35), (x + 7.4, 29, 0), (x + 5, 38.6), (x + 2.8, 45), (x - 0.2, 48.4)]
         v.path(spline(pts), lg(x, 30, x + 8, 48, sk["base"], sk["sh"]), c.skline, 0.9)
-        v.path(spline([(x + 1.6, 40), (x + 4.4, 36.2), (x + 7.4, 31)], False), None, sk["dp"], 0.7, salpha=0.7)
+        v.path(spline([(x + 1, 40.6), (x + 3.4, 36.6), (x + 5.6, 32.4)], False), None, sk["dp"], 0.7, salpha=0.7)
         xl = CX - kw * c.sl + 0.6
-        v.path(spline([(xl + 1, 38.5), (xl - 3.2, 35), (xl - 7.6, 28.5, 0), (xl - 4.8, 38.5), (xl - 2.4, 45), (xl + 0.2, 48)]), sk["base"], c.skline, 0.9)
+        v.path(spline([(xl + 1.4, 38.5), (xl - 2.4, 35.4), (xl - 5.8, 30, 0), (xl - 3.8, 38.6), (xl - 2, 44.6), (xl + 0.4, 47.6)]), sk["base"], c.skline, 0.9)
         return
     pts = [(x - 1, 38.2), (x + 2.6, 36.8), (x + 4.6, 39.6), (x + 4.2, 44.4), (x + 2.4, 48.6), (x - 0.4, 49.6)]
     v.path(spline(pts), lg(x, 37, x + 5, 49, sk["base"], sk["sh"]), c.skline, 0.9)
@@ -890,7 +894,7 @@ def draw_face(c):
     d = spline(pts)
     chin = c.face[4]
     fx = c.fx
-    v.path(d, lg(32, 16, 66, 60, (0, sk["lt"]), (0.5, sk["base"]), (1, mix(sk["base"], sk["sh"], 0.6))))
+    v.path(d, lg(32, 16, 66, 60, sk["lt"], sk["base"], mix(sk["base"], sk["sh"], 0.6)))
     # 髪・兜の下の影（額）
     hl = c.get("shade_y", 30.0)
     if hl:
@@ -901,8 +905,9 @@ def draw_face(c):
     v.path(spline(pts[2:8] + inner), lg(fx + 5, 0, CX + 18, 0, *fade(sk["sh"], 0.3, 0.85)))
     # 目のくぼみ
     age = c.get("age", 0)
-    for sx in (-1, 1):
-        spot(c, fx + sx * 8.2, EYE_Y - 1.6, 6.4, sk["sh"], 0.3 + 0.1 * age + (0.08 if not c.fem else 0), 0.72)
+    a = 0.26 + 0.1 * age + (0.08 if not c.fem else 0)
+    v.path(spline([(pts[11][0] + 1, 33.5), (fx - 8, 32.6), (fx, 34.6), (fx + 8.6, 32.6), (pts[3][0] - 1, 33.5), (pts[4][0] - 1.2, 41), (fx + 9, 43.4), (fx, 41.6), (fx - 8.4, 43.4),
+                   (pts[10][0] + 1.4, 41)]), lg(0, 32, 0, 44, *fade(sk["sh"], 0.0, 0.0, (0.5, a))))
     # 頬の赤み・光
     b = c.get("blush", 0.4 if c.fem else 0.22)
     spot(c, fx - 9.4, 48.6, 5.2, sk["blush"], b)
@@ -910,7 +915,7 @@ def draw_face(c):
     spot(c, fx - 9.0, 45.0, 4.6, WHITE, 0.22)
     v.path(d, None, c.skline, 1.05)
     # あごの線のリムライト
-    v.path(spline([pts[4], pts[5], pts[6]], False), None, "#FFE8C8", 0.6, salpha=0.0)
+    v.path(spline([(pts[4][0] - 0.9, pts[4][1] + 2), (pts[5][0] - 0.9, pts[5][1] - 0.4), (pts[6][0] - 0.2, pts[6][1] - 0.9)], False), None, c.get("rimc", "#FFF2D0"), 0.7, salpha=0.5)
 
 
 EYES = {
@@ -973,8 +978,8 @@ def draw_eyes(c):
         whites.append("M%.1f,%.1f Q%.1f,%.1f %.1f,%.1f Q%.1f,%.1f %.1f,%.1f Z" % (inner + cu + outer + cl + inner))
         ix, iy = ex + gaze[0], EYE_Y - 0.45 + gaze[1]
         ri = e["ri"]
-        irises.append(poly1(clip_convex(ellipse_pts(ix, iy, ri, ri, 22), opening)))
-        pp = clip_convex(ellipse_pts(ix, iy, ri * 0.45, ri * 0.45, 12), opening)
+        irises.append(poly1(clip_convex(ellipse_pts(ix, iy, ri, ri, 16), opening)))
+        pp = clip_convex(ellipse_pts(ix, iy, ri * 0.45, ri * 0.45, 8), opening)
         if pp:
             pupils.append(poly1(pp))
         lights.append(circle(ix - ri * 0.42, iy - ri * 0.42, ri * 0.33))
@@ -992,8 +997,8 @@ def draw_eyes(c):
         lmid = quad_pts(outer, cl, inner, 2)[1]
         lowers.append("M%.1f,%.1f Q%.1f,%.1f %.1f,%.1f" % (outer[0], outer[1] + 0.2, (outer[0] + lmid[0]) / 2 + side * 0.4, lmid[1] + 0.1, lmid[0] - side * 0.6, lmid[1]))
     y0, y1 = EYE_Y - e["hu"] - 0.4, EYE_Y + e["hl"] + 0.4
-    v.path(" ".join(whites), lg(0, y0, 0, y1, (0, "#BDB4C4"), (0.5, "#FFFDFA"), (1, "#F4ECE8")))
-    v.path(" ".join(irises), lg(0, EYE_Y - e["ri"] - 0.5, 0, EYE_Y + e["ri"], (0, darken(ic, 0.55)), (0.5, ic), (1, lighten(ic, 0.45))), darken(ic, 0.6), 0.35)
+    v.path(" ".join(whites), lg(0, y0, 0, y1, "#BDB4C4", "#FFFDFA", "#F4ECE8"))
+    v.path(" ".join(irises), lg(0, EYE_Y - e["ri"] - 0.5, 0, EYE_Y + e["ri"], darken(ic, 0.55), ic, lighten(ic, 0.45)), darken(ic, 0.6), 0.35)
     if pupils:
         v.path(" ".join(pupils), darken(ic, 0.82))
     v.path(" ".join(lights), WHITE, alpha=0.95)
@@ -1083,7 +1088,7 @@ def draw_mouth(c):
 # ───────── 髪 ─────────
 def hair_fill(c, x0=30, y0=6, x1=68, y1=62):
     lt, base, dk = c.hc
-    return Linear(x0, y0, x1, y1, [(0, lt), (0.38, base), (1, dk)])
+    return Linear(x0, y0, x1, y1, [lt, mix(lt, base, 0.85), dk])
 
 
 def hshape(c, pts, grad=None, sw=1.05):
@@ -1133,24 +1138,39 @@ def hb_long(c):
     hrim(c, [(70.6, 34), (72.8, 50), (75.6, 68), (77.4, 84)], 0.4)
 
 
+def hlocks(c, locks, sw=0.95):
+    """生え際から下がる毛束（根元は髪に溶け込み、先だけ輪郭が出る）。locks は (左の根元, 右の根元, 毛先) の列。"""
+    fills, lines = [], []
+    for a, b, tip in locks:
+        ml = (a[0] + (tip[0] - a[0]) * 0.55 - 1.1, a[1] + (tip[1] - a[1]) * 0.55)
+        mr = (b[0] + (tip[0] - b[0]) * 0.5 + 0.5, b[1] + (tip[1] - b[1]) * 0.5)
+        pts = [a, ml, (tip[0], tip[1], 0.25), mr, b]
+        fills.append(spline(pts))
+        lines.append(spline(pts, closed=False))
+    c.v.path(" ".join(fills), hair_fill(c))
+    c.v.path(" ".join(lines), None, c.hline, sw)
+
+
 def hf_crop(c):
-    hshape(c, [(30.6, 41.5, 0), (29.0, 33), (28.6, 24), (32.4, 13.6), (41, 8.2), (51, 7.4), (60.6, 10.2), (66.4, 17.6), (67.8, 27), (67.2, 35),
-               (65.6, 42, 0), (64.4, 34.5), (63.6, 28, 0.5), (60.5, 22.6), (56.5, 20.4, 0.6), (52, 24.6), (44, 23.2), (37.4, 24.2), (33.4, 28.6, 0.6), (32.6, 35)])
-    hshine(c, [(33.6, 18), (40, 12.4), (48, 11.4), (54.5, 13.6)], 2.4)
-    hstrands(c, [[(57, 12.5), (50, 19), (41, 22.6)], [(56.6, 20.6), (60.5, 15), (64.5, 20)], [(38.5, 10.8), (32.6, 17.5), (30.8, 27.5)], [(65.8, 23), (66.6, 30), (66, 38)],
-                 [(46, 9), (39.5, 16), (35.4, 23.8)]])
-    hrim(c, [(63, 12.6), (66.6, 19.5), (67.2, 28)])
+    hshape(c, [(30.6, 41.5, 0), (29, 33), (28.6, 24), (31.6, 14.6), (39, 8.6), (49, 6.6), (58.6, 8.2), (65.6, 13.6), (68.2, 22), (67.8, 30), (67.2, 36), (65.6, 42, 0),
+               (64.4, 34.5), (63.6, 28, 0.5), (61, 23), (57.6, 20.6), (50, 21), (42, 21), (36, 23), (33.2, 28.4, 0.6), (32.6, 35)])
+    # 分け目から流した前髪
+    hshape(c, [(59.8, 17.2, 0.4), (53, 12.2), (44, 11.8), (37, 15.2), (32.8, 21.5), (32, 27.5), (33.6, 31.6, 0.3), (36.6, 26.4), (42, 23.4), (49, 24.6), (55.6, 23.2),
+               (58.8, 20.6)], sw=0.95)
+    hshine(c, [(35.6, 20.6), (40.4, 15.6), (47, 14.4), (53.6, 15.6)], 2.0)
+    hstrands(c, [[(57.6, 19), (50, 21.6), (42, 21), (36.4, 23.6)], [(63, 12.6), (66.4, 19), (66.8, 28)], [(60.6, 10), (64, 15), (65.4, 21)], [(65.8, 26), (66.6, 32), (66, 39)],
+                 [(34.4, 12.6), (30.6, 19), (30, 28)]])
+    hrim(c, [(62.6, 10.6), (66.6, 17), (67.4, 26)])
 
 
 def hf_tousled(c):
-    hshape(c, [(30.6, 42, 0), (28.6, 34), (27.4, 26), (28.4, 18.5), (27.4, 14, 0.3), (32, 12), (35.5, 7, 0.3), (41, 7.6), (46, 3.4, 0.3), (52, 6), (58.5, 4.2, 0.3),
-               (62.5, 9), (68, 9.4, 0.3), (67.6, 16), (70.8, 21.5, 0.3), (68.4, 28), (67.6, 36), (65.8, 42.5, 0),
-               (64.4, 35), (63.2, 28), (60.6, 32, 0.3), (57.6, 25.4), (53.6, 31, 0.3), (50, 24.6), (44.4, 31.6, 0.3), (41.4, 24.8), (37.2, 30.4, 0.3), (35, 25.6),
+    hshape(c, [(30.6, 42, 0), (28.6, 34), (27.6, 25), (29.4, 16), (34, 10), (38.6, 7.6), (41.6, 4.2, 0.25), (45, 6.8), (52, 5.4), (57, 3.2, 0.25), (60, 7.4),
+               (65.8, 9, 0.25), (66.4, 15), (69.6, 22.2, 0.3), (68.2, 30), (67.6, 36), (65.8, 42.5, 0), (64.4, 35), (63.4, 28), (60, 23), (50, 22), (40, 22.6), (35, 25),
                (33, 30.5, 0.6), (32.5, 36)])
-    hshine(c, [(33, 20), (39, 13), (47, 11.2), (55, 12.6)], 2.4)
-    hstrands(c, [[(47, 5.6), (46, 15), (44.8, 29)], [(58, 6.6), (56.5, 16), (54, 28.6)], [(37, 9), (37.4, 18), (37.4, 28.4)], [(66.6, 12), (64.5, 20), (61, 30)],
-                 [(30, 15.6), (29.6, 23), (30.4, 34)]])
-    hrim(c, [(64.4, 11.6), (67.4, 18), (68.6, 27), (67.2, 36)])
+    hlocks(c, [((56.6, 17), (63.6, 21.5), (60.4, 32.4)), ((48.6, 15.5), (57.6, 17.6), (51.4, 31.6)), ((40.6, 16), (49.6, 16), (42.6, 32)), ((34, 19.6), (41.6, 16.6), (35.8, 30.6))])
+    hshine(c, [(33, 19), (38.6, 12.6), (46, 10.4), (54, 11.6)], 2.2)
+    hstrands(c, [[(48, 7), (50, 14), (51, 27)], [(41, 8), (42, 16), (42.4, 27)], [(58, 7.4), (60, 15), (60.4, 28)], [(31, 14), (29.6, 22), (30.4, 33)], [(66.4, 16), (67.4, 24), (66.8, 34)]])
+    hrim(c, [(64.4, 10.6), (67.6, 17), (68.4, 26), (67.2, 36)])
 
 
 def hb_ponytail(c):
@@ -1191,24 +1211,25 @@ def hf_long(c):
 
 
 def hb_wild(c):
-    hshape(c, [(48, 2.5), (38, 3.5), (30, 1, 0.3), (28.5, 8), (20.5, 8, 0.3), (23.5, 17), (16, 21, 0.3), (21.5, 29), (15, 36, 0.3), (22, 42), (18, 52.5, 0.3), (26, 53),
-               (28, 64, 0), (68, 64, 0), (70, 53), (78, 52.5, 0.3), (74, 42), (81, 36, 0.3), (74.5, 29), (80, 21, 0.3), (72.5, 17), (75.5, 8, 0.3), (67.5, 8),
-               (66, 1, 0.3), (58, 3.5)], hback_grad(c))
-    hstrands(c, [[(27, 12), (22.6, 22), (23, 34)], [(69, 12), (73.4, 22), (73, 34)], [(24, 36), (22, 46), (25, 56)], [(72, 36), (74, 46), (71, 56)]])
-    hrim(c, [(67.6, 3.4), (71.6, 10.6), (74.4, 19), (75.6, 29), (75, 41)], 0.5)
+    hshape(c, [(48, 2.6), (39, 2.2), (31.5, 5), (27, 3.2, 0.3), (26, 9.5), (21, 13), (16.6, 11, 0.3), (19, 19.5), (17, 27), (13, 29.5, 0.3), (17.5, 35.5), (18, 44),
+               (14.6, 49.5, 0.3), (20.5, 52), (24, 58), (27, 65, 0), (69, 65, 0), (72, 58), (75.5, 52), (81.4, 49.5, 0.3), (78, 44), (78.5, 35.5), (83, 29.5, 0.3), (79, 27),
+               (77, 19.5), (79.4, 11, 0.3), (75, 13), (70, 9.5), (69, 3.2, 0.3), (64.5, 5), (57, 2.2)], hback_grad(c))
+    hstrands(c, [[(27, 10), (22.6, 20), (20, 30)], [(69, 10), (73.4, 20), (76, 30)], [(23, 34), (21.4, 44), (22.6, 54)], [(73, 34), (74.6, 44), (73.4, 54)],
+                 [(30, 6), (26, 14), (22.4, 17)], [(66, 6), (70, 14), (73.6, 17)]], w=0.9)
+    hrim(c, [(70.4, 10.4), (76, 19.6), (77.6, 28), (77, 36), (77, 44)], 0.5)
 
 
 def hf_wild(c):
-    hshape(c, [(30.4, 43, 0), (28.2, 33), (27, 24), (30, 14), (38, 8.2), (48, 6), (58, 8), (66, 14), (69, 24), (68, 33), (65.8, 43, 0),
-               (64.4, 35), (63.4, 27), (60.5, 34, 0), (57.5, 25), (52.5, 31.5, 0), (50, 24), (46, 33.5, 0), (43, 24.5), (38, 32, 0), (36, 25.5),
-               (33, 30, 0.6), (32.6, 36)])
+    hshape(c, [(30.4, 43, 0), (28.2, 33), (27, 24), (30, 14), (38, 8.2), (48, 6), (58, 8), (66, 14), (69, 24), (68, 33), (65.8, 43, 0), (64.4, 35), (63.4, 28),
+               (60, 23), (50, 22), (40, 22.6), (35, 25), (33, 30, 0.6), (32.6, 36)])
+    hlocks(c, [((57, 16.6), (64.4, 22), (62, 34)), ((49.6, 15), (58.6, 17), (54.6, 32.4)), ((41, 15.6), (51, 15.6), (45.4, 34)), ((33.6, 20), (42.6, 16), (36.8, 32))], 1.0)
     hshine(c, [(32.5, 19), (39, 12), (48, 10), (56, 12)], 2.6)
-    hstrands(c, [[(49, 8), (47.5, 16), (46.4, 30)], [(57, 9.6), (55, 18), (53, 29)], [(41, 9), (39.4, 18), (38.4, 29.6)], [(64.5, 14), (63, 22), (61, 31.6)]])
+    hstrands(c, [[(49, 8), (51, 16), (52.6, 28)], [(42, 9), (43, 18), (44.4, 29)], [(58.4, 9.6), (61, 18), (61.6, 30)]])
 
 
 def hb_braid(c):
     # うしろへまとめた分の厚み
-    hshape(c, [(48, 7.4), (38, 9), (30, 17), (28, 30), (29, 44), (67.6, 44), (69, 30), (66.6, 17), (58.6, 9)], hback_grad(c))
+    hshape(c, [(48, 7.4), (38, 9), (30, 17), (29.4, 30), (31.4, 42), (66, 42), (68.6, 30), (66.6, 17), (58.6, 9)], hback_grad(c))
 
 
 def braid(c, x0=67.6, y0=45.0, n=6, dx=0.55, dy=6.4):
@@ -1287,11 +1308,12 @@ def hb_shortbob(c):
 
 def hf_shortbob(c):
     hshape(c, [(29.5, 52.5, 0), (27.6, 42), (27.4, 28), (30.5, 15.5), (38.5, 8.4), (48.5, 6.6), (58.5, 8.4), (66.4, 15.5), (69.2, 28), (69, 42), (67.4, 52.5, 0),
-               (65.4, 42), (64.4, 33), (62, 36.5, 0), (60.5, 27.5), (56.5, 34, 0), (53.5, 25.5), (47, 33.4, 0), (45, 25), (39.5, 33, 0), (38, 25.5), (34.5, 34.5, 0),
-               (33, 30), (32.2, 42)])
+               (65.4, 42), (64.4, 33), (63, 27), (59, 23), (50, 22), (40, 22.6), (35, 25), (33, 30), (32.2, 42)])
+    hlocks(c, [((57.6, 16.6), (64.6, 22), (61.6, 35)), ((50.6, 15), (59, 17), (55.4, 33.6)), ((42, 15.4), (52, 15.4), (46, 33.4)), ((36, 17.6), (44, 15.6), (39.4, 33)),
+               ((31.6, 22), (37.6, 17), (34.2, 34.4))])
     hshine(c, [(32.5, 20), (39, 12.6), (48, 10.6), (57, 12.6)], 2.6)
-    hstrands(c, [[(50, 8.6), (48.4, 18), (47.2, 31)], [(58.6, 10.6), (57.6, 20), (56.6, 32)], [(41, 9.6), (40, 20), (39.6, 31)], [(30, 26), (29.4, 38), (30, 49)],
-                 [(66.8, 26), (67.6, 38), (67, 49)]])
+    hstrands(c, [[(50, 8.6), (52, 17), (53.4, 28)], [(41, 9.6), (42, 19), (43.6, 29)], [(30, 26), (29.4, 38), (30, 49)], [(66.8, 26), (67.6, 38), (67, 49)],
+                 [(59, 10), (61.6, 18), (61.6, 29)]])
 
 
 def hf_mohawk(c):
@@ -1299,10 +1321,10 @@ def hf_mohawk(c):
     pts = c.fpts
     side = [pts[11], pts[12], pts[13], pts[0], pts[1], pts[2], pts[3], (CX + 15.4, 34), (CX + 13.4, 25.6), (CX + 6, 21.6), (CX - 5, 21.6), (CX - 12.8, 25.6), (CX - 15, 34)]
     v.path(spline(side), lg(30, 12, 66, 34, c.hc[1], c.hc[2]), alpha=0.5)
-    hshape(c, [(42.4, 22.4, 0), (41.2, 14), (39.4, 6.4, 0), (44, 8), (45, 1.6, 0), (49, 5), (52.6, 0.6, 0), (54, 6.5), (59.4, 5.4, 0), (56.6, 13), (55.6, 22.8, 0), (49, 24.8)],
+    hshape(c, [(42.4, 22.4, 0), (41.2, 15), (39.6, 8.4, 0), (44, 9.6), (45, 4, 0), (49, 7), (52.6, 3, 0), (54, 8.4), (59.2, 7.4, 0), (56.6, 14), (55.6, 22.8, 0), (49, 24.8)],
            hair_fill(c, 40, 0, 58, 26))
-    hshine(c, [(43.6, 17), (44.6, 10.4), (47.6, 6.4)], 1.6)
-    hstrands(c, [[(48, 23), (48.6, 13), (50.4, 5)], [(52.6, 22.6), (53.4, 13), (55.6, 8)]])
+    hshine(c, [(43.6, 18), (44.6, 12), (47.6, 8.4)], 1.6)
+    hstrands(c, [[(48, 23), (48.6, 14), (50.4, 7)], [(52.6, 22.6), (53.4, 14), (55.4, 9.6)]])
 
 
 def hb_curly(c):
@@ -1339,8 +1361,8 @@ def hb_bob(c):
 
 
 def hf_bob(c, low=59.5):
-    hshape(c, [(48.5, 6.8), (38, 8.4), (30, 15.4), (27, 27), (26.6, 42), (28, low - 5.5), (30.5, low, 0), (33.8, low - 1.2, 0), (33.4, 46), (33, 30.4, 0.4), (40, 28.2),
-               (48, 27.6, 0.8), (56, 28.2), (63, 30.4, 0.4), (63.4, 46), (63.6, low - 1.2, 0), (66.8, low, 0), (69.2, low - 5.5), (70.4, 42), (70, 27), (67, 15.4), (59, 8.4)])
+    hshape(c, [(48.5, 6.8), (38, 8.4), (30, 15.4), (27, 27), (26.6, 42), (28, low - 5.5), (30.5, low, 0), (33.8, low - 1.2, 0), (33.4, 46), (33, 30.4, 0.4), (38, 28.6), (41.6, 28, 0.5), (42.6, 25.4, 0), (43.8, 27.8, 0.5),
+               (48, 27.5), (53, 27.8, 0.5), (54.2, 25.2, 0), (55.2, 28, 0.5), (59, 28.8), (63, 30.4, 0.4), (63.4, 46), (63.6, low - 1.2, 0), (66.8, low, 0), (69.2, low - 5.5), (70.4, 42), (70, 27), (67, 15.4), (59, 8.4)])
     hshine(c, [(31.4, 22), (37.6, 14), (47, 11.6), (56, 13.4)], 2.8)
     hstrands(c, [[(47, 9), (44, 18), (43.4, 27.6)], [(52, 9), (54.4, 18), (54.4, 27.6)], [(38, 12), (35.5, 20), (36.4, 28.6)], [(60, 12.6), (61.6, 21), (60.6, 28.8)],
                  [(29.4, 30), (29, 42), (30.6, low - 4)], [(67.6, 30), (68, 42), (66.6, low - 4)]])
@@ -1397,7 +1419,7 @@ def hair_front(c):
 # ───────── ひげ ─────────
 def beard_fill(c, y0=44, y1=80):
     lt, base, dk = c.bc
-    return Linear(34, y0, 62, y1, [(0, lt), (0.45, base), (1, dk)])
+    return Linear(34, y0, 62, y1, [lt, base, dk])
 
 
 def draw_beard(c):
@@ -1572,7 +1594,7 @@ HOOD_IN = [(48, 10.2, 0.8), (39, 12.4), (32.6, 20), (30.2, 32), (30.6, 44), (32.
 
 
 def metal_dome(m, cx=44, cy=12, r=34):
-    return rg(cx, cy, r, (0, m[0]), (0.25, m[1]), (0.6, m[2]), (1, m[3]))
+    return rg(cx, cy, r, m[0], m[2], m[3])
 
 
 def gear_front(c):
@@ -1618,21 +1640,21 @@ def gear_front(c):
             v.path(" ".join(d), lg(bx - 4, 30, bx + side * 18 - 4, 2, darken(wm, 0.22), wm, WHITE), mix("#6A5A30", INK, 0.4), 0.9)
             v.path(circle(bx, 26.6, 3.0), lg(0, 23, 0, 30, m[1], m[2], m[3]), INK, 0.8)
         band = [(29.4, 27.4), (37, 23.2), (48, 21.2), (59, 23.2), (67, 27.4)]
-        v.path(ribbon(band, [2.6, 3.0, 3.6, 3.0, 2.6]), lg(0, 19, 0, 30, m[0], m[1], m[2], m[3]), INK, 0.9)
+        v.path(ribbon(band, [2.6, 3.0, 3.6, 3.0, 2.6]), lg(0, 19, 0, 30, m[0], m[1], m[3]), INK, 0.9)
         v.path(spline([(44.6, 21.4, 0), (48, 11.5, 0), (51.4, 21.4, 0), (48, 24.4)]), lg(45, 12, 51, 24, m[0], m[1], m[3]), INK, 0.8)
         gem(c, 48, 21.4, 2.1, s.get("gem", "#E03A4A"), m)
     elif g == "crown":
         m = s.get("gm", GOLDM)
-        v.path(spline([(30.4, 25.6, 0), (28.8, 8.4, 0), (34.8, 15.6, 0), (39.4, 5.2, 0), (43.8, 14.6, 0), (48, 1.8, 0), (52.2, 14.6, 0), (56.6, 5.2, 0), (61.2, 15.6, 0),
-                       (67.2, 8.4, 0), (65.8, 25.6, 0), (57, 28.8), (48, 29.8), (39, 28.8)]), lg(30, 4, 66, 30, m[0], m[1], m[2], m[3]), INK, 1.2)
+        v.path(spline([(30.4, 25.6, 0), (28.8, 10.4, 0), (34.8, 16.6, 0), (39.4, 7.6, 0), (43.8, 15.6, 0), (48, 4.6, 0), (52.2, 15.6, 0), (56.6, 7.6, 0), (61.2, 16.6, 0),
+                       (67.2, 10.4, 0), (65.8, 25.6, 0), (57, 28.8), (48, 29.8), (39, 28.8)]), lg(30, 4, 66, 30, m[0], m[1], m[3]), INK, 1.2)
         v.path(ribbon([(30.6, 23), (39, 26.4), (48, 27.4), (57, 26.4), (65.6, 23)], [2.8] * 5), lg(0, 21, 0, 30, m[1], m[2], m[3]), INK, 0.6)
         v.path(ribbon([(30.4, 17.6), (39, 20.8), (48, 21.8), (57, 20.8), (65.8, 17.6)], [0.9] * 5), m[3], alpha=0.8)
-        v.path(" ".join(circle(x, y, 1.5) for x, y in ((28.8, 8), (39.4, 4.8), (48, 1.6), (56.6, 4.8), (67.2, 8))), lg(0, 0, 0, 10, "#FFFFFF", "#E4DCC8"), INK, 0.6)
+        v.path(" ".join(circle(x, y, 1.5) for x, y in ((28.8, 10), (39.4, 7.2), (48, 4.2), (56.6, 7.2), (67.2, 10))), lg(0, 0, 0, 10, "#FFFFFF", "#E4DCC8"), INK, 0.6)
         gem(c, 48, 22.6, 2.4, s.get("gem", "#E03A4A"), m)
         gem(c, 38.6, 21.4, 1.5, "#3A7AE0", m, "round")
         gem(c, 57.6, 21.4, 1.5, "#3A7AE0", m, "round")
-        v.path(ribbon([(31.6, 20.5), (32.6, 13), (30.4, 10)], [0.2, 1.3, 0.2]), WHITE, alpha=0.7)
-        hrim(c, [(66.4, 10), (66, 18), (65, 25)], 0.7)
+        v.path(ribbon([(31.6, 20.5), (32.4, 14.6), (30.6, 12)], [0.2, 1.3, 0.2]), WHITE, alpha=0.7)
+        hrim(c, [(66.4, 12), (66, 19), (65, 25)], 0.7)
     elif g == "circlet":
         m = s.get("gm", GOLDM)
         v.path(ribbon([(30.8, 28.4), (38, 24.6), (48, 23.4), (58, 24.6), (65.4, 28.4)], [1.5, 1.7, 1.9, 1.7, 1.5]), lg(0, 22, 0, 30, m[0], m[2], m[3]), INK, 0.6)
@@ -1648,7 +1670,7 @@ def gear_front(c):
     elif g == "tiara":
         m = s.get("gm", GOLDM)
         v.path(spline([(33, 24.6, 0), (37.6, 18.4), (41.6, 20.2, 0), (44.6, 13.2), (48, 8.4, 0), (51.4, 13.2), (54.4, 20.2, 0), (58.4, 18.4), (63, 24.6, 0), (56, 22.4), (48, 21),
-                       (40, 22.4)]), lg(34, 8, 62, 26, m[0], m[1], m[2], m[3]), INK, 1.0)
+                       (40, 22.4)]), lg(34, 8, 62, 26, m[0], m[1], m[3]), INK, 1.0)
         gcol = s.get("gem", "#E86AB8")
         gem(c, 48, 16.4, 2.3, gcol, m)
         gem(c, 38.8, 21, 1.2, gcol, m, "round")
@@ -1696,7 +1718,8 @@ def gear_front(c):
         # 結び目と垂れ
         v.path(spline([(67.6, 27, 0), (73.6, 30), (77.6, 37), (78.6, 44, 0), (74, 40.4), (71.6, 34.5), (67, 30.4, 0)]), cloth(gc, 66, 26, 80, 46), INK, 0.9)
         v.path(spline([(67.8, 28.4, 0), (72, 33.6), (72.6, 41), (70.6, 47.6, 0), (69, 41), (68.4, 35), (66.4, 31, 0)]), cloth(darken(gc, 0.12), 66, 28, 74, 48), INK, 0.9)
-        v.path(ribbon([(28.2, 28.6), (36, 24.2), (48, 22.6), (60, 24.2), (68.2, 28.6)], [3.4, 3.6, 3.8, 3.6, 3.4]), lg(0, 20, 0, 31, lighten(gc, 0.35), gc, darken(gc, 0.3)), INK, 0.85)
+        bw = s.get("band_w", 3.6)
+        v.path(ribbon([(28.2, 28.6), (36, 24.2), (48, 22.6), (60, 24.2), (68.2, 28.6)], [bw - 0.2, bw, bw + 0.2, bw, bw - 0.2]), lg(0, 20, 0, 31, lighten(gc, 0.35), gc, darken(gc, 0.3)), INK, 0.85)
         v.path(circle(68, 28.6, 1.9), gc, INK, 0.8)
         v.path(ribbon([(31, 26.4), (38, 23.2), (46, 22)], [0.2, 1.0, 0.2]), WHITE, alpha=0.45)
     elif g == "cap":
@@ -1772,10 +1795,10 @@ def make(spec):
     draw_beard(c)
     draw_mouth(c)
     draw_mustache(c)
+    draw_specs(c)
     hair_front(c)
     if elf:
         draw_ears(c)
-    draw_specs(c)
     gear_front(c)
     v.end()
     if spec.get("gear") == "hood" and spec.get("body") == "plate":
@@ -1797,7 +1820,7 @@ SPECS = {
     "hero_tobias": S(look="m", skin="fair", face="oval", hair="tousled", hc="brown", eyes="open", ic="#7A5A32", brow="soft", mouth="smile", extra=["freckles"],
                      body="gambeson", ac="#8C7A5A", back="shield", bg="slate", motif="ring", tilt=-2),
     "hero_mira": S(look="f", skin="warm", face="heart", hair="ponytail", hc="auburn", eyes="bright", ic="#3E8A4E", brow="soft", mouth="smile", extra=["freckles"],
-                   gear="headband", gc="#E8C04A", body="leather", ac="#4A7A4E", under="#EADDC0", back="quiver", fletch="#E8604A", bg="forest", motif="leaf", tilt=3),
+                   gear="headband", gc="#E8C04A", band_w=2.5, body="leather", ac="#4A7A4E", under="#EADDC0", back="quiver", fletch="#E8604A", bg="forest", motif="leaf", tilt=3),
     "hero_dunstan": S(look="m", skin="tan", face="round", hair="bald", hc="grey", beard="full", eyes="kind", ic="#6A4A2A", brow="soft", brow_t=2.3, mouth="smile", age=1,
                       nose="strong", gear="helm", body="mail", ac="#8A4E34", cloak="#6A4A30", bg="umber", motif="sun"),
     # ── 英雄 R
@@ -1810,7 +1833,8 @@ SPECS = {
     "hero_ilsa": S(look="f", skin="fair", face="oval", hair="braid", hc="black", eyes="calm", ic="#3A6AAA", brow="firm", mouth="smirk", extra=["scar2"],
                    body="leather", ac="#5A4A3A", under="#D8D0C0", cowl="#4A6A9A", bg="steel", motif="diamond", sparks=2),
     # ── 英雄 SR
-    "hero_corvin": S(look="m", skin="pale", face="long", hair="curtain", hc="black", eyes="sharp", ic="#C83A4A", brow="angry", brow_t=1.5, mouth="smirk", nose="long",
+    "hero_corvin": S(look="m", skin="pale", face="long", hair="curtain", hc="black", beard="goatee", eyes="sharp", eye_adj=dict(lash=0.95, wing=0.5, hu=2.0), ic="#C83A4A", brow="angry", brow_t=2.0, blush=0.05,
+                     mouth="smirk", nose="long",
                      gear="hood", gc="#40306A", hood_trim="#C8D0E8", body="plate", metal=DARKM, ornate=1, trimm=STEEL, gem="#E03A4A", bg="violet", motif="moon", sparks=4),
     "hero_yselda": S(look="f", skin="fair", face="oval", hair="wavy", hc="purple", eyes="soft", ic="#A05AD8", brow="firm", mouth="smile", gear="tiara", gem="#F070C0",
                      body="plate", metal=VIOLET_STEEL, ornate=2, cloak="#6A3E9A", bg="orchid", motif="star", sparks=4),
@@ -1843,8 +1867,163 @@ SPECS = {
 }
 
 
+# ───────── 名前だけのメンバーとアバター（パーツの組み合わせ） ─────────
+def pick(seed, key, options):
+    h = zlib.crc32(("%s:%s" % (seed, key)).encode())
+    return options[h % len(options)]
+
+
+G_SKIN = ["pale", "fair", "fair", "warm", "warm", "tan", "tan", "brown", "deep"]
+G_HC_NAT = ["black", "darkbrown", "brown", "brown", "auburn", "red", "blond", "blond", "grey", "orange"]
+G_HC_FAN = ["silver", "teal", "purple", "pink", "iceblue", "white", "gold"]
+G_IRIS = ["#6A4A2A", "#4A3424", "#3A6AB8", "#3E8A4E", "#7A8A9A", "#8A5A2A", "#3AA8B8", "#8A5AC8", "#B86A2A"]
+G_CLOTH = ["#4E6E9A", "#7A5A3A", "#3E6E4E", "#8E3E3E", "#50508A", "#9A8648", "#5E5E6A", "#3A6E7E", "#7E4270", "#B8683A", "#2E5A5A", "#6A7A3A"]
+G_BG = ["slate", "forest", "umber", "royal", "teal", "ember", "steel", "violet", "orchid", "moss", "sun", "aqua", "rose", "sky", "plum", "sand", "olive", "field"]
+G_MOTIF = ["ring", "ring", "sun", "star", "diamond", "shield", "leaf", "moon"]
+G_METAL = [STEEL, STEEL, IRON, BRONZE, DARKM]
+G_GEARC = ["#8A2A2A", "#2E5A8A", "#3E3458", "#4A6A3A", "#B8862A", "#6A3A6A", "#5A4A3A"]
+G = {
+    "m": dict(
+        face=["oval", "square", "round", "long", "angular", "square"],
+        hair=["crop", "tousled", "swept", "crop", "tousled", "mohawk", "bald", "pompadour", "swept", "wild"],
+        beard=[None, None, None, "stubble", "full", "goatee", "stubble"],
+        mustache=[None, None, None, None, "walrus", "curl"],
+        eyes=["open", "open", "stern", "kind", "stern", "happy"],
+        brow=["soft", "flat", "firm", "angry", "firm"],
+        mouth=["smile", "neutral", "smirk", "grin", "stern", "smile"],
+        body=["tunic", "gambeson", "leather", "mail", "plate", "fur", "noble", "cloak", "farm", "scarf", "plate", "leather"],
+        gear=[None, None, None, None, None, "helm", "headband", "bandana", "hood", "cap"],
+        extra=[[], [], [], [], ["freckles"], ["scar"], ["scar2"], ["glasses"], ["earring"], [], ["scar2"], ["eyepatch"]],
+        pin=[None],
+    ),
+    "f": dict(
+        face=["oval", "heart", "round", "heart", "oval"],
+        hair=["long", "wavy", "ponytail", "braid", "bob", "hime", "bun", "shortbob", "curly", "wavy"],
+        beard=[None], mustache=[None],
+        eyes=["soft", "bright", "sharp", "calm", "soft", "happy"],
+        brow=["soft", "soft", "arched", "flat", "firm"],
+        mouth=["smile", "smile", "neutral", "smirk", "grin", "smile"],
+        body=["tunic", "leather", "cloak", "robe", "noble", "blouse", "scarf", "plate", "gambeson", "cloak", "robe"],
+        gear=[None, None, None, None, None, "circlet", "tiara", "headband", "hood", "beret", "cap"],
+        extra=[[], [], [], ["freckles"], ["glasses"], ["earring"], ["mole"]],
+        pin=[None, None, None, "flower", "leaf"],
+    ),
+    "n": dict(
+        face=["oval", "heart", "round", "oval"],
+        hair=["shortbob", "tousled", "bob", "crop", "curly", "swept", "tousled", "shortbob"],
+        beard=[None], mustache=[None],
+        eyes=["open", "calm", "bright", "open", "happy", "kind"],
+        brow=["soft", "flat", "firm", "soft"],
+        mouth=["smile", "neutral", "smirk", "smile", "grin"],
+        body=["tunic", "leather", "cloak", "noble", "scarf", "gambeson", "robe", "mail"],
+        gear=[None, None, None, None, "cap", "beret", "headband", "hood", "bandana"],
+        extra=[[], [], [], ["freckles"], ["glasses"], ["earring"]],
+        pin=[None],
+    ),
+}
+BIG_HAIR = ("mohawk", "pompadour", "wild", "bun", "curly", "ponytail")
+
+
+def generic_spec(seed, look="n"):
+    g = G[look]
+
+    def pk(key, options=None):
+        return pick(seed, key, options if options is not None else g[key])
+
+    hc = pk("hc", G_HC_NAT if (look == "m" or zlib.crc32(("%s:fan" % seed).encode()) % 4) else G_HC_FAN)
+    sp = S(look=look, skin=pk("skin", G_SKIN), face=pk("face"), hair=pk("hair"), hc=hc, beard=pk("beard"), mustache=pk("mustache"), eyes=pk("eyes"),
+           ic=pk("ic", G_IRIS), brow=pk("brow"), mouth=pk("mouth"), body=pk("body"), ac=pk("ac", G_CLOTH), gear=pk("gear"), gc=pk("gc", G_GEARC),
+           extra=list(pk("extra")), pin=pk("pin"), bg=pk("bg", G_BG), motif=pk("motif", G_MOTIF), metal=pk("metal", G_METAL), tilt=pk("tilt", [-4, -2, 0, 0, 2, 3, 4]),
+           sc=pk("sc", ["#E8EEF8", "#D85A5A", "#E8C03A", "#5AB87A", "#5A8AD8"]), cowl=pk("cowl", [None, None, "#4A6A9A", "#7A3A3A", "#3E5E3A"]),
+           trim=pk("trim", [GOLD, GOLD, "#D8DCE8", "#E8A04A"]), kerchief=pk("ker", [None, "#D8563A", "#3A6AB8"]))
+    if look == "n":
+        sp.update(lips=False, blush=0.3, brow_t=1.5, nw=6.2, sw=33.0)
+    if sp["beard"] and sp["mustache"]:
+        sp["mustache"] = None
+    if sp["hair"] == "bald" and not sp["beard"]:
+        sp["beard"] = pk("bbeard", ["stubble", "full", "goatee"])
+    if sp["hc"] in ("grey", "white", "silver") and look == "m":
+        sp["age"] = 1
+    gear = sp["gear"]
+    if gear == "hood":
+        if look == "f":
+            sp["hair"] = "curtain"
+        elif sp["hair"] not in ("crop", "tousled", "swept", "bald"):
+            sp["hair"] = "crop"
+        sp["pin"] = None
+    elif gear == "helm":
+        sp["hair"] = "bald" if sp["hair"] in ("bald", "mohawk") else "sides"
+    elif gear in ("beret", "cap", "bandana") and sp["hair"] in BIG_HAIR:
+        sp["gear"] = None
+    elif gear in ("circlet", "tiara", "headband") and sp["hair"] in ("mohawk", "pompadour"):
+        sp["gear"] = None
+    if sp["gear"] in ("beret", "cap", "tiara", "hood"):
+        sp["pin"] = None
+    if sp["body"] == "plate":
+        sp["ornate"] = pk("orn", [0, 0, 1])
+        sp["cloak"] = pk("cloakc", [None, "#2F5AA8", "#8A2A2A", "#3E6E4E"])
+    if sp["body"] == "fur":
+        sp["furc"] = pk("furc", ["#D8CDB8", "#8A7A68", "#B8A07A"])
+    if "glasses" in sp["extra"] and sp["eyes"] == "happy":
+        sp["eyes"] = "open" if look != "f" else "soft"
+    if "eyepatch" in sp["extra"] and sp["eyes"] == "happy":
+        sp["eyes"] = "stern"
+    if sp["mouth"] == "grin" and sp["brow"] == "angry":
+        sp["brow"] = "firm"
+    return sp
+
+
+# 名前だけの同盟メンバー（personas.json の fillerMembers.look）ごとの枚数と、アバター 12 の配分（m 5 / f 5 / n 2）
+GENERIC_LOOKS = {"m": 8, "f": 8, "n": 6}
+AVATAR_LOOKS = ["m"] * 5 + ["f"] * 5 + ["n"] * 2
+AVATAR_COUNT = len(AVATAR_LOOKS)
+
+
+def generic_items():
+    return [("gen_%s_%02d" % (lk, i), generic_spec("gen%s%d" % (lk, i), lk)) for lk, n in GENERIC_LOOKS.items() for i in range(n)]
+
+
+# プレイヤーのアバター 12: 職業の型（騎士・狩人・術士…）ごとに 1 体ずつ手で決める（選んでもらう顔なので偏りをなくす）
+AVATARS = [
+    # m: 騎士 / 狩人 / 術士 / 蛮族 / 貴族
+    S(look="m", skin="fair", face="angular", hair="crop", hc="brown", eyes="open", ic="#3A6AB8", brow="firm", mouth="smile", body="plate", ornate=1, cloak="#2F5AA8",
+      bg="royal", motif="shield", sparks=2),
+    S(look="m", skin="tan", face="oval", hair="tousled", hc="darkbrown", beard="stubble", eyes="stern", ic="#3E8A4E", brow="firm", mouth="smirk", body="leather", ac="#5A4A32",
+      under="#C8BC9C", cowl="#3E6A3E", back="quiver", fletch="#E8E4D8", bg="forest", motif="leaf", tilt=-3),
+    S(look="m", skin="deep", face="long", hair="swept", hc="black", beard="goatee", eyes="open", ic="#B86A2A", brow="arched", mouth="smile", body="robe", ac="#5A3A8A",
+      pendant="#58D0E0", bg="violet", motif="star", sparks=2, tilt=2),
+    S(look="m", skin="warm", face="square", hair="wild", hc="auburn", beard="full", eyes="stern", ic="#7A5A2A", brow="angry", brow_t=2.4, mouth="grin", nose="strong",
+      extra=["scar2"], body="fur", furc="#B8A07A", teeth=True, bg="ember", motif="flame", tilt=3),
+    S(look="m", skin="pale", face="oval", hair="pompadour", hc="silver", mustache="curl", eyes="kind", ic="#7A8A9A", brow="arched", mouth="smirk", body="noble", ac="#8E3040",
+      bg="sand", motif="diamond", tilt=-2),
+    # f: 騎士 / 術士 / 狩人 / 姫 / 冒険者
+    S(look="f", skin="warm", face="oval", hair="ponytail", hc="red", eyes="sharp", ic="#3E8A4E", brow="firm", mouth="smirk", body="plate", ornate=1, cloak="#8A2A2A",
+      bg="rose", motif="shield", sparks=2, tilt=2),
+    S(look="f", skin="pale", face="heart", hair="long", hc="purple", eyes="calm", ic="#8A5AC8", brow="soft", mouth="smile", gear="circlet", gem="#C87AF0", body="robe",
+      ac="#3A3A7A", trim="#D8DCE8", pendant="#C87AF0", bg="orchid", motif="moon", sparks=2, tilt=-3),
+    S(look="f", skin="brown", face="heart", hair="braid", hc="black", eyes="bright", ic="#B86A2A", brow="soft", mouth="smile", extra=["earring"], body="leather", ac="#3E6E4E",
+      under="#EADDC0", cowl="#B8683A", bg="teal", motif="leaf", tilt=3),
+    S(look="f", skin="fair", face="oval", hair="wavy", hc="blond", eyes="soft", ic="#3A6AB8", brow="soft", mouth="smile", gear="tiara", gem="#58B0F0", body="cloak", ac="#3A62B4",
+      under="#F4EEE0", clasp="#F2C340", bg="sky", motif="star", sparks=2),
+    S(look="f", skin="tan", face="round", hair="shortbob", hc="teal", eyes="bright", ic="#3AA8B8", brow="arched", mouth="grin", extra=["freckles"], pin="flower", body="scarf",
+      ac="#6A3A6A", sc="#F0C84A", bg="plum", motif="burst", tilt=-4),
+    # n: 従者 / 学者
+    S(look="n", skin="fair", face="oval", hair="tousled", hc="blond", eyes="open", ic="#3E8A4E", brow="soft", mouth="smile", extra=["freckles"], body="gambeson", ac="#6A7A8A",
+      lips=False, blush=0.3, brow_t=1.5, nw=6.2, sw=33.0, bg="slate", motif="ring", tilt=2),
+    S(look="n", skin="warm", face="heart", hair="bob", hc="darkbrown", eyes="calm", ic="#4A3424", brow="flat", mouth="smile", extra=["glasses"], body="cloak", ac="#2E6A7A",
+      lips=False, blush=0.3, brow_t=1.5, nw=6.2, sw=33.0, bg="aqua", motif="gear", tilt=-2),
+]
+assert [a["look"] for a in AVATARS] == AVATAR_LOOKS
+
+
+def avatar_items():
+    return [("avatar_%02d" % i, sp) for i, sp in enumerate(AVATARS)]
+
+
 def all_portraits():
-    return [("pt_" + k, make(v)) for k, v in SPECS.items()]
+    out = [("pt_" + k, make(v)) for k, v in SPECS.items()]
+    out += [("pt_" + k, make(v)) for k, v in generic_items() + avatar_items()]
+    return out
 
 
 def main():
@@ -1858,7 +2037,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     items = all_portraits()
     for name, v in items:
-        (out / (name + ".xml")).write_text(v.to_xml(), encoding="utf-8")
+        (out / (name + ".xml")).write_text(v.to_xml(compact=True), encoding="utf-8")
     print("wrote", len(items), "portraits to", out)
     if html:
         cells = "".join('<figure style="margin:6px;display:inline-block;color:#cfd6ee;font:11px sans-serif">%s<figcaption>%s</figcaption></figure>'

@@ -21,7 +21,7 @@ U, V = 14.0, 7.0
 S = 4.0  # 4 x 4 グリッドの足元（中心が S）
 
 # 落ち影: グリッド上で (SUN_DX, SUN_DY) の向きへ、高さ 1 あたり SUN_K だけ伸びる（画面では右下）。
-SUN_DX, SUN_DY, SUN_K = 1.0, -0.3, 0.026
+SUN_DX, SUN_DY, SUN_K = 1.0, -0.3, 0.024
 LIGHT_TINT = "#FFF0C4"   # 光の当たる面に混ぜる暖色
 SHADOW_TINT = "#2A2454"  # 影の面に混ぜる寒色
 SHADOW_INK = "#1B1430"   # 地面の影の色
@@ -225,6 +225,9 @@ class Scene:
         self._cur = None      # いまの層の番号
         self._casts = []      # 落ち影（画面座標の凸多角形）
         self._cast_at = False
+        # 落ち影は足元の中心から離れるほど薄くなり、viewport の端までに消える（切れ目を出さない）
+        self.cast_center = (w / 2.0, CY)
+        self.cast_fade = (w * 0.3, w / 2.0 - 1.0)
 
     # ---- 基本図形 -------------------------------------------------------------
     def poly(self, pts, fill, stroke=None, sw=0.6, alpha=1.0, sil=False, salpha=1.0):
@@ -346,8 +349,10 @@ class Scene:
         if grad is True:
             grad = "rl"
         grad = grad or ""
-        if sil:
+        if sil and "t" in faces:
             self.sil([P(x0, y1, z0), P(x1, y1, z0), P(x1, y0, z0), P(x1, y0, z1), P(x0, y0, z1), P(x0, y1, z1)])
+        elif sil:
+            self.sil([P(x0, y1, z0), P(x1, y1, z0), P(x1, y0, z0), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)])
         if cast:
             self.cast_box(x0, y0, x1, y1, z0, z1)
         cr, cl = shd(c, rf), shade(c, lf)
@@ -379,20 +384,21 @@ class Scene:
         x0, y0, x1, y1 = x0 - over, y0 - over, x1 + over, y1 + over
         st = edge(c, 0.42)
         gc = gable_c or (shd(c, 0.42) if wall else shd(c, 0.6))
-        cl, cd = c, shd(c, 0.74)
+        cl, cd = c, shd(c, 0.84)
         if axis == "x":
             ym = (y0 + y1) / 2.0
+            far = h < 2.0 * (ym - y0) * V                     # 奥の面が見えるのは浅い屋根だけ
             r0, r1 = P(x0, ym, z + h), P(x1, ym, z + h)       # 棟
             e0, e1 = P(x0, y1, z), P(x1, y1, z)               # 手前（左前）の軒
             b0, b1 = P(x0, y0, z), P(x1, y0, z)               # 奥の軒
             if sil:
                 self.sil([e0, (e0[0], e0[1] + thick), (e1[0], e1[1] + thick), b1, r1, r0])
-                if b0[1] < r0[1]:
+                if far:
                     self.sil([b0, b1, r1, r0])
             if cast:
                 self.cast([(x0, y0, z), (x1, y0, z), (x1, y1, z), (x0, y1, z), (x0, ym, z + h), (x1, ym, z + h)])
-            if b0[1] < r0[1]:  # 奥の面が見えるのは、棟より軒が上に来る浅い屋根だけ
-                self.poly([b0, b1, r1, r0], shd(c, 0.62), st, 0.45)
+            if far:
+                self.poly([b0, b1, r1, r0], shd(c, 0.78), st, 0.45)
             self.poly([b1, e1, r1], gc, st, 0.45)
             if wall:
                 cw = shd(wall, 0.72)
@@ -407,22 +413,23 @@ class Scene:
             self.line([r0, r1], ridge or lit(cl, 1.3, 0.2), rw)
         else:
             xm = (x0 + x1) / 2.0
+            far = h < 2.0 * (xm - x0) * V
             r0, r1 = P(xm, y0, z + h), P(xm, y1, z + h)
             e0, e1 = P(x1, y0, z), P(x1, y1, z)               # 手前（右前）の軒
             b0, b1 = P(x0, y0, z), P(x0, y1, z)
             if sil:
                 self.sil([e1, (e1[0], e1[1] + thick), (e0[0], e0[1] + thick), e0, r0, r1, b1])
-                if b0[1] < r0[1]:
+                if far:
                     self.sil([b0, b1, r1, r0])
             if cast:
                 self.cast([(x0, y0, z), (x1, y0, z), (x1, y1, z), (x0, y1, z), (xm, y0, z + h), (xm, y1, z + h)])
-            if b0[1] < r0[1]:
-                self.poly([b0, b1, r1, r0], shade(cl, 0.9), st, 0.45)
+            if far:  # 左奥の面は光を正面から受ける
+                self.poly([b0, b1, r1, r0], lit(cl, 1.16, 0.14), st, 0.45)
             self.poly([b1, e1, r1], gable_c or (shd(c, 0.5) if wall else shade(cl, 0.82)), st, 0.45)
             if wall:
                 wp = [P(x0 + over + 0.1, y1, z), P(x1, y1, z), P(xm + 0.06, y1, z + h - 2.6)]
                 self.poly(wp, vgrad(wp[2][1], wp[1][1], shade(wall, 0.78), lit(wall, 1.04)), None, 0)
-            self.poly([e0, e1, r1, r0], grad_perp(r0, r1, e0, [shade(cd, 1.12), shade(cd, 0.78)]), st, 0.45)
+            self.poly([e0, e1, r1, r0], grad_perp(r0, r1, e0, [shade(cd, 1.1), shade(cd, 0.8)]), st, 0.45)
             if tiles:
                 self.lines(rows(r0, r1, e0, e1, tiles), shade(cd, 0.6), 0.45, 0.6)
             if thick > 0:
@@ -435,16 +442,22 @@ class Scene:
         xm, ym = (x0 + x1) / 2.0, (y0 + y1) / 2.0
         st = edge(c, 0.42)
         a = P(xm, ym, z + h)
-        pl, pm, pr = P(x0, y1, z), P(x1, y1, z), P(x1, y0, z)
-        cd = shd(c, 0.74)
+        pl, pm, pr, pb = P(x0, y1, z), P(x1, y1, z), P(x1, y0, z), P(x0, y0, z)
+        cd = shd(c, 0.8)
+        far = h < ((xm - x0) + (ym - y0)) * V  # 奥の 2 面が見えるのは浅い屋根だけ
         if sil:
             self.sil([pl, (pl[0], pl[1] + thick), (pm[0], pm[1] + thick), (pr[0], pr[1] + thick), pr, a])
+            if far:
+                self.sil([pl, pb, pr, a])
         if cast:
             self.cast([(x0, y0, z), (x1, y0, z), (x1, y1, z), (x0, y1, z), (xm, ym, z + h)])
+        if far:
+            self.poly([pb, pr, a], shd(c, 0.74), st, 0.45)
+            self.poly([pb, pl, a], lit(c, 1.16, 0.14), st, 0.45)
         self.poly([pr, pm, a], grad_perp(a, (a[0] + pm[0] - pr[0], a[1] + pm[1] - pr[1]), pm,
-                                         [shade(cd, 1.15), shade(cd, 0.78)]), st, 0.45)
+                                         [shade(cd, 1.12), shade(cd, 0.8)]), st, 0.45)
         self.poly([pl, pm, a], grad_perp(a, (a[0] + pm[0] - pl[0], a[1] + pm[1] - pl[1]), pm,
-                                         [lit(c, 1.14), shade(c, 0.84)]), st, 0.45)
+                                         [lit(c, 1.14), shade(c, 0.86)]), st, 0.45)
         if tiles:
             sl, sr = [], []
             for i in range(1, tiles + 1):
@@ -621,12 +634,13 @@ class Scene:
                     out.append(Shape(ps[0], self.outline, self.outline, self.ow * 2.0, 1.0,
                                      subs=[(p, True) for p in ps[1:]]))
             elif s.kind[0] == "cast" and self._casts:
-                xa = min(x for p in self._casts for x, _ in p)
-                xb = max(max(x for p in self._casts for x, _ in p), xa + 1.0)
-                xb = min(xb + 2.0, self.w - 0.5)
-                g = Linear(xa, 0, xb, 0, [(0.0, with_alpha(SHADOW_INK, 0.40)), (0.6, with_alpha(SHADOW_INK, 0.30)),
-                                          (1.0, with_alpha(SHADOW_INK, 0.0))])
-                out.append(Shape(self._casts[0], g, None, 0, 1.0, subs=[(p, True) for p in self._casts[1:]]))
+                # 2:1 につぶした放射グラデーション（group の scaleY = 0.5）なので、パスは y を 2 倍にしておく
+                cx, cy = self.cast_center
+                r0, r1 = self.cast_fade
+                ps = [[(x, cy + (y - cy) * 2.0) for x, y in p] for p in self._casts]
+                g = Radial(cx, cy, r1, [(0.0, with_alpha(SHADOW_INK, 0.36)), (r0 / r1, with_alpha(SHADOW_INK, 0.32)),
+                                        (1.0, with_alpha(SHADOW_INK, 0.0))])
+                out.append(Shape(ps[0], g, None, 0, 1.0, subs=[(p, True) for p in ps[1:]], xf=(cx, cy, 1.0, 0.5)))
         return out
 
     def stats(self):
@@ -650,10 +664,11 @@ class Scene:
             'android:viewportWidth="%d" android:viewportHeight="%d">' % (ns, self.w, self.h, self.w, self.h)
         )
         ind = "" if cp else "  "
+        pd = (lambda pts, closed: _path_rel(pts, closed)) if cp else (lambda pts, closed: _path_data(pts, closed, num))
         for s in shapes:
-            d = s.d if s.d is not None else _path_data(s.pts, s.closed, num)
+            d = s.d if s.d is not None else pd(s.pts, s.closed)
             for sp, scl in (s.subs or ()):
-                d += _path_data(sp, scl, num)
+                d += pd(sp, scl)
             attrs = []
             grad = None
             if is_grad(s.fill):
@@ -791,3 +806,27 @@ def _path_data(pts, closed, num=None):
         for i, (x, y) in enumerate(pts):
             parts.append("%s%s,%s" % ("M" if i == 0 else "L", num(x), num(y)))
     return "".join(parts) + ("Z" if closed else "")
+
+
+def _path_rel(pts, closed):
+    """詰めた pathData: 最初の点だけ絶対座標、あとは相対の線（0.1 単位に丸めた点どうしの差なので誤差はたまらない）。"""
+    if not pts:
+        return ""
+    q = [(round(x * 10), round(y * 10)) for x, y in pts]
+    out = ["M%s,%s" % (_t(q[0][0]), _t(q[0][1]))]
+    seg = []
+    for i in range(1, len(q)):
+        dx, dy = q[i][0] - q[i - 1][0], q[i][1] - q[i - 1][1]
+        if dx == 0 and dy == 0:
+            continue
+        seg.append("%s,%s" % (_t(dx), _t(dy)))
+    if seg:
+        out.append("l" + " ".join(seg))
+    return "".join(out) + ("Z" if closed else "")
+
+
+def _t(n):
+    """0.1 単位の整数を小数の文字列に（10 -> "1"、-5 -> "-0.5"）。"""
+    sign = "-" if n < 0 else ""
+    n = abs(n)
+    return "%s%d" % (sign, n // 10) if n % 10 == 0 else "%s%d.%d" % (sign, n // 10, n % 10)

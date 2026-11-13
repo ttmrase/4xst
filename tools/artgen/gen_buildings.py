@@ -316,19 +316,19 @@ def flat_roof(sc, m, t, x0, y0, x1, y1, h, wall, n=4):
 
 
 def hall(sc, m, t, x0, y0, x1, y1, h, roof="gable", axis="x", rh=None, wall=None, nl=2, nr=2, door=True, zb=4.0,
-         shadow=True):
+         shadow=True, win=(0.5, 9.0), over=0.25, eave=3.2):
     wall = wall or m["wall"]
     if shadow:
         contact(sc, x0, y0, x1, y1)
     # 土台（石）
     sc.box(x0 - 0.1, y0 - 0.1, x1 + 0.1, y1 + 0.1, 0, zb, m["base"], grad=False)
     flat = roof == "flat"
-    sc.box(x0, y0, x1, y1, zb, h, wall, eave=0.0 if flat else 3.2, faces="rl")
+    sc.box(x0, y0, x1, y1, zb, h, wall, eave=0.0 if flat else eave, faces="rl")
     wall_tex(sc, m, x0, y0, x1, y1, zb, h, wall)
-    windows(sc, m, t, x0, y0, x1, y1, h, nl, nr, door=door, zb=zb)
+    windows(sc, m, t, x0, y0, x1, y1, h, nl, nr, door=door, zb=zb, w=win[0], wh=win[1])
     rh = rh or (7 + 2 * t)
     if roof == "gable":
-        gable_roof(sc, m, x0, y0, x1, y1, h, rh, axis, wall=wall)
+        gable_roof(sc, m, x0, y0, x1, y1, h, rh, axis, over=over, wall=wall)
     elif roof == "pyramid":
         st = m["style"]
         sc.pyramid(x0, y0, x1, y1, h, rh, m["roof"], tiles=0 if st == "wood" else max(3, int(rh / 4.2)),
@@ -491,8 +491,9 @@ def crystal(sc, x, y, h, w, c):
     tip = (b[0] + w * 0.15, b[1] - h)
     lf, rt, mid = (b[0] - w, b[1] - h * 0.12), (b[0] + w, b[1] - h * 0.2), (b[0] + w * 0.1, b[1] + w * 0.35)
     sc.sil([lf, mid, rt, tip])
-    sc.poly([lf, mid, tip], vgrad(tip[1], b[1], "#FFFFFF", c), edge(c, 0.6), 0.4)
-    sc.poly([mid, rt, tip], vgrad(tip[1], b[1], lit(c, 1.1), shd(c, 0.72, 0.1)), edge(c, 0.6), 0.4)
+    sc.poly([lf, mid, tip], lit(c, 1.5, 0.0), edge(c, 0.6), 0.4)
+    sc.poly([mid, rt, tip], shade(c, 0.92), edge(c, 0.6), 0.4)
+    sc.line([(lf[0] + w * 0.45, lf[1] - h * 0.1), (tip[0] - w * 0.1, tip[1] + h * 0.18)], "#FFFFFF", 0.6, 0.85)
     sc.cast([(x, y, 0), (x + 0.15, y, 0), (x, y, h * 0.8)])
 
 
@@ -859,21 +860,34 @@ def sawmill(sc, m, t):
     log_pile(sc, 0.3, 3.3, 1 + (t >= 2) + (t >= 4), 0.9, 2.1)
 
 
-def crag(sc, x0, y0, x1, y1, h, c, seed=0):
-    """岩の壁（上端がでこぼこの箱）。"""
-    sc.box(x0, y0, x1, y1, 0, h, c, top=lit(c, 1.12))
-    # 割れ目と明るい面
-    lf, rf = Lf(y1), Rf(x1)
-    segs = []
-    for i, f in enumerate((0.22, 0.5, 0.78)):
-        a = x0 + (x1 - x0) * f
-        segs.append([lf(a, h), lf(a - 0.12, h * (0.55 - 0.1 * ((i + seed) % 2))), lf(a + 0.06, h * 0.2)])
-    sc.lines(segs, shade(c, 0.6), 0.5, 0.55)
-    segs = []
-    for i, f in enumerate((0.3, 0.68)):
-        a = y0 + (y1 - y0) * f
-        segs.append([rf(a, h), rf(a + 0.1, h * (0.5 + 0.1 * ((i + seed) % 2))), rf(a - 0.05, h * 0.18)])
-    sc.lines(segs, shd(c, 0.42), 0.5, 0.6)
+GRASS = "#76B44E"
+
+
+def cliff(sc, x0, y0, x1, y1, hs, c, grass=GRASS):
+    """切り立った岩の壁（高さの違う箱を並べる。上は草地で、その下に土の帯）。hs は奥から手前への高さの並び。"""
+    along_x = (x1 - x0) >= (y1 - y0)
+    n = len(hs)
+    cracks, soil, strata = [], [], []
+    for i, h in enumerate(hs):
+        if along_x:
+            a, b = x0 + (x1 - x0) * i / float(n), x0 + (x1 - x0) * (i + 1) / float(n)
+            sc.box(a, y0, b, y1, 0, h, c, top=grass, grad="l")
+            fn = Lf(y1)
+            soil.append([fn(a, h - 1.3), fn(b, h - 1.3)])
+        else:
+            a, b = y0 + (y1 - y0) * i / float(n), y0 + (y1 - y0) * (i + 1) / float(n)
+            sc.box(x0, a, x1, b, 0, h, c, top=grass, grad="r")
+            fn = Rf(x1)
+            soil.append([fn(a, h - 1.3), fn(b, h - 1.3)])
+        for j, f in enumerate((0.3, 0.72)):
+            q = a + (b - a) * f
+            k = 0.5 + 0.12 * ((i + j) % 2)
+            cracks.append([fn(q, h - 2.4), fn(q - (b - a) * 0.08, h * k), fn(q + (b - a) * 0.05, h * 0.16)])
+        strata.append([fn(a, h * 0.42), fn(b, h * 0.42)])
+    ink = shade(c, 0.58) if along_x else shd(c, 0.42)
+    sc.lines(cracks, ink, 0.5, 0.6)
+    sc.lines(strata, ink, 0.4, 0.4)
+    sc.lines(soil, "#7A5632" if along_x else "#5E4026", 1.5)
 
 
 def quarry(sc, m, t):
@@ -884,8 +898,9 @@ def quarry(sc, m, t):
     ground(sc, 0.75, 0.75, 3.3, 3.3, shade(rock_c, 0.54))
     sc.cast_here()
     # 岩の壁（奥）
-    crag(sc, 0.2, 0.2, 3.8, 0.9, 16 + t * 2, rock_c)
-    crag(sc, 0.2, 0.2, 0.9, 3.8, 12 + t * 2, rock_c, 1)
+    hb, hl = 16 + t * 2, 12 + t * 2
+    cliff(sc, 0.2, 0.2, 3.8, 0.9, [hb, hb * 0.8, hb * 0.92], rock_c)
+    cliff(sc, 0.2, 0.2, 0.9, 3.8, [hl * 0.9, hl, hl * 0.7], rock_c)
     rock(sc, 1.2, 1.25, 0.9, rock_c)
     if t >= 3:  # クレーン
         top = P(2.8, 1.2, 30 + t * 2)
@@ -924,9 +939,10 @@ def nugget(px, py, r):
 
 def gold_mine(sc, m, t):
     base_pad(sc, m, t)
-    rock_c = ["#857B6E", "#8C8274", "#958A7C", "#A09484", "#BDB19C"][t - 1]
-    crag(sc, 0.2, 0.2, 3.8, 1.4, 22 + t * 3, rock_c)
-    crag(sc, 0.2, 0.2, 1.4, 3.8, 16 + t * 2, rock_c, 1)
+    rock_c = ["#8E7E6A", "#958570", "#9E8E7A", "#AA9A86", "#C6B9A2"][t - 1]
+    hb, hl = 22 + t * 3, 16 + t * 2
+    cliff(sc, 0.2, 0.2, 3.8, 1.4, [hb * 0.86, hb, hb * 0.78], rock_c)
+    cliff(sc, 0.2, 0.2, 1.4, 3.8, [hl, hl * 0.84, hl * 0.62], rock_c)
     # 岩肌の金の鉱脈
     veins = [(1.0, 1.9, 6), (3.2, 1.0, 12), (0.9, 2.8, 5), (3.5, 1.9, 8), (2.9, 1.4, 20)][: 1 + t]
     lf = Lf(1.4)
@@ -1133,22 +1149,27 @@ def siege_workshop(sc, m, t):
     hall(sc, m, t, 0.4, 0.4, 2.4, 2.4, h, roof="gable", axis="x", rh=8 + t, nl=2, nr=2)
     chimney(sc, m, 0.65, 0.75, h + 2, h + 11 + t, 0.36, smk=t >= 2)
     sc.flag(0.5, 0.5, h + 8 + t, 11, m["banner"])
-    # 投石機
+    # 投石機（台車・A 形の支柱・斜めの腕・おもり・石の弾）
     sc.layer()
     wood = "#8A6238"
-    boxes(sc, [(2.5, 2.6, 3.7, 2.82, 0, 3.4), (2.5, 3.48, 3.7, 3.7, 0, 3.4)], wood, cast=True)
-    sc.ovals([(P(x, y, 2.4)[0], P(x, y, 2.4)[1], 2.3, 2.7) for (x, y) in ((2.62, 3.72), (3.58, 3.72), (3.72, 2.72))], "#6E4C2A",
+    boxes(sc, [(2.45, 2.62, 3.75, 2.84, 0, 3.4), (2.45, 3.46, 3.75, 3.68, 0, 3.4)], wood, cast=True)
+    sc.ovals([(P(x, y, 2.4)[0], P(x, y, 2.4)[1], 2.3, 2.7) for (x, y) in ((2.6, 3.7), (3.6, 3.7), (3.77, 2.74))], "#6E4C2A",
              "#2E1E10", 0.5, sil=True)
-    piv = P(3.1, 3.15, 15)
-    tip = P(2.55, 2.55, 25)
-    tail = P(3.55, 3.6, 8)
-    frame = [[P(2.9, 2.72, 3.4), piv], [P(3.3, 2.72, 3.4), piv], [P(2.9, 3.6, 3.4), piv], [P(3.3, 3.6, 3.4), piv]]
-    sc.lines(frame + [[tail, tip]], INK, 3.6, cap="round")
-    sc.lines(frame, shade(wood, 0.82), 1.6, cap="round")
-    sc.line([tail, tip], lit(wood, 1.12), 2.0, cap="round")
-    sc.oval(tail[0], tail[1] + 1.5, 3.2, 3.4, "#6A6E78", "#2E3038", 0.5, sil=True)
-    sc.oval(tip[0], tip[1] - 0.5, 2.9, 2.9, "#A8A49C", "#3A3A3A", 0.5, sil=True)
-    sc.oval(tip[0] - 0.8, tip[1] - 1.3, 1.1, 1.0, "#D8D4CC", None, 0, 0.8)
+    piv = P(3.1, 3.15, 16)
+    tip = P(2.2, 3.15, 27)
+    tail = P(3.62, 3.15, 9.5)
+    frame = [[P(2.8, 2.73, 3.4), piv], [P(3.4, 2.73, 3.4), piv], [P(2.8, 3.57, 3.4), piv], [P(3.4, 3.57, 3.4), piv]]
+    sc.lines(frame + [[tail, tip]], INK, 3.8, cap="round")
+    sc.lines(frame[:2], shade(wood, 0.74), 1.6, cap="round")
+    sc.lines(frame[2:], shade(wood, 0.94), 1.7, cap="round")
+    sc.line([tail, tip], lit(wood, 1.16), 2.1, cap="round")
+    sc.oval(piv[0], piv[1], 1.3, 1.3, "#4A4650", "#1E1C22", 0.4)
+    wb = (tail[0], tail[1] + 4.6)
+    sc.line([tail, wb], "#3A3640", 0.8)
+    sc.poly([(wb[0] - 3.2, wb[1] - 1.6), (wb[0] + 3.2, wb[1] - 1.6), (wb[0] + 2.4, wb[1] + 3.4), (wb[0] - 2.4, wb[1] + 3.4)], "#6A6E78", "#2E3038",
+            0.5, sil=True)
+    sc.oval(tip[0], tip[1] - 1.2, 3.0, 3.0, Radial(tip[0] - 1, tip[1] - 2.2, 4.2, ["#DEDAD2", "#A39F97", "#6E6A64"]), "#3A3A3A", 0.5, sil=True)
+    sc.cast([(2.2, 3.1, 27), (2.2, 3.2, 27), (3.62, 3.1, 9), (3.62, 3.2, 9), (3.1, 3.15, 0)])
     # 石の弾の山
     balls = [(P(2.2, 3.55, 2)[0] + dx, P(2.2, 3.55, 2)[1] + dy, 2.1, 2.1) for dx, dy in ((-2.2, 0), (2.2, 0.4), (0, -3.2))]
     sc.ovals(balls, "#9C988F", "#3E3C3A", 0.45, sil=True)
