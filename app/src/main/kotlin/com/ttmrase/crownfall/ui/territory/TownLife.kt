@@ -514,7 +514,7 @@ internal object TownLife {
                 )
             out +=
                 guard(
-                    floatArrayOf(hi - GATE_NEAR - GUARD_LANE, hi - GATE_FAR),
+                    floatArrayOf(hi - GATE_NEAR, hi - GATE_FAR),
                     floatArrayOf(inside, inside),
                     max(from, SECOND_GATE_GUARD_LEVEL),
                     until,

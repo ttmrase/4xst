@@ -855,6 +855,13 @@ def draw_back(c):
         v.path(" ".join("M%.1f,%.1f V%.1f" % (x + dx, y - math.sqrt(r * r - dx * dx) + 1.5, 97) for dx in (-12, -4, 4, 12, 20)), None, "#4E3018", 0.6, salpha=0.6)
         v.path(circle(x, y, r - 1.6), None, IRON[1], 2.6)
         v.path(circle(x, y, r), None, INK, 1.0)
+    elif b == "bow":
+        # 左肩のうしろに立てた弓（上の端と弦だけ見える）
+        wc = s.get("bowc", "#8A5A30")
+        v.path("M10.8,36.6 L-2,86", None, "#F4EEDC", 0.7, salpha=0.9)
+        v.path(ribbon([(1.5, 99), (6.5, 80), (11.5, 62), (14.6, 48), (13.6, 40.4), (10.4, 35.4)], [2.8, 2.8, 2.6, 2.2, 1.8, 1.2]), wc, INK, 0.9)
+        v.path(ribbon([(5.6, 80), (10.4, 62), (13.4, 49)], [0, 0.8, 0]), lighten(wc, 0.5), alpha=0.7)
+        v.path(ribbon([(13.9, 42.6), (12.9, 38.6), (10.2, 35.2)], [2.4, 2.2, 1.4]), GOLDM[2], INK, 0.6)
     elif b == "quiver":
         x = s.get("back_x", 78)
         d_sh, d_fl = [], []
@@ -1870,11 +1877,11 @@ SPECS = {
     "hero_aldric": S(look="m", skin="fair", face="angular", hair="crop", hc="blond", eyes="open", ic="#3A6AB8", brow="firm", mouth="smile", body="plate", ornate=1,
                      cloak="#2F5AA8", bg="royal", motif="shield", sparks=2),
     "hero_seren": S(look="f", skin="pale", face="heart", hair="long", hc="silver", eyes="soft", ic="#3AA8B8", brow="soft", mouth="smile", ears="elf",
-                    gear="circlet", gm=STEEL, gem="#58D0E0", body="cloak", ac="#2F7C7C", bg="teal", motif="moon", sparks=2, tilt=-3),
+                    gear="circlet", gm=STEEL, gem="#58D0E0", body="cloak", ac="#2F7C7C", back="bow", bowc="#D8D4C4", bg="teal", motif="moon", sparks=2, tilt=-3),
     "hero_brann": S(look="m", skin="tan", face="square", hair="wild", hc="red", beard="wild", eyes="stern", ic="#7A5A2A", brow="angry", brow_t=2.6, mouth="grin",
                     nose="strong", extra=["paint", "scar2"], body="fur", teeth=True, furc="#C8B89C", bg="blaze", motif="flame", sparks=2, tilt=3),
     "hero_ilsa": S(look="f", skin="fair", face="oval", hair="braid", hc="black", eyes="calm", ic="#3A6AAA", brow="firm", mouth="smirk", extra=["scar2"],
-                   body="leather", ac="#5A4A3A", under="#D8D0C0", cowl="#4A6A9A", bg="steel", motif="diamond", sparks=2),
+                   body="leather", ac="#5A4A3A", under="#D8D0C0", cowl="#4A6A9A", back="quiver", back_x=17, fletch="#7AA8E0", bg="steel", motif="diamond", sparks=2),
     # ── 英雄 SR
     "hero_corvin": S(look="m", skin="pale", face="long", hair="curtain", hc="black", beard="goatee", eyes="sharp", eye_adj=dict(lash=0.95, wing=0.5, hu=2.0), ic="#C83A4A", brow="angry", brow_t=2.0, blush=0.05,
                      mouth="smirk", nose="long",
