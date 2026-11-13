@@ -1,10 +1,5 @@
 package com.ttmrase.crownfall.ui.title
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -16,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,7 +23,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +38,12 @@ import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.graphicsLayer
+import com.ttmrase.crownfall.ui.kit.rememberLoop
 
 /**
  * タイトルの一枚絵。夕暮れの空・月・星・山並み・丘の上の城を、手続きの図形で描く（画像ファイルは使わない）。
@@ -53,61 +52,66 @@ import kotlin.math.sin
 @Composable
 fun TitleBackdrop(modifier: Modifier = Modifier) {
     val animate = animationsEnabled()
-    val t by rememberInfiniteTransition(label = "title").animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(LOOP_MS, easing = LinearEasing)),
-        label = "t",
-    )
+    val t = rememberLoop(LOOP_MS, "title")
     val stars = remember { List(STARS) { i -> Triple(hash(i * 3 + 1), hash(i * 3 + 2), hash(i * 3 + 3)) } }
     val embers = remember { List(EMBERS) { i -> Triple(hash(i * 7 + 11), hash(i * 7 + 13), hash(i * 7 + 17)) } }
     Box(modifier.fillMaxSize()) {
-        Canvas(Modifier.fillMaxSize()) {
-            val time = if (animate) t else 0.2f
-            sky()
-            stars(stars, time)
-            moon()
-            ridge(0.50f, 0.085f, 3.1f, 0.6f, Color(0xFF3A2F7A), Color(0xFF2A2362), time * 0.02f)
-            mist(0.56f, Color(0x33FFB38A))
-            ridge(0.58f, 0.07f, 4.3f, 2.1f, Color(0xFF241D58), Color(0xFF17143F), time * 0.04f)
-            skyline(0.635f)
-            mist(0.66f, Color(0x26FF9A6B))
-            hill()
-            embers(embers, time)
-            vignette()
-        }
-        // 丘の上の城（ゲーム内の最上段階の城のスプライト）と、その後ろの光
+        // 動かない景色（空・月・山並み・城下町・丘）は 1 度だけ画像に焼いて、毎フレームは貼るだけにする。
+        // 毎フレーム描くのは、星のまたたきと火の粉だけ（自分の層の中）
         Box(
-            modifier =
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .offset(y = CASTLE_TOP.dp)
-                    .drawBehind {
-                        val c = Offset(size.width / 2, CASTLE_SIZE.dp.toPx() * 0.5f)
-                        val r = size.width * 0.62f
-                        drawCircle(
-                            Brush.radialGradient(listOf(Color(0x88FFD27A), Color(0x33FF8A4A), Color.Transparent), c, r),
-                            r,
-                            c,
-                        )
-                        rotate(if (animate) t * FULL_TURN else 0f, c) {
-                            for (i in 0 until RAYS) {
-                                val a0 = (2 * PI * i / RAYS).toFloat()
-                                val a1 = a0 + RAY_WIDTH
-                                val ray =
-                                    Path().apply {
-                                        moveTo(c.x, c.y)
-                                        lineTo(c.x + r * cos(a0), c.y + r * sin(a0))
-                                        lineTo(c.x + r * cos(a1), c.y + r * sin(a1))
-                                        close()
-                                    }
-                                drawPath(ray, Brush.radialGradient(listOf(Color(0x40FFE9A8), Color.Transparent), c, r))
-                            }
-                        }
-                    },
+            Modifier.fillMaxSize().drawWithCache {
+                val w = size.width.toInt().coerceAtLeast(1)
+                val h = size.height.toInt().coerceAtLeast(1)
+                val still = ImageBitmap(w, h)
+                CanvasDrawScope().draw(this, layoutDirection, Canvas(still), size) {
+                    sky()
+                    moon()
+                    ridge(0.50f, 0.085f, 3.1f, 0.6f, Color(0xFF3A2F7A), Color(0xFF2A2362), 0f)
+                    mist(0.56f, Color(0x33FFB38A))
+                    ridge(0.58f, 0.07f, 4.3f, 2.1f, Color(0xFF241D58), Color(0xFF17143F), 0f)
+                    skyline(0.635f)
+                    mist(0.66f, Color(0x26FF9A6B))
+                    hill()
+                    vignette()
+                }
+                onDrawBehind { drawImage(still) }
+            },
+        )
+        Canvas(Modifier.fillMaxSize().graphicsLayer()) {
+            val time = if (animate) t.value else 0.2f
+            stars(stars, time)
+            embers(embers, time)
+        }
+        // 丘の上の城（ゲーム内の最上段階の城のスプライト）と、その後ろでゆっくり回る光条
+        Box(
+            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().offset(y = CASTLE_TOP.dp),
             contentAlignment = Alignment.TopCenter,
         ) {
+            Box(
+                Modifier
+                    .size(CASTLE_SIZE.dp)
+                    .graphicsLayer { rotationZ = if (animate) t.value * FULL_TURN * RAY_TURNS else 0f }
+                    .drawWithCache {
+                        val c = Offset(size.width / 2, size.height / 2)
+                        val r = size.width * 0.78f
+                        val rays = Path()
+                        for (i in 0 until RAYS) {
+                            val a0 = (2 * PI * i / RAYS).toFloat()
+                            val a1 = a0 + RAY_WIDTH
+                            rays.moveTo(c.x, c.y)
+                            rays.lineTo(c.x + r * cos(a0), c.y + r * sin(a0))
+                            rays.lineTo(c.x + r * cos(a1), c.y + r * sin(a1))
+                            rays.close()
+                        }
+                        val rayBrush = Brush.radialGradient(listOf(Color(0x40FFE9A8), Color.Transparent), c, r)
+                        val glow =
+                            Brush.radialGradient(listOf(Color(0x88FFD27A), Color(0x33FF8A4A), Color.Transparent), c, r)
+                        onDrawBehind {
+                            drawCircle(glow, r, c)
+                            drawPath(rays, rayBrush)
+                        }
+                    },
+            )
             Image(
                 painter = painterResource(R.drawable.bld_castle_t5),
                 contentDescription = null,
@@ -380,6 +384,7 @@ private const val RIDGE_STEPS = 72
 private const val RAYS = 14
 private const val RAY_WIDTH = 0.16f
 private const val FULL_TURN = 360f
+private const val RAY_TURNS = 3f
 private const val CASTLE_TOP = 250
 private const val CASTLE_SIZE = 330
 private const val OUTLINE_PX = 9f

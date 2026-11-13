@@ -52,13 +52,13 @@ CAM_F = (-_C30 * _S2, -_C30 * _S2, -_S30)             # viewing direction (into 
 # Lighting (world space; directions point towards the light).  The key light comes from the upper
 # left-front: faces looking at +y (left-front on screen) are lit, faces looking at +x are in shade.
 LIGHT = dict(
-    key_dir=(-0.40, 0.58, 0.71), key_col=(1.00, 0.89, 0.70), key=2.35,
-    sky_col=(0.52, 0.68, 1.00), sky=0.62,             # cool fill from above, scaled by ambient occlusion
-    gnd_col=(0.62, 0.60, 0.38), gnd=0.30,             # warm bounce from the ground
-    fill_dir=(0.80, 0.15, 0.45), fill_col=(0.62, 0.66, 1.00), fill=0.42,   # keeps shaded sides alive
-    rim=0.35,                                          # grazing-angle sheen on upward silhouettes
-    exposure=0.92, saturation=1.14, contrast=1.06,
-    shadow_col="#17122B", shadow=0.52, contact=0.55,   # baked ground shadow (cast + contact)
+    key_dir=(-0.25, 0.66, 0.71), key_col=(1.00, 0.88, 0.68), key=2.9,
+    sky_col=(0.50, 0.66, 1.00), sky=0.40,             # cool fill from above, scaled by ambient occlusion
+    gnd_col=(0.62, 0.60, 0.38), gnd=0.20,             # warm bounce from the ground
+    fill_dir=(0.80, 0.15, 0.45), fill_col=(0.60, 0.64, 1.00), fill=0.17,   # keeps shaded sides alive
+    rim=0.30,                                          # grazing-angle sheen on upward silhouettes
+    exposure=0.70, saturation=1.14, contrast=1.04,
+    shadow_col="#17122B", shadow=0.60, contact=0.55,   # baked ground shadow (cast + contact)
     ao=1.0, bloom=1.0, outline=0.0,
 )
 
@@ -609,7 +609,7 @@ def _blocks(c, ch, bl, seed):
 def m_stone(color="#BDB7A8", course=4.6, length=2.0, mortar=None, var=0.13, joint=0.4, seed=1, spec=0.05):
     """Cut stone blocks in running bond.  course = block height in z units, length = block length / height."""
     base = srgb(color)
-    mort = srgb(mortar) if mortar else base * 0.42
+    mort = srgb(mortar) if mortar else base * 0.5
     ch = course * ZS
     bl = ch * length
 
@@ -617,7 +617,7 @@ def m_stone(color="#BDB7A8", course=4.6, length=2.0, mortar=None, var=0.13, join
         rnd, m = _blocks(c, ch, bl, seed)
         a = _vary(base, rnd, var) * (0.90 + 0.2 * fbm2(c.u * 0.3, c.v * 0.3, 2, seed + 3))[..., None]
         a = a * (0.90 + 0.14 * sstep(joint, joint + 1.3, m))[..., None]            # lighter face centre
-        return mixc(a, mort, (1.0 - sstep(joint * 0.35, joint, m)) * 0.85)
+        return mixc(a, mort, (1.0 - sstep(joint * 0.35, joint, m)) * 0.75)
 
     def height(c):
         _, m = _blocks(c, ch, bl, seed)
@@ -891,7 +891,7 @@ def m_foliage(color="#4F9A3E", seed=16, warm=1.0):
     return Material(albedo, wrap=0.45, spec=0.05, gloss=10.0)
 
 
-def m_glow(color="#FFC65A", power=3.2, bars=True, bar_col="#4A2E18"):
+def m_glow(color="#FFB648", power=1.7, bars=True, bar_col="#4A2E18"):
     """Lit window / lantern: emits warm light and feeds the bloom pass.  bars draws a dark cross (mullions)
     through the centre of the solid's bounding box."""
     base, bc = srgb(color), srgb(bar_col)
@@ -1277,7 +1277,7 @@ def render(scene, ss=2, px=4, stats=None):
         SH[fac] = _shadow(lv, sm, sw, sh, X[fac] + NX[fac] * o, Y[fac] + NY[fac] * o, Z[fac] + NZ[fac] * o, rot[fac])
     diff = np.clip((ndl + WRAP) / (1.0 + WRAP), 0.0, 1.0)
     diff = diff * np.clip(ndl_g * 6.0 + 0.6 + WRAP * 2.0, 0.0, 1.0)      # bump must not light back faces
-    key = diff * SH * (0.45 + 0.55 * AO)
+    key = diff * SH * (0.6 + 0.4 * AO)
 
     kc = np.array(L["key_col"], F) * F(L["key"])
     skc = np.array(L["sky_col"], F) * F(L["sky"])
@@ -1351,7 +1351,7 @@ def render(scene, ss=2, px=4, stats=None):
     rgb, alpha, emi = down(rgb), down(alpha)[..., 0], down(emi)
     # bloom from emissive pixels
     if L["bloom"] > 0 and float(emi.max()) > 0.0:
-        glow = (_gauss(emi, 1.1 * px) * 0.55 + _gauss(emi, 3.2 * px) * 0.60) * F(L["bloom"])
+        glow = (_gauss(emi, 1.0 * px) * 0.30 + _gauss(emi, 3.0 * px) * 0.30) * F(L["bloom"])
         rgb = rgb + glow
         alpha = np.maximum(alpha, np.clip(glow.max(axis=2) * 1.1, 0.0, 0.85))
     # tone map (on un-premultiplied colour), grade, encode
