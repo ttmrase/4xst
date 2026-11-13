@@ -94,6 +94,13 @@ android {
                 exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
                 showStackTraces = false
             }
+            // 開発用の画面キャプチャ（ShotsTest）。-Pshots=<出力先> を付けたときだけ描画する（docs/02 §21）
+            val shots = providers.gradleProperty("shots").orNull.orEmpty()
+            it.systemProperty("crownfall.shots.dir", shots)
+            if (shots.isNotEmpty()) {
+                it.maxHeapSize = "3g"
+                it.outputs.upToDateWhen { false }
+            }
         }
         // Robolectric（NavController と Compose の回帰テスト）が manifest とリソースを使う
         unitTests.isIncludeAndroidResources = true
