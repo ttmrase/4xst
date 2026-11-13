@@ -1,6 +1,5 @@
 package com.ttmrase.crownfall.ui.heroes
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,16 +13,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -58,6 +50,12 @@ import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.heroDescRes
 import com.ttmrase.crownfall.ui.heroNameRes
 import com.ttmrase.crownfall.ui.itemName
+import com.ttmrase.crownfall.ui.kit.GameBottomSheet
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameProgressBar
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.rarityColor
@@ -92,7 +90,7 @@ fun HeroesScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(stringResource(R.string.screen_heroes), style = MaterialTheme.typography.titleLarge)
-            Button(onClick = { onNavigate(Screen.Summon) }) { Text(stringResource(R.string.hero_go_summon)) }
+            GameButton(onClick = { onNavigate(Screen.Summon) }) { Text(stringResource(R.string.hero_go_summon)) }
         }
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
@@ -136,10 +134,9 @@ private fun HeroCard(
     onClick: () -> Unit,
 ) {
     val color = rarityColor(def.rarity)
-    Card(
+    GameCard(
         modifier = Modifier.fillMaxWidth().alpha(if (owned == null) 0.5f else 1f).clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(2.dp, color),
+        accent = color,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(8.dp),
@@ -197,7 +194,7 @@ private fun HeroDetailSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val owned = state.heroes.firstOrNull { it.heroId == def.id }
     val shards = state.heroShards[def.id] ?: 0
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    GameBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier =
                 Modifier.fillMaxWidth().verticalScroll(
@@ -230,7 +227,7 @@ private fun HeroDetailSheet(
                 style = MaterialTheme.typography.labelMedium,
             )
             Text(stringResource(R.string.hero_shards, shards), style = MaterialTheme.typography.labelMedium)
-            HorizontalDivider()
+            GameDivider()
             if (owned == null) {
                 Text(stringResource(R.string.hero_not_owned), color = MaterialTheme.colorScheme.error)
             } else {
@@ -263,7 +260,7 @@ private fun OwnedSection(
         Text(stringResource(R.string.hero_exp_max), style = MaterialTheme.typography.labelMedium)
     } else {
         val need = rules.expToNext[owned.level - 1]
-        LinearProgressIndicator(progress = {
+        GameProgressBar(progress = {
             (owned.exp.toFloat() / need.toFloat()).coerceIn(0f, 1f)
         }, modifier = Modifier.fillMaxWidth())
         Text(
@@ -287,18 +284,18 @@ private fun OwnedSection(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(stringResource(R.string.hero_use_exp_row, itemName(context, item), n))
-                OutlinedButton(onClick = { onUseExp(item.id) }) { Text(stringResource(R.string.common_use)) }
+                GameOutlinedButton(onClick = { onUseExp(item.id) }) { Text(stringResource(R.string.common_use)) }
             }
         }
     }
     // 星
     if (owned.star < rules.starLevelCaps.size) {
         val need = rules.starUpShards[owned.star - 1]
-        Button(onClick = onStarUp, enabled = shards >= need, modifier = Modifier.fillMaxWidth()) {
+        GameButton(onClick = onStarUp, enabled = shards >= need, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.hero_star_up, shards, need))
         }
     }
-    HorizontalDivider()
+    GameDivider()
     // スキル
     Text(stringResource(R.string.hero_skills), style = MaterialTheme.typography.titleSmall)
     val books = state.items[Actions.SKILL_BOOK] ?: 0
@@ -323,7 +320,7 @@ private fun OwnedSection(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            OutlinedButton(onClick = { onSkillUp(index) }, enabled = books > 0 && level < rules.maxSkillLevel) {
+            GameOutlinedButton(onClick = { onSkillUp(index) }, enabled = books > 0 && level < rules.maxSkillLevel) {
                 Text(stringResource(R.string.hero_skill_up_button, books))
             }
         }

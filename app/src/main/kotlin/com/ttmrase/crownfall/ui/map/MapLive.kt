@@ -11,9 +11,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
@@ -71,7 +68,7 @@ internal object MapLive {
     private val HILL_DARK = Color(0xFF5B8A3F)
     private val HILL_LIGHT = Color(0xFF7BA650)
     private val HILL_ROCKS = listOf(-0.78f to 0.12f, 0.6f to 0.18f, -0.1f to 0.3f)
-    private val GLYPH_STYLE = TextStyle(fontSize = 14.sp)
+    private const val NODE_GLYPH = 0.62f
 
     /** 描画のたびに作り直さず使い回す Path（メインスレッドの描画だけが使う）。 */
     private val scratch = Path()
@@ -432,7 +429,7 @@ internal object MapLive {
         offX: Float,
         offY: Float,
         seconds: Float,
-        glyph: (ResourceType) -> TextLayoutResult?,
+        glyph: (ResourceType) -> ImageBitmap?,
         sprites: SpriteCache?,
         visible: (Int, Int) -> Boolean,
     ) {
@@ -458,7 +455,12 @@ internal object MapLive {
             drawCircle(Color.Black.copy(alpha = 0.5f), tile * 0.2f, c, style = Stroke(1.5f))
             if (tile >= LOD_FAR_DP * density) {
                 glyph(n.type)?.let {
-                    drawText(it, topLeft = Offset(c.x - it.size.width / 2f, c.y - it.size.height / 2f - tile * 0.02f))
+                    val side = (tile * NODE_GLYPH).roundToInt().coerceAtLeast(1)
+                    drawImage(
+                        image = it,
+                        dstOffset = IntOffset((c.x - side / 2f).roundToInt(), (c.y - side / 2f).roundToInt()),
+                        dstSize = IntSize(side, side),
+                    )
                 }
             }
         }

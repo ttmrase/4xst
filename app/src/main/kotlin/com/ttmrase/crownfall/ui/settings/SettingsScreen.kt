@@ -9,11 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -46,6 +42,10 @@ import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.feature.LockedFeatureCard
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import kotlinx.coroutines.launch
 
 /**
@@ -101,7 +101,7 @@ private fun SettingsForm(
 
             Text(stringResource(R.string.settings_order), style = MaterialTheme.typography.titleSmall)
             draft.order.forEachIndexed { i, id ->
-                Card(Modifier.fillMaxWidth()) {
+                GameCard(Modifier.fillMaxWidth()) {
                     Row(
                         Modifier.fillMaxWidth().padding(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -111,11 +111,11 @@ private fun SettingsForm(
                             stringResource(R.string.settings_order_row, i + 1, providerLabel(id)),
                             modifier = Modifier.weight(1f),
                         )
-                        OutlinedButton(
+                        GameOutlinedButton(
                             enabled = i > 0,
                             onClick = { draft = draft.copy(order = move(draft.order, i, i - 1)) },
                         ) { Text("↑") }
-                        OutlinedButton(
+                        GameOutlinedButton(
                             enabled = i < draft.order.lastIndex,
                             onClick = { draft = draft.copy(order = move(draft.order, i, i + 1)) },
                         ) { Text("↓") }
@@ -129,7 +129,7 @@ private fun SettingsForm(
                 }
             }
             Text(stringResource(R.string.settings_scripted_last), style = MaterialTheme.typography.bodySmall)
-            HorizontalDivider()
+            GameDivider()
 
             Text(stringResource(R.string.settings_gemini), style = MaterialTheme.typography.titleSmall)
             SecretField(R.string.settings_api_key, draft.geminiKey) { draft = draft.copy(geminiKey = it) }
@@ -145,7 +145,7 @@ private fun SettingsForm(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            HorizontalDivider()
+            GameDivider()
 
             Text(stringResource(R.string.settings_openai), style = MaterialTheme.typography.titleSmall)
             OutlinedTextField(
@@ -165,7 +165,7 @@ private fun SettingsForm(
                 modifier = Modifier.fillMaxWidth(),
             )
             SecretField(R.string.settings_api_key_optional, draft.openAiKey) { draft = draft.copy(openAiKey = it) }
-            HorizontalDivider()
+            GameDivider()
 
             OnDeviceSettingsSection(
                 store = ai.modelStore,
@@ -184,12 +184,12 @@ private fun SettingsForm(
                 },
             )
             OnDeviceDebugSection(ai, data)
-            HorizontalDivider()
+            GameDivider()
 
             Text(stringResource(R.string.settings_budget), style = MaterialTheme.typography.titleSmall)
             NumberField(R.string.settings_budget_hourly, draft.hourlyBudget) { draft = draft.copy(hourlyBudget = it) }
             NumberField(R.string.settings_budget_daily, draft.dailyBudget) { draft = draft.copy(dailyBudget = it) }
-            HorizontalDivider()
+            GameDivider()
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.weight(1f)) {
@@ -201,15 +201,15 @@ private fun SettingsForm(
                     onCheckedChange = { draft = draft.copy(revealAi = if (it) RevealAi.ADMIT else RevealAi.AMBIGUOUS) },
                 )
             }
-            HorizontalDivider()
+            GameDivider()
 
             Text(stringResource(R.string.settings_usage), style = MaterialTheme.typography.titleSmall)
             Text(stringResource(R.string.settings_usage_counts, stats.requests, stats.failures))
-            OutlinedButton(
+            GameOutlinedButton(
                 onClick = { stats = ai.usageStats() },
             ) { Text(stringResource(R.string.settings_usage_refresh)) }
 
-            Button(
+            GameButton(
                 enabled = !urlProblem,
                 onClick = {
                     scope.launch {
@@ -222,21 +222,21 @@ private fun SettingsForm(
             ) { Text(stringResource(R.string.settings_save)) }
         }
         if (session != null) {
-            HorizontalDivider()
+            GameDivider()
             AvatarSettingsSection(session)
             if (data != null) TitleSettingsSection(session, data)
         }
-        HorizontalDivider()
+        GameDivider()
         MapSettingsSection()
-        HorizontalDivider()
+        GameDivider()
         SoundSettingsSection()
-        HorizontalDivider()
+        GameDivider()
         NotificationSettingsSection(session)
         if (session != null) {
-            HorizontalDivider()
+            GameDivider()
             if (shopLocked && data != null) LockedFeatureCard(Feature.SHOP, data) else ShopSettingsSection(session)
         }
-        HorizontalDivider()
+        GameDivider()
         Text(
             stringResource(R.string.settings_no_real_billing),
             style = MaterialTheme.typography.bodySmall,

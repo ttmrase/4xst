@@ -8,11 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -27,6 +23,10 @@ import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.LocalClock
+import com.ttmrase.crownfall.ui.kit.GameBottomSheet
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameProgressBar
 import com.ttmrase.crownfall.ui.nameRes
 
 /** 行軍中の部隊の一覧（段階・残り時間・呼び戻し）。 */
@@ -41,7 +41,7 @@ fun MarchListSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val now = LocalClock.current?.value ?: state.nowEpochSec
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    GameBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -50,7 +50,7 @@ fun MarchListSheet(
             if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
             if (state.marches.isEmpty()) Text(stringResource(R.string.march_list_empty))
             state.marches.forEach { m ->
-                HorizontalDivider()
+                GameDivider()
                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         stringResource(
@@ -62,7 +62,7 @@ fun MarchListSheet(
                     )
                     Text(stringResource(R.string.march_coords, m.target.x, m.target.y))
                 }
-                LinearProgressIndicator(
+                GameProgressBar(
                     progress = { MarchViews.progress(m, now) },
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -75,7 +75,7 @@ fun MarchListSheet(
                     )
                     Text(stringResource(R.string.march_troops, ShortNumber.format(m.troops.values.sum())))
                 }
-                OutlinedButton(
+                GameOutlinedButton(
                     onClick = { onRecall(m.id) },
                     enabled = m.phase != MarchPhase.RETURNING,
                 ) { Text(stringResource(R.string.march_recall)) }

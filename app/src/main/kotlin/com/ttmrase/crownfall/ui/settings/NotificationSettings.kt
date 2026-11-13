@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +33,7 @@ import com.ttmrase.crownfall.core.notify.NoticeCategory
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.notify.NoticeScheduler
 import com.ttmrase.crownfall.notify.NotificationPrefs
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 
 private val CATEGORY_LABELS =
     listOf(
@@ -73,7 +73,7 @@ fun NotificationSettingsSection(session: GameSession?) {
         Text(stringResource(R.string.settings_notify_hint), style = MaterialTheme.typography.bodySmall)
         if (!canPost) {
             Text(stringResource(R.string.settings_notify_denied), color = MaterialTheme.colorScheme.error)
-            OutlinedButton(onClick = {
+            GameOutlinedButton(onClick = {
                 context.startActivity(
                     Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                         .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
@@ -86,7 +86,7 @@ fun NotificationSettingsSection(session: GameSession?) {
         } else {
             Text(stringResource(R.string.settings_notify_exact_off), color = MaterialTheme.colorScheme.error)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                OutlinedButton(onClick = {
+                GameOutlinedButton(onClick = {
                     val uri = Uri.parse("package:${context.packageName}")
                     val open = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, uri)
                     context.startActivity(open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

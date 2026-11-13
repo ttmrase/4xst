@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +23,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.PackContents
+import com.ttmrase.crownfall.ui.kit.GameButton
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.theme.CrownFonts
 
@@ -96,7 +96,7 @@ fun RewardDialog(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
-                Button(onClick = finish) { Text(stringResource(R.string.common_ok)) }
+                GameButton(onClick = finish) { Text(stringResource(R.string.common_ok)) }
             }
         }
     }

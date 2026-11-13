@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +56,7 @@ import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.kit.GameButton
 import com.ttmrase.crownfall.ui.shop.CoinShower
 import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlinx.coroutines.delay
@@ -297,7 +297,7 @@ private fun VipCinematic(
                     val lines = perkLines(def)
                     lines.forEachIndexed { i, text -> PerkReveal(text, delayMs = PERK_FIRST_MS + i * PERK_STAGGER_MS) }
                 }
-                Button(
+                GameButton(
                     onClick = onDismiss,
                     modifier = Modifier.padding(top = 16.dp),
                 ) { Text(stringResource(R.string.common_ok)) }

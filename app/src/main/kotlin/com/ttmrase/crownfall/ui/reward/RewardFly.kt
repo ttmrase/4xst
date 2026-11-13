@@ -29,10 +29,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.model.Resources
@@ -42,6 +39,9 @@ import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.common.animationsEnabled
 import com.ttmrase.crownfall.ui.glyph
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.drawGlyph
+import com.ttmrase.crownfall.ui.kit.rememberGlyphBitmaps
 import kotlin.math.min
 
 /** 飛んでいく先（HUD の資源・ジェムの表示位置）。 */
@@ -53,19 +53,17 @@ enum class FlyTarget {
     GEMS,
     ;
 
-    val glyph: String
+    val glyph: Glyph
         get() =
             when (this) {
                 FOOD -> ResourceType.FOOD.glyph()
                 WOOD -> ResourceType.WOOD.glyph()
                 STONE -> ResourceType.STONE.glyph()
                 GOLD -> ResourceType.GOLD.glyph()
-                GEMS -> GEM_GLYPH
+                GEMS -> Glyph.GEM
             }
 
     companion object {
-        const val GEM_GLYPH = "💎"
-
         fun of(type: ResourceType): FlyTarget =
             when (type) {
                 ResourceType.FOOD -> FOOD
@@ -83,8 +81,8 @@ internal class Flight(
     val durationMs: Long,
     val lift: Float,
     val sway: Float,
-    /** 資源以外のアイコン（機能の解放など）を飛ばすときの絵文字と行き先。null なら [target] の HUD へ。 */
-    val glyph: String? = null,
+    /** 資源以外のアイコン（機能の解放など）を飛ばすときのアイコンと行き先。null なら [target] の HUD へ。 */
+    val glyph: Glyph? = null,
     val dest: Offset? = null,
 )
 
@@ -138,11 +136,11 @@ class RewardFlyState {
         }
     }
 
-    /** 絵文字 [glyph] を、画面上の [from] から [to]（ウィンドウ座標）へ 1 つ飛ばす（機能の解放でタブへ向かうアイコンなど）。 */
+    /** アイコン [glyph] を、画面上の [from] から [to]（ウィンドウ座標）へ 1 つ飛ばす（機能の解放でタブへ向かうアイコンなど）。 */
     fun flyGlyph(
         from: Offset,
         to: Offset,
-        glyph: String,
+        glyph: Glyph,
     ) {
         if (!enabled || !layerAttached) return
         seq++
@@ -231,9 +229,8 @@ fun Modifier.flyTarget(target: FlyTarget): Modifier {
 
 private const val BOUNCE = 1.25f
 private const val BOUNCE_UP_MS = 70
-private const val ICON_SP = 22
+private const val ICON_DP = 30
 private const val FALLBACK_TOP_DP = 48f
-private val ICON_STYLE = TextStyle(fontSize = ICON_SP.sp)
 
 /**
  * 獲得アニメの描画層。アプリの一番上に全画面で重ねる。ポインタ入力は受けない。
@@ -242,7 +239,7 @@ private val ICON_STYLE = TextStyle(fontSize = ICON_SP.sp)
 @Composable
 fun RewardFlyLayer(state: RewardFlyState) {
     val context = LocalContext.current
-    val measurer = rememberTextMeasurer()
+    val bitmaps = rememberGlyphBitmaps(ICON_DP.dp)
     var origin by remember { mutableStateOf(Offset.Zero) }
     var frame by remember { mutableLongStateOf(0L) }
     state.enabled = animationsEnabled()
@@ -287,18 +284,19 @@ fun RewardFlyLayer(state: RewardFlyState) {
                     u * u * from.x + 2f * u * e * ctrl.x + e * e * to.x,
                     u * u * from.y + 2f * u * e * ctrl.y + e * e * to.y,
                 )
-            val layout = measurer.measure(f.glyph ?: f.target.glyph, ICON_STYLE)
             val alpha = if (t > FADE_START) 1f - (t - FADE_START) / (1f - FADE_START) * 0.5f else 1f
-            drawText(
-                layout,
-                topLeft = Offset(p.x - layout.size.width / 2f, p.y - layout.size.height / 2f),
-                alpha = alpha,
-            )
+            // 出発でふくらみ、到着に向けて少し縮む
+            val pop = if (t < POP_END) POP_FROM + (POP_PEAK - POP_FROM) * (t / POP_END) else POP_PEAK - (POP_PEAK - POP_TO) * ((t - POP_END) / (1f - POP_END))
+            drawGlyph(bitmaps, f.glyph ?: f.target.glyph, p, ICON_DP * density * pop, alpha)
         }
     }
 }
 
 private const val FADE_START = 0.85f
+private const val POP_END = 0.25f
+private const val POP_FROM = 0.5f
+private const val POP_PEAK = 1.2f
+private const val POP_TO = 0.75f
 
 /**
  * [block] を [GameSession.dispatch] し、成功したら増えた資源・ジェムを、最後にタップした位置から HUD へ飛ばす

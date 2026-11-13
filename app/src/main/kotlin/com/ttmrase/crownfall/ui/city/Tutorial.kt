@@ -5,18 +5,14 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -29,6 +25,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
+import com.ttmrase.crownfall.ui.kit.FrameStyle
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameTextButton
 
 /** チュートリアルの対象を点滅する枠と上下に揺れる矢印で示す。[active] が false のときは何も足さない。 */
 @Composable
@@ -91,10 +90,9 @@ fun TutorialBanner(
             1 -> R.string.tutorial_step1
             else -> R.string.tutorial_step2
         }
-    Card(
+    GameCard(
         modifier = modifier.fillMaxWidth().padding(8.dp),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        style = FrameStyle.Panel,
     ) {
         Row(
             modifier = Modifier.padding(start = 12.dp, end = 4.dp),
@@ -102,7 +100,7 @@ fun TutorialBanner(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(stringResource(text), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-            TextButton(onClick = onSkip) { Text(stringResource(R.string.tutorial_skip)) }
+            GameTextButton(onClick = onSkip) { Text(stringResource(R.string.tutorial_skip)) }
         }
     }
 }

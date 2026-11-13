@@ -14,12 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -55,6 +50,11 @@ import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.event.eventNameRes
 import com.ttmrase.crownfall.ui.itemName
+import com.ttmrase.crownfall.ui.kit.GameBottomSheet
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameTab
+import com.ttmrase.crownfall.ui.kit.GameTabRow
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.shop.ContentsLines
 import com.ttmrase.crownfall.ui.shop.formatYen
@@ -88,11 +88,11 @@ fun MailScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = tab) {
+        GameTabRow(selectedTabIndex = tab) {
             TABS.forEachIndexed { index, kind ->
                 val unread = s.mails.count { it.kind == kind && !it.read }
                 val name = stringResource(tabName(kind))
-                Tab(
+                GameTab(
                     selected = tab == index,
                     onClick = { tab = index },
                     text = { Text(if (unread > 0) stringResource(R.string.mail_tab_unread, name, unread) else name) },
@@ -100,7 +100,7 @@ fun MailScreen(
             }
         }
         Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.End) {
-            OutlinedButton(
+            GameOutlinedButton(
                 onClick = { scope.launch { session.dispatch { Actions.markAllMailRead(it) } } },
                 enabled = MailBox.unread(s) > 0,
             ) { Text(stringResource(R.string.mail_mark_all_read)) }
@@ -124,7 +124,7 @@ fun MailScreen(
                         )
                         Text(formatTime(timeFormat, mail.epochSec), style = MaterialTheme.typography.labelMedium)
                     }
-                    HorizontalDivider()
+                    GameDivider()
                 }
             }
         }
@@ -133,14 +133,14 @@ fun MailScreen(
     val open = s.mails.firstOrNull { it.id == openId }
     if (open != null) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(onDismissRequest = { openId = null }, sheetState = sheetState) {
+        GameBottomSheet(onDismissRequest = { openId = null }, sheetState = sheetState) {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(mailTitle(context, open, data), style = MaterialTheme.typography.headlineSmall)
                 Text(formatTime(timeFormat, open.epochSec), style = MaterialTheme.typography.labelMedium)
-                HorizontalDivider()
+                GameDivider()
                 open.battle?.let { BattleBody(it, data) }
                 open.scout?.let { ScoutBody(it) }
                 open.receipt?.let { ReceiptBody(it, data) }

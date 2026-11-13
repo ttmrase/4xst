@@ -9,13 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +51,11 @@ import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.feature.LockedFeatureCard
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameProgressBar
+import com.ttmrase.crownfall.ui.kit.GameTab
+import com.ttmrase.crownfall.ui.kit.GameTabRow
 import kotlinx.coroutines.launch
 
 private const val SECONDS_PER_DAY = 86_400L
@@ -137,9 +137,9 @@ fun ShopScreen(
             Text(stringResource(R.string.shop_gems, ShortNumber.format(s.gems)), fontWeight = FontWeight.Bold)
             Text(stringResource(R.string.shop_vip_short, com.ttmrase.crownfall.core.shop.VipCalculator.level(s, data)))
         }
-        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) {
+        GameTabRow(scrollable = true, selectedTabIndex = tab) {
             TABS.forEachIndexed { i, title ->
-                Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(title)) })
+                GameTab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(title)) })
             }
         }
         LazyColumn(
@@ -260,7 +260,7 @@ private fun PiggyCard(
 ) {
     val rules = data.shopRules.piggy
     val full = PiggyBank.isFull(s, data)
-    Card(Modifier.fillMaxWidth()) {
+    GameCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -284,11 +284,11 @@ private fun PiggyCard(
                     ShortNumber.format(rules.cap),
                 ),
             )
-            LinearProgressIndicator(progress = {
+            GameProgressBar(progress = {
                 (s.shop.piggyGems.toFloat() / rules.cap.toFloat()).coerceIn(0f, 1f)
             }, modifier = Modifier.fillMaxWidth())
             Text(stringResource(R.string.piggy_note), style = MaterialTheme.typography.bodySmall)
-            Button(
+            GameButton(
                 onClick = { onBuy(rules.sku) },
                 enabled = s.shop.piggyGems > 0,
                 modifier = Modifier.fillMaxWidth().pulsing(full),

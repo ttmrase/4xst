@@ -1,7 +1,6 @@
 package com.ttmrase.crownfall.ui.city
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,15 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,12 +28,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -83,13 +81,23 @@ import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.feature.LockedFeatureDialog
 import com.ttmrase.crownfall.ui.feature.NextUnlockChip
 import com.ttmrase.crownfall.ui.glyph
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.CountBadge
+import com.ttmrase.crownfall.ui.kit.FrameStyle
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameProgressBar
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.GlyphMedallion
+import com.ttmrase.crownfall.ui.kit.Pill
+import com.ttmrase.crownfall.ui.kit.gameFrame
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.reward.FlyTarget
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.flyTarget
 import com.ttmrase.crownfall.ui.territory.TerritoryView
 import com.ttmrase.crownfall.ui.theme.AnimatedNumber
-import com.ttmrase.crownfall.ui.theme.GoldPanel
+import com.ttmrase.crownfall.ui.theme.CrownFonts
 import com.ttmrase.crownfall.ui.theme.GoldText
 import com.ttmrase.crownfall.ui.titleRes
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -362,40 +370,106 @@ private fun StatusBar(
     val live by session.state.collectAsStateWithLifecycle()
     val state = live ?: return
     val cap = Simulation.storageCap(state, data)
-    GoldPanel(modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp), alpha = HUD_ALPHA) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                GoldText(
-                    stringResource(R.string.power_label) + "  " +
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        // 1 段目: 戦力の銘板（左）とジェム（右）
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier =
+                    Modifier
+                        .gameFrame(FrameStyle.Panel, corner = 20.dp, alpha = HUD_ALPHA)
+                        .padding(start = 4.dp, end = 14.dp, top = 3.dp, bottom = 3.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                GlyphIcon(Glyph.POWER, size = 30.dp)
+                Column {
+                    Text(
+                        stringResource(R.string.power_label),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Cf.Muted,
+                        lineHeight = 11.sp,
+                        fontSize = 10.sp,
+                    )
+                    GoldText(
                         ShortNumber.format(PowerCalculator.total(state, data)),
-                )
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.flyTarget(FlyTarget.GEMS)) {
-                    Text(stringResource(R.string.res_gems) + "  ", style = MaterialTheme.typography.titleSmall)
-                    AnimatedNumber(state.gems, style = MaterialTheme.typography.titleSmall)
+                        style =
+                            MaterialTheme.typography.titleMedium.copy(
+                                fontFamily = CrownFonts.Numeric,
+                                fontSize = 18.sp,
+                                lineHeight = 20.sp,
+                                shadow = Shadow(Cf.Ink, Offset(0f, 2f), 2f),
+                            ),
+                    )
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ResourceType.entries.forEach { type ->
-                    val full = cap > 0 && state.resources[type] >= cap
-                    Column(
-                        modifier = Modifier.weight(1f).flyTarget(FlyTarget.of(type)),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(stringResource(type.nameRes()), style = MaterialTheme.typography.labelSmall)
-                        AnimatedNumber(state.resources[type], color = MaterialTheme.colorScheme.onSurface)
-                        // 満杯は数字を明るいままにして、下線を赤にする（暗い背景で赤文字は読めない）
-                        Box(
-                            Modifier.height(2.dp).fillMaxWidth().background(if (full) FULL_RED else Color.Transparent),
-                        )
-                    }
+            Box(Modifier.weight(1f))
+            Row(
+                modifier =
+                    Modifier
+                        .flyTarget(FlyTarget.GEMS)
+                        .gameFrame(FrameStyle.Royal, corner = 18.dp, alpha = HUD_ALPHA)
+                        .semantics(mergeDescendants = true) {}
+                        .padding(start = 6.dp, end = 12.dp, top = 5.dp, bottom = 5.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                GlyphIcon(Glyph.GEM, size = 24.dp)
+                val gemsLabel = stringResource(R.string.res_gems)
+                AnimatedNumber(
+                    state.gems,
+                    modifier = Modifier.semantics { contentDescription = gemsLabel },
+                    style = HudNumber.copy(fontSize = 16.sp),
+                    color = Color.White,
+                )
+            }
+        }
+        // 2 段目: 資源 4 種（アイコン + 数。満杯は赤い札）
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .gameFrame(FrameStyle.Panel, corner = 12.dp, alpha = HUD_ALPHA)
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+        ) {
+            ResourceType.entries.forEach { type ->
+                val full = cap > 0 && state.resources[type] >= cap
+                val name = stringResource(type.nameRes())
+                Row(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .flyTarget(FlyTarget.of(type))
+                            .padding(horizontal = 2.dp)
+                            .gameFrame(FrameStyle.Inset, corner = 9.dp, accent = if (full) FULL_RED else null)
+                            .semantics(mergeDescendants = true) { contentDescription = name }
+                            .padding(start = 3.dp, end = 6.dp, top = 2.dp, bottom = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    GlyphIcon(type.glyph(), size = 22.dp)
+                    AnimatedNumber(
+                        state.resources[type],
+                        modifier = Modifier.weight(1f),
+                        style = HudNumber.copy(textAlign = TextAlign.End),
+                        color = if (full) Color(0xFFFFB3A8) else Cf.Ivory,
+                    )
                 }
             }
         }
     }
 }
+
+private val HudNumber =
+    TextStyle(
+        fontFamily = CrownFonts.Numeric,
+        fontWeight = FontWeight.Bold,
+        fontSize = 13.sp,
+        lineHeight = 16.sp,
+        shadow = Shadow(Color(0xFF04060D), Offset(0f, 1.5f), 2f),
+    )
 
 /** キュー 8 本（建設 2・研究・治療・訓練 4）を、小さなアイコンの横 1 列にする。稼働中だけ残り時間を出す。 */
 @Composable
@@ -421,7 +495,7 @@ private fun QueueRow(
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         QueueChip(
             stringResource(R.string.timers_build1),
-            "🔨",
+            Glyph.BUILD,
             firstJob,
             session,
             Modifier.weight(1f),
@@ -431,7 +505,7 @@ private fun QueueRow(
         }
         QueueChip(
             stringResource(R.string.timers_build2),
-            "🔨",
+            Glyph.BUILD,
             secondJob,
             session,
             Modifier.weight(1f),
@@ -439,10 +513,10 @@ private fun QueueRow(
         ) {
             if (secondLocked) onLockedClick() else secondJob?.let(onTimerClick) ?: Unit
         }
-        QueueChip(stringResource(R.string.timers_research), "📖", research, session, Modifier.weight(1f)) {
+        QueueChip(stringResource(R.string.timers_research), Glyph.RESEARCH, research, session, Modifier.weight(1f)) {
             research?.let(onTimerClick) ?: onIdleClick(Screen.Research)
         }
-        QueueChip(stringResource(R.string.timers_heal), "💊", heal, session, Modifier.weight(1f)) {
+        QueueChip(stringResource(R.string.timers_heal), Glyph.HEAL, heal, session, Modifier.weight(1f)) {
             heal?.let(onTimerClick) ?: Unit
         }
         TroopType.entries.forEachIndexed { index, type ->
@@ -464,7 +538,7 @@ private fun QueueRow(
 @Composable
 private fun QueueChip(
     label: String,
-    glyph: String,
+    glyph: Glyph,
     job: TimerJob?,
     session: GameSession,
     modifier: Modifier = Modifier,
@@ -478,29 +552,48 @@ private fun QueueChip(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .alpha(if (dim) 0.45f else 1f)
-                    .background(Color(0xCC121A2E), RoundedCornerShape(8.dp))
-                    .border(
-                        if (job != null) 1.5.dp else 0.5.dp,
-                        if (job != null) QUEUE_GOLD else Color(0x66FFFFFF),
-                        RoundedCornerShape(8.dp),
+                    .gameFrame(
+                        if (job != null) FrameStyle.Panel else FrameStyle.Inset,
+                        corner = 10.dp,
+                        alpha = QUEUE_ALPHA,
                     )
                     .clickable(onClick = onClick)
                     .semantics { contentDescription = label }
-                    .padding(vertical = 2.dp),
+                    .padding(top = 3.dp, bottom = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(if (locked) "🔒" else glyph, fontSize = 14.sp)
+            Box(contentAlignment = Alignment.Center) {
+                GlyphIcon(
+                    glyph,
+                    size = 24.dp,
+                    dimmed = dim || locked,
+                    alpha = if (dim || locked) QUEUE_DIM_ALPHA else 1f,
+                )
+                if (locked) {
+                    GlyphIcon(
+                        Glyph.LOCK,
+                        Modifier.align(Alignment.BottomEnd).offset(x = 6.dp, y = 3.dp),
+                        size = 15.dp,
+                    )
+                }
+            }
             if (job != null) {
                 JobTicker(
                     session = session,
                     job = job,
-                    barModifier = Modifier.fillMaxWidth().padding(horizontal = 3.dp).height(2.dp),
-                    textStyle = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    barModifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).height(3.dp),
+                    textStyle = HudNumber.copy(fontSize = 9.sp, lineHeight = 11.sp, color = Cf.GoldHi),
                     textAlign = TextAlign.Center,
                 )
             } else {
-                Text(" ", fontSize = 9.sp)
+                Text(
+                    if (locked || dim) " " else stringResource(R.string.queue_idle),
+                    fontSize = 9.sp,
+                    lineHeight = 14.sp,
+                    color = Cf.EmeraldHi,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
             }
         }
     }
@@ -516,30 +609,23 @@ private fun EventChip(
     val def = WeeklyEvents.current(s, data)
     val remaining = remainingUntil(WeeklyEvents.endEpochSec(s), s.nowEpochSec)
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.End) {
-        Text(
-            stringResource(R.string.event_banner, stringResource(eventNameRes(def))) +
-                " · " + DurationFormat.clock(remaining),
-            style = MaterialTheme.typography.labelSmall,
-            color = Color(0xFFFFE9A0),
-            modifier =
-                Modifier
-                    .background(Color(0xAA121A2E), RoundedCornerShape(50))
-                    .clickable(onClick = onClick)
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-        )
+        Pill(glyph = Glyph.TROPHY, onClick = onClick) {
+            Text(
+                stringResource(R.string.event_banner, stringResource(eventNameRes(def))) +
+                    " · " + DurationFormat.clock(remaining),
+            )
+        }
     }
 }
 
-private const val QUICK_LOCKED_ALPHA = 0.5f
-
 private val QUICK_ICONS =
     mapOf(
-        Screen.Mail to "✉",
-        Screen.Quests to "📜",
-        Screen.Research to "🔬",
-        Screen.Barracks to "⚔",
-        Screen.Chat to "💬",
-        Screen.Settings to "⚙",
+        Screen.Mail to Glyph.MAIL,
+        Screen.Quests to Glyph.QUEST,
+        Screen.Research to Glyph.RESEARCH,
+        Screen.Barracks to Glyph.BARRACKS,
+        Screen.Chat to Glyph.CHAT,
+        Screen.Settings to Glyph.SETTINGS,
     )
 
 /** クイックリンクは右端の縦のアイコン列にする（地図を覆わない）。 */
@@ -550,24 +636,22 @@ private fun QuickLinkColumn(
     onNavigate: (Screen) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         QuickLinks.forEach { screen ->
             val count = if (screen == Screen.Quests) claimable else 0
             val name = stringResource(screen.titleRes)
-            BadgedBox(badge = { if (count > 0) Badge { Text(count.toString()) } }) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(40.dp)
-                            .background(Color(0xCC121A2E), CircleShape)
-                            .border(1.dp, QUEUE_GOLD, CircleShape)
-                            .alpha(if (screen in locked) QUICK_LOCKED_ALPHA else 1f)
-                            .clickable { onNavigate(screen) }
-                            .semantics { contentDescription = name },
-                    contentAlignment = Alignment.Center,
+            val isLocked = screen in locked
+            Box {
+                GlyphMedallion(
+                    glyph = QUICK_ICONS[screen] ?: Glyph.INFO,
+                    onClick = { onNavigate(screen) },
+                    modifier = Modifier.semantics { contentDescription = name },
+                    size = 44.dp,
+                    locked = isLocked,
                 ) {
-                    Text(if (screen in locked) "🔒" else QUICK_ICONS[screen] ?: "•", fontSize = 18.sp)
+                    if (isLocked) GlyphIcon(Glyph.LOCK, Modifier.align(Alignment.BottomEnd), size = 17.dp)
                 }
+                if (count > 0) CountBadge(count, Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp))
             }
         }
     }
@@ -575,7 +659,7 @@ private fun QuickLinkColumn(
 
 /** HUD の背に敷く、上から透ける暗い帯（地図の上でも文字が読める）。 */
 private fun Modifier.hudScrim(): Modifier =
-    this.background(Brush.verticalGradient(listOf(Color(0xCC0B1020), Color(0x000B1020))))
+    this.background(Brush.verticalGradient(listOf(Color(0xE6060A16), Color(0x99060A16), Color(0x00060A16))))
 
 /** 今すぐアップグレードを始められる区画（資源・前提・キューが足りている）。小さな印を出す対象。 */
 private fun upgradableSlots(
@@ -588,9 +672,10 @@ private fun upgradableSlots(
         }?.let { slot.slotId }
     }.toSet()
 
-private const val HUD_ALPHA = 0.8f
+private const val HUD_ALPHA = 0.92f
+private const val QUEUE_ALPHA = 0.9f
+private const val QUEUE_DIM_ALPHA = 0.55f
 private val FULL_RED = Color(0xFFE5484D)
-private val QUEUE_GOLD = Color(0xFFC9A227)
 
 /** タイマー 1 本の進捗バーと残り時間。毎秒ここだけが再構図される。 */
 @Composable
@@ -603,7 +688,7 @@ private fun JobTicker(
 ) {
     val live by session.state.collectAsStateWithLifecycle()
     val state = live ?: return
-    LinearProgressIndicator(progress = { UiQueries.progress(state, job) }, modifier = barModifier)
+    GameProgressBar(progress = { UiQueries.progress(state, job) }, modifier = barModifier)
     Text(DurationFormat.clock(UiQueries.remainingSec(state, job)), style = textStyle, textAlign = textAlign)
 }
 
@@ -621,19 +706,28 @@ private fun BuildingExtraActions(
     Column(modifier = Modifier.padding(bottom = 16.dp)) {
         when {
             trainTab >= 0 ->
-                OutlinedButton(onClick = { onGo { onOpenBarracks(trainTab) } }, modifier = Modifier.fillMaxWidth()) {
+                GameOutlinedButton(
+                    onClick = { onGo { onOpenBarracks(trainTab) } },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(stringResource(R.string.sheet_go_barracks))
                 }
             type == BuildingType.ACADEMY ->
-                OutlinedButton(onClick = { onGo { onNavigate(Screen.Research) } }, modifier = Modifier.fillMaxWidth()) {
+                GameOutlinedButton(
+                    onClick = { onGo { onNavigate(Screen.Research) } },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(stringResource(R.string.sheet_go_research))
                 }
             type == BuildingType.TAVERN ->
-                OutlinedButton(onClick = { onGo { onNavigate(Screen.Summon) } }, modifier = Modifier.fillMaxWidth()) {
+                GameOutlinedButton(
+                    onClick = { onGo { onNavigate(Screen.Summon) } },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(stringResource(R.string.sheet_go_summon))
                 }
             type == BuildingType.HOSPITAL && hasWounded ->
-                OutlinedButton(onClick = onHeal, modifier = Modifier.fillMaxWidth()) {
+                GameOutlinedButton(onClick = onHeal, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.heal_open))
                 }
         }

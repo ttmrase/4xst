@@ -14,14 +14,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -67,6 +61,12 @@ import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.common.vipTextColor
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.itemName
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameTab
+import com.ttmrase.crownfall.ui.kit.GameTabRow
 import com.ttmrase.crownfall.ui.map.FormationSheet
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.namedString
@@ -125,9 +125,9 @@ fun AllianceScreen(
 
     Column(Modifier.fillMaxSize()) {
         Header(s, data, onOpenChat)
-        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) {
+        GameTabRow(scrollable = true, selectedTabIndex = tab) {
             TAB_TITLES.forEachIndexed { i, title ->
-                Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(title)) })
+                GameTab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(title)) })
             }
         }
         when (tab) {
@@ -206,7 +206,7 @@ private fun Header(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        OutlinedButton(onClick = onOpenChat) {
+        GameOutlinedButton(onClick = onOpenChat) {
             BadgedBox(badge = { if (unread > 0) Badge { Text(unread.toString()) } }) {
                 Text(stringResource(R.string.alliance_open_chat))
             }
@@ -305,7 +305,7 @@ private fun MemberRow(
     title: String?,
 ) {
     val context = LocalContext.current
-    Card(Modifier.fillMaxWidth()) {
+    GameCard(Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -365,7 +365,7 @@ private fun HelpTab(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         item {
-            Button(
+            GameButton(
                 onClick = onHelpAll,
                 enabled = s.alliance.helpPool.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth(),
@@ -384,7 +384,7 @@ private fun HelpTab(
             item { Text(stringResource(R.string.alliance_help_empty)) }
         }
         items(s.alliance.helpPool, key = { it.id }) { h ->
-            Card(Modifier.fillMaxWidth()) {
+            GameCard(Modifier.fillMaxWidth()) {
                 Row(
                     Modifier.fillMaxWidth().padding(10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -396,7 +396,7 @@ private fun HelpTab(
         }
         if (mine.isNotEmpty()) {
             item {
-                HorizontalDivider(Modifier.padding(vertical = 6.dp))
+                GameDivider(Modifier.padding(vertical = 6.dp))
                 Text(stringResource(R.string.alliance_help_mine), style = MaterialTheme.typography.titleSmall)
             }
             items(mine, key = { it.id }) { job ->
@@ -439,7 +439,7 @@ private fun RequestsTab(
         item { Text(stringResource(R.string.alliance_requests), style = MaterialTheme.typography.titleSmall) }
         if (s.alliance.requests.isEmpty()) item { Text(stringResource(R.string.alliance_requests_empty)) }
         items(s.alliance.requests, key = { it.id }) { r ->
-            Card(Modifier.fillMaxWidth()) {
+            GameCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     val who = personaName(context, r.persona)
                     val left = DurationFormat.clock(remainingUntil(r.expiresEpochSec, s.nowEpochSec))
@@ -453,7 +453,9 @@ private fun RequestsTab(
                             stringResource(R.string.alliance_request_left, left),
                             style = MaterialTheme.typography.bodySmall,
                         )
-                        Button(onClick = { onFulfill(r.id) }) { Text(stringResource(R.string.alliance_request_send)) }
+                        GameButton(
+                            onClick = { onFulfill(r.id) },
+                        ) { Text(stringResource(R.string.alliance_request_send)) }
                     } else {
                         val t: TileRef? = r.tile
                         Text(stringResource(R.string.alliance_request_scout, who, t?.x ?: 0, t?.y ?: 0))
@@ -470,7 +472,7 @@ private fun RequestsTab(
             }
         }
         item {
-            HorizontalDivider(Modifier.padding(vertical = 6.dp))
+            GameDivider(Modifier.padding(vertical = 6.dp))
             Text(stringResource(R.string.alliance_rallies), style = MaterialTheme.typography.titleSmall)
         }
         if (s.alliance.rallies.isEmpty()) item { Text(stringResource(R.string.alliance_rallies_empty)) }
@@ -485,7 +487,7 @@ private fun RallyCard(
     onJoin: (Long) -> Unit,
 ) {
     val context = LocalContext.current
-    Card(Modifier.fillMaxWidth()) {
+    GameCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 stringResource(
@@ -504,7 +506,7 @@ private fun RallyCard(
                 ),
                 style = MaterialTheme.typography.bodySmall,
             )
-            Button(onClick = { onJoin(r.id) }) { Text(stringResource(R.string.alliance_rally_join)) }
+            GameButton(onClick = { onJoin(r.id) }) { Text(stringResource(R.string.alliance_rally_join)) }
         }
     }
 }
@@ -533,7 +535,7 @@ private fun TechTab(
         items(data.allianceRules.techs, key = { it.id }) { t ->
             val lv = AllianceTech.level(s, t)
             val max = t.expPerLevel.size
-            Card(Modifier.fillMaxWidth()) {
+            GameCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(namedString(context, "tech_name_", t.id), fontWeight = FontWeight.Bold)
                     Text(
@@ -559,7 +561,7 @@ private fun TechTab(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             DonationKind.entries.forEach { kind ->
-                                OutlinedButton(onClick = { onDonate(t.id, kind) }) {
+                                GameOutlinedButton(onClick = { onDonate(t.id, kind) }) {
                                     val unit = if (kind.resource != null) donate.resourceUnit else donate.gemUnit
                                     val res = kind.resource
                                     val label =
@@ -588,7 +590,7 @@ private fun TechTab(
             }
         }
         item {
-            HorizontalDivider(Modifier.padding(vertical = 6.dp))
+            GameDivider(Modifier.padding(vertical = 6.dp))
             Text(stringResource(R.string.alliance_shop_title), style = MaterialTheme.typography.titleSmall)
         }
         items(data.allianceRules.shop, key = { it.id }) { e ->
@@ -612,7 +614,7 @@ private fun TechTab(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
-                Button(onClick = { onBuy(e.id) }, enabled = bought < e.dailyLimit && s.alliance.points >= e.cost) {
+                GameButton(onClick = { onBuy(e.id) }, enabled = bought < e.dailyLimit && s.alliance.points >= e.cost) {
                     Text(stringResource(R.string.alliance_shop_buy, e.cost))
                 }
             }
@@ -635,7 +637,7 @@ private fun GiftsTab(
     ) {
         if (s.alliance.gifts.isEmpty()) item { Text(stringResource(R.string.alliance_gifts_empty)) }
         items(s.alliance.gifts, key = { it.id }) { g ->
-            Card(Modifier.fillMaxWidth()) {
+            GameCard(Modifier.fillMaxWidth()) {
                 Row(
                     Modifier.fillMaxWidth().padding(10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -651,7 +653,7 @@ private fun GiftsTab(
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
-                    Button(onClick = { onOpen(g.id) }) { Text(stringResource(R.string.alliance_gift_open)) }
+                    GameButton(onClick = { onOpen(g.id) }) { Text(stringResource(R.string.alliance_gift_open)) }
                 }
             }
         }

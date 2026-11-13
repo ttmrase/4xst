@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +28,8 @@ import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.OfferBadge
 import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.ui.common.remainingUntil
+import com.ttmrase.crownfall.ui.kit.GameButtonStyle
+import com.ttmrase.crownfall.ui.kit.GameCard
 import com.ttmrase.crownfall.ui.theme.PressButton
 
 private const val PULSE_SCALE = 1.05f
@@ -109,7 +108,7 @@ fun OfferCard(
     foil: Boolean = true,
 ) {
     val off = offOverride ?: offPercent(priceYen, listValueYen)
-    Card(modifier = modifier.fillMaxWidth().then(if (foil) Modifier.goldFoil() else Modifier)) {
+    GameCard(modifier = modifier.fillMaxWidth().then(if (foil) Modifier.goldFoil() else Modifier)) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -155,7 +154,7 @@ fun OfferCard(
             PressButton(
                 onClick = onBuy,
                 enabled = !soldOut,
-                colors = ButtonDefaults.buttonColors(containerColor = BuyRed, contentColor = Color.White),
+                style = GameButtonStyle.Ruby,
                 modifier = Modifier.fillMaxWidth().height(52.dp).pulsing(!soldOut),
             ) {
                 Text(

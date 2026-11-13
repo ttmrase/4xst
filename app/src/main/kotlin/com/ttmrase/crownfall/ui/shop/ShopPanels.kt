@@ -7,11 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -27,6 +23,10 @@ import com.ttmrase.crownfall.core.shop.MonthPass
 import com.ttmrase.crownfall.core.shop.ShopLogic
 import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.util.ShortNumber
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameProgressBar
 
 private const val HOUR = 3600L
 
@@ -64,7 +64,7 @@ internal fun LazyListScope.vipTab(
     val next = VipCalculator.toNext(s, data)
     val perks = VipCalculator.perks(s, data)
     item {
-        Card(Modifier.fillMaxWidth()) {
+        GameCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     if (lv > 0) stringResource(R.string.vip_current, lv) else stringResource(R.string.vip_none),
@@ -75,7 +75,7 @@ internal fun LazyListScope.vipTab(
                 if (next != null) {
                     val prev = if (lv > 0) data.vip.levels[lv - 1].pt else 0L
                     val target = data.vip.levels[next.first - 1].pt
-                    LinearProgressIndicator(
+                    GameProgressBar(
                         progress = {
                             ((s.shop.vipPoints - prev).toFloat() / (target - prev).toFloat()).coerceIn(
                                 0f,
@@ -92,7 +92,7 @@ internal fun LazyListScope.vipTab(
                 if (perks != null) {
                     PerkLines(perks.gatherBp, perks.offlineBonusSec, perks.gemSkipBp, perks.secondBuilder)
                     val claimedToday = s.shop.vipChestDay == ShopLogic.localDay(s)
-                    Button(onClick = onClaimChest, enabled = !claimedToday, modifier = Modifier.fillMaxWidth()) {
+                    GameButton(onClick = onClaimChest, enabled = !claimedToday, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(if (claimedToday) R.string.vip_chest_done else R.string.vip_chest_claim))
                     }
                     ContentsLines(perks.chest, data)
@@ -102,7 +102,7 @@ internal fun LazyListScope.vipTab(
         }
     }
     items(data.vip.levels, key = { "vip-${it.lv}" }) { l ->
-        Card(Modifier.fillMaxWidth()) {
+        GameCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(
@@ -130,7 +130,7 @@ internal fun LazyListScope.passTab(
     val mp = data.shopRules.monthPass
     val gf = data.shopRules.growthFund
     item {
-        Card(Modifier.fillMaxWidth()) {
+        GameCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     stringResource(R.string.pass_title),
@@ -150,11 +150,18 @@ internal fun LazyListScope.passTab(
                         stringResource(R.string.pass_days_left, MonthPass.daysLeft(s)),
                         color = MaterialTheme.colorScheme.error,
                     )
-                    Button(onClick = onClaimPass, enabled = MonthPass.canClaim(s), modifier = Modifier.fillMaxWidth()) {
+                    GameButton(
+                        onClick = onClaimPass,
+                        enabled = MonthPass.canClaim(s),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(stringResource(if (MonthPass.canClaim(s)) R.string.pass_claim else R.string.pass_claimed))
                     }
                 }
-                Button(onClick = { onBuy(mp.sku) }, modifier = Modifier.fillMaxWidth().pulsing(!MonthPass.active(s))) {
+                GameButton(
+                    onClick = { onBuy(mp.sku) },
+                    modifier = Modifier.fillMaxWidth().pulsing(!MonthPass.active(s)),
+                ) {
                     Text(
                         stringResource(
                             if (MonthPass.active(s)) R.string.pass_extend else R.string.pass_buy,
@@ -166,7 +173,7 @@ internal fun LazyListScope.passTab(
         }
     }
     item {
-        Card(Modifier.fillMaxWidth()) {
+        GameCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     stringResource(R.string.fund_title),
@@ -189,7 +196,7 @@ internal fun LazyListScope.passTab(
                 val payback = fundPaybackGems(data)
                 val got = fundClaimedGems(s, data)
                 if (s.shop.growthFundOwned && payback > 0) {
-                    LinearProgressIndicator(
+                    GameProgressBar(
                         progress = { (got.toFloat() / payback).coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -205,7 +212,7 @@ internal fun LazyListScope.passTab(
                 }
                 val claimable = GrowthFund.claimable(s, data)
                 if (s.shop.growthFundOwned) {
-                    OutlinedButton(
+                    GameOutlinedButton(
                         onClick = onClaimFund,
                         enabled = claimable.isNotEmpty(),
                         modifier = Modifier.fillMaxWidth(),
@@ -213,7 +220,7 @@ internal fun LazyListScope.passTab(
                         Text(stringResource(R.string.fund_claim, claimable.sumOf { it.second }))
                     }
                 } else {
-                    Button(onClick = { onBuy(gf.sku) }, modifier = Modifier.fillMaxWidth().pulsing()) {
+                    GameButton(onClick = { onBuy(gf.sku) }, modifier = Modifier.fillMaxWidth().pulsing()) {
                         Text(stringResource(R.string.fund_buy, formatYen(gf.priceYen)))
                     }
                 }

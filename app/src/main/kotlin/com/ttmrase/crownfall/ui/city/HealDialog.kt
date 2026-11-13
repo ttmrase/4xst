@@ -4,12 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +22,10 @@ import com.ttmrase.crownfall.core.sim.Buffs
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.CostRows
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameDialog
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameTextButton
 import com.ttmrase.crownfall.ui.troopNameById
 
 /** 負傷兵の治療ダイアログ。負傷兵をすべて治療する 1 ボタン（コストと所要時間つき）。 */
@@ -44,7 +44,7 @@ fun HealDialog(
     val duration = Buffs.speedSeconds(Military.baseHealSeconds(batch, data), buffs[BuffKey.HEAL_SPEED])
     val capacity = Military.hospitalCapacity(state, data, buffs)
     val healing = UiQueries.healJob(state) != null
-    AlertDialog(
+    GameDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.heal_title)) },
         text = {
@@ -63,16 +63,16 @@ fun HealDialog(
                     }
                 }
                 if (batch.isNotEmpty()) {
-                    HorizontalDivider()
+                    GameDivider()
                     Text(stringResource(R.string.heal_cost), style = MaterialTheme.typography.titleSmall)
                     CostRows(have = state.resources, cost = cost, missing = missing)
                     Text(stringResource(R.string.barracks_duration, DurationFormat.clock(duration)))
-                    Button(onClick = { onHeal(batch) }, enabled = !healing, modifier = Modifier.fillMaxWidth()) {
+                    GameButton(onClick = { onHeal(batch) }, enabled = !healing, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.heal_all))
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) } },
+        confirmButton = { GameTextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) } },
     )
 }

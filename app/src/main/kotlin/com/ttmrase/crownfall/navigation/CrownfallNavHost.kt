@@ -12,17 +12,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -35,7 +28,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
@@ -90,6 +82,11 @@ import com.ttmrase.crownfall.ui.feature.LockedFeatureDialog
 import com.ttmrase.crownfall.ui.feature.LockedScreenBody
 import com.ttmrase.crownfall.ui.heroes.HeroesScreen
 import com.ttmrase.crownfall.ui.heroes.SummonScreen
+import com.ttmrase.crownfall.ui.kit.BottomItem
+import com.ttmrase.crownfall.ui.kit.GameBottomBar
+import com.ttmrase.crownfall.ui.kit.GameDialog
+import com.ttmrase.crownfall.ui.kit.GameTextButton
+import com.ttmrase.crownfall.ui.kit.LocalNavigateBack
 import com.ttmrase.crownfall.ui.mail.MailScreen
 import com.ttmrase.crownfall.ui.map.MapScreen
 import com.ttmrase.crownfall.ui.quest.QuestScreen
@@ -115,7 +112,6 @@ import kotlinx.coroutines.launch
 
 /** 単一 Activity 用の NavHost と下部ナビ（Title では非表示）。 */
 private const val CLAIM_PERIOD_MS = 30_000L
-private const val LOCKED_ALPHA = 0.45f
 private const val TRANSITION_MS = 180
 private const val SLIDE_DIV = 12
 
@@ -246,20 +242,20 @@ fun CrownfallNavHost(
     val alertId = raidMail?.first
     if (alertId != null && alertId > raidAlertSeen && destination?.route == Screen.City.route) {
         val defended = raidMail?.second == true
-        AlertDialog(
+        GameDialog(
             onDismissRequest = { raidAlertSeen = alertId },
             title = { Text(stringResource(R.string.raid_alert_title)) },
             text = {
                 Text(stringResource(if (defended) R.string.raid_alert_defended else R.string.raid_alert_defeated))
             },
             confirmButton = {
-                TextButton(onClick = {
+                GameTextButton(onClick = {
                     raidAlertSeen = alertId
                     navController.navigate(Screen.Mail.route) { launchSingleTop = true }
                 }) { Text(stringResource(R.string.raid_alert_open)) }
             },
             dismissButton = {
-                TextButton(onClick = { raidAlertSeen = alertId }) { Text(stringResource(R.string.common_close)) }
+                GameTextButton(onClick = { raidAlertSeen = alertId }) { Text(stringResource(R.string.common_close)) }
             },
         )
     }
@@ -285,8 +281,10 @@ fun CrownfallNavHost(
 
     val flyState = remember { RewardFlyState() }
     BgmHost(destination?.route, ready?.session)
+    val navigateBack: () -> Unit = { navController.popBackStack() }
     CompositionLocalProvider(
         LocalClock provides clock,
+        LocalNavigateBack provides navigateBack,
         LocalRewardFly provides flyState,
         LocalCastleUpgrade provides upgradeCastle,
         LocalCastleLevel provides castleLv,
@@ -302,11 +300,28 @@ fun CrownfallNavHost(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 bottomBar = {
                     if (destination != null && destination.route != Screen.Title.route) {
-                        NavigationBar {
-                            BottomDestination.entries.forEach { item ->
+                        GameBottomBar(
+                            BottomDestination.entries.map { item ->
                                 val locked = isLocked(item.feature)
-                                NavigationBarItem(
+                                BottomItem(
+                                    glyph = item.glyph,
+                                    label = stringResource(item.labelRes),
                                     selected = destination.hierarchy.any { it.route == item.screen.route },
+                                    locked = locked,
+                                    badge =
+                                        when (item) {
+                                            BottomDestination.Alliance -> unread
+                                            BottomDestination.City -> claimable
+                                            else -> 0
+                                        },
+                                    modifier =
+                                        if (item == BottomDestination.City) {
+                                            Modifier.onGloballyPositioned {
+                                                flyState.fallbackTarget = it.boundsInWindow().center
+                                            }
+                                        } else {
+                                            Modifier
+                                        },
                                     onClick = {
                                         if (locked && !(item == BottomDestination.Shop && hasEntitlement)) {
                                             lockedFeature = item.feature
@@ -314,43 +329,9 @@ fun CrownfallNavHost(
                                             navController.navigateBottom(item)
                                         }
                                     },
-                                    modifier =
-                                        Modifier
-                                            .alpha(if (locked) LOCKED_ALPHA else 1f)
-                                            .then(
-                                                if (item == BottomDestination.City) {
-                                                    Modifier.onGloballyPositioned {
-                                                        flyState.fallbackTarget = it.boundsInWindow().center
-                                                    }
-                                                } else {
-                                                    Modifier
-                                                },
-                                            ),
-                                    icon = {
-                                        val isAlliance = item == BottomDestination.Alliance
-                                        val isCity = item == BottomDestination.City
-                                        val count =
-                                            when {
-                                                isAlliance -> unread
-                                                isCity -> claimable
-                                                else -> 0
-                                            }
-                                        BadgedBox(
-                                            badge = {
-                                                if (locked) {
-                                                    Badge { Text("🔒") }
-                                                } else if (count > 0) {
-                                                    Badge { Text(count.toString()) }
-                                                }
-                                            },
-                                        ) {
-                                            Icon(item.icon, contentDescription = null)
-                                        }
-                                    },
-                                    label = { Text(stringResource(item.labelRes)) },
                                 )
-                            }
-                        }
+                            },
+                        )
                     }
                 },
             ) { padding ->
@@ -570,12 +551,12 @@ fun CrownfallNavHost(
             ) { billingId = null }
         }
         if (exitStage == 2) {
-            AlertDialog(
+            GameDialog(
                 onDismissRequest = { exitStage = 0 },
                 title = { Text(stringResource(R.string.exit_title)) },
                 text = { Text(stringResource(R.string.exit_body)) },
                 confirmButton = {
-                    TextButton(
+                    GameTextButton(
                         onClick = {
                             exitStage = 0
                             navController.navigate(
@@ -585,7 +566,7 @@ fun CrownfallNavHost(
                     ) { Text(stringResource(R.string.common_ok)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { exitStage = 0 }) { Text(stringResource(R.string.common_cancel)) }
+                    GameTextButton(onClick = { exitStage = 0 }) { Text(stringResource(R.string.common_cancel)) }
                 },
             )
         }

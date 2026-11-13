@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,6 +20,7 @@ import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.ai.AiService
 import com.ttmrase.crownfall.ai.providers.OnDeviceDebugLog
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import kotlinx.coroutines.launch
 
 /**
@@ -42,10 +42,10 @@ fun OnDeviceDebugSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.on_device_debug_title), style = MaterialTheme.typography.titleSmall)
-        OutlinedButton(
+        GameOutlinedButton(
             enabled = data != null && !running,
             onClick = {
-                val d = data ?: return@OutlinedButton
+                val d = data ?: return@GameOutlinedButton
                 running = true
                 scope.launch {
                     result = ai.testUtterance(d)
@@ -69,7 +69,7 @@ fun OnDeviceDebugSection(
                 style = MaterialTheme.typography.labelSmall,
             )
         }
-        OutlinedButton(onClick = { showIo = !showIo }, modifier = Modifier.fillMaxWidth()) {
+        GameOutlinedButton(onClick = { showIo = !showIo }, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(if (showIo) R.string.on_device_hide_io else R.string.on_device_show_io))
         }
         if (showIo) {

@@ -51,6 +51,8 @@ import com.ttmrase.crownfall.core.model.HeroRarity
 import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.ui.glyph
 import com.ttmrase.crownfall.ui.heroNameRes
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.rarityColor
 import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlin.math.PI
@@ -226,23 +228,23 @@ private fun FlipDigit(digit: Int) {
     }
 }
 
-/** 中身アイコン 1 つ分（絵文字＋レアリティの光）。 */
+/** 中身アイコン 1 つ分（アイコン＋レアリティの光）。 */
 private class IconSpec(
-    val glyph: String,
+    val glyph: Glyph,
     val rarity: HeroRarity,
     val label: String,
 )
 
 private fun iconSpecs(contents: PackContents): List<IconSpec> {
     val list = mutableListOf<IconSpec>()
-    if (contents.gems > 0) list += IconSpec("💎", HeroRarity.SR, "gems")
+    if (contents.gems > 0) list += IconSpec(Glyph.GEM, HeroRarity.SR, "gems")
     ResourceType.entries.forEach { type ->
         if (contents.resources[type] > 0) list += IconSpec(type.glyph(), HeroRarity.R, type.name)
     }
-    contents.items.forEach { (id, _) -> list += IconSpec("🎁", HeroRarity.R, id) }
-    contents.heroShards.forEach { (id, _) -> list += IconSpec("⭐", HeroRarity.SSR, id) }
-    if (contents.eventPoints > 0) list += IconSpec("🏆", HeroRarity.SR, "event")
-    if (contents.secondBuilderDays > 0) list += IconSpec("🔨", HeroRarity.SR, "builder")
+    contents.items.forEach { (id, _) -> list += IconSpec(Glyph.SPEEDUP, HeroRarity.R, id) }
+    contents.heroShards.forEach { (id, _) -> list += IconSpec(Glyph.SHARD, HeroRarity.SSR, id) }
+    if (contents.eventPoints > 0) list += IconSpec(Glyph.TROPHY, HeroRarity.SR, "event")
+    if (contents.secondBuilderDays > 0) list += IconSpec(Glyph.BUILD, HeroRarity.SR, "builder")
     return list
 }
 
@@ -261,7 +263,7 @@ fun ContentIcons(
 /** 光る円形アイコン。 */
 @Composable
 fun GlowIcon(
-    glyph: String,
+    glyph: Glyph,
     glow: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -279,7 +281,7 @@ fun GlowIcon(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Text(glyph, fontSize = 24.sp)
+        GlyphIcon(glyph, size = 30.dp)
     }
 }
 

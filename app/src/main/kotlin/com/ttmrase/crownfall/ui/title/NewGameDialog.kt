@@ -1,18 +1,13 @@
 package com.ttmrase.crownfall.ui.title
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +21,10 @@ import com.ttmrase.crownfall.core.util.PlayerName
 import com.ttmrase.crownfall.core.util.PlayerNameResult
 import com.ttmrase.crownfall.ui.heroDescRes
 import com.ttmrase.crownfall.ui.heroNameRes
+import com.ttmrase.crownfall.ui.kit.FrameStyle
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameDialog
+import com.ttmrase.crownfall.ui.kit.GameTextButton
 
 /** 新規ゲームの導入: 名前入力（1〜12 文字）→ 初期英雄の 3 択。 */
 @Composable
@@ -41,7 +40,7 @@ fun NewGameDialog(
     val name = validName
 
     if (name == null) {
-        AlertDialog(
+        GameDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.newgame_name_title)) },
             text = {
@@ -70,25 +69,24 @@ fun NewGameDialog(
                 }
             },
             confirmButton = {
-                TextButton(
+                GameTextButton(
                     onClick = {
                         if (result is PlayerNameResult.Valid) validName = result.name else showError = true
                     },
                 ) { Text(stringResource(R.string.common_next)) }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
+            dismissButton = { GameTextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
         )
     } else {
-        AlertDialog(
+        GameDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.newgame_hero_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     starterHeroIds.forEach { heroId ->
-                        Card(
+                        GameCard(
                             modifier = Modifier.fillMaxWidth().clickable { onStart(name, heroId) },
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                            style = FrameStyle.Panel,
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
@@ -105,7 +103,7 @@ fun NewGameDialog(
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(
+                GameTextButton(
                     onClick = { validName = null },
                 ) { Text(stringResource(R.string.common_back)) }
             },

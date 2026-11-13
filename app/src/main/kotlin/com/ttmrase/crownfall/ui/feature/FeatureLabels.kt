@@ -3,6 +3,7 @@ package com.ttmrase.crownfall.ui.feature
 import androidx.annotation.StringRes
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.feature.Feature
+import com.ttmrase.crownfall.ui.kit.Glyph
 
 /** 段階解放の機能名。 */
 @StringRes
@@ -42,20 +43,20 @@ fun Feature.descRes(): Int =
         Feature.RALLY -> R.string.feature_desc_rally
     }
 
-/** 機能のアイコン（絵文字）。 */
-fun Feature.emoji(): String =
+/** 機能のアイコン。 */
+fun Feature.glyph(): Glyph =
     when (this) {
-        Feature.TRAINING -> "⚔"
-        Feature.QUESTS -> "📜"
-        Feature.SHOP -> "🛒"
-        Feature.ALLIANCE -> "🤝"
-        Feature.WORLD_MAP -> "🗺"
-        Feature.RAIDS -> "🛡"
-        Feature.RESEARCH -> "🔬"
-        Feature.WHEEL -> "🎡"
-        Feature.PIGGY -> "🐷"
-        Feature.HEROES -> "⭐"
-        Feature.WORLD_CHAT -> "💬"
-        Feature.EVENTS -> "🏆"
-        Feature.RALLY -> "🏰"
+        Feature.TRAINING -> Glyph.BARRACKS
+        Feature.QUESTS -> Glyph.QUEST
+        Feature.SHOP -> Glyph.NAV_SHOP
+        Feature.ALLIANCE -> Glyph.NAV_ALLIANCE
+        Feature.WORLD_MAP -> Glyph.NAV_MAP
+        Feature.RAIDS -> Glyph.SHIELD
+        Feature.RESEARCH -> Glyph.RESEARCH
+        Feature.WHEEL -> Glyph.WHEEL
+        Feature.PIGGY -> Glyph.PIGGY
+        Feature.HEROES -> Glyph.NAV_HEROES
+        Feature.WORLD_CHAT -> Glyph.WORLD
+        Feature.EVENTS -> Glyph.TROPHY
+        Feature.RALLY -> Glyph.RALLY
     }

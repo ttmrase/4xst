@@ -8,15 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,6 +41,12 @@ import com.ttmrase.crownfall.ui.city.SpeedupHost
 import com.ttmrase.crownfall.ui.common.CostRows
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameProgressBar
+import com.ttmrase.crownfall.ui.kit.GameTab
+import com.ttmrase.crownfall.ui.kit.GameTabRow
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.troopName
 import kotlinx.coroutines.launch
@@ -80,10 +80,10 @@ fun BarracksScreen(
     val blocker = preview?.blocker
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = tab) {
+        GameTabRow(selectedTabIndex = tab) {
             TroopType.entries.forEachIndexed { index, t ->
                 val built = UiQueries.troopTiers(s, t, data).firstOrNull()?.let { !it.locked } ?: false
-                Tab(
+                GameTab(
                     selected = tab == index,
                     onClick = {
                         tab = index
@@ -106,9 +106,9 @@ fun BarracksScreen(
                     val tier = stringResource(R.string.tier_label, t.troop.tier)
                     val label = if (t.locked) stringResource(R.string.locked_label, tier) else tier
                     if (index == tierIndex) {
-                        Button(onClick = {}) { Text(label) }
+                        GameButton(onClick = {}) { Text(label) }
                     } else {
-                        OutlinedButton(
+                        GameOutlinedButton(
                             onClick = {
                                 tierIndex = index
                                 amount = 1f
@@ -133,7 +133,7 @@ fun BarracksScreen(
                 ),
                 style = MaterialTheme.typography.labelMedium,
             )
-            HorizontalDivider()
+            GameDivider()
             if (view.locked) {
                 Text(
                     stringResource(
@@ -169,7 +169,7 @@ fun BarracksScreen(
             val running = preview?.running
             if (running != null) {
                 Text(stringResource(R.string.barracks_training), style = MaterialTheme.typography.titleSmall)
-                LinearProgressIndicator(
+                GameProgressBar(
                     progress = { UiQueries.progress(s, running) },
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -178,13 +178,13 @@ fun BarracksScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(DurationFormat.clock(UiQueries.remainingSec(s, running)))
-                    Button(onClick = { speedupJobId = running.id }) { Text(stringResource(R.string.sheet_speedup)) }
+                    GameButton(onClick = { speedupJobId = running.id }) { Text(stringResource(R.string.sheet_speedup)) }
                 }
             }
             if (!view.locked) {
                 when {
                     blocker is ActionFailure.NotEnoughResources ->
-                        OutlinedButton(
+                        GameOutlinedButton(
                             onClick = { hooks.onResourceShortage(blocker.missing) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -198,7 +198,7 @@ fun BarracksScreen(
                     blocker != null ->
                         Text(failureMessage(context, blocker), color = MaterialTheme.colorScheme.error)
                     else ->
-                        Button(
+                        GameButton(
                             onClick = {
                                 scope.launch {
                                     when (

@@ -10,19 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -54,6 +45,14 @@ import com.ttmrase.crownfall.ui.city.SpeedupHost
 import com.ttmrase.crownfall.ui.common.CostRows
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.kit.GameBottomSheet
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameProgressBar
+import com.ttmrase.crownfall.ui.kit.GameTab
+import com.ttmrase.crownfall.ui.kit.GameTabRow
 import com.ttmrase.crownfall.ui.researchNodeName
 import kotlinx.coroutines.launch
 
@@ -87,9 +86,9 @@ fun ResearchScreen(
     val running = UiQueries.researchJob(s)
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = tab) {
+        GameTabRow(selectedTabIndex = tab) {
             Branches.forEachIndexed { index, branch ->
-                Tab(
+                GameTab(
                     selected = tab == index,
                     onClick = { tab = index },
                     text = { Text(stringResource(branchRes(branch))) },
@@ -97,9 +96,8 @@ fun ResearchScreen(
             }
         }
         if (running != null) {
-            Card(
+            GameCard(
                 modifier = Modifier.fillMaxWidth().padding(8.dp).clickable { speedupJobId = running.id },
-                shape = RoundedCornerShape(10.dp),
             ) {
                 Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
@@ -110,7 +108,7 @@ fun ResearchScreen(
                         ),
                         style = MaterialTheme.typography.titleSmall,
                     )
-                    LinearProgressIndicator(
+                    GameProgressBar(
                         progress = { UiQueries.progress(s, running) },
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -128,12 +126,11 @@ fun ResearchScreen(
         ) {
             items(nodes, key = { it.id }) { node ->
                 val row = UiQueries.researchRow(s, node.id, data) ?: return@items
-                Card(
+                GameCard(
                     modifier =
                         Modifier.fillMaxWidth().alpha(
                             if (row.locked) 0.6f else 1f,
                         ).clickable { selected = node.id },
-                    shape = RoundedCornerShape(12.dp),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -207,7 +204,7 @@ private fun ResearchSheet(
     val node = preview.node
     val next = preview.next
     val blocker = preview.blocker
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    GameBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier =
                 Modifier.fillMaxWidth().verticalScroll(
@@ -220,7 +217,7 @@ private fun ResearchSheet(
                 stringResource(R.string.research_level, preview.currentLevel, node.maxLevel),
                 color = MaterialTheme.colorScheme.primary,
             )
-            HorizontalDivider()
+            GameDivider()
             if (preview.currentLevel > 0) {
                 val now = node.level(preview.currentLevel)
                 Text(stringResource(R.string.research_effect_now, buffText(context, now.effectKey, now.effectBp)))
@@ -229,7 +226,7 @@ private fun ResearchSheet(
                 Text(stringResource(R.string.research_max), color = MaterialTheme.colorScheme.primary)
             } else {
                 Text(stringResource(R.string.research_effect_next, buffText(context, next.effectKey, next.effectBp)))
-                HorizontalDivider()
+                GameDivider()
                 Text(stringResource(R.string.sheet_cost), style = MaterialTheme.typography.titleSmall)
                 CostRows(have = state.resources, cost = next.cost, missing = preview.missing)
                 Text(stringResource(R.string.sheet_duration, DurationFormat.clock(preview.durationSec)))
@@ -243,7 +240,7 @@ private fun ResearchSheet(
                     )
                 }
             }
-            HorizontalDivider()
+            GameDivider()
             val running = preview.running
             when {
                 running != null -> {
@@ -252,12 +249,12 @@ private fun ResearchSheet(
                             DurationFormat.clock(UiQueries.remainingSec(state, running)),
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    Button(onClick = { onSpeedup(running.id) }, modifier = Modifier.fillMaxWidth()) {
+                    GameButton(onClick = { onSpeedup(running.id) }, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.sheet_speedup))
                     }
                 }
                 blocker is ActionFailure.NotEnoughResources ->
-                    OutlinedButton(
+                    GameOutlinedButton(
                         onClick = { onResourceShortage(blocker.missing) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -266,7 +263,7 @@ private fun ResearchSheet(
                 blocker == ActionFailure.QueueFull ->
                     Text(stringResource(R.string.research_queue_full), color = MaterialTheme.colorScheme.error)
                 blocker == null ->
-                    Button(
+                    GameButton(
                         onClick = onStart,
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.research_start)) }

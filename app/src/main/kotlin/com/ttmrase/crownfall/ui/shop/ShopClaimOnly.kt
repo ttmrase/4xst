@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +26,7 @@ import com.ttmrase.crownfall.core.shop.VipCalculator
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.kit.GameButton
 import kotlinx.coroutines.launch
 
 /**
@@ -61,7 +61,7 @@ fun ShopClaimOnly(
     ) {
         Text(stringResource(R.string.shop_claim_only_title), style = MaterialTheme.typography.titleMedium)
         if (pass) {
-            Button(
+            GameButton(
                 onClick = {
                     claim(
                         R.string.pass_claim_title,
@@ -73,13 +73,13 @@ fun ShopClaimOnly(
             }
         }
         chest?.let { c ->
-            Button(onClick = { claim(R.string.vip_chest_open_title, c) { Actions.claimVipChest(it, data) } }) {
+            GameButton(onClick = { claim(R.string.vip_chest_open_title, c) { Actions.claimVipChest(it, data) } }) {
                 Text(stringResource(R.string.shop_claim_vip_chest))
             }
         }
         if (fund.isNotEmpty()) {
             val gems = fund.sumOf { it.second }
-            Button(onClick = {
+            GameButton(onClick = {
                 claim(R.string.reward_chest_title, PackContents(gems = gems)) { Actions.claimGrowthFund(it, data) }
             }) {
                 Text(stringResource(R.string.shop_claim_fund))

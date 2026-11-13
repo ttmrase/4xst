@@ -11,10 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +42,9 @@ import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import com.ttmrase.crownfall.ui.namedString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -133,7 +133,7 @@ fun WheelCard(
         }
     }
 
-    Card(Modifier.fillMaxWidth()) {
+    GameCard(Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -191,7 +191,7 @@ fun WheelCard(
             }
             when {
                 freeLeft ->
-                    Button(
+                    GameButton(
                         onClick = { spin(false) },
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth().pulsing(!busy),
@@ -199,14 +199,14 @@ fun WheelCard(
                         Text(stringResource(R.string.wheel_spin_free))
                     }
                 extra > 0 ->
-                    Button(onClick = { spin(false) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    GameButton(onClick = { spin(false) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.wheel_spin_extra, extra))
                     }
                 else -> {
-                    Button(onClick = onBuyExtra, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    GameButton(onClick = onBuyExtra, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.wheel_buy_extra, formatYen(data.shopRules.wheel.extraYen)))
                     }
-                    OutlinedButton(onClick = { spin(true) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    GameOutlinedButton(onClick = { spin(true) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.wheel_spin_gems, gemsCost))
                     }
                 }

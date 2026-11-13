@@ -7,12 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -35,6 +31,10 @@ import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.heroNameRes
+import com.ttmrase.crownfall.ui.kit.GameBottomSheet
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.troopNameById
@@ -67,7 +67,7 @@ fun FormationSheet(
     val cap = Marching.troopCap(state, data)
     val slotFree = state.marches.size < Marching.slots(state, data)
     LaunchedEffect(busy) { heroes.removeAll { it in busy } }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    GameBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -81,7 +81,7 @@ fun FormationSheet(
                 style = MaterialTheme.typography.headlineSmall,
             )
             Text(stringResource(R.string.formation_target, target.x, target.y))
-            HorizontalDivider()
+            GameDivider()
             Text(stringResource(R.string.formation_troops), style = MaterialTheme.typography.titleSmall)
             if (available.isEmpty()) Text(stringResource(R.string.formation_no_troops))
             available.forEach { id ->
@@ -103,7 +103,7 @@ fun FormationSheet(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
+                GameOutlinedButton(
                     onClick = {
                         var left = cap
                         available.forEach { id ->
@@ -113,9 +113,9 @@ fun FormationSheet(
                         }
                     },
                 ) { Text(stringResource(R.string.formation_all)) }
-                OutlinedButton(onClick = { counts.clear() }) { Text(stringResource(R.string.formation_reset)) }
+                GameOutlinedButton(onClick = { counts.clear() }) { Text(stringResource(R.string.formation_reset)) }
             }
-            HorizontalDivider()
+            GameDivider()
             Text(stringResource(R.string.formation_heroes, maxHeroes), style = MaterialTheme.typography.titleSmall)
             state.heroes.forEach { h ->
                 val name = stringResource(heroNameRes(h.heroId) ?: R.string.hero_unknown_name)
@@ -128,16 +128,16 @@ fun FormationSheet(
                 ) {
                     data.heroes[h.heroId]?.let { PortraitView(h.heroId, name, 36.dp, rarity = it.rarity) }
                     if (on) {
-                        Button(onClick = { heroes.remove(h.heroId) }) { Text(label) }
+                        GameButton(onClick = { heroes.remove(h.heroId) }) { Text(label) }
                     } else {
-                        OutlinedButton(
+                        GameOutlinedButton(
                             onClick = { if (heroes.size < maxHeroes) heroes.add(h.heroId) },
                             enabled = !isBusy,
                         ) { Text(label) }
                     }
                 }
             }
-            HorizontalDivider()
+            GameDivider()
             if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
             Text(
                 stringResource(R.string.formation_total, ShortNumber.format(total), ShortNumber.format(cap)),
@@ -151,7 +151,7 @@ fun FormationSheet(
                     Text(stringResource(R.string.formation_capacity, ShortNumber.format(load)))
                 }
             }
-            Button(
+            GameButton(
                 onClick = { onSend(picked, heroes.toList()) },
                 enabled = total in 1..cap && slotFree && !sending,
                 modifier = Modifier.fillMaxWidth(),

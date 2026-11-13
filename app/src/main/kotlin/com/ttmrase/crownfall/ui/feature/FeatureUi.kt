@@ -23,11 +23,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -65,6 +62,13 @@ import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameDialog
+import com.ttmrase.crownfall.ui.kit.GameTextButton
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.Pill
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.dispatchFly
 import com.ttmrase.crownfall.ui.shop.Confetti
@@ -100,7 +104,7 @@ fun LockedFeatureDialog(
     onDismiss: () -> Unit,
 ) {
     val need = FeatureGate.requiredLv(data, feature)
-    AlertDialog(
+    GameDialog(
         onDismissRequest = onDismiss,
         icon = { Text("🔒", fontSize = 28.sp) },
         title = { Text(stringResource(R.string.feature_locked_title, stringResource(feature.nameRes()))) },
@@ -113,8 +117,12 @@ fun LockedFeatureDialog(
                 )
             }
         },
-        confirmButton = { TextButton(onClick = onUpgrade) { Text(stringResource(R.string.feature_upgrade_castle)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) } },
+        confirmButton = {
+            GameTextButton(
+                onClick = onUpgrade,
+            ) { Text(stringResource(R.string.feature_upgrade_castle)) }
+        },
+        dismissButton = { GameTextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) } },
     )
 }
 
@@ -130,17 +138,12 @@ fun NextUnlockChip(
     val lv = FeatureGate.requiredLv(data, next)
     val label = stringResource(R.string.feature_next_chip, stringResource(next.nameRes()), lv)
     Row(modifier = modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.End) {
-        Text(
-            "🔒 $label",
-            style = MaterialTheme.typography.labelSmall,
-            color = Color(0xFFFFE9A0),
-            modifier =
-                Modifier
-                    .background(Color(0xAA121A2E), RoundedCornerShape(50))
-                    .clickable(onClick = onClick)
-                    .semantics { contentDescription = label }
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-        )
+        Pill(
+            modifier = Modifier.semantics { contentDescription = label },
+            glyph = Glyph.LOCK,
+            tint = Cf.Sapphire,
+            onClick = onClick,
+        ) { Text(label) }
     }
 }
 
@@ -203,7 +206,7 @@ fun FeatureUnlockDialog(
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Button(
+                GameButton(
                     enabled = !flying,
                     onClick = {
                         flying = true
@@ -220,9 +223,9 @@ fun FeatureUnlockDialog(
             val x = startX + (toX - startX) * p
             val y = startY + (toY - startY) * p
             val sc = FLY_START_SCALE + (FLY_END_SCALE - FLY_START_SCALE) * p
-            Text(
-                feature.emoji(),
-                fontSize = 40.sp,
+            GlyphIcon(
+                feature.glyph(),
+                size = 56.dp,
                 modifier =
                     Modifier
                         .offset {
@@ -254,14 +257,14 @@ fun FirstUseRewardCard(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("🎁", fontSize = 22.sp)
+        GlyphIcon(Glyph.GIFT, size = 28.dp)
         Text(
             stringResource(R.string.feature_reward_card, stringResource(feature.nameRes())),
             color = Color.White,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f),
         )
-        Button(onClick = onClaim) { Text(stringResource(R.string.feature_reward_claim)) }
+        GameButton(onClick = onClaim) { Text(stringResource(R.string.feature_reward_claim)) }
     }
 }
 
@@ -341,7 +344,7 @@ fun LockedScreenBody(
                 stringResource(R.string.feature_locked_remaining, need, (need - castleLv).coerceAtLeast(1)),
                 fontWeight = FontWeight.Bold,
             )
-            Button(onClick = onUpgrade) { Text(stringResource(R.string.feature_upgrade_castle)) }
+            GameButton(onClick = onUpgrade) { Text(stringResource(R.string.feature_upgrade_castle)) }
         }
     }
 }
@@ -381,7 +384,7 @@ fun FeatureOverlays(
         val tabY = fly.fallbackTarget?.y ?: (h - TAB_FALLBACK_BOTTOM_PX)
         batch.forEach { f ->
             target(f)?.let { idx ->
-                fly.flyGlyph(Offset(w / 2f, h * FLY_FROM_Y), Offset(w * (idx + 0.5f) / NAV_TABS, tabY), f.emoji())
+                fly.flyGlyph(Offset(w / 2f, h * FLY_FROM_Y), Offset(w * (idx + 0.5f) / NAV_TABS, tabY), f.glyph())
                 delay(FLY_STAGGER_MS)
             }
         }

@@ -20,6 +20,7 @@ import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.session.BuildingSection
 import com.ttmrase.crownfall.core.sim.ActionFailure
 import com.ttmrase.crownfall.core.util.ShortNumber
+import com.ttmrase.crownfall.ui.kit.Glyph
 
 /** :core が返す ID と数値を表示文字列へ対応づける表（D4）。 */
 
@@ -78,13 +79,13 @@ fun ResourceType.nameRes(): Int =
         ResourceType.GOLD -> R.string.res_gold
     }
 
-/** 資源の絵文字。表示は必ずこれを使う（entries の添字で別の表から引かない）。 */
-fun ResourceType.glyph(): String =
+/** 資源のアイコン。表示は必ずこれを使う（entries の添字で別の表から引かない）。 */
+fun ResourceType.glyph(): Glyph =
     when (this) {
-        ResourceType.FOOD -> "🌾"
-        ResourceType.WOOD -> "🌲"
-        ResourceType.STONE -> "⛰️"
-        ResourceType.GOLD -> "💰"
+        ResourceType.FOOD -> Glyph.FOOD
+        ResourceType.WOOD -> Glyph.WOOD
+        ResourceType.STONE -> Glyph.STONE
+        ResourceType.GOLD -> Glyph.GOLD
     }
 
 @StringRes
@@ -173,12 +174,12 @@ fun TroopType.nameRes(): Int =
     }
 
 /** 兵種の絵文字。表示は必ずこれを使う（entries の順と別の表を添字で引くと取り違える）。 */
-fun TroopType.glyph(): String =
+fun TroopType.glyph(): Glyph =
     when (this) {
-        TroopType.INFANTRY -> "⚔"
-        TroopType.CAVALRY -> "🐎"
-        TroopType.ARCHER -> "🏹"
-        TroopType.SIEGE -> "🛠"
+        TroopType.INFANTRY -> Glyph.INFANTRY
+        TroopType.CAVALRY -> Glyph.CAVALRY
+        TroopType.ARCHER -> Glyph.ARCHER
+        TroopType.SIEGE -> Glyph.SIEGE
     }
 
 /** 兵の表示名（例「歩兵 T2」）。 */

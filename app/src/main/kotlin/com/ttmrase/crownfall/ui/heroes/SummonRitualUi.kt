@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,6 +45,7 @@ import com.ttmrase.crownfall.core.model.SummonEntry
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.heroNameRes
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import com.ttmrase.crownfall.ui.rarityColor
 import kotlin.math.PI
 import kotlin.math.cos
@@ -109,7 +109,7 @@ internal fun RitualAnimation(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.align(Alignment.Center).padding(top = 240.dp),
         )
-        OutlinedButton(onClick = onDone, modifier = Modifier.align(Alignment.BottomCenter).padding(24.dp)) {
+        GameOutlinedButton(onClick = onDone, modifier = Modifier.align(Alignment.BottomCenter).padding(24.dp)) {
             Text(stringResource(R.string.summon_skip), color = Color.White)
         }
     }

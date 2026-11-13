@@ -12,13 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +31,11 @@ import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.SkinBagEntry
 import com.ttmrase.crownfall.core.shop.ProductIds
 import com.ttmrase.crownfall.core.skin.Skins
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameDialog
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameTextButton
 import com.ttmrase.crownfall.ui.rarityColor
 import androidx.compose.foundation.Image as ComposeImage
 
@@ -159,7 +159,7 @@ private fun SkinCard(
     val context = androidx.compose.ui.platform.LocalContext.current
     val cat = SkinCategory.fromId(skin.category) ?: return
     val equipped = s.shop.skins.equipped[skin.category] == skin.id
-    Card(Modifier.fillMaxWidth()) {
+    GameCard(Modifier.fillMaxWidth()) {
         Row(
             Modifier.padding(10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -181,18 +181,18 @@ private fun SkinCard(
                 }
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = { onPreview(skin) }) { Text(stringResource(R.string.skin_preview)) }
+                GameTextButton(onClick = { onPreview(skin) }) { Text(stringResource(R.string.skin_preview)) }
                 when {
                     skin.id in owned && equipped ->
-                        OutlinedButton(onClick = {
+                        GameOutlinedButton(onClick = {
                             onEquip(cat, null)
                         }) { Text(stringResource(R.string.skin_unequip)) }
                     skin.id in owned ->
-                        Button(
+                        GameButton(
                             onClick = { onEquip(cat, skin.id) },
                         ) { Text(stringResource(R.string.skin_equip)) }
                     Skins.purchasable(s, skin, data) ->
-                        Button(
+                        GameButton(
                             onClick = { onBuy(ProductIds.skin(skin.id)) },
                         ) { Text(stringResource(R.string.skin_price, skin.priceYen)) }
                 }
@@ -210,7 +210,7 @@ private fun SkinBagCard(
 ) {
     val rules = data.skins.bag
     val pity = (rules.pityAt - s.shop.skins.bagSinceRare).coerceAtLeast(0)
-    Card(Modifier.fillMaxWidth()) {
+    GameCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(stringResource(R.string.skin_bag_sub), style = MaterialTheme.typography.bodyMedium)
             // 提供割合（確率）を必ず表示する
@@ -239,10 +239,10 @@ private fun SkinBagCard(
                 style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = {
+                GameButton(onClick = {
                     onBag(false)
                 }, enabled = !busy && s.gems >= rules.gems) { Text(stringResource(R.string.skin_bag_one, rules.gems)) }
-                Button(onClick = {
+                GameButton(onClick = {
                     onBag(true)
                 }, enabled = !busy && s.gems >= rules.tenGems) {
                     Text(
@@ -269,7 +269,7 @@ private fun ExchangeRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(skinName(context, skin.id) + "  (${rarityName(skin.rarity)})", modifier = Modifier.weight(1f))
-        OutlinedButton(onClick = { onExchange(skin.id) }, enabled = s.shop.skins.shards >= cost) {
+        GameOutlinedButton(onClick = { onExchange(skin.id) }, enabled = s.shop.skins.shards >= cost) {
             Text(stringResource(R.string.skin_exchange_cost, cost))
         }
     }
@@ -298,11 +298,11 @@ private fun WardrobeRow(
             style = MaterialTheme.typography.bodyMedium,
         )
         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedButton(onClick = {
+            GameOutlinedButton(onClick = {
                 onEquip(cat, null)
             }, enabled = current != null) { Text(stringResource(R.string.skin_unequip)) }
             mine.forEach { skin ->
-                OutlinedButton(
+                GameOutlinedButton(
                     onClick = { onEquip(cat, skin.id) },
                     enabled = skin.id != current,
                 ) { Text(skinName(context, skin.id)) }
@@ -318,9 +318,9 @@ fun SkinPreviewDialog(
     onDismiss: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    AlertDialog(
+    GameDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_ok)) } },
+        confirmButton = { GameTextButton(onClick = onDismiss) { Text(stringResource(R.string.common_ok)) } },
         title = { Text(skinName(context, skin.id)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -361,9 +361,9 @@ fun SkinBagResultDialog(
     onDismiss: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    AlertDialog(
+    GameDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_ok)) } },
+        confirmButton = { GameTextButton(onClick = onDismiss) { Text(stringResource(R.string.common_ok)) } },
         title = { Text(stringResource(R.string.skin_bag_result_title, newCount)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {

@@ -10,11 +10,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -33,6 +31,8 @@ import com.ttmrase.crownfall.ui.common.Bgm
 import com.ttmrase.crownfall.ui.common.BgmScene
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameTextButton
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -158,7 +158,7 @@ private fun BgmSettings() {
                     stringResource(R.string.settings_bgm_importing, bytes / BYTES_PER_MB_TENTH / TENTH),
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = { importJob?.cancel() }) { Text(stringResource(R.string.common_cancel)) }
+                GameTextButton(onClick = { importJob?.cancel() }) { Text(stringResource(R.string.common_cancel)) }
             }
         }
         // version を読んで、登録・解除のあとに表示を更新する
@@ -203,8 +203,8 @@ private fun OwnBgmRow(
                 maxLines = 1,
             )
         }
-        OutlinedButton(onClick = onPick) { Text(stringResource(R.string.settings_bgm_choose)) }
-        if (custom != null) TextButton(onClick = onClear) { Text(stringResource(R.string.settings_bgm_clear)) }
+        GameOutlinedButton(onClick = onPick) { Text(stringResource(R.string.settings_bgm_choose)) }
+        if (custom != null) GameTextButton(onClick = onClear) { Text(stringResource(R.string.settings_bgm_clear)) }
     }
 }
 

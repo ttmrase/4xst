@@ -5,13 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +24,10 @@ import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.session.LoadResult
 import com.ttmrase.crownfall.data.GameRepository
 import com.ttmrase.crownfall.data.Startup
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameDialog
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameTextButton
 import kotlinx.coroutines.launch
 
 /** タイトル画面（T2.5）。セーブの有無で「続きから」「新規ゲーム」を出し、エラー時は文言を出す。 */
@@ -73,13 +73,13 @@ fun TitleScreen(
                     )
                 }
                 if (current.hasSave) {
-                    Button(onClick = onEnterGame, modifier = Modifier.fillMaxWidth()) {
+                    GameButton(onClick = onEnterGame, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.title_continue))
                     }
                 }
                 // 新しい版のセーブは上書きしない（新規ゲームも出さない）。
                 if (current.load !is LoadResult.TooNew) {
-                    OutlinedButton(
+                    GameOutlinedButton(
                         onClick = { if (current.hasSave) confirmOverwrite = true else showNewGame = true },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -91,12 +91,12 @@ fun TitleScreen(
     }
 
     if (confirmOverwrite) {
-        AlertDialog(
+        GameDialog(
             onDismissRequest = { confirmOverwrite = false },
             title = { Text(stringResource(R.string.title_overwrite_title)) },
             text = { Text(stringResource(R.string.title_overwrite_body)) },
             confirmButton = {
-                TextButton(
+                GameTextButton(
                     onClick = {
                         confirmOverwrite = false
                         showNewGame = true
@@ -104,7 +104,7 @@ fun TitleScreen(
                 ) { Text(stringResource(R.string.common_ok)) }
             },
             dismissButton = {
-                TextButton(
+                GameTextButton(
                     onClick = { confirmOverwrite = false },
                 ) { Text(stringResource(R.string.common_cancel)) }
             },

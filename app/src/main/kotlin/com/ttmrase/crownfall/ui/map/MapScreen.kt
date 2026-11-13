@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,12 +38,10 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.SkinCategory
@@ -66,6 +62,8 @@ import com.ttmrase.crownfall.ui.common.LocalClock
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.glyph
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.rememberGlyphBitmaps
 import com.ttmrase.crownfall.ui.territory.SpriteCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -187,7 +185,7 @@ private fun MapContent(
             MapLive.bakeFog(world, data.mapRules.center.x to data.mapRules.center.y, FOG_BASE + FOG_PER_LV * fogLv)
         }
     val measurer = rememberTextMeasurer()
-    val glyphs = remember(measurer) { HashMap<ResourceType, TextLayoutResult>() }
+    val glyphs = rememberGlyphBitmaps(20.dp)
     val equipped = Skins.equipped(s, data)
     val style =
         MapStyle(
@@ -209,7 +207,7 @@ private fun MapContent(
             if (!offX.isNaN() && !offY.isNaN()) {
                 drawWorld(
                     world, chunks, fog, sprites, s, data, basePx * scale, offX, offY, selected, style, dayNight,
-                    { t -> glyphs.getOrPut(t) { measurer.measure(t.glyph(), GLYPH_STYLE) } },
+                    { t -> glyphs.get(t.glyph()) },
                 ) {
                     clock?.value ?: s.nowEpochSec
                 }
@@ -219,12 +217,12 @@ private fun MapContent(
             modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedButton(onClick = { centerOnCastle() }) { Text(stringResource(R.string.screen_city)) }
-            FilledTonalButton(onClick = { marchesOpen = true }) {
+            GameOutlinedButton(onClick = { centerOnCastle() }) { Text(stringResource(R.string.screen_city)) }
+            GameOutlinedButton(onClick = { marchesOpen = true }) {
                 Text(stringResource(R.string.map_marches_button, s.marches.size, Marching.slots(s, data)))
             }
             val unread = MailBox.unread(s)
-            FilledTonalButton(onClick = onOpenMail) {
+            GameOutlinedButton(onClick = onOpenMail) {
                 Text(
                     if (unread > 0) {
                         stringResource(R.string.map_mail_button_unread, unread)
@@ -305,7 +303,7 @@ private fun DrawScope.drawWorld(
     selected: TileRef?,
     style: MapStyle,
     dayNight: DayNight,
-    glyph: (ResourceType) -> TextLayoutResult?,
+    glyph: (ResourceType) -> ImageBitmap?,
     nowEpochSec: () -> Long,
 ) {
     val now = nowEpochSec()
@@ -423,7 +421,6 @@ private const val LOOP_MS = 600_000L
 
 /** 24Hz 相当（フレーム待ち 約 16ms の前に挟む待ち）。 */
 private const val TICK_GAP_MS = 25L
-private val GLYPH_STYLE = androidx.compose.ui.text.TextStyle(fontSize = 14.sp)
 private const val FOG_BASE = 24f
 private const val FOG_PER_LV = 1.5f
 private const val SECONDS_PER_HOUR = 3600L

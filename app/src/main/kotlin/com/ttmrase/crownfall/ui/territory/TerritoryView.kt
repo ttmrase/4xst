@@ -69,6 +69,9 @@ import com.ttmrase.crownfall.core.model.TimerJob
 import com.ttmrase.crownfall.core.model.TimerKind
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.ui.glyph
+import com.ttmrase.crownfall.ui.kit.GlyphBitmaps
+import com.ttmrase.crownfall.ui.kit.drawGlyph
+import com.ttmrase.crownfall.ui.kit.rememberGlyphBitmaps
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlinx.coroutines.flow.SharedFlow
@@ -159,6 +162,7 @@ fun TerritoryView(
     val cache = remember { SpriteCache.shared(context) }
     val measurer = rememberTextMeasurer()
     val texts = remember(measurer) { TextCache(measurer) }
+    val glyphs = rememberGlyphBitmaps(22.dp)
     val cam = remember { TerritoryCamera() }
     // 区画とタイマーは生の状態から取る（5 秒サンプリングの state だと、完成のポップが古い絵の上で出る）。
     // 区画の並びとジョブの集合が変わったときだけ再構図される。
@@ -332,7 +336,7 @@ fun TerritoryView(
             val t = ((nowMs - anim.startMs) / BAND_ANIM_MS).coerceIn(0f, 1f)
             val e = 1f - (1f - t) * (1f - t)
             painter.begin(
-                this, cache, texts, scene, sc, size.width / 2f - cam.cx * sc, size.height / 2f - cam.cy * sc,
+                this, cache, texts, glyphs, scene, sc, size.width / 2f - cam.cx * sc, size.height / 2f - cam.cy * sc,
                 nowMs, nowSec, anim.from, anim.to, if (t >= 1f) 1f else e, t >= 1f,
             )
             painter.drawGround()
@@ -451,6 +455,7 @@ private class TerritoryPainter {
     private lateinit var scope: DrawScope
     private lateinit var cache: SpriteCache
     private lateinit var texts: TextCache
+    private lateinit var glyphs: GlyphBitmaps
     private lateinit var scene: TerritoryScene
     private var sc = 1f
     private var ox = 0f
@@ -481,6 +486,7 @@ private class TerritoryPainter {
         scope: DrawScope,
         cache: SpriteCache,
         texts: TextCache,
+        glyphs: GlyphBitmaps,
         scene: TerritoryScene,
         sc: Float,
         ox: Float,
@@ -495,6 +501,7 @@ private class TerritoryPainter {
         this.scope = scope
         this.cache = cache
         this.texts = texts
+        this.glyphs = glyphs
         this.scene = scene
         this.sc = sc
         this.ox = ox
@@ -1080,8 +1087,7 @@ private class TerritoryPainter {
                 drawCircle(Color(0xE6F4F9FF), radius = r, center = c)
                 drawCircle(BUBBLE_RIM, radius = r, center = c, style = Stroke(1.6f * density))
                 drawCircle(Color.White, radius = r * 0.22f, center = Offset(c.x - r * 0.4f, c.y - r * 0.45f))
-                val layout = texts.layout(type.glyph(), BUBBLE_STYLE)
-                drawText(layout, topLeft = Offset(c.x - layout.size.width / 2f, c.y - layout.size.height / 2f))
+                drawGlyph(glyphs, type.glyph(), c, r * BUBBLE_ICON)
             }
         }
     }
@@ -1210,7 +1216,7 @@ private class TerritoryPainter {
         val FOG = Color(0xFF0F1A33)
         val PILL_STYLE = TextStyle(fontFamily = CrownFonts.Numeric, fontWeight = FontWeight.Bold, fontSize = 9.sp)
         val BUBBLE_RIM = Color(0xFF7FB2E5)
-        val BUBBLE_STYLE = TextStyle(fontSize = 16.sp)
+        const val BUBBLE_ICON = 1.5f
         val SIGN_STYLE = TextStyle(fontFamily = CrownFonts.Display, fontWeight = FontWeight.Bold, fontSize = 11.sp)
     }
 }

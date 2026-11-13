@@ -5,14 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +28,10 @@ import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.shop.FakeLedger
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameDialog
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameTextButton
 import com.ttmrase.crownfall.ui.namedString
 import com.ttmrase.crownfall.ui.shop.formatYen
 import kotlinx.coroutines.launch
@@ -75,20 +75,22 @@ fun ShopSettingsSection(session: GameSession) {
         Text(stringResource(R.string.settings_ledger_title), style = MaterialTheme.typography.titleSmall)
         Text(stringResource(R.string.settings_ledger_hint), style = MaterialTheme.typography.bodySmall)
         if (!showLedger) {
-            OutlinedButton(onClick = { confirmLedger = true }) { Text(stringResource(R.string.settings_ledger_show)) }
+            GameOutlinedButton(
+                onClick = { confirmLedger = true },
+            ) { Text(stringResource(R.string.settings_ledger_show)) }
         } else {
             LedgerPanel(s)
-            OutlinedButton(onClick = { showLedger = false }) { Text(stringResource(R.string.settings_ledger_hide)) }
+            GameOutlinedButton(onClick = { showLedger = false }) { Text(stringResource(R.string.settings_ledger_hide)) }
         }
     }
 
     if (confirmLedger) {
-        AlertDialog(
+        GameDialog(
             onDismissRequest = { confirmLedger = false },
             title = { Text(stringResource(R.string.settings_ledger_confirm_title)) },
             text = { Text(stringResource(R.string.settings_ledger_confirm_body)) },
             confirmButton = {
-                TextButton(
+                GameTextButton(
                     onClick = {
                         confirmLedger = false
                         showLedger = true
@@ -96,7 +98,7 @@ fun ShopSettingsSection(session: GameSession) {
                 ) { Text(stringResource(R.string.settings_ledger_confirm_yes)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmLedger = false }) { Text(stringResource(R.string.common_cancel)) }
+                GameTextButton(onClick = { confirmLedger = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -146,7 +148,7 @@ private fun LedgerPanel(state: GameState) {
         ledger.bySku.entries.sortedByDescending { it.value }.forEach { (k, v) ->
             Text(namedString(context, "offer_name_", k) + "  " + formatYen(v))
         }
-        Button(
+        GameButton(
             onClick = {
                 val send =
                     Intent(Intent.ACTION_SEND).apply {

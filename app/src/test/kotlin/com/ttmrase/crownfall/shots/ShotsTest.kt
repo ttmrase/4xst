@@ -28,10 +28,11 @@ class ShotsTest {
         assumeTrue("pass -Pshots=<dir> to render screenshots", ShotRig.dir() != null)
     }
 
+    private fun rig(preset: Preset): ShotRig = ShotRig(rule).also { it.seed(preset) }
+
     @Test
     fun title() {
-        val rig = ShotRig(rule)
-        rig.seed(Preset.RICH_CASTLE)
+        val rig = rig(Preset.RICH_CASTLE)
         rig.launch()
         rig.waitText(rig.str(R.string.title_continue))
         rig.shot("title")
@@ -39,9 +40,54 @@ class ShotsTest {
 
     @Test
     fun city() {
-        val rig = ShotRig(rule)
-        rig.seed(Preset.RICH_CASTLE)
+        val rig = rig(Preset.BUILDING_NOW)
         rig.launchToCity()
-        rig.shot("city_rich")
+        rig.shot("city")
+    }
+
+    @Test
+    fun cityFresh() {
+        val rig = rig(Preset.FRESH_START)
+        rig.launchToCity()
+        rig.shot("city_fresh")
+    }
+
+    @Test
+    fun cityLate() {
+        val rig = rig(Preset.LATE_GAME)
+        rig.launchToCity()
+        rig.shot("city_late")
+    }
+
+    @Test
+    fun subScreens() {
+        val rig = rig(Preset.RICH_CASTLE)
+        rig.launchToCity()
+        for (route in listOf("quests", "barracks", "research", "mail", "chat", "settings", "event", "summon")) {
+            rig.open(route)
+            rig.shot("screen_$route")
+        }
+    }
+
+    @Test
+    fun tabs() {
+        val rig = rig(Preset.RICH_CASTLE)
+        rig.launchToCity()
+        rig.tapNav(rig.str(R.string.nav_alliance))
+        rig.shot("tab_alliance")
+        rig.tapNav(rig.str(R.string.nav_heroes))
+        rig.shot("tab_heroes")
+        rig.tapNav(rig.str(R.string.nav_shop))
+        rig.shot("tab_shop")
+        rig.tapNav(rig.str(R.string.nav_map))
+        rig.shot("tab_map", warmups = 8)
+    }
+
+    @Test
+    fun offer() {
+        val rig = rig(Preset.OFFER_READY)
+        rig.launchToCity(keepPopups = true)
+        rig.waitFor { rig.hasDescription(rig.str(R.string.common_close)) }
+        rig.shot("offer_popup")
     }
 }

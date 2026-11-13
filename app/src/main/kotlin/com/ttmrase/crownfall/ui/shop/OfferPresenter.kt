@@ -10,11 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +48,8 @@ import com.ttmrase.crownfall.core.shop.ProductIds
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.data.SessionCoordinator
 import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.kit.GameDialog
+import com.ttmrase.crownfall.ui.kit.GameTextButton
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.dispatchFly
 import kotlinx.coroutines.delay
@@ -133,7 +133,7 @@ fun OfferPresenter(
     } else if (!busy) {
         when (step) {
             STEP_ANNOUNCE ->
-                AlertDialog(
+                GameDialog(
                     onDismissRequest = {
                         // 戻る・外のタップで連鎖ごと終える
                         step = STEP_NONE
@@ -142,7 +142,7 @@ fun OfferPresenter(
                     title = { Text(stringResource(R.string.login_event_title)) },
                     text = { Text(stringResource(R.string.login_event_body)) },
                     confirmButton = {
-                        TextButton(
+                        GameTextButton(
                             onClick = {
                                 if (giftOpen) {
                                     step = STEP_GIFT
@@ -155,7 +155,7 @@ fun OfferPresenter(
                     },
                 )
             STEP_GIFT ->
-                AlertDialog(
+                GameDialog(
                     onDismissRequest = {
                         step = STEP_NONE
                         coordinator.consumeLoginChain()
@@ -163,7 +163,7 @@ fun OfferPresenter(
                     title = { Text(stringResource(R.string.login_gift_title)) },
                     text = { Text(stringResource(R.string.login_gift_body, s.alliance.gifts.size)) },
                     confirmButton = {
-                        TextButton(
+                        GameTextButton(
                             onClick = {
                                 s.alliance.gifts.firstOrNull()?.let { g ->
                                     scope.launch { session.dispatchFly(fly) { Actions.openGift(it, g.id, data) } }
@@ -174,7 +174,7 @@ fun OfferPresenter(
                         ) { Text(stringResource(R.string.login_gift_open)) }
                     },
                     dismissButton = {
-                        TextButton(
+                        GameTextButton(
                             onClick = {
                                 step = STEP_NONE
                                 coordinator.consumeLoginChain()
@@ -250,7 +250,7 @@ private fun OfferPopup(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                TextButton(
+                GameTextButton(
                     onClick = onClose,
                     enabled = closeVisible,
                     modifier = Modifier.align(Alignment.TopEnd).alpha(closeAlpha),

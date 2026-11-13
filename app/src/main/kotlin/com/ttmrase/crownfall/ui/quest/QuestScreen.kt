@@ -13,13 +13,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,6 +46,11 @@ import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameProgressBar
+import com.ttmrase.crownfall.ui.kit.GameTab
+import com.ttmrase.crownfall.ui.kit.GameTabRow
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.dispatchFly
@@ -109,9 +109,9 @@ fun QuestScreen(
     val badges = listOf(mainBadge, dailyBadge, allianceBadge, achievementBadge)
 
     Column(Modifier.fillMaxSize()) {
-        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) {
+        GameTabRow(scrollable = true, selectedTabIndex = tab) {
             TABS.forEachIndexed { i, title ->
-                Tab(
+                GameTab(
                     selected = tab == i,
                     onClick = { tab = i },
                     text = {
@@ -174,11 +174,11 @@ private fun LazyListScope.mainTab(
         QuestRow(condText(LocalContext.current, task.cond), p)
     }
     item {
-        Card(Modifier.fillMaxWidth()) {
+        GameCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp)) {
                 Text(stringResource(R.string.quest_reward), fontWeight = FontWeight.Bold)
                 ContentsLines(chapter.reward, data)
-                Button(
+                GameButton(
                     onClick = { onClaim(chapter.id) },
                     enabled = QuestLogic.chapterDone(chapter, s, data),
                     modifier = Modifier.padding(top = 8.dp),
@@ -198,10 +198,10 @@ private fun LazyListScope.dailyTab(
     val points = QuestLogic.dailyPoints(s, data)
     val max = QuestLogic.chestMax(s, data).coerceAtLeast(1)
     item {
-        Card(Modifier.fillMaxWidth()) {
+        GameCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp)) {
                 Text(stringResource(R.string.quest_daily_points, points, max), fontWeight = FontWeight.Bold)
-                LinearProgressIndicator(
+                GameProgressBar(
                     progress = { (points.toFloat() / max).coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 )
@@ -216,7 +216,7 @@ private fun LazyListScope.dailyTab(
                             Text(stringResource(R.string.quest_chest, QuestLogic.chestThreshold(chest, s, data)))
                             ContentsLines(chest.reward, data)
                         }
-                        Button(
+                        GameButton(
                             onClick = { onChest(chest.tier) },
                             enabled = !opened && points >= QuestLogic.chestThreshold(chest, s, data),
                         ) {
@@ -235,7 +235,7 @@ private fun LazyListScope.dailyTab(
             progress = p,
             footer = stringResource(R.string.quest_points, d.points),
             action = {
-                Button(onClick = { onClaim(d.id) }, enabled = p.done && !claimed) {
+                GameButton(onClick = { onClaim(d.id) }, enabled = p.done && !claimed) {
                     Text(stringResource(if (claimed) R.string.quest_claimed else R.string.quest_claim))
                 }
             },
@@ -261,11 +261,11 @@ private fun LazyListScope.oneShotTab(
     items(sorted, key = { it.id }) { d ->
         val p = QuestLogic.progress(d.cond, s, data)
         val claimed = d.id in s.quest.claimed
-        Card(Modifier.fillMaxWidth()) {
+        GameCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp)) {
                 QuestRow(condText(LocalContext.current, d.cond), if (claimed) Progress(p.target, p.target) else p)
                 ContentsLines(d.reward, data)
-                Button(
+                GameButton(
                     onClick = { onClaim(d.id) },
                     enabled = p.done && !claimed,
                     modifier = Modifier.padding(top = 4.dp),
@@ -291,7 +291,7 @@ private fun QuestRow(
     ) {
         Column(Modifier.weight(1f).padding(end = 8.dp)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
-            LinearProgressIndicator(
+            GameProgressBar(
                 progress = { progress.fraction },
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
             )

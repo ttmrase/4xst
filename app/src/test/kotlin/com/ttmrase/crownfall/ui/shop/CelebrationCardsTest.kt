@@ -3,6 +3,7 @@ package com.ttmrase.crownfall.ui.shop
 import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.model.Resources
+import com.ttmrase.crownfall.ui.kit.Glyph
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,7 +19,7 @@ class CelebrationCardsTest {
                 heroShards = mapOf("sora" to 5),
             )
         val cards = celebrationCards(contents)
-        assertEquals(listOf("💎"), cards.take(1).map { it.glyph })
+        assertEquals(listOf(Glyph.GEM), cards.take(1).map { it.glyph })
         assertEquals(5, cards.size)
         assertEquals("3", cards[cards.size - 2].amount)
         assertEquals("5", cards.last().amount)

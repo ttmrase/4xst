@@ -41,6 +41,8 @@ import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.glyph
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.sin
@@ -132,7 +134,7 @@ fun PurchaseCelebration(
     val flyStart = ICONS_START_MS + cards.size * CARD_STAGGER_MS + CARD_HOLD_MS
     Box(modifier = modifier.fillMaxWidth().height(190.dp)) {
         TreasureChest(modifier = Modifier.align(Alignment.TopCenter))
-        Text("🎒", fontSize = 30.sp, modifier = Modifier.align(Alignment.CenterEnd))
+        GlyphIcon(Glyph.BAG, Modifier.align(Alignment.CenterEnd), size = 40.dp)
         Row(
             modifier = Modifier.align(Alignment.BottomCenter),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -143,21 +145,21 @@ fun PurchaseCelebration(
     }
 }
 
-/** 並べる 1 枚のカード（絵文字と量）。 */
+/** 並べる 1 枚のカード（アイコンと量）。 */
 data class CelebrationCard(
-    val glyph: String,
+    val glyph: Glyph,
     val amount: String,
 )
 
 /** 宝箱の中身のカード（ジェム → 資源 → アイテム → 英雄のかけら。最大 6 枚）。純関数。 */
 fun celebrationCards(contents: PackContents): List<CelebrationCard> {
     val list = mutableListOf<CelebrationCard>()
-    if (contents.gems > 0) list += CelebrationCard("💎", ShortNumber.format(contents.gems))
+    if (contents.gems > 0) list += CelebrationCard(Glyph.GEM, ShortNumber.format(contents.gems))
     ResourceType.entries.forEach {
         if (contents.resources[it] > 0) list += CelebrationCard(it.glyph(), ShortNumber.format(contents.resources[it]))
     }
-    if (contents.items.isNotEmpty()) list += CelebrationCard("🎁", contents.items.values.sum().toString())
-    if (contents.heroShards.isNotEmpty()) list += CelebrationCard("⭐", contents.heroShards.values.sum().toString())
+    if (contents.items.isNotEmpty()) list += CelebrationCard(Glyph.SPEEDUP, contents.items.values.sum().toString())
+    if (contents.heroShards.isNotEmpty()) list += CelebrationCard(Glyph.SHARD, contents.heroShards.values.sum().toString())
     return list.take(MAX_CARDS)
 }
 
@@ -186,14 +188,14 @@ private fun ItemCard(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(card.glyph, fontSize = 20.sp)
+        GlyphIcon(card.glyph, size = 26.dp)
         Text(card.amount, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold))
     }
 }
 
 @Composable
 private fun androidx.compose.foundation.layout.BoxScope.FlyingIcon(
-    glyph: String,
+    glyph: Glyph,
     delayMs: Long,
 ) {
     val progress = remember { Animatable(0f) }
@@ -203,9 +205,9 @@ private fun androidx.compose.foundation.layout.BoxScope.FlyingIcon(
     }
     val p = progress.value
     if (p <= 0f || p >= 1f) return
-    Text(
+    GlyphIcon(
         glyph,
-        style = TextStyle(fontSize = 26.sp),
+        size = 30.dp,
         modifier =
             Modifier
                 .align(Alignment.TopCenter)

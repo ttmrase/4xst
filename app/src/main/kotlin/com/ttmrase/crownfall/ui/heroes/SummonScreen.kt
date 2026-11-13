@@ -3,10 +3,8 @@ package com.ttmrase.crownfall.ui.heroes
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,18 +21,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -89,6 +78,13 @@ import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.heroNameRes
+import com.ttmrase.crownfall.ui.kit.GameButtonStyle
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameProgressBar
+import com.ttmrase.crownfall.ui.kit.GameTab
+import com.ttmrase.crownfall.ui.kit.GameTabRow
+import com.ttmrase.crownfall.ui.kit.GameTextButton
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.rarityColor
 import com.ttmrase.crownfall.ui.theme.PressButton
@@ -289,13 +285,13 @@ private fun ColumnScope.SummonSetup(
     tavernBuilt: Boolean,
     onSummon: (Int) -> Unit,
 ) {
-    TabRow(selectedTabIndex = kindIndex) {
-        Tab(
+    GameTabRow(selectedTabIndex = kindIndex) {
+        GameTab(
             selected = kindIndex == 0,
             onClick = { onKind(0) },
             text = { Text(stringResource(R.string.summon_normal)) },
         )
-        Tab(
+        GameTab(
             selected = kindIndex == 1,
             onClick = { onKind(1) },
             text = { Text(stringResource(R.string.summon_premium)) },
@@ -360,7 +356,7 @@ private fun PityMeter(
             color = textColor,
             style = MaterialTheme.typography.titleMedium,
         )
-        LinearProgressIndicator(
+        GameProgressBar(
             progress = { progress },
             color = rarityColor(HeroRarity.SSR),
             modifier = Modifier.fillMaxWidth().height(12.dp),
@@ -401,22 +397,8 @@ private fun SummonButton(
     PressButton(
         onClick = onClick,
         enabled = enabled,
-        modifier =
-            if (emphasized) {
-                modifier.border(
-                    2.dp,
-                    rarityColor(HeroRarity.SSR),
-                    ButtonDefaults.shape,
-                )
-            } else {
-                modifier
-            },
-        colors =
-            if (emphasized) {
-                ButtonDefaults.buttonColors(containerColor = Color(0xFFD7263D), contentColor = Color.White)
-            } else {
-                ButtonDefaults.buttonColors()
-            },
+        modifier = modifier,
+        style = if (emphasized) GameButtonStyle.Ruby else GameButtonStyle.Gold,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(label, style = MaterialTheme.typography.titleSmall)
@@ -471,7 +453,7 @@ private fun SummonResults(
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.align(Alignment.CenterVertically),
                 )
-                OutlinedButton(onClick = onFlipAll) {
+                GameOutlinedButton(onClick = onFlipAll) {
                     Text(stringResource(R.string.summon_flip_all), color = Color.White)
                 }
             }
@@ -520,7 +502,7 @@ private fun SummonResults(
                 )
             }
         }
-        TextButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+        GameTextButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text(stringResource(R.string.summon_close), color = Color.White)
         }
     }
@@ -542,7 +524,7 @@ private fun SummonCard(
     val front = rotation > 90f
     val frame = rarityColor(entry.rarity)
     val glow = front && entry.rarity >= HeroRarity.SR
-    Card(
+    GameCard(
         modifier =
             modifier
                 .fillMaxWidth()
@@ -557,9 +539,9 @@ private fun SummonCard(
                     }
                 }
                 .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = if (front) Color(0xFF1A2236) else Color(0xFF28324D)),
-        border = if (front) BorderStroke(if (entry.rarity >= HeroRarity.SR) 3.dp else 2.dp, frame) else null,
+        corner = 10.dp,
+        tint = if (front) Color(0xFF1A2236) else Color(0xFF28324D),
+        accent = if (front) frame else null,
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(4.dp), contentAlignment = Alignment.Center) {
             if (!front) {

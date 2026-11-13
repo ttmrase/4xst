@@ -4,10 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -18,6 +16,8 @@ import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.sim.OfflineSummary
 import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
+import com.ttmrase.crownfall.ui.kit.GameDialog
+import com.ttmrase.crownfall.ui.kit.GameTextButton
 import com.ttmrase.crownfall.ui.nameRes
 
 /** 「あなたが不在の間に…」の不在サマリー。OK で閉じたら呼び出し側が clear する。 */
@@ -27,7 +27,7 @@ fun OfflineSummaryDialog(
     state: GameState,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    GameDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.offline_title)) },
         text = {
@@ -64,6 +64,6 @@ fun OfflineSummaryDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_ok)) } },
+        confirmButton = { GameTextButton(onClick = onDismiss) { Text(stringResource(R.string.common_ok)) } },
     )
 }

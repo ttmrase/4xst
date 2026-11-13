@@ -11,10 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.Button
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -39,6 +36,9 @@ import com.ttmrase.crownfall.ai.providers.OnDeviceProfile
 import com.ttmrase.crownfall.ondevice.DeviceInfo
 import com.ttmrase.crownfall.ondevice.OnDeviceModelStore
 import com.ttmrase.crownfall.ondevice.TransferState
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameProgressBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -106,10 +106,10 @@ fun OnDeviceSettingsSection(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(enabled = !running, onClick = { picker.launch(arrayOf("*/*")) }) {
+            GameButton(enabled = !running, onClick = { picker.launch(arrayOf("*/*")) }) {
                 Text(stringResource(R.string.on_device_import))
             }
-            OutlinedButton(enabled = !running && model != null, onClick = { store.delete() }) {
+            GameOutlinedButton(enabled = !running && model != null, onClick = { store.delete() }) {
                 Text(stringResource(R.string.on_device_delete))
             }
         }
@@ -128,7 +128,7 @@ fun OnDeviceSettingsSection(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        Button(
+        GameButton(
             enabled = !running && url.isNotBlank() && ModelTransfer.validateUrl(url) == null,
             onClick = { store.download(url, sha) },
         ) { Text(stringResource(R.string.on_device_download)) }
@@ -136,12 +136,12 @@ fun OnDeviceSettingsSection(
         when (val s = state) {
             is TransferState.Running -> {
                 if (s.total > 0) {
-                    LinearProgressIndicator(
+                    GameProgressBar(
                         progress = { s.done.toFloat() / s.total },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    GameProgressBar(modifier = Modifier.fillMaxWidth())
                 }
                 val totalText =
                     if (s.total > 0) {
@@ -157,7 +157,7 @@ fun OnDeviceSettingsSection(
                     ),
                     style = MaterialTheme.typography.bodySmall,
                 )
-                OutlinedButton(onClick = { store.cancel() }) { Text(stringResource(R.string.common_cancel)) }
+                GameOutlinedButton(onClick = { store.cancel() }) { Text(stringResource(R.string.common_cancel)) }
             }
             is TransferState.Failed ->
                 Text(stringResource(failureRes(s.code)), color = MaterialTheme.colorScheme.error)
@@ -194,7 +194,7 @@ fun OnDeviceSettingsSection(
         )
         if (gpuFailed) {
             Text(stringResource(R.string.on_device_gpu_failed), style = MaterialTheme.typography.bodySmall)
-            OutlinedButton(onClick = onRetryGpu) { Text(stringResource(R.string.on_device_gpu_retry)) }
+            GameOutlinedButton(onClick = onRetryGpu) { Text(stringResource(R.string.on_device_gpu_retry)) }
         }
     }
 }

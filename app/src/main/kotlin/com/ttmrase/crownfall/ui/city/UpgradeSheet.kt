@@ -7,12 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -30,6 +26,10 @@ import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.descRes
 import com.ttmrase.crownfall.ui.effectLabelRes
 import com.ttmrase.crownfall.ui.effectValueText
+import com.ttmrase.crownfall.ui.kit.GameBottomSheet
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import com.ttmrase.crownfall.ui.nameRes
 
 /** 建物詳細シート（効果・コスト・所要時間・前提・アップグレード）。 */
@@ -49,7 +49,7 @@ fun UpgradeSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val blocker = preview.blocker
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    GameBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier =
                 Modifier.fillMaxWidth().verticalScroll(
@@ -68,14 +68,14 @@ fun UpgradeSheet(
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                HorizontalDivider()
+                GameDivider()
                 EffectsSection(preview)
-                HorizontalDivider()
+                GameDivider()
                 CostSection(state, preview)
                 Text(stringResource(R.string.sheet_duration, DurationFormat.clock(preview.durationSec)))
                 PrereqSection(preview)
             }
-            HorizontalDivider()
+            GameDivider()
             ActionSection(
                 preview = preview,
                 state = state,
@@ -172,21 +172,24 @@ private fun ActionSection(
                         DurationFormat.clock(maxOf(0L, job.endEpochSec - state.nowEpochSec)),
                     style = MaterialTheme.typography.titleMedium,
                 )
-                Button(onClick = { onSpeedup(job.id) }, modifier = Modifier.fillMaxWidth()) {
+                GameButton(onClick = { onSpeedup(job.id) }, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.sheet_speedup))
                 }
             }
             blocker == ActionFailure.MaxLevel -> Unit
             blocker is ActionFailure.NotEnoughResources ->
                 // オファー誘導はタップ時に 1 回だけ（表示中の副作用にしない。M6 で再検討）。
-                OutlinedButton(onClick = { onResourceShortage(blocker.missing) }, modifier = Modifier.fillMaxWidth()) {
+                GameOutlinedButton(
+                    onClick = { onResourceShortage(blocker.missing) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(stringResource(R.string.sheet_not_enough_resources), color = MaterialTheme.colorScheme.error)
                 }
             blocker is ActionFailure.PrereqNotMet -> Unit
             blocker == ActionFailure.QueueFull -> {
                 Text(stringResource(R.string.sheet_queue_full), color = MaterialTheme.colorScheme.error)
                 if (secondBuilderLocked) {
-                    OutlinedButton(onClick = onUnlockBuilder, modifier = Modifier.fillMaxWidth()) {
+                    GameOutlinedButton(onClick = onUnlockBuilder, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.sheet_unlock_builder))
                     }
                 }
@@ -194,7 +197,7 @@ private fun ActionSection(
             blocker == null -> {
                 val label = if (preview.slot.level == 0) R.string.sheet_construct else R.string.sheet_upgrade
                 TutorialHighlight(active = tutorialBuildStep, modifier = Modifier.fillMaxWidth()) {
-                    Button(onClick = onUpgrade, modifier = Modifier.fillMaxWidth()) {
+                    GameButton(onClick = onUpgrade, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(label))
                     }
                 }

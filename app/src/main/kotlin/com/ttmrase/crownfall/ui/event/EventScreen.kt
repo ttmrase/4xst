@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +31,8 @@ import com.ttmrase.crownfall.core.util.DurationFormat
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.remainingUntil
+import com.ttmrase.crownfall.ui.kit.FrameStyle
+import com.ttmrase.crownfall.ui.kit.GameCard
 import com.ttmrase.crownfall.ui.portrait.PortraitKeys
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.shop.ContentsLines
@@ -81,7 +81,7 @@ fun EventScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            Card(Modifier.fillMaxWidth()) {
+            GameCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(eventNameRes(def)), style = MaterialTheme.typography.titleLarge)
                     Text(stringResource(eventHowRes(def)), style = MaterialTheme.typography.bodyMedium)
@@ -112,7 +112,7 @@ fun EventScreen(
         }
         item { Text(stringResource(R.string.event_rewards), style = MaterialTheme.typography.titleMedium) }
         itemsIndexed(data.events.rewards, key = { i, _ -> "r$i" }) { _, r ->
-            Card {
+            GameCard {
                 Column(Modifier.fillMaxWidth().padding(10.dp)) {
                     val label =
                         if (r.from == r.to) {
@@ -151,13 +151,7 @@ private fun StandingLine(
     avatar: Int,
     vip: Int,
 ) {
-    val colors =
-        if (isPlayer) {
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-        } else {
-            CardDefaults.cardColors()
-        }
-    Card(Modifier.fillMaxWidth(), colors = colors) {
+    GameCard(Modifier.fillMaxWidth(), style = if (isPlayer) FrameStyle.Success else FrameStyle.Card) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),

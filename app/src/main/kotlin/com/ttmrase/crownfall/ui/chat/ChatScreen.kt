@@ -14,15 +14,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,6 +54,11 @@ import com.ttmrase.crownfall.ui.common.noteTextColor
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.feature.LockedFeatureCard
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameTab
+import com.ttmrase.crownfall.ui.kit.GameTabRow
 import com.ttmrase.crownfall.ui.portrait.PortraitKeys
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.shop.skinThemeColor
@@ -134,10 +134,10 @@ fun ChatScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        ScrollableTabRow(selectedTabIndex = channels.indexOf(channel).coerceAtLeast(0), edgePadding = 8.dp) {
+        GameTabRow(scrollable = true, selectedTabIndex = channels.indexOf(channel).coerceAtLeast(0)) {
             channels.forEach { ch ->
                 val unread = if (ch == channel) 0 else unreadByChannel[ch] ?: 0
-                Tab(
+                GameTab(
                     selected = ch == channel,
                     onClick = { channel = ch },
                     text = {
@@ -218,7 +218,7 @@ fun ChatScreen(
                     placeholder = { Text(stringResource(R.string.chat_input_hint)) },
                     maxLines = 3,
                 )
-                Button(
+                GameButton(
                     enabled = input.isNotBlank(),
                     onClick = {
                         val text = input
@@ -259,17 +259,14 @@ private fun MessageRow(
     val time = timeFormat.format(Date(m.epochSec * MILLIS))
     val mine = m.speaker == "player"
     Row(Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
-        Card(
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        if (mine) {
-                            skinThemes[SkinCategory.BUBBLE]?.let { skinThemeColor(it).copy(alpha = BUBBLE_ALPHA) }
-                                ?: MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        },
-                ),
+        GameCard(
+            tint =
+                if (mine) {
+                    skinThemes[SkinCategory.BUBBLE]?.let { skinThemeColor(it).copy(alpha = BUBBLE_ALPHA) }
+                        ?: Color(0xFF5A4410)
+                } else {
+                    null
+                },
         ) {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(
@@ -309,7 +306,7 @@ private fun MessageRow(
                 if (m.choices.isNotEmpty()) {
                     m.choices.forEachIndexed { i, label ->
                         if (m.answered < 0) {
-                            OutlinedButton(
+                            GameOutlinedButton(
                                 onClick = { onAnswer(m.id, i) },
                                 modifier = Modifier.fillMaxWidth(),
                             ) { Text(label) }

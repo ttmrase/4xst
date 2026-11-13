@@ -13,13 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -50,6 +46,10 @@ import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.kit.GameBottomSheet
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -151,7 +151,7 @@ fun FakeBillingSheet(
 
     val sheetState =
         rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { stage != Stage.Processing })
-    ModalBottomSheet(
+    GameBottomSheet(
         onDismissRequest = { if (stage != Stage.Processing) onClose() },
         sheetState = sheetState,
     ) {
@@ -202,7 +202,7 @@ private fun ConfirmBody(
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.Bold,
     )
-    HorizontalDivider()
+    GameDivider()
     Text(productName(context, view.sku), style = MaterialTheme.typography.titleMedium)
     ContentsLines(view.contents, data, extraGems = view.firstDoubleGems)
     if (view.firstDoubleGems > 0) {
@@ -212,7 +212,7 @@ private fun ConfirmBody(
             style = MaterialTheme.typography.labelLarge,
         )
     }
-    HorizontalDivider()
+    GameDivider()
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(stringResource(R.string.billing_method))
         Text(stringResource(R.string.billing_card_last4))
@@ -221,7 +221,7 @@ private fun ConfirmBody(
         Text(stringResource(R.string.billing_total), fontWeight = FontWeight.Bold)
         Text(formatYen(view.priceYen), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
     }
-    Button(onClick = onBuy, modifier = Modifier.fillMaxWidth().height(56.dp).pulsing()) {
+    GameButton(onClick = onBuy, modifier = Modifier.fillMaxWidth().height(56.dp).pulsing()) {
         Text(stringResource(R.string.billing_one_tap), style = MaterialTheme.typography.titleMedium)
     }
 }
@@ -245,7 +245,7 @@ private fun ErrorBody(onRetry: () -> Unit) {
         color = MaterialTheme.colorScheme.error,
         style = MaterialTheme.typography.titleMedium,
     )
-    Button(onClick = onRetry, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+    GameButton(onClick = onRetry, modifier = Modifier.fillMaxWidth().height(52.dp)) {
         Text(stringResource(R.string.billing_retry))
     }
 }
@@ -288,7 +288,7 @@ private fun DoneBody(
         )
     }
     Text(stringResource(R.string.billing_receipt_sent), style = MaterialTheme.typography.bodySmall)
-    OutlinedButton(
+    GameOutlinedButton(
         onClick = close,
         modifier = Modifier.fillMaxWidth(),
     ) { Text(stringResource(R.string.common_close)) }

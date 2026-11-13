@@ -344,6 +344,7 @@
     <string name="summon_back">❓</string>
     <string name="timers_train_slot">訓練 %1$s</string>
     <string name="timers_heal">治療</string>
+    <string name="queue_idle">空き</string>
     <string name="timer_heal_job">負傷兵を治療中</string>
     <string name="event_troops_trained">訓練が完了しました！ %1$s ×%2$s</string>
     <string name="event_troops_healed">負傷兵の治療が完了しました！</string>
@@ -1057,11 +1058,11 @@
     <string name="bgm_scene_summon">召喚</string>
     <string name="quest_reward_title">クエスト報酬</string>
     <string name="castle_up_title">城 Lv%1$d 達成！</string>
-    <string name="castle_up_feature">%1$s %2$s が解放！</string>
-    <string name="castle_up_building">🏗 %1$s を建てられます</string>
-    <string name="castle_up_storage">📦 倉庫の上限 +%1$s</string>
-    <string name="castle_up_troops">⚔ 兵の収容 +%1$s</string>
-    <string name="castle_up_march">🚩 行軍枠 +%1$d</string>
+    <string name="castle_up_feature">%1$s が解放！</string>
+    <string name="castle_up_building">%1$s を建てられます</string>
+    <string name="castle_up_storage">倉庫の上限 +%1$s</string>
+    <string name="castle_up_troops">兵の収容 +%1$s</string>
+    <string name="castle_up_march">行軍枠 +%1$d</string>
     <string name="rank_quote">「%1$s」</string>
     <string name="rank_villager">村人</string>
     <string name="rank_landlord">領主</string>

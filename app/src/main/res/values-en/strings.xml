@@ -345,6 +345,7 @@
     <string name="summon_back">❓</string>
     <string name="timers_train_slot">Train %1$s</string>
     <string name="timers_heal">Heal</string>
+    <string name="queue_idle">Idle</string>
     <string name="timer_heal_job">Healing wounded</string>
     <string name="event_troops_trained">Training complete! %1$s ×%2$s</string>
     <string name="event_troops_healed">Healing complete!</string>
@@ -1058,11 +1059,11 @@
     <string name="bgm_scene_summon">Summon</string>
     <string name="quest_reward_title">Quest reward</string>
     <string name="castle_up_title">Castle Lv%1$d reached!</string>
-    <string name="castle_up_feature">%1$s %2$s unlocked!</string>
-    <string name="castle_up_building">🏗 You can now build: %1$s</string>
-    <string name="castle_up_storage">📦 Storage cap +%1$s</string>
-    <string name="castle_up_troops">⚔ Troop capacity +%1$s</string>
-    <string name="castle_up_march">🚩 March slots +%1$d</string>
+    <string name="castle_up_feature">%1$s unlocked!</string>
+    <string name="castle_up_building">You can now build: %1$s</string>
+    <string name="castle_up_storage">Storage cap +%1$s</string>
+    <string name="castle_up_troops">Troop capacity +%1$s</string>
+    <string name="castle_up_march">March slots +%1$d</string>
     <string name="rank_quote">“%1$s”</string>
     <string name="rank_villager">Villager</string>
     <string name="rank_landlord">Landlord</string>

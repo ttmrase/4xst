@@ -6,14 +6,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,6 +38,11 @@ import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.offers.OfferHooks
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameDialog
+import com.ttmrase.crownfall.ui.kit.GameDivider
+import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.GameTextButton
 import com.ttmrase.crownfall.ui.speedupItemName
 import kotlinx.coroutines.launch
 
@@ -71,7 +71,7 @@ fun SpeedupDialog(
     val items = UiQueries.usableItems(state, job, data)
     var confirmGems by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    GameDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.speedup_title)) },
         text = {
@@ -87,7 +87,7 @@ fun SpeedupDialog(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                HorizontalDivider()
+                GameDivider()
                 Text(stringResource(R.string.speedup_items), style = MaterialTheme.typography.titleSmall)
                 if (items.isEmpty()) {
                     Text(stringResource(R.string.speedup_no_items), style = MaterialTheme.typography.bodyMedium)
@@ -108,18 +108,18 @@ fun SpeedupDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            OutlinedButton(onClick = { onUseItem(usable.item.id, 1) }) {
+                            GameOutlinedButton(onClick = { onUseItem(usable.item.id, 1) }) {
                                 Text(stringResource(R.string.speedup_use_one))
                             }
                             if (needed > 1) {
-                                Button(onClick = { onUseItem(usable.item.id, needed) }) {
+                                GameButton(onClick = { onUseItem(usable.item.id, needed) }) {
                                     Text(stringResource(R.string.speedup_use_needed, needed))
                                 }
                             }
                         }
                     }
                 }
-                HorizontalDivider()
+                GameDivider()
                 if (Actions.canRequestHelp(job.kind)) {
                     if (job.helpRequested) {
                         Text(
@@ -127,12 +127,12 @@ fun SpeedupDialog(
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     } else {
-                        OutlinedButton(onClick = onRequestHelp, modifier = Modifier.fillMaxWidth()) {
+                        GameOutlinedButton(onClick = onRequestHelp, modifier = Modifier.fillMaxWidth()) {
                             Text(stringResource(R.string.speedup_ask_help))
                         }
                     }
                 }
-                Button(onClick = { confirmGems = true }, modifier = Modifier.fillMaxWidth()) {
+                GameButton(onClick = { confirmGems = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         stringResource(R.string.speedup_gems) + "  " +
                             stringResource(R.string.speedup_gem_cost, ShortNumber.format(gemCost)),
@@ -140,15 +140,15 @@ fun SpeedupDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) } },
+        confirmButton = { GameTextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) } },
     )
 
     if (confirmGems) {
-        AlertDialog(
+        GameDialog(
             onDismissRequest = { confirmGems = false },
             text = { Text(stringResource(R.string.speedup_gem_confirm, ShortNumber.format(gemCost))) },
             confirmButton = {
-                TextButton(
+                GameTextButton(
                     onClick = {
                         confirmGems = false
                         onGemSkip()
@@ -156,7 +156,7 @@ fun SpeedupDialog(
                 ) { Text(stringResource(R.string.common_ok)) }
             },
             dismissButton = {
-                TextButton(
+                GameTextButton(
                     onClick = { confirmGems = false },
                 ) { Text(stringResource(R.string.common_cancel)) }
             },
