@@ -50,11 +50,13 @@ import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.event.eventNameRes
 import com.ttmrase.crownfall.ui.itemName
+import com.ttmrase.crownfall.ui.kit.EmptyState
 import com.ttmrase.crownfall.ui.kit.GameBottomSheet
 import com.ttmrase.crownfall.ui.kit.GameDivider
 import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import com.ttmrase.crownfall.ui.kit.GameTab
 import com.ttmrase.crownfall.ui.kit.GameTabRow
+import com.ttmrase.crownfall.ui.kit.Glyph
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.shop.ContentsLines
 import com.ttmrase.crownfall.ui.shop.formatYen
@@ -63,8 +65,6 @@ import com.ttmrase.crownfall.ui.troopNameById
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
-import com.ttmrase.crownfall.ui.kit.EmptyState
-import com.ttmrase.crownfall.ui.kit.Glyph
 
 private val TABS = listOf(MailKind.BATTLE, MailKind.SCOUT, MailKind.SYSTEM, MailKind.RECEIPT)
 private const val MILLIS = 1000L

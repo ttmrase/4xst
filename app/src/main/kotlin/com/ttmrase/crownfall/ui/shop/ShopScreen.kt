@@ -23,6 +23,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,19 +52,18 @@ import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.feature.LockedFeatureCard
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
 import com.ttmrase.crownfall.ui.kit.GameButton
 import com.ttmrase.crownfall.ui.kit.GameCard
 import com.ttmrase.crownfall.ui.kit.GameProgressBar
 import com.ttmrase.crownfall.ui.kit.GameTab
 import com.ttmrase.crownfall.ui.kit.GameTabRow
-import kotlinx.coroutines.launch
-import androidx.compose.ui.graphics.Color
-import com.ttmrase.crownfall.ui.kit.Cf
-import com.ttmrase.crownfall.ui.kit.FrameStyle
 import com.ttmrase.crownfall.ui.kit.Glyph
 import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.kit.gameFrame
 import com.ttmrase.crownfall.ui.theme.GoldText
+import kotlinx.coroutines.launch
 
 private const val SECONDS_PER_DAY = 86_400L
 private val TABS =
@@ -158,7 +158,10 @@ fun ShopScreen(
             ) {
                 GlyphIcon(Glyph.VIP, size = 20.dp)
                 Text(
-                    stringResource(R.string.shop_vip_short, com.ttmrase.crownfall.core.shop.VipCalculator.level(s, data)),
+                    stringResource(
+                        R.string.shop_vip_short,
+                        com.ttmrase.crownfall.core.shop.VipCalculator.level(s, data),
+                    ),
                     color = Cf.GoldHi,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.labelLarge,

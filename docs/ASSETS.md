@@ -22,12 +22,16 @@ Crownfall の画像・フォント・効果音の出所とライセンスを記�
 | tools/artgen/gen_portraits.py（M11） | res/drawable/pt_<id>.xml、pt_gen_<m|f|n>_<nn>.xml、アバター 12（計 54 枚） | 英雄・ペルソナ・同盟のメンバー・プレイヤーのポートレート（パーツ合成） |
 | （:app の手続き生成、M11） | 実行時に描画（MapArt / MapChunkCache） | ワールドマップのバイオーム・道・霧・雲（seed から決定論） |
 | tools/artgen/preview.py | （開発用。Pillow があるときだけ。成果物ではない） | 見本の PNG（建物・装飾・ポートレート・城のスキン。Director のレビューに使用） |
+| tools/artgen/vec.py（1.3.0） | （共通ライブラリ） | グラデーションつきのベクター画像。VectorDrawable の XML と、確認用の SVG を書き出す |
+| tools/artgen/gen_icons.py + gen_icons2.py（1.3.0） | res/drawable/ic_*.xml（63） | UI のアイコン一式（資源・キュー・兵種・クイックリンク・下部ナビ・報酬・記号）。絵文字の置き換え。`--html <path>` で一覧の見本 |
+| （:app の手続き描画、1.3.0） | 実行時に描画（ui/title/TitleArt.kt） | タイトルの一枚絵（空・月・星・山並み・城下町の影・火の粉） |
 
 ## フォント
 - Compose の Downloadable Fonts（`androidx.compose.ui:ui-text-google-fonts`、Google Fonts のプロバイダ）を使う。ライセンスは SIL Open Font License 1.1（OFL）。
-- 採用（M10）: Noto Serif JP（見出しと本文の一部）、Cinzel（欧文の見出し）。取得できなければ端末の serif。
+- 採用（M10）: Noto Serif JP（見出しと本文の一部）。取得できなければ端末の serif。APK には同梱しない。
+- **同梱（1.3.0）: Cinzel Bold / Black**（`res/font/cinzel_bold.ttf`、`cinzel_black.ttf`、各 46 KB）。数字・欧文・題字用。Copyright 2020 The Cinzel Project Authors (https://github.com/NDISCOVER/Cinzel)、SIL Open Font License 1.1（https://scripts.sil.org/OFL。フォントファイルの name テーブルに著作権表示とライセンスの URL を含む）。Google Fonts の配布元（fonts.gstatic.com、v26）から取得した。オフラインや Play 開発者サービスの無い端末でも、価格・戦力・題字が同じ見た目になる。
 - `res/values/font_certs.xml` は、フォントプロバイダの証明書（AOSP のサンプルと同じ公開値）。UI には表示しない。端末で取得できなければ既定のフォントにフォールバックする。
-- APK にフォントファイルは含めない。
+- 上の Cinzel 以外のフォントファイルは APK に含めない。
 
 ## 効果音
 - `tools/sfxgen/*.py`（標準ライブラリの wave で合成）で自作する: コイン、ファンファーレ、召喚のチャージ、レア確定のジングル、警報、ボタン。

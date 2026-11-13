@@ -11,6 +11,7 @@
 2. Android モジュール `:app` は **GitHub Actions でのみビルド**し、APK をアーティファクトとして出力する。
 3. `settings.gradle.kts` は `:app` を **条件付き include**（`ANDROID_HOME`/`ANDROID_SDK_ROOT` が設定済み、または `-PwithAndroid=true` のとき）。ルート `build.gradle.kts` には AGP を一切書かない（`apply false` でも解決が走るため NG）。AGP は `app/build.gradle.kts` 内の `alias(libs.plugins.android.application)` だけで参照する。
 4. Compose UI のコンパイル検証はコンテナでできないため、Implementer は **:app の変更後、必ず CI 結果（GitHub MCP の `actions_list` / `get_job_logs`）を確認**する。
+5. （1.3.0 で追記）クラウド環境の許可ホストに `dl.google.com` と `gcp.mirrors.maven.org` を足すと、コンテナでも Android SDK を入れて `:app` をビルドできる（§21。環境「4xst」はその設定）。許可が無い環境では、上の 1〜4 のとおり CI だけでビルドする。
 
 ## 1. 技術スタック
 | 領域 | 選定 | 備考 |
@@ -337,3 +338,17 @@ jobs:
 - M11 のまとめレビューで決定: BGM は通常とバイブのモードで鳴らし、サイレントで止める（効果音は通常のときだけ）。城のスキンは色替えでなく、各スキンに専用の装飾 2 つ以上と城内の環境演出を持たせる（高い商品が安い商品と同じ見た目にならない）。福袋と召喚のボタンは in-flight の判定で二重課金を防ぐ。期間限定スキンの週は WeeklyEvents（月曜始まり）に揃える。城レベルアップの演出は `celebratedCastleLv` で順番待ちを保存する。ロック区画の札は、次の解放の Lv の区画にだけ出す。
 - 解放の演出は、城のレベルアップの演出 1 枚に統一する（解放の行をその中に出し、閉じたらアイコンがタブへ飛び、矢印）。ワールドマップの城・砦・野営地・資源地は城内と同じアイソメのスプライトで描き（遠いズームは簡易アイコン）、道は最小全域木 + カーブ（見た目だけ。:core の行軍は直線のまま）。
 - 実装メモ（M11 完了時）: 解放表は features.json（Lv2 training / Lv3 quests・shop / Lv4 alliance / Lv5 world_map・raids / Lv6 research・wheel・piggy / Lv7 heroes / Lv8 world_chat・events / Lv10 rally、各機能に初回の使用の報酬 1 回）。城の建設時間は tools/datagen/gen_buildings.py の CASTLE_SECONDS_ANCHORS で調整（PaceProbeTest が到達時間を ±35% で固定）。スキンは castle 4 / territory 6 / trail 3 / frame 4（champion はイベント 1 位）/ nameplate 3 / bubble 3、福袋は N55 / R33 / SR10 / SSR2%・天井 30・重複の欠片 N5 / R10 / SR30 / SSR80。メモリの予算は SpriteCache 56MB + マップのチャンク 32MB（マップを閉じると破棄）。セーブの版は 1 のまま（追加はすべて既定値つき）。
+
+## 21. 1.3.0: UI キットと見た目の作り直し（UI 改善セッションが決定）
+ユーザーの依頼（「UI・グラフィック・UX を全体的に改善。前のグラフィックに引っ張られず独自に」）で、見た目の層を作り直した。GameState・規則・決定論・セーブ形式は変えていない（§18 の原則のまま）。
+
+- **色と部品は `ui/kit` から取る。** 画面ごとに色や枠を作らない。`Cf`（夜の紺 + 金 + 行動ごとの宝石色）、`gameFrame` / `GamePanel` / `GameCard`（枠）、`GameButton`（金 = 主、緑 = 実行・無料・受け取り、赤 = 購入・不足、紫 = プレミアム、紺 = 副）、`GameTabRow` / `GameTab`、`GameProgressBar`、`GameDialog`（題字はリボン）、`GameBottomSheet`、`ScreenHeader`、`Pill`、`CountBadge`、`EmptyState`、`GameSnackbar`、`GameBottomBar`。Material3 の Button / Card / TabRow / AlertDialog / ModalBottomSheet / LinearProgressIndicator は直接使わない（Switch・Slider・TextField はテーマの色で使う）。
+- **絵文字を表示に使わない。** 端末ごとに絵が変わり、世界観とも合わない。アイコンは `Glyph`（`tools/artgen/gen_icons.py` が生成する `ic_*.xml`）。Compose では `GlyphIcon`、Canvas へ直接描く場面（収穫バブル・マップの資源地・飛ぶ報酬）は `GlyphBitmaps` + `drawGlyph`。文字列リソースにも絵文字を入れない（★ と → は文字として残してよい）。
+- **報酬とコストは札で出す。** 中身の一覧は `ContentsLines`（アイコンつきの札）、必要資源は `CostChips`（不足は赤い縁と「あと n」）。文章の行で並べない。
+- **画面の構成。** 全画面が共通の地（`screenBackdrop`）の上に載る。城内から開く子画面（兵舎・研究・クエスト・メール・チャット・設定・召喚・イベント）は上端に `ScreenHeader`（題字と戻るボタン。`LocalNavigateBack`）。下部ナビのタブの根（城内・マップ・同盟・英雄・ショップ）には付けない。戻るの原則（§17）は変えていない（戻るボタンはシステムの戻ると同じ 1 段）。
+- **UI テストとの約束。** androidTest は表示文字列で要素を探す（testTag 無し）。部品を替えても、ボタンや見出しの文言と `contentDescription`（キューの名前、クイックリンクの画面名、× の「閉じる」）は残す。城内の HUD には「戦力」の文字を残す（NavUiTest が城内に戻ったことの目印にしている）。
+- **フォント。** 数字・欧文・題字は Cinzel を `res/font` に同梱（OFL、2 ウェイトで 92 KB。オフラインでも同じ見た目）。和文の見出しは従来どおり Noto Serif JP のダウンロード方式。
+- **タイトル。** 一枚絵は画像ファイルを使わず、`ui/title/TitleArt.kt` が手続きで描く（空・月・星・山並み・城下町の影・火の粉 + 最上段階の城のスプライト）。アニメーションを切った端末では止め絵。
+- **手元での確認（`ShotsTest`）。** Robolectric のネイティブ描画で実アプリ（MainActivity + DebugStateSeeder）を動かし、全ウィンドウを重ねた PNG を書き出す。`./gradlew :app:testDebugUnitTest --tests '*ShotsTest*' -Pshots=<出力先> -PwithAndroid=true`。`-Pshots` が無ければ skip するので CI の単体テストには影響しない。エミュレータ（CI の `ui`）より速く（全画面で 30 秒ほど）、日本語の収まりも `japanese` のシナリオで見られる。エミュレータの代わりではない（ジェスチャーの感触・実機の性能は測れない）。
+- **CI の注意。** `:app` を変えたら、push の前に CI と同じ検査を手元で流す: `:app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck :app:compileDebugAndroidTestKotlin`、`tools/check_l10n.py`、`.github/scripts/check-no-*.sh`。lint は Composable の中の `entries.map { }` を Flow の演算子と取り違えることがある（`kotlinx.coroutines.flow.map` を import しているファイル）。for で組み立てる。
+

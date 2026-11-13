@@ -54,6 +54,7 @@ import com.ttmrase.crownfall.ui.common.noteTextColor
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.feature.LockedFeatureCard
+import com.ttmrase.crownfall.ui.kit.EmptyState
 import com.ttmrase.crownfall.ui.kit.GameButton
 import com.ttmrase.crownfall.ui.kit.GameCard
 import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
@@ -71,7 +72,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
-import com.ttmrase.crownfall.ui.kit.EmptyState
 
 private const val MILLIS = 1000L
 private const val BUBBLE_ALPHA = 0.4f

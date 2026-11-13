@@ -62,7 +62,10 @@ import com.ttmrase.crownfall.ui.common.LocalClock
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.glyph
+import com.ttmrase.crownfall.ui.kit.GameButtonSize
 import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.kit.rememberGlyphBitmaps
 import com.ttmrase.crownfall.ui.territory.SpriteCache
 import kotlinx.coroutines.Dispatchers
@@ -72,9 +75,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.ceil
 import kotlin.math.floor
-import com.ttmrase.crownfall.ui.kit.GameButtonSize
-import com.ttmrase.crownfall.ui.kit.Glyph
-import com.ttmrase.crownfall.ui.kit.GlyphIcon
 
 private const val BASE_TILE_DP = 28
 private const val MIN_SCALE = 0.4f

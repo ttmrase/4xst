@@ -4,14 +4,15 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,6 +54,7 @@ import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.core.model.HeroRarity
 import com.ttmrase.crownfall.core.model.ResourceType
+import com.ttmrase.crownfall.ui.common.animationsEnabled
 import com.ttmrase.crownfall.ui.glyph
 import com.ttmrase.crownfall.ui.heroNameRes
 import com.ttmrase.crownfall.ui.kit.Glyph
@@ -414,73 +416,60 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCrown(
     drawPath(path, Color.White.copy(alpha = 0.8f), style = Stroke(width = 3.dp.toPx()))
 }
 
-/** 購入完了の宝箱。ふたが開いて金色の光があふれる。 */
+/**
+ * 開いた宝箱（購入完了・報酬の演出）。金貨と宝石があふれる宝箱が弾んで現れ、後ろで金の光条がゆっくり回る。
+ */
 @Composable
 fun TreasureChest(modifier: Modifier = Modifier) {
-    // 1.5 秒: 揺れる（0〜40%）→ ひびが入って光がもれる（40〜60%）→ ふたが開いて光の筋が弾ける（60〜100%）
-    val t = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { t.animateTo(1f, tween(CHEST_MS, easing = LinearEasing)) }
-    val p = t.value
-    val shake = if (p < SHAKE_END) sin(p * SHAKE_FREQ) * (1f - 0.3f * p / SHAKE_END) * CHEST_SHAKE_DEG else 0f
-    val crack = ((p - SHAKE_END) / (OPEN_START - SHAKE_END)).coerceIn(0f, 1f)
-    val open = ((p - OPEN_START) / (1f - OPEN_START)).coerceIn(0f, 1f)
-    Canvas(
+    val animate = animationsEnabled()
+    val pop = remember { Animatable(if (animate) 0.3f else 1f) }
+    LaunchedEffect(Unit) { pop.animateTo(1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessLow)) }
+    val spin by rememberInfiniteTransition(label = "chest").animateFloat(
+        initialValue = 0f,
+        targetValue = TAU,
+        animationSpec = infiniteRepeatable(tween(18_000, easing = LinearEasing), RepeatMode.Restart),
+        label = "rays",
+    )
+    val gold = rarityColor(HeroRarity.SSR)
+    Box(
         modifier =
-            modifier.size(width = 140.dp, height = 110.dp).graphicsLayer {
-                rotationZ = shake
-                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
-            },
-    ) {
-        val w = size.width
-        val h = size.height
-        val body = Color(0xFF8B4A1C)
-        val band = FoilGold
-        val glowAlpha = maxOf(open, crack * 0.35f)
-        val core = Offset(w / 2f, h * 0.4f)
-        drawCircle(
-            Brush.radialGradient(listOf(FoilGold.copy(alpha = glowAlpha), Color.Transparent), core, w * 0.6f),
-            w * 0.6f,
-            core,
-        )
-        if (open > 0f) {
-            repeat(RAYS) { i ->
-                val a = (i.toFloat() / RAYS) * 2f * Math.PI.toFloat() - Math.PI.toFloat() / 2f
-                val len = w * (0.25f + 0.65f * open)
-                drawLine(
-                    FoilGold.copy(alpha = (1f - open * 0.7f).coerceIn(0f, 1f)),
-                    core,
-                    Offset(core.x + kotlin.math.cos(a) * len, core.y + kotlin.math.sin(a) * len * 0.8f),
-                    strokeWidth = 2.5.dp.toPx(),
+            modifier.size(150.dp).drawBehind {
+                val c = Offset(size.width / 2f, size.height / 2f)
+                val reach = size.minDimension * 0.85f
+                val turn = if (animate) spin else 0f
+                for (i in 0 until RAY_COUNT) {
+                    val a0 = i * TAU / RAY_COUNT + turn
+                    val a1 = a0 + TAU / RAY_COUNT * 0.42f
+                    val ray =
+                        Path().apply {
+                            moveTo(c.x, c.y)
+                            lineTo(c.x + cos(a0) * reach, c.y + sin(a0) * reach)
+                            lineTo(c.x + cos(a1) * reach, c.y + sin(a1) * reach)
+                            close()
+                        }
+                    drawPath(ray, Brush.radialGradient(listOf(gold.copy(alpha = 0.6f), Color.Transparent), c, reach))
+                }
+                drawCircle(
+                    Brush.radialGradient(
+                        listOf(Color.White.copy(alpha = 0.8f), gold.copy(alpha = 0.55f), Color.Transparent),
+                        c,
+                        size.minDimension * 0.5f,
+                    ),
+                    size.minDimension * 0.5f,
+                    c,
                 )
-            }
-        }
-        // 箱本体
-        drawRoundRect(
-            body,
-            Offset(w * 0.1f, h * 0.45f),
-            androidx.compose.ui.geometry.Size(w * 0.8f, h * 0.5f),
-            androidx.compose.ui.geometry.CornerRadius(8f),
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        GlyphIcon(
+            Glyph.NAV_SHOP,
+            modifier =
+                Modifier.graphicsLayer {
+                    scaleX = pop.value
+                    scaleY = pop.value
+                },
+            size = 112.dp,
         )
-        drawRect(band, Offset(w * 0.1f, h * 0.45f), androidx.compose.ui.geometry.Size(w * 0.8f, h * 0.07f))
-        drawRect(band, Offset(w * 0.47f, h * 0.5f), androidx.compose.ui.geometry.Size(w * 0.06f, h * 0.3f))
-        // ふた（ひびの段階で少し浮き、開くほど上へ跳ね上がる）
-        val lift = crack * h * 0.05f + open * h * 0.23f
-        val lid =
-            Path().apply {
-                moveTo(w * 0.1f, h * 0.45f - lift)
-                quadraticTo(w * 0.5f, h * 0.0f - lift, w * 0.9f, h * 0.45f - lift)
-                close()
-            }
-        drawPath(lid, body)
-        drawPath(lid, band, style = Stroke(width = 3.dp.toPx()))
-        if (crack > 0f) {
-            // ふたと箱のすきまから光がもれる
-            drawRect(
-                Color.White.copy(alpha = crack * 0.9f),
-                Offset(w * 0.12f, h * 0.45f - lift),
-                androidx.compose.ui.geometry.Size(w * 0.76f, (lift + 2f).coerceAtLeast(2f)),
-            )
-        }
     }
 }
 

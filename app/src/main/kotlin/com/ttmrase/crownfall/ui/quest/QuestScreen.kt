@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -30,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.PackContents
@@ -46,27 +48,25 @@ import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
 import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameButtonSize
+import com.ttmrase.crownfall.ui.kit.GameButtonStyle
 import com.ttmrase.crownfall.ui.kit.GameCard
 import com.ttmrase.crownfall.ui.kit.GameProgressBar
 import com.ttmrase.crownfall.ui.kit.GameTab
 import com.ttmrase.crownfall.ui.kit.GameTabRow
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.gameFrame
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.dispatchFly
 import com.ttmrase.crownfall.ui.shop.ContentsLines
 import com.ttmrase.crownfall.ui.shop.RewardDialog
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.height
-import androidx.compose.ui.unit.sp
-import com.ttmrase.crownfall.ui.kit.Cf
-import com.ttmrase.crownfall.ui.kit.FrameStyle
-import com.ttmrase.crownfall.ui.kit.GameButtonSize
-import com.ttmrase.crownfall.ui.kit.GameButtonStyle
-import com.ttmrase.crownfall.ui.kit.Glyph
-import com.ttmrase.crownfall.ui.kit.GlyphIcon
-import com.ttmrase.crownfall.ui.kit.gameFrame
 import com.ttmrase.crownfall.ui.theme.GoldText
+import kotlinx.coroutines.launch
 
 private val TABS =
     listOf(

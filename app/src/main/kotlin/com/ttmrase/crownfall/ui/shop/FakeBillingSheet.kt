@@ -28,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -35,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
@@ -46,11 +49,17 @@ import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.util.ShortNumber
 import com.ttmrase.crownfall.ui.failureMessage
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
 import com.ttmrase.crownfall.ui.kit.GameBottomSheet
 import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameButtonSize
 import com.ttmrase.crownfall.ui.kit.GameDivider
-import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.gameFrame
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
+import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -229,7 +238,7 @@ private fun ConfirmBody(
 @Composable
 private fun ProcessingBody(slow: Boolean) {
     Box(Modifier.height(24.dp))
-    CircularProgressIndicator()
+    CircularProgressIndicator(color = Cf.Gold, trackColor = Cf.Night4)
     Text(
         stringResource(if (slow) R.string.billing_confirming else R.string.billing_processing),
         style = MaterialTheme.typography.titleMedium,
@@ -273,25 +282,51 @@ private fun DoneBody(
     PurchaseCelebration(view.contents)
     Text(
         stringResource(R.string.billing_done),
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold,
+        style =
+            MaterialTheme.typography.headlineSmall.copy(
+                brush = Cf.GoldTextBrush,
+                shadow = Shadow(Color(0xFFB8501A), Offset(0f, 3f), 10f),
+            ),
+        fontWeight = FontWeight.Black,
     )
-    order?.let { Text(stringResource(R.string.billing_order, it), style = MaterialTheme.typography.bodySmall) }
-    Text(formatYen(view.priceYen), style = MaterialTheme.typography.titleMedium)
+    order?.let {
+        Text(stringResource(R.string.billing_order, it), style = MaterialTheme.typography.bodySmall, color = Cf.Muted)
+    }
+    Text(
+        formatYen(view.priceYen),
+        fontFamily = CrownFonts.Numeric,
+        fontWeight = FontWeight.Bold,
+        style = MaterialTheme.typography.titleMedium,
+    )
     if (gemsAfter != gemsBefore) {
         val count = remember { Animatable(gemsBefore.toFloat()) }
         LaunchedEffect(gemsAfter) { count.animateTo(gemsAfter.toFloat(), tween(COUNT_UP_MS)) }
-        Text(
-            stringResource(R.string.billing_gems_now, ShortNumber.format(count.value.toLong())),
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-        )
+        Row(
+            modifier =
+                Modifier
+                    .gameFrame(FrameStyle.Royal, corner = 22.dp)
+                    .padding(start = 8.dp, end = 18.dp, top = 6.dp, bottom = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            GlyphIcon(Glyph.GEM, size = 32.dp)
+            Text(
+                stringResource(R.string.billing_gems_now, ShortNumber.format(count.value.toLong())),
+                style = MaterialTheme.typography.headlineSmall,
+                fontFamily = CrownFonts.Numeric,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
-    Text(stringResource(R.string.billing_receipt_sent), style = MaterialTheme.typography.bodySmall)
-    GameOutlinedButton(
+    Text(stringResource(R.string.billing_receipt_sent), style = MaterialTheme.typography.bodySmall, color = Cf.Muted)
+    GameButton(
         onClick = close,
         modifier = Modifier.fillMaxWidth(),
-    ) { Text(stringResource(R.string.common_close)) }
+        size = GameButtonSize.Large,
+        sound = true,
+    ) { Text(stringResource(R.string.common_close), fontSize = 17.sp) }
 }
 
 private const val BILLING_FLY_FROM_Y = 0.55f

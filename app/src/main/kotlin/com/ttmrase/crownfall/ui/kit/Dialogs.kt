@@ -261,3 +261,28 @@ fun GameBottomSheet(
         content = content,
     )
 }
+
+/** 画面の下に出る短いお知らせ（Snackbar の置き換え）。金縁の札に鈴のアイコン。 */
+@Composable
+fun GameSnackbar(
+    message: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier =
+            modifier
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .fillMaxWidth()
+                .gameFrame(FrameStyle.Panel, corner = 14.dp)
+                .padding(start = 10.dp, end = 14.dp, top = 9.dp, bottom = 9.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        GlyphIcon(Glyph.BELL, size = 24.dp)
+        androidx.compose.material3.Text(
+            message,
+            color = Cf.Ivory,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}

@@ -87,6 +87,7 @@ import com.ttmrase.crownfall.ui.kit.BottomItem
 import com.ttmrase.crownfall.ui.kit.Cf
 import com.ttmrase.crownfall.ui.kit.GameBottomBar
 import com.ttmrase.crownfall.ui.kit.GameDialog
+import com.ttmrase.crownfall.ui.kit.GameSnackbar
 import com.ttmrase.crownfall.ui.kit.GameTextButton
 import com.ttmrase.crownfall.ui.kit.LocalNavigateBack
 import com.ttmrase.crownfall.ui.kit.ScreenHeader
@@ -304,7 +305,7 @@ fun CrownfallNavHost(
             Scaffold(
                 containerColor = Color.Transparent,
                 contentColor = Cf.Ivory,
-                snackbarHost = { SnackbarHost(snackbarHostState) },
+                snackbarHost = { SnackbarHost(snackbarHostState) { GameSnackbar(it.visuals.message) } },
                 bottomBar = {
                     if (destination != null && destination.route != Screen.Title.route) {
                         // 一覧の map は使わない（lint が Flow の演算子と取り違える）

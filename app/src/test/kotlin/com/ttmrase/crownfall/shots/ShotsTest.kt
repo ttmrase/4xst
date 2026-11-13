@@ -124,4 +124,35 @@ class ShotsTest {
         rig.tapNav(rig.str(R.string.nav_shop))
         rig.shot("ja_shop")
     }
+
+    @Test
+    fun purchase() {
+        val rig = rig(Preset.VIP_NEAR)
+        rig.launchToCity()
+        rig.tapNav(rig.str(R.string.nav_shop))
+        rig.click(rig.str(R.string.shop_tab_gems))
+        rig.click("¥", substring = true)
+        rig.shot("pay_sheet")
+        rig.click(rig.str(R.string.billing_one_tap))
+        rig.shot("pay_processing")
+        rig.waitText(rig.str(R.string.billing_done))
+        rig.shot("pay_done")
+        rig.back()
+        rig.settle(1500)
+        rig.shot("pay_after")
+    }
+
+    @Test
+    fun summon() {
+        val rig = rig(Preset.GACHA_READY)
+        rig.launchToCity()
+        rig.open("summon")
+        rig.click(rig.str(R.string.summon_ten_deal))
+        rig.settle(600)
+        rig.shot("summon_1")
+        rig.settle(2500)
+        rig.shot("summon_2")
+        rig.settle(4000)
+        rig.shot("summon_3")
+    }
 }

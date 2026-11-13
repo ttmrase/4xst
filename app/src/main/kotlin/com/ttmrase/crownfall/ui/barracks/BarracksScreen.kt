@@ -1,11 +1,13 @@
 package com.ttmrase.crownfall.ui.barracks
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
@@ -41,29 +44,24 @@ import com.ttmrase.crownfall.ui.city.SpeedupHost
 import com.ttmrase.crownfall.ui.common.CostRows
 import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.failureMessage
-import com.ttmrase.crownfall.ui.kit.GameButton
-import com.ttmrase.crownfall.ui.kit.GameDivider
-import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
-import com.ttmrase.crownfall.ui.kit.GameProgressBar
-import com.ttmrase.crownfall.ui.kit.GameTab
-import com.ttmrase.crownfall.ui.kit.GameTabRow
-import com.ttmrase.crownfall.ui.nameRes
-import com.ttmrase.crownfall.ui.troopName
-import kotlinx.coroutines.launch
-import kotlin.math.roundToLong
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.unit.sp
 import com.ttmrase.crownfall.ui.glyph
 import com.ttmrase.crownfall.ui.kit.Cf
 import com.ttmrase.crownfall.ui.kit.FrameStyle
+import com.ttmrase.crownfall.ui.kit.GameButton
 import com.ttmrase.crownfall.ui.kit.GameButtonSize
 import com.ttmrase.crownfall.ui.kit.GameButtonStyle
+import com.ttmrase.crownfall.ui.kit.GameProgressBar
+import com.ttmrase.crownfall.ui.kit.GameTab
+import com.ttmrase.crownfall.ui.kit.GameTabRow
 import com.ttmrase.crownfall.ui.kit.Glyph
 import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.kit.Pill
 import com.ttmrase.crownfall.ui.kit.gameFrame
+import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.theme.GoldText
+import com.ttmrase.crownfall.ui.troopName
+import kotlinx.coroutines.launch
+import kotlin.math.roundToLong
 
 /** 兵舎画面（T3.5）。兵種タブ・Tier 選択・数量スライダー・コストと時間・訓練・加速。 */
 @Composable
@@ -142,7 +140,12 @@ fun BarracksScreen(
                     modifier = Modifier.size(92.dp).gameFrame(FrameStyle.Inset, corner = 14.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    GlyphIcon(troop.type.glyph(), size = 66.dp, dimmed = view.locked, alpha = if (view.locked) 0.6f else 1f)
+                    GlyphIcon(
+                        troop.type.glyph(),
+                        size = 66.dp,
+                        dimmed = view.locked,
+                        alpha = if (view.locked) 0.6f else 1f,
+                    )
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     GoldText(troopName(context, troop), style = MaterialTheme.typography.headlineSmall)
