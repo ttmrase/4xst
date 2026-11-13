@@ -10,6 +10,12 @@ rm -rf "$out"
 mkdir -p "$out/screenshots" "$out/logs"
 adb logcat -c || true
 
+# エミュレータのランチャーなど、アプリ以外の「応答していません」ダイアログがフォーカスを奪うと、
+# Espresso の戻る操作が全部 RootViewWithoutFocusException で落ちる（ui run 119）。システムのエラーダイアログを出さない設定にし、
+# すでに出ているものは閉じる。
+adb shell settings put global hide_error_dialogs 1 || true
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
+
 # テストの開始・終了を logcat で追う（固まったとき「どのテストか」を result.txt に出すため）
 adb logcat -v time -s TestRunner:I > "$out/logs/testrunner.txt" 2>&1 &
 logcat_pid=$!

@@ -155,4 +155,26 @@ class ShotsTest {
         rig.settle(4000)
         rig.shot("summon_3")
     }
+
+    @Test
+    fun dialogs() {
+        val rig = rig(Preset.BUILDING_NOW)
+        rig.launchToCity()
+        rig.clickDescription(rig.str(R.string.timers_build1))
+        rig.shot("dlg_speedup")
+        rig.back()
+        rig.settle(600)
+        rig.back()
+        rig.settle(600)
+        rig.shot("dlg_exit")
+        rig.back()
+        rig.tapNav(rig.str(R.string.nav_alliance))
+        rig.click(rig.str(R.string.alliance_tab_help))
+        rig.shot("alliance_help")
+        rig.click(rig.str(R.string.alliance_tab_tech))
+        rig.shot("alliance_tech")
+        rig.tapNav(rig.str(R.string.nav_heroes))
+        rig.tapAt(0.17f, 0.2f)
+        rig.shot("hero_detail")
+    }
 }

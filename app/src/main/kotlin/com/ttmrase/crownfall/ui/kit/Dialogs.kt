@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -63,7 +61,8 @@ fun GameDialog(
                 Box(Modifier.fillMaxWidth().padding(bottom = 8.dp), contentAlignment = Alignment.Center) { icon() }
             }
             if (text != null) {
-                Box(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                // 中身の縦スクロールは呼び出し側に任せる（中に LazyColumn を置く画面があるので、ここでは巻かない）
+                Box(Modifier.weight(1f, fill = false)) {
                     ProvideTextStyle(MaterialTheme.typography.bodyMedium.copy(color = Cf.Ivory)) { text() }
                 }
             }

@@ -235,7 +235,10 @@ class ShotRig(private val rule: ComposeTestRule) {
             }
             val loc = IntArray(2)
             view.getLocationOnScreen(loc)
-            canvas.drawBitmap(render(view), loc[0].toFloat(), loc[1].toFloat(), null)
+            // Robolectric はウィンドウの配置（中央寄せ）を再現しないので、画面より小さいダイアログは自分で中央に置く
+            val x = if (loc[0] == 0 && view.width < dm.widthPixels) (dm.widthPixels - view.width) / 2 else loc[0]
+            val y = if (loc[1] == 0 && view.height < dm.heightPixels) (dm.heightPixels - view.height) / 2 else loc[1]
+            canvas.drawBitmap(render(view), x.toFloat(), y.toFloat(), null)
         }
         return out
     }
