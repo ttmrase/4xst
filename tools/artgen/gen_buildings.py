@@ -925,7 +925,7 @@ def quarry(sc, m, t):
     sc.line([(hx, hy), (hx + 5.5, hy - 9.5)], "#7A5530", 1.3, cap="round")
     sc.line([(hx + 1.6, hy - 10.4), (hx + 5.6, hy - 9.6), (hx + 8.6, hy - 6.4)], "#5E6670", 1.5, cap="round")
     if t >= 4:
-        sc.flag(3.4, 0.5, 18 + t * 2, 11, m["banner"])
+        sc.flag(3.4, 0.5, hb * 0.92, 11, m["banner"])
     if t == 5:
         p = P(3.0, 3.0, 9.5)
         sc.oval(p[0], p[1], 3.6, 2.4, m["gold"], shade(m["gold"], 0.55), 0.45, sil=True)
@@ -973,7 +973,7 @@ def gold_mine(sc, m, t):
     if t >= 2:
         crate(sc, 1.05, 3.2, 0.42, 5.5)
     if t >= 3:
-        sc.flag(3.4, 0.9, 22 + t * 3, 11, m["banner"])
+        sc.flag(3.4, 0.9, hb * 0.78, 11, m["banner"])
     if t >= 5:
         g = P(2.3, 1.9, 24)
         sc.glow(g[0], g[1], 16, 9, m["gold"], 0.3)
@@ -1442,8 +1442,13 @@ def alliance_center(sc, m, t):
         win.append((2.0 + 1.37 * math.cos(a), 2.0 + 1.37 * math.sin(a)))
     glows = [(P(x, y, wz)[0], P(x, y, wz)[1], 4.2, 6.0) for x, y in win]
     sc.ovals(glows, GLOW, None, 0, 0.22)
-    sc.polys([[P(x - 0.12, y, wz - 4), P(x + 0.12, y, wz - 4), P(x + 0.12, y, wz + 3), P(x, y, wz + 4.6), P(x - 0.12, y, wz + 3)]
-              for x, y in win], m["lit"], m["frame"], 0.7)
+    wp = []
+    for d in (118, 100, 64, 46):  # 円筒の接線に沿った細い窓
+        a = math.radians(d)
+        x, y = 2.0 + 1.37 * math.cos(a), 2.0 + 1.37 * math.sin(a)
+        tx, ty = -math.sin(a) * 0.12, math.cos(a) * 0.12
+        wp.append([P(x - tx, y - ty, wz - 4), P(x + tx, y + ty, wz - 4), P(x + tx, y + ty, wz + 3), P(x, y, wz + 4.6), P(x - tx, y - ty, wz + 3)])
+    sc.polys(wp, m["lit"], m["frame"], 0.7)
     sc.door_left(2.0, 0.9, 13.5, 3.36, m["door"], frame=door_frame(m))
     # 垂れ幕
     sc.banner(3.36, 2.0, h - 4.5, 12, m["banner"], m["gold"])
