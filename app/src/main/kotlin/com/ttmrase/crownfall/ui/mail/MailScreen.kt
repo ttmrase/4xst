@@ -63,6 +63,8 @@ import com.ttmrase.crownfall.ui.troopNameById
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
+import com.ttmrase.crownfall.ui.kit.EmptyState
+import com.ttmrase.crownfall.ui.kit.Glyph
 
 private val TABS = listOf(MailKind.BATTLE, MailKind.SCOUT, MailKind.SYSTEM, MailKind.RECEIPT)
 private const val MILLIS = 1000L
@@ -107,7 +109,7 @@ fun MailScreen(
         }
         val list = s.mails.filter { it.kind == TABS[tab] }.asReversed()
         if (list.isEmpty()) {
-            Text(stringResource(R.string.mail_empty), modifier = Modifier.padding(16.dp))
+            EmptyState(Glyph.MAIL, stringResource(R.string.mail_empty))
         } else {
             LazyColumn(Modifier.fillMaxSize()) {
                 items(list, key = { it.id }) { mail ->

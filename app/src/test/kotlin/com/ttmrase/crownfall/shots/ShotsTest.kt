@@ -106,4 +106,22 @@ class ShotsTest {
         rig.tapAt(0.5f, 0.47f)
         rig.shot("sheet_fresh")
     }
+
+    /** 日本語（既定の言語）での文字の収まりを見る。 */
+    @Test
+    @Config(sdk = [34], qualifiers = "ja-w412dp-h892dp-xhdpi")
+    fun japanese() {
+        val rig = rig(Preset.BUILDING_NOW)
+        rig.launchToCity()
+        rig.shot("ja_city")
+        rig.tapAt(0.5f, 0.5f)
+        rig.shot("ja_sheet")
+        rig.back()
+        rig.open("barracks")
+        rig.shot("ja_barracks")
+        rig.open("quests")
+        rig.shot("ja_quests")
+        rig.tapNav(rig.str(R.string.nav_shop))
+        rig.shot("ja_shop")
+    }
 }

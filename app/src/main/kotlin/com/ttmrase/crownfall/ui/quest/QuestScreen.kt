@@ -57,6 +57,16 @@ import com.ttmrase.crownfall.ui.reward.dispatchFly
 import com.ttmrase.crownfall.ui.shop.ContentsLines
 import com.ttmrase.crownfall.ui.shop.RewardDialog
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.unit.sp
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
+import com.ttmrase.crownfall.ui.kit.GameButtonSize
+import com.ttmrase.crownfall.ui.kit.GameButtonStyle
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.gameFrame
+import com.ttmrase.crownfall.ui.theme.GoldText
 
 private val TABS =
     listOf(
@@ -167,7 +177,7 @@ private fun LazyListScope.mainTab(
     }
     val number = data.quests.chapters.indexOf(chapter) + 1
     item {
-        Text(stringResource(R.string.quest_chapter, number), style = MaterialTheme.typography.titleMedium)
+        GoldText(stringResource(R.string.quest_chapter, number), style = MaterialTheme.typography.titleLarge)
     }
     items(chapter.tasks, key = { it.id }) { task ->
         val p = QuestLogic.progress(task.cond, s, data)
@@ -181,8 +191,14 @@ private fun LazyListScope.mainTab(
                 GameButton(
                     onClick = { onClaim(chapter.id) },
                     enabled = QuestLogic.chapterDone(chapter, s, data),
-                    modifier = Modifier.padding(top = 8.dp),
-                ) { Text(stringResource(R.string.quest_claim)) }
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    style = GameButtonStyle.Emerald,
+                    size = GameButtonSize.Large,
+                    sound = true,
+                ) {
+                    GlyphIcon(Glyph.CHEST, size = 26.dp)
+                    Text(stringResource(R.string.quest_claim), fontSize = 17.sp)
+                }
             }
         }
     }
@@ -219,6 +235,8 @@ private fun LazyListScope.dailyTab(
                         GameButton(
                             onClick = { onChest(chest.tier) },
                             enabled = !opened && points >= QuestLogic.chestThreshold(chest, s, data),
+                            style = GameButtonStyle.Emerald,
+                            size = GameButtonSize.Small,
                         ) {
                             Text(stringResource(if (opened) R.string.quest_claimed else R.string.quest_claim))
                         }
@@ -235,7 +253,12 @@ private fun LazyListScope.dailyTab(
             progress = p,
             footer = stringResource(R.string.quest_points, d.points),
             action = {
-                GameButton(onClick = { onClaim(d.id) }, enabled = p.done && !claimed) {
+                GameButton(
+                    onClick = { onClaim(d.id) },
+                    enabled = p.done && !claimed,
+                    style = GameButtonStyle.Emerald,
+                    size = GameButtonSize.Small,
+                ) {
                     Text(stringResource(if (claimed) R.string.quest_claimed else R.string.quest_claim))
                 }
             },
@@ -269,6 +292,8 @@ private fun LazyListScope.oneShotTab(
                     onClick = { onClaim(d.id) },
                     enabled = p.done && !claimed,
                     modifier = Modifier.padding(top = 4.dp),
+                    style = GameButtonStyle.Emerald,
+                    size = GameButtonSize.Small,
                 ) {
                     Text(stringResource(if (claimed) R.string.quest_claimed else R.string.quest_claim))
                 }
@@ -285,19 +310,28 @@ private fun QuestRow(
     action: (@Composable () -> Unit)? = null,
 ) {
     Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        Modifier
+            .fillMaxWidth()
+            .gameFrame(if (progress.done) FrameStyle.Success else FrameStyle.Card, corner = 12.dp)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f).padding(end = 8.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+        GlyphIcon(if (progress.done) Glyph.CHECK else Glyph.QUEST, size = 30.dp)
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
             GameProgressBar(
                 progress = { progress.fraction },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).height(8.dp),
+                color = if (progress.done) Cf.Emerald else Cf.Gold,
             )
             val cur = ShortNumber.format(minOf(progress.current, progress.target))
             val line = stringResource(R.string.quest_progress, cur, ShortNumber.format(progress.target))
-            Text(if (footer != null) "$line  ·  $footer" else line, style = MaterialTheme.typography.bodySmall)
+            Text(
+                if (footer != null) "$line  ·  $footer" else line,
+                style = MaterialTheme.typography.bodySmall,
+                color = Cf.Muted,
+            )
         }
         action?.invoke()
     }

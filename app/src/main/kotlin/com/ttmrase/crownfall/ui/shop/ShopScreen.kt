@@ -57,6 +57,13 @@ import com.ttmrase.crownfall.ui.kit.GameProgressBar
 import com.ttmrase.crownfall.ui.kit.GameTab
 import com.ttmrase.crownfall.ui.kit.GameTabRow
 import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Color
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.gameFrame
+import com.ttmrase.crownfall.ui.theme.GoldText
 
 private const val SECONDS_PER_DAY = 86_400L
 private val TABS =
@@ -131,11 +138,48 @@ fun ShopScreen(
 
     Column(Modifier.fillMaxSize()) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(stringResource(R.string.shop_gems, ShortNumber.format(s.gems)), fontWeight = FontWeight.Bold)
-            Text(stringResource(R.string.shop_vip_short, com.ttmrase.crownfall.core.shop.VipCalculator.level(s, data)))
+            GlyphIcon(Glyph.NAV_SHOP, size = 34.dp)
+            GoldText(
+                stringResource(R.string.screen_shop),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Row(
+                modifier =
+                    Modifier
+                        .gameFrame(FrameStyle.Panel, corner = 16.dp)
+                        .padding(start = 5.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                GlyphIcon(Glyph.VIP, size = 20.dp)
+                Text(
+                    stringResource(R.string.shop_vip_short, com.ttmrase.crownfall.core.shop.VipCalculator.level(s, data)),
+                    color = Cf.GoldHi,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            Row(
+                modifier =
+                    Modifier
+                        .gameFrame(FrameStyle.Royal, corner = 16.dp)
+                        .padding(start = 5.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                GlyphIcon(Glyph.GEM, size = 20.dp)
+                Text(
+                    stringResource(R.string.shop_gems, ShortNumber.format(s.gems)),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
         }
         GameTabRow(scrollable = true, selectedTabIndex = tab) {
             TABS.forEachIndexed { i, title ->

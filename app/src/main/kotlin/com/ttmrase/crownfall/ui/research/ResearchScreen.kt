@@ -55,6 +55,18 @@ import com.ttmrase.crownfall.ui.kit.GameTab
 import com.ttmrase.crownfall.ui.kit.GameTabRow
 import com.ttmrase.crownfall.ui.researchNodeName
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.gameFrame
+import com.ttmrase.crownfall.ui.theme.CrownFonts
 
 private val Branches = listOf("economy", "military", "development")
 
@@ -133,18 +145,30 @@ fun ResearchScreen(
                         ).clickable { selected = node.id },
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            researchNodeName(context, node.id).let {
-                                if (row.locked) stringResource(R.string.locked_label, it) else it
-                            },
-                            style = MaterialTheme.typography.titleSmall,
-                        )
+                        Box(
+                            modifier = Modifier.size(40.dp).gameFrame(FrameStyle.Inset, corner = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            GlyphIcon(if (row.locked) Glyph.LOCK else Glyph.RESEARCH, size = 28.dp, dimmed = row.locked)
+                        }
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(researchNodeName(context, node.id), style = MaterialTheme.typography.titleSmall)
+                            GameProgressBar(
+                                progress = { row.currentLevel.toFloat() / node.maxLevel.coerceAtLeast(1) },
+                                modifier = Modifier.fillMaxWidth().height(7.dp),
+                                color = Cf.Sapphire,
+                            )
+                        }
                         Text(
                             stringResource(R.string.research_level, row.currentLevel, node.maxLevel),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = Cf.GoldHi,
+                            fontFamily = CrownFonts.Numeric,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
                         )
                     }
                 }

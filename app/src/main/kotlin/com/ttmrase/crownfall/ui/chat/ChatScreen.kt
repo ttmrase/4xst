@@ -71,6 +71,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
+import com.ttmrase.crownfall.ui.kit.EmptyState
 
 private const val MILLIS = 1000L
 private const val BUBBLE_ALPHA = 0.4f
@@ -179,7 +180,7 @@ fun ChatScreen(
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            if (messages.isEmpty()) item { Text(stringResource(R.string.chat_empty)) }
+            if (messages.isEmpty()) item { EmptyState(Glyph.CHAT, stringResource(R.string.chat_empty)) }
             items(messages, key = { it.id }) { m ->
                 val vip =
                     if (m.speaker == "player") {

@@ -72,6 +72,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.ceil
 import kotlin.math.floor
+import com.ttmrase.crownfall.ui.kit.GameButtonSize
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
 
 private const val BASE_TILE_DP = 28
 private const val MIN_SCALE = 0.4f
@@ -217,12 +220,17 @@ private fun MapContent(
             modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            GameOutlinedButton(onClick = { centerOnCastle() }) { Text(stringResource(R.string.screen_city)) }
-            GameOutlinedButton(onClick = { marchesOpen = true }) {
+            GameOutlinedButton(onClick = { centerOnCastle() }, size = GameButtonSize.Small) {
+                GlyphIcon(Glyph.NAV_CITY, size = 20.dp)
+                Text(stringResource(R.string.screen_city))
+            }
+            GameOutlinedButton(onClick = { marchesOpen = true }, size = GameButtonSize.Small) {
+                GlyphIcon(Glyph.FLAG, size = 20.dp)
                 Text(stringResource(R.string.map_marches_button, s.marches.size, Marching.slots(s, data)))
             }
             val unread = MailBox.unread(s)
-            GameOutlinedButton(onClick = onOpenMail) {
+            GameOutlinedButton(onClick = onOpenMail, size = GameButtonSize.Small) {
+                GlyphIcon(Glyph.MAIL, size = 20.dp)
                 Text(
                     if (unread > 0) {
                         stringResource(R.string.map_mail_button_unread, unread)

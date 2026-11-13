@@ -24,6 +24,12 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
 
 /** 枠の種類。面の色と縁取りの組み合わせ。 */
 enum class FrameStyle(
@@ -313,3 +319,20 @@ fun Modifier.screenBackdrop(glow: Color = Color(0xFF3558C8)): Modifier =
             drawRect(vignette)
         }
     }
+
+/** 中身が無いときの案内（大きなアイコンと一言）。一覧の画面の空の状態に使う。 */
+@Composable
+fun EmptyState(
+    glyph: Glyph,
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth().padding(vertical = 48.dp, horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        GlyphIcon(glyph, size = 72.dp, alpha = 0.75f)
+        Text(text, color = Cf.Muted, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+    }
+}

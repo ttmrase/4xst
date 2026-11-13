@@ -51,6 +51,19 @@ import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.troopName
 import kotlinx.coroutines.launch
 import kotlin.math.roundToLong
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.sp
+import com.ttmrase.crownfall.ui.glyph
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
+import com.ttmrase.crownfall.ui.kit.GameButtonSize
+import com.ttmrase.crownfall.ui.kit.GameButtonStyle
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.Pill
+import com.ttmrase.crownfall.ui.kit.gameFrame
+import com.ttmrase.crownfall.ui.theme.GoldText
 
 /** 兵舎画面（T3.5）。兵種タブ・Tier 選択・数量スライダー・コストと時間・訓練・加速。 */
 @Composable
@@ -91,8 +104,13 @@ fun BarracksScreen(
                         amount = 1f
                     },
                     text = {
-                        val name = stringResource(t.nameRes())
-                        Text(if (built) name else stringResource(R.string.locked_label, name))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            GlyphIcon(if (built) t.glyph() else Glyph.LOCK, size = 18.dp)
+                            Text(stringResource(t.nameRes()), maxLines = 1)
+                        }
                     },
                 )
             }
@@ -104,36 +122,52 @@ fun BarracksScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 tiers.forEachIndexed { index, t ->
                     val tier = stringResource(R.string.tier_label, t.troop.tier)
-                    val label = if (t.locked) stringResource(R.string.locked_label, tier) else tier
-                    if (index == tierIndex) {
-                        GameButton(onClick = {}) { Text(label) }
-                    } else {
-                        GameOutlinedButton(
-                            onClick = {
-                                tierIndex = index
-                                amount = 1f
-                            },
-                        ) { Text(label) }
+                    GameButton(
+                        onClick = {
+                            tierIndex = index
+                            amount = 1f
+                        },
+                        modifier = Modifier.weight(1f),
+                        style = if (index == tierIndex) GameButtonStyle.Gold else GameButtonStyle.Ghost,
+                        size = GameButtonSize.Small,
+                    ) {
+                        if (t.locked) GlyphIcon(Glyph.LOCK, size = 14.dp)
+                        Text(tier)
                     }
                 }
             }
-            Text(troopName(context, troop), style = MaterialTheme.typography.headlineSmall)
-            Text(
-                stringResource(R.string.barracks_owned, ShortNumber.format(view.owned)) +
-                    "  " + stringResource(R.string.barracks_wounded, ShortNumber.format(view.wounded)),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                stringResource(
-                    R.string.troop_stats,
-                    ShortNumber.format(troop.attack),
-                    ShortNumber.format(troop.defense),
-                    ShortNumber.format(troop.hp),
-                    ShortNumber.format(troop.speed),
-                ),
-                style = MaterialTheme.typography.labelMedium,
-            )
-            GameDivider()
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                // 兵種の紋章（くぼんだ台座に大きなアイコン。未解放は色あせる）
+                Box(
+                    modifier = Modifier.size(92.dp).gameFrame(FrameStyle.Inset, corner = 14.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    GlyphIcon(troop.type.glyph(), size = 66.dp, dimmed = view.locked, alpha = if (view.locked) 0.6f else 1f)
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    GoldText(troopName(context, troop), style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        stringResource(R.string.barracks_owned, ShortNumber.format(view.owned)) +
+                            "  " + stringResource(R.string.barracks_wounded, ShortNumber.format(view.wounded)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Cf.Muted,
+                    )
+                    Text(
+                        stringResource(
+                            R.string.troop_stats,
+                            ShortNumber.format(troop.attack),
+                            ShortNumber.format(troop.defense),
+                            ShortNumber.format(troop.hp),
+                            ShortNumber.format(troop.speed),
+                        ),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier =
+                            Modifier
+                                .gameFrame(FrameStyle.Inset, corner = 8.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
+            }
             if (view.locked) {
                 Text(
                     stringResource(
@@ -161,9 +195,18 @@ fun BarracksScreen(
                     )
                 }
                 if (preview != null) {
-                    Text(stringResource(R.string.barracks_cost), style = MaterialTheme.typography.titleSmall)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(R.string.barracks_cost),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = Cf.GoldHi,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Pill(glyph = Glyph.CLOCK) {
+                            Text(stringResource(R.string.barracks_duration, DurationFormat.clock(preview.durationSec)))
+                        }
+                    }
                     CostRows(have = s.resources, cost = preview.cost, missing = preview.missing)
-                    Text(stringResource(R.string.barracks_duration, DurationFormat.clock(preview.durationSec)))
                 }
             }
             val running = preview?.running
@@ -178,20 +221,23 @@ fun BarracksScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(DurationFormat.clock(UiQueries.remainingSec(s, running)))
-                    GameButton(onClick = { speedupJobId = running.id }) { Text(stringResource(R.string.sheet_speedup)) }
+                    GameButton(onClick = { speedupJobId = running.id }, size = GameButtonSize.Small) {
+                        GlyphIcon(Glyph.SPEEDUP, size = 18.dp)
+                        Text(stringResource(R.string.sheet_speedup))
+                    }
                 }
             }
             if (!view.locked) {
                 when {
                     blocker is ActionFailure.NotEnoughResources ->
-                        GameOutlinedButton(
+                        GameButton(
                             onClick = { hooks.onResourceShortage(blocker.missing) },
                             modifier = Modifier.fillMaxWidth(),
+                            style = GameButtonStyle.Ruby,
+                            size = GameButtonSize.Large,
                         ) {
-                            Text(
-                                stringResource(R.string.barracks_not_enough),
-                                color = MaterialTheme.colorScheme.error,
-                            )
+                            GlyphIcon(Glyph.PLUS, size = 22.dp)
+                            Text(stringResource(R.string.barracks_not_enough))
                         }
                     blocker == ActionFailure.QueueFull ->
                         Text(stringResource(R.string.barracks_queue_full), color = MaterialTheme.colorScheme.error)
@@ -221,7 +267,13 @@ fun BarracksScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                        ) { Text(stringResource(R.string.barracks_train)) }
+                            style = GameButtonStyle.Emerald,
+                            size = GameButtonSize.Large,
+                            sound = true,
+                        ) {
+                            GlyphIcon(troop.type.glyph(), size = 26.dp)
+                            Text(stringResource(R.string.barracks_train), fontSize = 17.sp)
+                        }
                 }
             }
         }
