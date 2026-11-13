@@ -36,6 +36,11 @@ import com.ttmrase.crownfall.ui.kit.GameCard
 import com.ttmrase.crownfall.ui.portrait.PortraitKeys
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.shop.ContentsLines
+import androidx.compose.ui.graphics.Color
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.theme.CrownFonts
 
 fun eventNameRes(def: EventDef): Int =
     when (def.kind) {
@@ -151,12 +156,25 @@ private fun StandingLine(
     avatar: Int,
     vip: Int,
 ) {
-    GameCard(Modifier.fillMaxWidth(), style = if (isPlayer) FrameStyle.Success else FrameStyle.Card) {
+    // 上位 3 位は金・銀・銅の縁とメダル。自分の行は緑の面
+    val podium =
+        when (place) {
+            1 -> Color(0xFFFFD04A)
+            2 -> Color(0xFFC9D3E6)
+            3 -> Color(0xFFD9925A)
+            else -> null
+        }
+    GameCard(
+        Modifier.fillMaxWidth(),
+        style = if (isPlayer) FrameStyle.Success else FrameStyle.Card,
+        accent = podium,
+    ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (podium != null) GlyphIcon(if (place == 1) Glyph.TROPHY else Glyph.MEDAL, size = 26.dp)
             PortraitView(
                 if (isPlayer) PortraitKeys.avatar(avatar) else PortraitKeys.byName(name),
                 name,
@@ -165,7 +183,12 @@ private fun StandingLine(
             )
             val label = "$place  $name" + (alliance?.let { "  [$it]" } ?: "")
             Text(label, fontWeight = if (isPlayer) FontWeight.Bold else null, modifier = Modifier.weight(1f))
-            Text(ShortNumber.format(score))
+            Text(
+                ShortNumber.format(score),
+                color = Cf.GoldHi,
+                fontFamily = CrownFonts.Numeric,
+                fontWeight = FontWeight.Bold,
+            )
         }
     }
 }

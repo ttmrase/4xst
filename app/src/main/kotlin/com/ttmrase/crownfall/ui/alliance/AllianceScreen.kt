@@ -77,6 +77,14 @@ import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.dispatchFly
 import com.ttmrase.crownfall.ui.titleLabel
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.CountBadge
+import com.ttmrase.crownfall.ui.kit.GameButtonSize
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.theme.GoldText
 
 private const val SECONDS_PER_DAY = 86_400L
 private const val SECONDS_PER_HOUR = 3_600L
@@ -191,12 +199,16 @@ private fun Header(
     val unread =
         remember(s.alliance.history, s.alliance.chatRead) { unreadTotal(s.alliance.history, s.alliance.chatRead) }
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column {
-            Text(stringResource(R.string.alliance_points, ShortNumber.format(s.alliance.points)))
+        GlyphIcon(Glyph.NAV_ALLIANCE, size = 40.dp)
+        Column(Modifier.weight(1f)) {
+            GoldText(
+                stringResource(R.string.alliance_points, ShortNumber.format(s.alliance.points)),
+                style = MaterialTheme.typography.titleMedium,
+            )
             Text(
                 stringResource(
                     R.string.alliance_helped_today,
@@ -204,12 +216,15 @@ private fun Header(
                     data.allianceRules.help.dailyLimit,
                 ),
                 style = MaterialTheme.typography.bodySmall,
+                color = Cf.Muted,
             )
         }
-        GameOutlinedButton(onClick = onOpenChat) {
-            BadgedBox(badge = { if (unread > 0) Badge { Text(unread.toString()) } }) {
+        Box {
+            GameOutlinedButton(onClick = onOpenChat, size = GameButtonSize.Small) {
+                GlyphIcon(Glyph.CHAT, size = 20.dp)
                 Text(stringResource(R.string.alliance_open_chat))
             }
+            if (unread > 0) CountBadge(unread, Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-6).dp))
         }
     }
 }

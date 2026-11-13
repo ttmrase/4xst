@@ -27,6 +27,7 @@ Android 向けの「量産型 4X ストラテジー」風ゲーム。**個人利
 ### 前提
 - JDK 17 以上（CI は 17、開発コンテナは 21）。Gradle は `./gradlew`（wrapper 8.14.3）を使う。
 - 開発コンテナには Android SDK が無い。そのため `:app` は既定では Gradle に含まれず、`:core` / `:ai` のみビルドされる（[docs/02_ARCHITECTURE.md](docs/02_ARCHITECTURE.md) §0）。
+- クラウド環境の許可ホストに `dl.google.com` と `gcp.mirrors.maven.org` があれば、コンテナにも Android SDK を入れて `:app` をビルドでき、画面を PNG に描き出して確認できる（[docs/02_ARCHITECTURE.md](docs/02_ARCHITECTURE.md) §21 の `ShotsTest`）。
 
 ### ローカル（JVM モジュール）
 ```bash
