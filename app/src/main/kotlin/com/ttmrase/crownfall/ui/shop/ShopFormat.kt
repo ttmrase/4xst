@@ -1,25 +1,44 @@
 package com.ttmrase.crownfall.ui.shop
 
 import android.content.Context
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
+import com.ttmrase.crownfall.core.data.ItemDef
+import com.ttmrase.crownfall.core.data.ItemKind
 import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.Offer
 import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.util.ShortNumber
+import com.ttmrase.crownfall.ui.glyph
 import com.ttmrase.crownfall.ui.heroNameRes
 import com.ttmrase.crownfall.ui.itemName
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.gameFrame
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.namedString
+import com.ttmrase.crownfall.ui.theme.CrownFonts
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -115,7 +134,28 @@ fun offerTagline(
     }
 }
 
-/** パックの中身を 1 行ずつ並べる。 */
+/** 中身 1 つ分の札（アイコン・量・名前）。 */
+private class RewardTile(
+    val glyph: Glyph,
+    val amount: String,
+    val label: String? = null,
+    val describe: String,
+)
+
+/** アイテムの種類ごとのアイコン。 */
+fun ItemDef.glyph(): Glyph =
+    when (kind) {
+        ItemKind.SPEEDUP -> Glyph.SPEEDUP
+        ItemKind.HERO_EXP -> Glyph.EXP
+        ItemKind.SKILL_BOOK -> Glyph.BOOK
+        ItemKind.SUMMON_TICKET_NORMAL, ItemKind.SUMMON_TICKET_PREMIUM -> Glyph.TICKET
+    }
+
+/**
+ * パックや報酬の中身を、アイコンつきの札で並べる（ジェム → 資源 → アイテム → 欠片 → イベントスコア → ビルダー）。
+ * 幅に入らない分は折り返す。読み上げには「ジェム +60」などの文を付ける。
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ContentsLines(
     contents: PackContents,
@@ -124,43 +164,87 @@ fun ContentsLines(
     extraGems: Long = 0,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    Column(modifier = modifier.padding(vertical = 2.dp)) {
-        if (contents.gems > 0 || extraGems > 0) {
-            Text(
-                stringResource(R.string.content_gems, ShortNumber.format(contents.gems + extraGems)),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-        ResourceType.entries.forEach { type ->
-            val n = contents.resources[type]
-            if (n > 0) {
-                Text(
-                    stringResource(R.string.content_resource, stringResource(type.nameRes()), ShortNumber.format(n)),
-                    style = MaterialTheme.typography.bodyMedium,
+    val tiles = mutableListOf<RewardTile>()
+    if (contents.gems > 0 || extraGems > 0) {
+        val n = ShortNumber.format(contents.gems + extraGems)
+        tiles += RewardTile(Glyph.GEM, "+$n", describe = stringResource(R.string.content_gems, n))
+    }
+    ResourceType.entries.forEach { type ->
+        val n = contents.resources[type]
+        if (n > 0) {
+            val text = ShortNumber.format(n)
+            tiles +=
+                RewardTile(
+                    type.glyph(),
+                    "+$text",
+                    describe = stringResource(R.string.content_resource, stringResource(type.nameRes()), text),
                 )
+        }
+    }
+    contents.items.forEach { (id, n) ->
+        val def = data.items[id]
+        val label = if (def != null) itemName(context, def) else id
+        tiles +=
+            RewardTile(def?.glyph() ?: Glyph.GIFT, "×$n", label, stringResource(R.string.content_item, label, n))
+    }
+    contents.heroShards.forEach { (id, n) ->
+        val res = heroNameRes(id)
+        val label = if (res != null) stringResource(res) else id
+        tiles += RewardTile(Glyph.SHARD, "×$n", label, stringResource(R.string.content_shards, label, n))
+    }
+    if (contents.eventPoints > 0) {
+        val n = ShortNumber.format(contents.eventPoints)
+        tiles += RewardTile(Glyph.TROPHY, "+$n", describe = stringResource(R.string.content_event_points, n))
+    }
+    if (contents.secondBuilderDays > 0) {
+        tiles +=
+            RewardTile(
+                Glyph.BUILD,
+                "+${contents.secondBuilderDays}",
+                describe = stringResource(R.string.content_builder, contents.secondBuilderDays),
+            )
+    }
+    if (tiles.isEmpty()) return
+    FlowRow(
+        modifier = modifier.padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        tiles.forEach { tile ->
+            Column(
+                modifier =
+                    Modifier
+                        .width(if (tile.label != null) LABEL_TILE_DP.dp else TILE_DP.dp)
+                        .gameFrame(FrameStyle.Inset, corner = 10.dp)
+                        .semantics(mergeDescendants = true) { contentDescription = tile.describe }
+                        .padding(horizontal = 3.dp, vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                GlyphIcon(tile.glyph, size = 30.dp)
+                Text(
+                    tile.amount,
+                    color = Cf.Ivory,
+                    fontFamily = CrownFonts.Numeric,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp,
+                    maxLines = 1,
+                )
+                if (tile.label != null) {
+                    Text(
+                        tile.label,
+                        color = Cf.Muted,
+                        fontSize = 9.sp,
+                        lineHeight = 11.sp,
+                        maxLines = 2,
+                        textAlign = TextAlign.Center,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-        }
-        contents.items.forEach { (id, n) ->
-            val def = data.items[id]
-            val label = if (def != null) itemName(context, def) else id
-            Text(stringResource(R.string.content_item, label, n), style = MaterialTheme.typography.bodyMedium)
-        }
-        contents.heroShards.forEach { (id, n) ->
-            val res = heroNameRes(id)
-            val label = if (res != null) stringResource(res) else id
-            Text(stringResource(R.string.content_shards, label, n), style = MaterialTheme.typography.bodyMedium)
-        }
-        if (contents.eventPoints > 0) {
-            Text(
-                stringResource(R.string.content_event_points, ShortNumber.format(contents.eventPoints)),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-        if (contents.secondBuilderDays > 0) {
-            Text(
-                stringResource(R.string.content_builder, contents.secondBuilderDays),
-                style = MaterialTheme.typography.bodyMedium,
-            )
         }
     }
 }
+
+private const val TILE_DP = 58
+private const val LABEL_TILE_DP = 84

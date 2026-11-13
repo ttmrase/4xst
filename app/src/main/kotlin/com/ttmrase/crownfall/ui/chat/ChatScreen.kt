@@ -59,6 +59,8 @@ import com.ttmrase.crownfall.ui.kit.GameCard
 import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import com.ttmrase.crownfall.ui.kit.GameTab
 import com.ttmrase.crownfall.ui.kit.GameTabRow
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.portrait.PortraitKeys
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.shop.skinThemeColor
@@ -142,7 +144,13 @@ fun ChatScreen(
                     onClick = { channel = ch },
                     text = {
                         BadgedBox(badge = { if (unread > 0) Badge { Text(unread.toString()) } }) {
-                            Text((if (locked(ch)) "🔒 " else "") + channelName(context, ch))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                if (locked(ch)) GlyphIcon(Glyph.LOCK, size = 14.dp)
+                                Text(channelName(context, ch))
+                            }
                         }
                     },
                 )

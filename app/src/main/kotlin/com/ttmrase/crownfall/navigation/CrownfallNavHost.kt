@@ -307,9 +307,11 @@ fun CrownfallNavHost(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 bottomBar = {
                     if (destination != null && destination.route != Screen.Title.route) {
-                        GameBottomBar(
-                            BottomDestination.entries.map { item ->
-                                val locked = isLocked(item.feature)
+                        // 一覧の map は使わない（lint が Flow の演算子と取り違える）
+                        val items = ArrayList<BottomItem>()
+                        for (item in BottomDestination.entries) {
+                            val locked = isLocked(item.feature)
+                            items +=
                                 BottomItem(
                                     glyph = item.glyph,
                                     label = stringResource(item.labelRes),
@@ -337,8 +339,8 @@ fun CrownfallNavHost(
                                         }
                                     },
                                 )
-                            },
-                        )
+                        }
+                        GameBottomBar(items)
                     }
                 },
             ) { padding ->

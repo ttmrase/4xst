@@ -36,6 +36,8 @@ import com.ttmrase.crownfall.ui.kit.GameCard
 import com.ttmrase.crownfall.ui.kit.GameDialog
 import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import com.ttmrase.crownfall.ui.kit.GameTextButton
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.rarityColor
 import androidx.compose.foundation.Image as ComposeImage
 
@@ -124,18 +126,18 @@ private fun Swatch(
             .border(2.dp, rarityColor(rarityOf(skin.rarity)), RoundedCornerShape(10.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        Text(categoryGlyph(skin.category), style = MaterialTheme.typography.titleMedium)
+        GlyphIcon(categoryGlyph(skin.category), size = 26.dp)
     }
 }
 
-private fun categoryGlyph(category: String): String =
+private fun categoryGlyph(category: String): Glyph =
     when (category) {
-        "castle" -> "🏰"
-        "territory" -> "🗺"
-        "trail" -> "✨"
-        "frame" -> "🖼"
-        "nameplate" -> "🏷"
-        else -> "💬"
+        "castle" -> Glyph.NAV_CITY
+        "territory" -> Glyph.NAV_MAP
+        "trail" -> Glyph.SPARKLE
+        "frame" -> Glyph.MEDAL
+        "nameplate" -> Glyph.FLAG
+        else -> Glyph.CHAT
     }
 
 private fun rarityOf(r: SkinRarity) =
@@ -343,7 +345,7 @@ fun SkinPreviewDialog(
                         ).background(skinThemeColor(skin.theme), RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(categoryGlyph(skin.category), style = MaterialTheme.typography.displaySmall)
+                        GlyphIcon(categoryGlyph(skin.category), size = 56.dp)
                     }
                 }
                 Text(stringResource(R.string.skin_preview_note), style = MaterialTheme.typography.bodySmall)

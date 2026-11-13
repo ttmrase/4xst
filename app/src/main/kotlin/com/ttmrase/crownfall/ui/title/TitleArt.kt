@@ -253,11 +253,9 @@ private fun DrawScope.ridge(
     val step = w / RIDGE_STEPS
     while (x <= w + step) {
         val u = x / w + drift
-        val y =
-            base - amp * (
-                0.6f * sin(freq * u * PI.toFloat() + phase) + 0.3f * sin(freq * 2.3f * u * PI.toFloat() + phase * 1.7f) +
-                    0.1f * sin(freq * 5.1f * u * PI.toFloat())
-            )
+        val a = freq * u * PI.toFloat()
+        val wave = 0.6f * sin(a + phase) + 0.3f * sin(a * 2.3f + phase * 1.7f) + 0.1f * sin(a * 5.1f)
+        val y = base - amp * wave
         path.lineTo(x, y * h)
         x += step
     }

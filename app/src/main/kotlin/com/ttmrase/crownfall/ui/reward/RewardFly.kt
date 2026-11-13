@@ -286,7 +286,12 @@ fun RewardFlyLayer(state: RewardFlyState) {
                 )
             val alpha = if (t > FADE_START) 1f - (t - FADE_START) / (1f - FADE_START) * 0.5f else 1f
             // 出発でふくらみ、到着に向けて少し縮む
-            val pop = if (t < POP_END) POP_FROM + (POP_PEAK - POP_FROM) * (t / POP_END) else POP_PEAK - (POP_PEAK - POP_TO) * ((t - POP_END) / (1f - POP_END))
+            val pop =
+                if (t < POP_END) {
+                    POP_FROM + (POP_PEAK - POP_FROM) * (t / POP_END)
+                } else {
+                    POP_PEAK - (POP_PEAK - POP_TO) * ((t - POP_END) / (1f - POP_END))
+                }
             drawGlyph(bitmaps, f.glyph ?: f.target.glyph, p, ICON_DP * density * pop, alpha)
         }
     }

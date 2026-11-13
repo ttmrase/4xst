@@ -63,12 +63,14 @@ import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
 import com.ttmrase.crownfall.ui.kit.GameButton
 import com.ttmrase.crownfall.ui.kit.GameDialog
 import com.ttmrase.crownfall.ui.kit.GameTextButton
 import com.ttmrase.crownfall.ui.kit.Glyph
 import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.kit.Pill
+import com.ttmrase.crownfall.ui.kit.gameFrame
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.dispatchFly
 import com.ttmrase.crownfall.ui.shop.Confetti
@@ -106,7 +108,7 @@ fun LockedFeatureDialog(
     val need = FeatureGate.requiredLv(data, feature)
     GameDialog(
         onDismissRequest = onDismiss,
-        icon = { Text("🔒", fontSize = 28.sp) },
+        icon = { GlyphIcon(Glyph.LOCK, size = 44.dp) },
         title = { Text(stringResource(R.string.feature_locked_title, stringResource(feature.nameRes()))) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -303,12 +305,12 @@ fun LockedFeatureCard(
                 .padding(horizontal = 12.dp, vertical = 6.dp)
                 .alpha(LOCKED_CARD_ALPHA)
                 .clickable { open = true }
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                .gameFrame(FrameStyle.Card, corner = 12.dp)
                 .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("🔒", fontSize = 22.sp)
+        GlyphIcon(Glyph.LOCK, size = 28.dp)
         Column(Modifier.weight(1f)) {
             Text(stringResource(feature.nameRes()), fontWeight = FontWeight.Bold)
             Text(stringResource(R.string.feature_locked_short, need), style = MaterialTheme.typography.bodySmall)
@@ -326,13 +328,13 @@ fun LockedScreenBody(
     modifier: Modifier = Modifier,
 ) {
     val need = FeatureGate.requiredLv(data, feature)
-    Box(modifier.background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
+    Box(modifier, contentAlignment = Alignment.Center) {
         Column(
             modifier = Modifier.padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("🔒", fontSize = 48.sp)
+            GlyphIcon(Glyph.LOCK, size = 72.dp)
             Text(
                 stringResource(R.string.feature_locked_title, stringResource(feature.nameRes())),
                 fontWeight = FontWeight.Bold,

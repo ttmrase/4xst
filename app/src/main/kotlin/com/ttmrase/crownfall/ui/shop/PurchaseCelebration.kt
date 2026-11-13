@@ -159,7 +159,9 @@ fun celebrationCards(contents: PackContents): List<CelebrationCard> {
         if (contents.resources[it] > 0) list += CelebrationCard(it.glyph(), ShortNumber.format(contents.resources[it]))
     }
     if (contents.items.isNotEmpty()) list += CelebrationCard(Glyph.SPEEDUP, contents.items.values.sum().toString())
-    if (contents.heroShards.isNotEmpty()) list += CelebrationCard(Glyph.SHARD, contents.heroShards.values.sum().toString())
+    if (contents.heroShards.isNotEmpty()) {
+        list += CelebrationCard(Glyph.SHARD, contents.heroShards.values.sum().toString())
+    }
     return list.take(MAX_CARDS)
 }
 

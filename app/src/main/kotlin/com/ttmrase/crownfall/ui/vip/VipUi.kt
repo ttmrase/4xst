@@ -57,6 +57,8 @@ import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.shop.CoinShower
 import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlinx.coroutines.delay
@@ -140,7 +142,7 @@ fun VipAvatar(
         ) {
             Text(name.take(1), color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Bold)
         }
-        if (lv >= TIER_GOLD) Text("👑", fontSize = 12.sp, modifier = Modifier.align(Alignment.TopCenter))
+        if (lv >= TIER_GOLD) GlyphIcon(Glyph.VIP, Modifier.align(Alignment.TopCenter), size = 16.dp)
     }
 }
 
@@ -255,9 +257,9 @@ private fun VipCinematic(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    "👑",
-                    fontSize = 56.sp,
+                GlyphIcon(
+                    Glyph.VIP,
+                    size = 96.dp,
                     modifier =
                         Modifier.graphicsLayer {
                             scaleX = pop.value

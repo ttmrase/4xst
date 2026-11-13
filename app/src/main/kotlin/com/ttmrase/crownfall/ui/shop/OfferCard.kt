@@ -12,24 +12,36 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.data.OfferBadge
 import com.ttmrase.crownfall.core.data.PackContents
 import com.ttmrase.crownfall.ui.common.remainingUntil
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
 import com.ttmrase.crownfall.ui.kit.GameButtonStyle
-import com.ttmrase.crownfall.ui.kit.GameCard
+import com.ttmrase.crownfall.ui.kit.GamePanel
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.gameFrame
+import com.ttmrase.crownfall.ui.theme.CrownFonts
 import com.ttmrase.crownfall.ui.theme.PressButton
 
 private const val PULSE_SCALE = 1.05f
@@ -108,34 +120,74 @@ fun OfferCard(
     foil: Boolean = true,
 ) {
     val off = offOverride ?: offPercent(priceYen, listValueYen)
-    GameCard(modifier = modifier.fillMaxWidth().then(if (foil) Modifier.goldFoil() else Modifier)) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
-                )
-                badgeLabel(badge)?.let {
-                    Surface(color = MaterialTheme.colorScheme.tertiary, shape = MaterialTheme.shapes.small) {
-                        Text(
-                            it,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            color = MaterialTheme.colorScheme.onTertiary,
-                            style = MaterialTheme.typography.labelMedium,
+    GamePanel(
+        modifier = modifier.fillMaxWidth().then(if (foil) Modifier.goldFoil() else Modifier),
+        style = if (foil) FrameStyle.Royal else FrameStyle.Panel,
+        corner = 16.dp,
+        ornate = foil,
+    ) {
+        // 題字の帯（左に商品名、右にバッジ）
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .drawBehind {
+                        drawRect(
+                            Brush.horizontalGradient(listOf(Color(0x66FFD04A), Color(0x22FFD04A), Color.Transparent)),
+                            size = Size(size.width, size.height),
+                        )
+                        drawLine(
+                            Brush.horizontalGradient(listOf(Cf.Gold, Color.Transparent)),
+                            Offset(0f, size.height),
+                            Offset(size.width, size.height),
+                            1.dp.toPx(),
                         )
                     }
+                    .padding(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                title,
+                style =
+                    MaterialTheme.typography.titleMedium.copy(
+                        brush = Cf.GoldTextBrush,
+                        shadow = Shadow(Cf.Ink, Offset(0f, 2f), 3f),
+                    ),
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+            )
+            badgeLabel(badge)?.let {
+                Row(
+                    modifier =
+                        Modifier
+                            .gameFrame(FrameStyle.Alarm, corner = 9.dp)
+                            .padding(start = 4.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    GlyphIcon(Glyph.STAR, size = 13.dp)
+                    Text(
+                        it,
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
+        }
+        Column(
+            modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
             tagline?.let {
                 Text(
                     it,
-                    color = MaterialTheme.colorScheme.error,
+                    color = Color(0xFFFFB3A8),
                     style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
-            ContentIcons(contents)
             ContentsLines(contents, data, extraGems = extraGems)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (off > 0) Ribbon(stringResource(R.string.offer_off, off))
@@ -148,6 +200,7 @@ fun OfferCard(
                 Text(
                     stringResource(R.string.offer_list_value, formatYen(listValueYen)),
                     style = MaterialTheme.typography.bodySmall,
+                    color = Cf.Muted,
                 )
             }
             expiresEpochSec?.let { Countdown(it, nowEpochSec) }
@@ -155,11 +208,13 @@ fun OfferCard(
                 onClick = onBuy,
                 enabled = !soldOut,
                 style = GameButtonStyle.Ruby,
-                modifier = Modifier.fillMaxWidth().height(52.dp).pulsing(!soldOut),
+                modifier = Modifier.fillMaxWidth().height(56.dp).pulsing(!soldOut),
             ) {
                 Text(
                     if (soldOut) stringResource(R.string.offer_sold_out) else formatYen(priceYen),
-                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = CrownFonts.Numeric,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 22.sp,
                 )
             }
         }

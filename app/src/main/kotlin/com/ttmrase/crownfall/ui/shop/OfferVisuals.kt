@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,10 +35,13 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +57,7 @@ import com.ttmrase.crownfall.ui.glyph
 import com.ttmrase.crownfall.ui.heroNameRes
 import com.ttmrase.crownfall.ui.kit.Glyph
 import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.rarityColor
 import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlin.math.PI
@@ -116,7 +121,7 @@ fun Modifier.shaking(): Modifier =
         graphicsLayer { rotationZ = deg }
     }
 
-/** 赤いリボン（「97% OFF」「1回限り！」「残り 2 個」）。 */
+/** 赤いリボン（「97% OFF」「1回限り！」「残り 2 個」）。右端に切れ込みのある帯で、金の細い縁と艶がある。 */
 @Composable
 fun Ribbon(
     text: String,
@@ -129,15 +134,37 @@ fun Ribbon(
         color = Color.White,
         fontFamily = CrownFonts.Numeric,
         fontWeight = FontWeight.Black,
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.labelLarge.copy(shadow = Shadow(Color(0x99000000), Offset(0f, 1.5f), 2f)),
         modifier =
             modifier
                 .then(if (shake) Modifier.shaking() else Modifier)
-                .background(
-                    color,
-                    RoundedCornerShape(topStart = 4.dp, topEnd = 12.dp, bottomEnd = 4.dp, bottomStart = 12.dp),
-                )
-                .padding(horizontal = 10.dp, vertical = 3.dp),
+                .drawBehind {
+                    val d = 1.dp.toPx()
+                    val notch = size.height * 0.32f
+                    val shape =
+                        Path().apply {
+                            moveTo(0f, 0f)
+                            lineTo(size.width, 0f)
+                            lineTo(size.width - notch, size.height / 2)
+                            lineTo(size.width, size.height)
+                            lineTo(0f, size.height)
+                            close()
+                        }
+                    translate(0f, 1.5f * d) { drawPath(shape, Color(0x80000000)) }
+                    drawPath(
+                        shape,
+                        Brush.verticalGradient(
+                            listOf(
+                                color.copy(red = (color.red + 0.25f).coerceAtMost(1f)),
+                                color,
+                                color.copy(red = color.red * 0.7f),
+                            ),
+                        ),
+                    )
+                    drawRect(Color.White.copy(alpha = 0.22f), size = Size(size.width - notch, size.height * 0.45f))
+                    drawPath(shape, Color(0xFFFFE08A), style = Stroke(1.1f * d))
+                }
+                .padding(start = 9.dp, end = 15.dp, top = 3.dp, bottom = 3.dp),
     )
 }
 
@@ -285,7 +312,9 @@ fun GlowIcon(
     }
 }
 
-/** 全画面オファーの英雄ポートレート。専用の絵はないので、レアリティの後光＋シルエットで表す。 */
+/**
+ * 全画面オファーの主役の絵。回る光条の前に、英雄のかけら入りなら英雄のポートレート、そうでなければ金貨と宝石があふれる宝箱。
+ */
 @Composable
 fun HeroPortrait(
     heroId: String?,
@@ -298,36 +327,51 @@ fun HeroPortrait(
         animationSpec = infiniteRepeatable(tween(14_000, easing = LinearEasing), RepeatMode.Restart),
         label = "rays",
     )
+    val bob by transition.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1_600), RepeatMode.Reverse),
+        label = "bob",
+    )
     val gold = rarityColor(HeroRarity.SSR)
     Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Canvas(modifier = Modifier.fillMaxWidth().height(150.dp)) {
-            val c = Offset(size.width / 2f, size.height * 0.52f)
-            val unit = min(size.width, size.height)
-            for (i in 0 until 10) {
-                val a = i * TAU / 10 + spin
-                drawLine(
-                    color = gold.copy(alpha = 0.35f),
-                    start = c,
-                    end = c + Offset(cos(a) * unit, sin(a) * unit),
-                    strokeWidth = unit * 0.07f,
-                )
-            }
-            drawCircle(
-                Brush.radialGradient(listOf(gold.copy(alpha = 0.9f), Color.Transparent), c, unit * 0.6f),
-                unit * 0.6f,
-                c,
-            )
+        Box(
+            modifier =
+                Modifier.fillMaxWidth().height(150.dp).drawBehind {
+                    val c = Offset(size.width / 2f, size.height * 0.52f)
+                    val unit = min(size.width, size.height)
+                    val reach = unit * 1.25f
+                    for (i in 0 until RAY_COUNT) {
+                        val a0 = i * TAU / RAY_COUNT + spin
+                        val a1 = a0 + TAU / RAY_COUNT * 0.42f
+                        val ray =
+                            Path().apply {
+                                moveTo(c.x, c.y)
+                                lineTo(c.x + cos(a0) * reach, c.y + sin(a0) * reach)
+                                lineTo(c.x + cos(a1) * reach, c.y + sin(a1) * reach)
+                                close()
+                            }
+                        drawPath(
+                            ray,
+                            Brush.radialGradient(listOf(gold.copy(alpha = 0.55f), Color.Transparent), c, reach),
+                        )
+                    }
+                    drawCircle(
+                        Brush.radialGradient(
+                            listOf(Color.White.copy(alpha = 0.85f), gold.copy(alpha = 0.7f), Color.Transparent),
+                            c,
+                            unit * 0.62f,
+                        ),
+                        unit * 0.62f,
+                        c,
+                    )
+                },
+            contentAlignment = Alignment.Center,
+        ) {
             if (heroId != null) {
-                val rim = Color.White.copy(alpha = 0.85f)
-                drawCircle(Color(0xFF14161F), unit * 0.17f, c + Offset(0f, -unit * 0.14f))
-                drawCircle(rim, unit * 0.17f, c + Offset(0f, -unit * 0.14f), style = Stroke(width = 3.dp.toPx()))
-                drawOval(
-                    Color(0xFF14161F),
-                    topLeft = c + Offset(-unit * 0.32f, unit * 0.06f),
-                    size = androidx.compose.ui.geometry.Size(unit * 0.64f, unit * 0.5f),
-                )
+                PortraitView(heroId, heroId, size = 116.dp, rarity = HeroRarity.SSR)
             } else {
-                drawCrown(c, unit * 0.5f, gold)
+                GlyphIcon(Glyph.NAV_SHOP, Modifier.offset(y = (bob * 3).dp), size = 124.dp)
             }
         }
         val name = heroId?.let { heroNameRes(it) }
@@ -343,6 +387,8 @@ fun HeroPortrait(
         }
     }
 }
+
+private const val RAY_COUNT = 12
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCrown(
     center: Offset,

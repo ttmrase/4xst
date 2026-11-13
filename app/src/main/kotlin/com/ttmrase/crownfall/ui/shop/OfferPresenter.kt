@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,6 +23,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -48,8 +52,11 @@ import com.ttmrase.crownfall.core.shop.ProductIds
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.data.SessionCoordinator
 import com.ttmrase.crownfall.ui.common.collectCalmState
+import com.ttmrase.crownfall.ui.kit.Cf
 import com.ttmrase.crownfall.ui.kit.GameDialog
 import com.ttmrase.crownfall.ui.kit.GameTextButton
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.dispatchFly
 import kotlinx.coroutines.delay
@@ -212,7 +219,19 @@ private fun OfferPopup(
                 usePlatformDefaultWidth = false,
             ),
     ) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.92f)) {
+        Box(
+            modifier =
+                Modifier.fillMaxSize().drawBehind {
+                    drawRect(Color(0xF2040611))
+                    drawRect(
+                        Brush.radialGradient(
+                            listOf(Color(0x885A2FB8), Color(0x332A1560), Color.Transparent),
+                            Offset(size.width / 2, size.height * 0.3f),
+                            size.width * 1.1f,
+                        ),
+                    )
+                },
+        ) {
             Box(Modifier.fillMaxSize().padding(16.dp)) {
                 Column(
                     modifier = Modifier.align(Alignment.Center).fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -221,9 +240,12 @@ private fun OfferPopup(
                     HeroPortrait(heroId = offer.contents.heroShards.keys.firstOrNull())
                     Text(
                         stringResource(headline(offer)),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.surface,
+                        style =
+                            MaterialTheme.typography.headlineMedium.copy(
+                                brush = Cf.GoldTextBrush,
+                                shadow = Shadow(Color(0xFFB8501A), Offset(0f, 3f), 12f),
+                            ),
+                        fontWeight = FontWeight.Black,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -244,7 +266,7 @@ private fun OfferPopup(
                     )
                     Text(
                         stringResource(R.string.offer_close_warning),
-                        color = MaterialTheme.colorScheme.surface,
+                        color = Cf.Muted,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
@@ -256,11 +278,7 @@ private fun OfferPopup(
                     modifier = Modifier.align(Alignment.TopEnd).alpha(closeAlpha),
                 ) {
                     val closeLabel = stringResource(R.string.common_close)
-                    Text(
-                        "×",
-                        color = MaterialTheme.colorScheme.surface,
-                        modifier = Modifier.semantics { contentDescription = closeLabel },
-                    )
+                    GlyphIcon(Glyph.CLOSE, Modifier.semantics { contentDescription = closeLabel }, size = 30.dp)
                 }
             }
         }

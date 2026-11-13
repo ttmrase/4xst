@@ -135,7 +135,13 @@ fun GameButton(
     val look = if (enabled) style else GameButtonStyle.Disabled
     val context = LocalContext.current
     val textStyle =
-        (if (size == GameButtonSize.Small) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge)
+        (
+            if (size == GameButtonSize.Small) {
+                MaterialTheme.typography.labelMedium
+            } else {
+                MaterialTheme.typography.labelLarge
+            }
+        )
             .copy(
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -162,7 +168,8 @@ fun GameButton(
                     },
                 )
                 .padding(
-                    contentPadding ?: PaddingValues(start = size.padH, end = size.padH, top = 4.dp, bottom = 4.dp + size.lip),
+                    contentPadding
+                        ?: PaddingValues(start = size.padH, end = size.padH, top = 4.dp, bottom = 4.dp + size.lip),
                 ),
         contentAlignment = Alignment.Center,
     ) {
