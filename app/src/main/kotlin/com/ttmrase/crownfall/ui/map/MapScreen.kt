@@ -75,6 +75,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.ceil
 import kotlin.math.floor
+import androidx.compose.ui.graphics.graphicsLayer
 
 private const val BASE_TILE_DP = 28
 private const val MIN_SCALE = 0.4f
@@ -202,6 +203,8 @@ private fun MapContent(
         Canvas(
             modifier =
                 Modifier.fillMaxSize()
+                    // 地図は毎フレーム描き直す。自分の層に分けて、上に重ねた HUD や下部ナビまで描き直させない
+                    .graphicsLayer()
                     .onSizeChanged { viewSize = it }
                     .transformable(transformState)
                     .pointerInput(Unit) { detectTapGestures { onTap(it) } },

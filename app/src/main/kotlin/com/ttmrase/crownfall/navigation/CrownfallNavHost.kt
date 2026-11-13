@@ -114,6 +114,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.background
 
 /** 単一 Activity 用の NavHost と下部ナビ（Title では非表示）。 */
 private const val CLAIM_PERIOD_MS = 30_000L
@@ -298,7 +299,8 @@ fun CrownfallNavHost(
         Box(
             Modifier
                 .fillMaxSize()
-                .screenBackdrop()
+                // 全面を自分で描く画面（タイトル・城内・マップ）では、隠れる地紋を描かない
+                .then(if (destination?.route in FullBleedRoutes) Modifier.background(Cf.Night0) else Modifier.screenBackdrop())
                 .onGloballyPositioned { rootOrigin = it.positionInWindow() }
                 .trackTaps(flyState, { rootOrigin }) { Sfx.play(context, SfxId.TAP) },
         ) {
@@ -608,6 +610,8 @@ private fun Guard(
         content(ready)
     }
 }
+
+private val FullBleedRoutes = setOf(Screen.Title.route, Screen.City.route, Screen.WorldMap.route)
 
 /** 城内から開く子画面。上端に題字と戻るボタンの帯を付ける（下部ナビのタブの根の画面には付けない）。 */
 private val TitledScreens =
