@@ -362,7 +362,6 @@ fun TerritoryView(
             painter.drawSeason()
             if (currentBubbles.isNotEmpty()) painter.drawBubbles(frontToBack, currentBubbles)
             pacer.reportCost(System.nanoTime() - startNs)
-            System.getProperty("crownfall.perf")?.let { java.io.File(it).appendText("" + (System.nanoTime() - startNs) / 1e6 + "\n") }
         }
         // 画面の読み上げ・操作用: 区画ごとの透明なノード（ポインタ入力は受けず、タップは Canvas が処理する）
         val onScreen by remember(scene) {

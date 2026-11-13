@@ -158,7 +158,6 @@ internal object TownLife {
     private const val ALWAYS_OPEN = 3
     private const val LEVELS = 25
     private const val LEVEL_SPREAD = 38
-    private const val FOOTPRINT = 4f
     private const val DOOR_AT = 2f
     private const val DOOR_STREET = 4.5f
     private const val OUTER_FROM = 15.5f

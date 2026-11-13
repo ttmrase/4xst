@@ -37,7 +37,6 @@ internal class TerritoryLife {
     private var oy = 0f
     private var seconds = 0f
     private var animate = true
-    private var season: String? = null
     private var castleLevel = 1
     private var band = 1
     private var gust = 0.5f
@@ -75,7 +74,6 @@ internal class TerritoryLife {
         this.oy = oy
         this.seconds = seconds
         this.animate = animate
-        this.season = season
         this.castleLevel = castleLevel
         this.band = band
         winter = season == "winter" || season == "ice"
@@ -788,8 +786,8 @@ internal class TerritoryLife {
         const val ROOF_HI = 3f
         const val READY_SPARKS = 3
         const val READY_RATE = 0.38f
-        const val READY_RADIUS = 2.1f
-        const val READY_RISE = 30f
+        const val READY_RADIUS = 1.7f
+        const val READY_RISE = 34f
         val TOWER_HEIGHTS = floatArrayOf(34f, 44f, 54f, 64f, 76f)
         val CASTLE_HEIGHTS = floatArrayOf(26f, 34f, 44f, 52f, 62f)
         const val LAMP_HEIGHT = 24f

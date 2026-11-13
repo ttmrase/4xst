@@ -137,7 +137,6 @@ internal object MapLive {
     private val FORT = Color(0xFF6B1F1F)
     private val HOLY = Color(0xFFF5F0DC)
     private val FOG = Color(0xFF0F1A33)
-    private val DUST = Color(0xFFD9C7A0)
     private val HILL_DARK = Color(0xFF5B8A3F)
     private val HILL_LIGHT = Color(0xFF7BA650)
     private val HILL_ROCKS = floatArrayOf(-0.78f, 0.12f, 0.6f, 0.18f, -0.1f, 0.3f)
@@ -483,7 +482,7 @@ internal object MapLive {
             val st = structures[index]
             if (st.x !in x0..x1 || st.y !in y0..y1) continue
             val tier = tiers.getOrElse(index) { 1 }
-            if (near && drawStructureSprite(st, tile, offX, offY, castleTheme, tier, sprites!!, seconds)) continue
+            if (near && drawStructureSprite(st, tile, offX, offY, castleTheme, tier, sprites, seconds)) continue
             val color =
                 when (st.type) {
                     StructureType.PLAYER_CASTLE -> territoryColor(castleTheme) ?: CASTLE
@@ -748,7 +747,7 @@ internal object MapLive {
             drawCircle(color.copy(alpha = 0.22f), r * 0.72f, c)
             drawCircle(color.copy(alpha = 0.3f), r * 0.45f, c)
             // 近いズームは、資源ごとの建物のスプライト（畑・材木置き場・採石場・金鉱。ノードの Lv で段階が上がる）
-            val nodeSprite = if (near) sprites!!.get(nodeSpriteId(n.type, n.level)) else null
+            val nodeSprite = if (near) sprites.get(nodeSpriteId(n.type, n.level)) else null
             if (nodeSprite != null) {
                 drawSprite(nodeSprite, c.x, c.y + tile * NODE_DROP, tile * NODE_SPAN / FOOTPRINT_VP)
                 continue
@@ -831,7 +830,7 @@ internal object MapLive {
         val art = LifeArt.shared
         for (b in s.map.barbarians) {
             if (b.x !in x0..x1 || b.y !in y0..y1) continue
-            val tentSprite = if (near) sprites!!.get(SpriteIds.TENT) else null
+            val tentSprite = if (near) sprites.get(SpriteIds.TENT) else null
             val x = offX + b.x * tile
             val y = offY + b.y * tile
             drawOval(Color(0x40000000), Offset(x + tile * 0.1f, y + tile * 0.75f), Size(tile * 0.8f, tile * 0.2f))

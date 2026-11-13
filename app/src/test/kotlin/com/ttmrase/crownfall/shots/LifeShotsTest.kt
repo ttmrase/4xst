@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall.shots
 
+import android.provider.Settings
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -102,6 +103,15 @@ class LifeShotsTest {
         strip(rig, "life_city_late_zoom", frames = 2)
     }
 
+    /** 端末の「アニメーションを削除」（アニメーター倍率 0）では静止画になる: 時間を空けた 2 枚で、街の絵が変わらない。 */
+    @Test
+    fun cityStill() {
+        val rig = rig(Preset.RICH_CASTLE)
+        Settings.Global.putFloat(rig.app.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        rig.launchToCity()
+        strip(rig, "life_city_still", frames = 2, gapMs = STILL_GAP_MS)
+    }
+
     /** 行軍の見た目を撮るために、往路と復路の行軍を 1 つずつ置く（撮影用の状態。到着する前に撮り終える）。 */
     private fun addMarches(rig: ShotRig) {
         val center = ClasspathDataSource.load().mapRules.center
@@ -155,6 +165,7 @@ class LifeShotsTest {
     private companion object {
         const val FRAMES = 4
         const val GAP_MS = 600L
+        const val STILL_GAP_MS = 1500L
         const val MAP_WARMUPS = 8
         const val PINCH_NEAR = 0.08f
         const val PINCH_FAR = 0.3f

@@ -48,7 +48,7 @@ class Tier:
         self.slit = r3.m_glow("#FFC65A", bars=False)
         if t == 1:
             self.base = r3.m_rubble("#9C9486")
-            self.roof = r3.m_thatch("#B0965C")
+            self.roof = r3.m_thatch("#A68C62")
             self.trim = r3.m_planks("#6B4426", 0.2, seed=23)
             self.pad = r3.m_ground("dirt", "#8C7A60")
             self.curtain = r3.m_planks("#84583A", 0.14, seed=24, relief=0.5)
@@ -71,11 +71,11 @@ class Tier:
             self.pad = r3.m_ground("paved", "#B3AE9F")
             self.curtain = r3.m_stone("#D0C9B9", course=5.4, joint=0.32, var=0.07)
         else:
-            self.base = r3.m_marble("#BDB29C", veins=0.25, seed=9)
-            self.roof = r3.m_tiles("#D08E1C", kind="scale", width=3.2, spec=0.7, metal=0.16, var=0.12)
+            self.base = r3.m_marble("#8F8672", veins=0.3, seed=9)
+            self.roof = r3.m_tiles("#C27D16", kind="scale", width=3.2, spec=0.6, metal=0.14, var=0.12)
             self.trim = self.gold
-            self.pad = r3.m_ground("marble", "#D9D2C0")
-            self.curtain = r3.m_marble("#E6DFD0", seed=8)
+            self.pad = r3.m_ground("marble", "#AEA592")
+            self.curtain = r3.m_marble("#D9D0BD", seed=8)
 
     def wall(self, z0=4.0, z1=20.0, ox=0.0, oy=0.0, bay=0.45):
         """Wall material of the tier.  Timber framing (tier 2) needs the wall's extent to place its beams."""
@@ -282,6 +282,9 @@ def castle(t):
         sc.add(union(merlon_ring(0.4, 0.4, 3.6, 3.6, wall_h, 3.2, 9, 0.12, sides="LR"),
                      merlon_ring(0.4, 0.4, 3.6, 3.6, wall_h, 3.2, 9, 0.12, sides="BF")), cm)
         sc.add(merlon_ring(1.38, 3.16, 2.62, 3.74, 16.5, 3.0, 4, 0.12, ny=2, sides="LR"), cm)
+        if t >= 3:   # a darker plinth course along the two front walls grounds the pale stone
+            sc.add(union(box(0.4, 3.6, 1.38, 3.64, 0, 2.6, 0.2), box(2.62, 3.6, 3.6, 3.64, 0, 2.6, 0.2), box(3.6, 0.4, 3.64, 3.6, 0, 2.6, 0.2)),
+                   T.base, cast=False, name="plinth")
         if t >= 4:   # gold string course along the two front walls
             sc.add(union(box(0.4, 3.6, 3.6, 3.625, wall_h - 2.4, wall_h - 1.2), box(3.6, 0.4, 3.625, 3.6, wall_h - 2.4, wall_h - 1.2)),
                    T.gold, cast=False)
@@ -294,7 +297,8 @@ def castle(t):
     # --- corner towers (front one lower so the keep stays readable) ------------------------------
     if towers >= 2:
         round_tower(sc, T, 0.55, 0.55, 0.5, th + 4, cone_h, flag_h=0, win=False)
-        round_tower(sc, T, 3.45, 3.45, 0.5, th * 0.74, cone_h * 0.9, flag_h=0 if towers >= 4 else 11)
+        # the front corner gets a low bastion tower: it must not hide the keep's corner and its two faces
+        round_tower(sc, T, 3.45, 3.45, 0.5, wall_h + 6 + t, cone_h * 0.62, flag_h=0 if towers >= 4 else 10, win=False)
     if towers >= 4:
         round_tower(sc, T, 3.45, 0.55, 0.5, th, cone_h, flag_h=12 if t < 4 else 14)
         round_tower(sc, T, 0.55, 3.45, 0.5, th, cone_h, flag_h=12 if t < 4 else 14)
