@@ -3,10 +3,14 @@ package com.ttmrase.crownfall.ui.map
 import android.graphics.Bitmap
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -18,19 +22,35 @@ import com.ttmrase.crownfall.core.alliance.Personas
 import com.ttmrase.crownfall.core.data.GameData
 import com.ttmrase.crownfall.core.map.Structure
 import com.ttmrase.crownfall.core.map.StructureType
+import com.ttmrase.crownfall.core.map.Terrain
 import com.ttmrase.crownfall.core.map.WorldMap
+import com.ttmrase.crownfall.core.march.March
 import com.ttmrase.crownfall.core.march.MarchKind
 import com.ttmrase.crownfall.core.march.MarchPhase
 import com.ttmrase.crownfall.core.march.MarchViews
 import com.ttmrase.crownfall.core.model.BuildingType
 import com.ttmrase.crownfall.core.model.GameState
 import com.ttmrase.crownfall.core.model.ResourceType
+import com.ttmrase.crownfall.ui.glyph
+import com.ttmrase.crownfall.ui.kit.GlyphBitmaps
+import com.ttmrase.crownfall.ui.territory.FigureLook
+import com.ttmrase.crownfall.ui.territory.LifeArt
+import com.ttmrase.crownfall.ui.territory.LifeDraw
+import com.ttmrase.crownfall.ui.territory.LifeDraw.bird
+import com.ttmrase.crownfall.ui.territory.LifeDraw.figure
+import com.ttmrase.crownfall.ui.territory.LifeDraw.flag
+import com.ttmrase.crownfall.ui.territory.LifeDraw.flame
+import com.ttmrase.crownfall.ui.territory.LifeDraw.fract
+import com.ttmrase.crownfall.ui.territory.LifeDraw.hash01
+import com.ttmrase.crownfall.ui.territory.LifeDraw.soft
 import com.ttmrase.crownfall.ui.territory.Sprite
 import com.ttmrase.crownfall.ui.territory.SpriteCache
 import com.ttmrase.crownfall.ui.territory.SpriteIds
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -54,11 +74,64 @@ internal enum class DayNight(val id: Int) {
 }
 
 /**
- * 地面（キャッシュ済みチャンク）の上に毎フレーム描くもの: 領土の輪・霧・拠点・資源の光・野営地の焚き火・行軍（土ぼこり）・
- * 雲の視差・昼夜の色味。ズームが遠いと細部を省く（LOD）。
+ * 行軍の位置を、秒の刻みのあいだもなめらかに進める（:core の位置は 1 秒ごとに変わるので、そのまま描くと 1 秒ごとに跳ぶ）。
+ * 秒が変わったときだけ「いまの位置」と「1 秒後の位置」を [MarchViews.position] で求めて覚え、描画ではそのあいだを
+ * 実時間で補間する。見た目だけで、ゲームの状態には触れない。毎フレームの確保はしない。
+ */
+internal class MarchTrack {
+    private var sec = Long.MIN_VALUE
+    private var atMs = 0L
+    private var marches: List<March>? = null
+    private var from = FloatArray(0)
+    private var to = FloatArray(0)
+    private var frac = 0f
+
+    /** 描画の始めに呼ぶ。[nowSec] はゲームの時計（秒）、[nowMs] は単調増加の実時間。 */
+    fun update(
+        marches: List<March>,
+        nowSec: Long,
+        nowMs: Long,
+        data: GameData,
+        animate: Boolean,
+    ) {
+        if (nowSec != sec || marches !== this.marches) {
+            if (nowSec != sec) atMs = nowMs
+            sec = nowSec
+            this.marches = marches
+            if (from.size < marches.size * 2) {
+                from = FloatArray(marches.size * 2)
+                to = FloatArray(marches.size * 2)
+            }
+            for (i in marches.indices) {
+                val a = MarchViews.position(marches[i], nowSec, data)
+                val b = MarchViews.position(marches[i], nowSec + 1, data)
+                from[i * 2] = a.first
+                from[i * 2 + 1] = a.second
+                to[i * 2] = b.first
+                to[i * 2 + 1] = b.second
+            }
+        }
+        frac = if (animate) ((nowMs - atMs) / MS_PER_SEC).coerceIn(0f, 1f) else 0f
+    }
+
+    /** [i] 番目の行軍の位置（タイル座標）。 */
+    fun x(i: Int): Float = from[i * 2] + (to[i * 2] - from[i * 2]) * frac
+
+    fun y(i: Int): Float = from[i * 2 + 1] + (to[i * 2 + 1] - from[i * 2 + 1]) * frac
+
+    private companion object {
+        const val MS_PER_SEC = 1000f
+    }
+}
+
+/**
+ * 地面（キャッシュ済みチャンク）の上に毎フレーム描くもの: 領土の輪・自城の脈打つ輪・川と湖の光・霧・拠点（はためく旗）・
+ * 資源の光・野営地の焚き火・行軍（歩く兵と土ぼこり）・雲とその影・鳥・昼夜の色味。ズームが遠いと細部を省く（LOD）。
+ * 動きは [seconds]（飾りの時計）だけで決まり、描画のたびにオブジェクトを確保しない。
  */
 internal object MapLive {
     private val CASTLE = Color(0xFFE8B730)
+    private val PULSE_GOLD = Color(0xFFFFE08A)
     private val ALLY = Color(0xFF4F9DDE)
     private val NPC = Color(0xFFC0392B)
     private val FORT = Color(0xFF6B1F1F)
@@ -67,12 +140,11 @@ internal object MapLive {
     private val DUST = Color(0xFFD9C7A0)
     private val HILL_DARK = Color(0xFF5B8A3F)
     private val HILL_LIGHT = Color(0xFF7BA650)
-    private val HILL_ROCKS = listOf(-0.78f to 0.12f, 0.6f to 0.18f, -0.1f to 0.3f)
+    private val HILL_ROCKS = floatArrayOf(-0.78f, 0.12f, 0.6f, 0.18f, -0.1f, 0.3f)
     private const val NODE_GLYPH = 0.62f
 
     /** 描画のたびに作り直さず使い回す Path（メインスレッドの描画だけが使う）。 */
     private val scratch = Path()
-    private val scratch2 = Path()
 
     fun nodeColor(t: ResourceType): Color =
         when (t) {
@@ -126,7 +198,7 @@ internal object MapLive {
         drawCircle(c.copy(alpha = 0.08f), r, center)
         drawCircle(c.copy(alpha = 0.08f), r * 0.8f, center)
         drawCircle(c.copy(alpha = 0.08f), r * 0.55f, center)
-        drawCircle(c.copy(alpha = 0.6f), r * 0.98f, center, style = Stroke(width = 2.5f))
+        drawCircle(c.copy(alpha = 0.6f), r * 0.98f, center, style = TERRITORY_STROKE)
         if (tile < LOD_FAR_DP * density) return
         repeat(14) { i ->
             val a = i * 2.399f + seconds * (0.15f + (i % 3) * 0.05f)
@@ -213,7 +285,124 @@ internal object MapLive {
         if (tint != null) drawRect(tint, Offset.Zero, size)
     }
 
-    /** 雲の視差（地図より少し速く動かす）。ズームが近いと出さない。 */
+    /**
+     * 自城の足元から広がって消える輪（自分の城がひと目で分かる）。[cx] [gy] は城の足元の中心。
+     * 地面に寝た楕円を 2 つ、半周期ずらして広げる。
+     */
+    fun DrawScope.drawCastlePulse(
+        cx: Float,
+        gy: Float,
+        tile: Float,
+        color: Color,
+        seconds: Float,
+    ) {
+        if (pulseDensity != density) {
+            pulseDensity = density
+            pulseStroke = Stroke(width = PULSE_STROKE_DP * density)
+        }
+        // 足元のやわらかい明るみ（ゆっくり息をする）
+        val breath = 0.5f + 0.5f * sin(seconds * PULSE_RATE * 2f * PI.toFloat())
+        val glow = tile * (PULSE_FROM + 0.25f) * 2f
+        soft(LifeArt.shared.puff, cx, gy, glow * 2f, glow * 2f * PULSE_FLAT, 0.16f + 0.12f * breath, pulseTint(color))
+        for (k in 0 until PULSE_RINGS) {
+            val f = fract(seconds * PULSE_RATE + k / PULSE_RINGS.toFloat())
+            val rx = tile * (PULSE_FROM + PULSE_GROW * f)
+            val ry = rx * PULSE_FLAT
+            drawOval(
+                color.copy(alpha = (1f - f) * (1f - f) * PULSE_ALPHA),
+                Offset(cx - rx, gy - ry),
+                Size(rx * 2f, ry * 2f),
+                style = pulseStroke,
+            )
+        }
+    }
+
+    private var pulseTintColor = Color.Unspecified
+    private var pulseTintFilter: ColorFilter? = null
+
+    /** 輪の色の ColorFilter（色が変わったときだけ作り直す）。 */
+    private fun pulseTint(color: Color): ColorFilter? {
+        if (color != pulseTintColor) {
+            pulseTintColor = color
+            pulseTintFilter = ColorFilter.tint(color)
+        }
+        return pulseTintFilter
+    }
+
+    /**
+     * 川の流れの光。川の折れ線 [river]（タイル座標の x, y の並び。1 行に 1 点）に沿って、下流へ流れる短い白い筋を描く。
+     * 見えている行だけを回す。
+     */
+    fun DrawScope.drawRiverShimmer(
+        river: FloatArray,
+        tile: Float,
+        offX: Float,
+        offY: Float,
+        seconds: Float,
+        y0: Int,
+        y1: Int,
+    ) {
+        if (tile < LOD_FAR_DP * density) return
+        val last = river.size / 2 - 2
+        for (i in max(0, y0)..min(last, y1 + 2)) {
+            val ax = river[i * 2]
+            val ay = river[i * 2 + 1]
+            val dx = river[i * 2 + 2] - ax
+            val dy = river[i * 2 + 3] - ay
+            val len = hypot(dx, dy).coerceAtLeast(MIN_LEN)
+            for (k in 0 until RIVER_GLINTS) {
+                val f = fract(seconds * RIVER_FLOW * (0.7f + 0.6f * hash01(i, k)) + hash01(i, k + 7))
+                val lane = (hash01(i, k + 13) - 0.5f) * RIVER_LANE
+                val px = offX + (ax + dx * f + lane) * tile
+                val py = offY + (ay + dy * f) * tile
+                if (px < -tile || px > size.width + tile) continue
+                val tw = 0.5f + 0.5f * sin(seconds * 2.1f + i * 1.7f + k)
+                val half = tile * RIVER_STREAK
+                drawLine(
+                    Color.White.copy(alpha = sin(f * PI.toFloat()) * (0.2f + 0.5f * tw)),
+                    Offset(px - dx / len * half, py - dy / len * half),
+                    Offset(px + dx / len * half, py + dy / len * half),
+                    strokeWidth = tile * RIVER_STREAK_WIDTH,
+                    cap = StrokeCap.Round,
+                )
+            }
+        }
+    }
+
+    /** 湖や海（地形の水タイル）のきらめき。見えている水タイルのどこかが、数秒に 1 度、短く光る。 */
+    fun DrawScope.drawWaterGlints(
+        world: WorldMap,
+        x0: Int,
+        y0: Int,
+        x1: Int,
+        y1: Int,
+        tile: Float,
+        offX: Float,
+        offY: Float,
+        seconds: Float,
+    ) {
+        if (tile < LOD_FAR_DP * density) return
+        val art = LifeArt.shared
+        for (y in y0..y1) {
+            for (x in x0..x1) {
+                if (world.terrainAt(x, y) != Terrain.WATER) continue
+                val c = seconds * WATER_RATE + hash01(x, y) * WATER_SPREAD
+                val cycle = c.toInt()
+                val f = c - cycle
+                if (f > WATER_ON) continue
+                val b = sin(f / WATER_ON * PI.toFloat())
+                val px = offX + (x + 0.15f + 0.7f * hash01(cycle + x, y)) * tile
+                val py = offY + (y + 0.15f + 0.7f * hash01(cycle + y, x + 31)) * tile
+                val s = tile * (0.16f + 0.2f * b)
+                soft(art.spark, px, py, s, s, b * 0.9f, blend = BlendMode.Plus)
+            }
+        }
+    }
+
+    /**
+     * 雲とその影。地図より少し速く流れ（視差）、風で右下へ動き続ける。影は地面に落ちるので、雲の右下にずらして暗く重ねる。
+     * ズームが近いと出さない（拠点を隠さない）。
+     */
     fun DrawScope.drawClouds(
         offX: Float,
         offY: Float,
@@ -221,34 +410,80 @@ internal object MapLive {
         tile: Float,
     ) {
         if (tile > CLOUD_MAX_TILE_DP * density) return
-        val w = size.width + CLOUD_SPAN
-        repeat(7) { i ->
-            val speed = 6f + (i % 3) * 3f
-            val x = ((i * 233f + seconds * speed + offX * CLOUD_PARALLAX) % w + w) % w - CLOUD_SPAN / 2f
-            val y = (i * 157f % size.height) + offY * CLOUD_PARALLAX * 0.5f % size.height
-            val r = tile * (1.6f + (i % 3) * 0.5f)
-            val c = Color(0x33FFFFFF)
-            drawOval(c, Offset(x, y), Size(r * 2.4f, r * 0.9f))
-            drawOval(c, Offset(x + r * 0.7f, y - r * 0.3f), Size(r * 1.6f, r * 0.9f))
-            drawOval(Color(0x14000000), Offset(x + r * 0.2f, y + r * 2.2f), Size(r * 2.2f, r * 0.5f))
+        val art = LifeArt.shared
+        for (i in 0 until CLOUDS) {
+            val speed = (CLOUD_SPEED_DP + (i % 3) * CLOUD_SPEED_STEP_DP) * density
+            val w = tile * (CLOUD_TILES + (i % 3) * 1.3f)
+            val h = w * 0.5f
+            val wrapX = size.width + w * 2f
+            val wrapY = size.height + h * 2f
+            val cx = wrap(hash01(i, 71) * wrapX + seconds * speed + offX * CLOUD_PARALLAX, wrapX) - w * 0.5f
+            val driftY = seconds * speed * CLOUD_SLANT + offY * CLOUD_PARALLAX
+            val cy = wrap(hash01(i, 72) * wrapY + driftY, wrapY) - h * 0.5f
+            soft(art.cloud, cx + tile * 0.6f, cy + tile * 1.2f, w, h, CLOUD_SHADOW_ALPHA, LifeArt.SHADOW_TINT)
+            soft(art.cloud, cx, cy, w, h, CLOUD_ALPHA)
         }
     }
 
-    /** 拠点（城・同盟の城・NPC 城・砦・聖地）。自城は城のスキンの色。 */
+    /** [v] を 0 以上 [m] 未満に折り返す。 */
+    private fun wrap(
+        v: Float,
+        m: Float,
+    ): Float = ((v % m) + m) % m
+
+    /**
+     * ときどき地図の上を横切る鳥の群れと、その影（画面に対して飛ぶ。[BIRD_PERIOD] 秒ごとに 1 群れ、向きと高さは回ごとに変わる）。
+     */
+    fun DrawScope.drawBirds(seconds: Float) {
+        val c = seconds / BIRD_PERIOD
+        val cycle = c.toInt()
+        val t = (c - cycle) * BIRD_PERIOD
+        if (t > BIRD_FLIGHT) return
+        val dir = if (hash01(cycle, 81) < 0.5f) 1f else -1f
+        val span = BIRD_SPAN_DP * density
+        val margin = span * BIRD_MARGIN
+        val u = t / BIRD_FLIGHT
+        val reach = (size.width + margin * 2f) * u
+        val x0 = if (dir > 0f) reach - margin else size.width + margin - reach
+        val slope = (hash01(cycle, 83) - 0.5f) * BIRD_SLOPE
+        val y0 = size.height * (0.2f + 0.5f * hash01(cycle, 82) + (u - 0.5f) * slope)
+        val n = BIRD_MIN + (hash01(cycle, 84) * (BIRD_MAX - BIRD_MIN + 1)).toInt().coerceAtMost(BIRD_MAX - BIRD_MIN)
+        for (k in 0 until n) {
+            val row = (k + 1) / 2
+            val sideways = if (k % 2 == 0) 1f else -1f
+            val x = x0 - dir * row * span * 1.5f
+            val y = y0 + sideways * row * span * 0.8f
+            val flap = sin(seconds * BIRD_FLAP + k * 1.3f)
+            bird(x + span * 2.2f, y + span * 5f, span, flap, dir, shadow = true)
+            bird(x, y + sin(seconds * 1.7f + k) * span * 0.15f, span, flap, dir)
+        }
+    }
+
+    /**
+     * 拠点（城・同盟の城・NPC 城・砦・聖地）。自城は城のスキンの色。[tiers] は拠点ごとの見た目の段階（[structureTier]）。
+     * 旗は風にはためく。
+     */
     fun DrawScope.drawStructures(
         world: WorldMap,
         tile: Float,
         offX: Float,
         offY: Float,
         castleTheme: String?,
-        tierOf: (Structure) -> Int,
+        tiers: IntArray,
         sprites: SpriteCache?,
-        visible: (Int, Int) -> Boolean,
+        seconds: Float,
+        x0: Int,
+        y0: Int,
+        x1: Int,
+        y1: Int,
     ) {
         val near = sprites != null && tile >= SPRITE_MIN_DP * density
-        for (st in world.structures) {
-            if (!visible(st.x, st.y)) continue
-            if (near && drawStructureSprite(st, tile, offX, offY, castleTheme, tierOf(st), sprites!!)) continue
+        val structures = world.structures
+        for (index in structures.indices) {
+            val st = structures[index]
+            if (st.x !in x0..x1 || st.y !in y0..y1) continue
+            val tier = tiers.getOrElse(index) { 1 }
+            if (near && drawStructureSprite(st, tile, offX, offY, castleTheme, tier, sprites!!, seconds)) continue
             val color =
                 when (st.type) {
                     StructureType.PLAYER_CASTLE -> territoryColor(castleTheme) ?: CASTLE
@@ -276,20 +511,23 @@ internal object MapLive {
                     Color.Black,
                     Offset(tx, by - tile * 0.22f),
                     Size(tile * 0.18f, tile * 0.34f),
-                    style = Stroke(1.5f),
+                    style = THIN_STROKE,
                 )
             }
-            drawRect(Color.Black, Offset(bx, by), Size(bw, bh), style = Stroke(2f))
+            drawRect(Color.Black, Offset(bx, by), Size(bw, bh), style = ICON_STROKE)
             drawRect(Color(0xFF3A2A18), Offset(bx + bw * 0.4f, by + bh * 0.4f), Size(bw * 0.2f, bh * 0.6f))
             if (tile >= LOD_FAR_DP * density) {
                 drawLine(Color.Black, Offset(bx + bw / 2, by - tile * 0.22f), Offset(bx + bw / 2, by - tile * 0.5f), 2f)
-                val flag = scratch
-                flag.rewind()
-                flag.moveTo(bx + bw / 2, by - tile * 0.5f)
-                flag.lineTo(bx + bw / 2 + tile * 0.22f, by - tile * 0.42f)
-                flag.lineTo(bx + bw / 2, by - tile * 0.34f)
-                flag.close()
-                drawPath(flag, if (st.type == StructureType.PLAYER_CASTLE) Color(0xFFD32F2F) else color)
+                flag(
+                    bx + bw / 2,
+                    by - tile * 0.5f,
+                    tile * 0.26f,
+                    tile * 0.17f,
+                    if (st.type == StructureType.PLAYER_CASTLE) Color(0xFFD32F2F) else color,
+                    seconds,
+                    st.x * 1.3f + st.y * 0.7f,
+                    pennant = true,
+                )
             }
         }
     }
@@ -303,6 +541,7 @@ internal object MapLive {
         castleTheme: String?,
         tier: Int,
         sprites: SpriteCache,
+        seconds: Float,
     ): Boolean {
         val id =
             when (st.type) {
@@ -335,22 +574,61 @@ internal object MapLive {
         drawOval(Color(0x40000000), Offset(cx - tile * 0.85f, gy - tile * 0.2f), Size(tile * 1.7f, tile * 0.4f))
         val scale = tile * (if (st.type == StructureType.HOLY_LAND) HOLY_SPAN else CASTLE_SPAN) / FOOTPRINT_VP
         drawSprite(sp, cx, gy, scale)
-        // 持ち主ごとの旗（自城=金、同盟=青、NPC=赤、敵の砦=紫）。聖地には立てない
+        // 持ち主ごとの旗（自城=金、同盟=青、NPC=赤、敵の砦=紫）。聖地には立てない。旗は風にはためく。
+        // 竿は絵のいちばん高いところ（絵から測る）に立てるので、絵を差し替えても宙に浮かない
         if (st.type != StructureType.HOLY_LAND) {
-            val top = gy - FLAG_BASE_VP[(tier - 1).coerceIn(0, 4)] * scale
+            val peak = peakOf(sp)
+            val px = cx + peak[0] * scale
+            val top = gy - (peak[1] - FLAG_SINK_VP) * scale
             val pole = tile * FLAG_POLE
-            val color = flagColor(st.type)
-            drawLine(Color(0xFF3A2A18), Offset(cx, top), Offset(cx, top - pole), strokeWidth = 2f)
-            val flag = scratch
-            flag.rewind()
-            flag.moveTo(cx, top - pole)
-            flag.lineTo(cx + tile * FLAG_WIDTH, top - pole + tile * FLAG_DROOP)
-            flag.lineTo(cx, top - pole + tile * FLAG_DROOP * 2f)
-            flag.close()
-            drawPath(flag, color)
-            drawPath(flag, Color.Black.copy(alpha = 0.5f), style = Stroke(1f))
+            drawLine(Color(0xFF3A2A18), Offset(px, top), Offset(px, top - pole), strokeWidth = 2f)
+            flag(
+                px + 1f,
+                top - pole,
+                tile * FLAG_WIDTH,
+                tile * FLAG_DROOP * 2f,
+                flagColor(st.type),
+                seconds,
+                st.x * 1.3f + st.y * 0.7f,
+                pennant = true,
+            )
+            drawCircle(Color(0xFFF2CB55), tile * 0.035f, Offset(px, top - pole))
         }
         return true
+    }
+
+    /** スプライトごとの「てっぺん」（足元の原点から見た横のずれと高さ。viewport 単位）。絵が捨てられたら一緒に消える。 */
+    private val peaks = java.util.WeakHashMap<Sprite, FloatArray>()
+
+    /**
+     * 絵 [sp] のいちばん高い不透明な点を探す（中央の帯だけを上から見ていく。スプライトごとに 1 度だけ）。
+     * 段階ごとの高さの表を持たずに、どの絵でも旗竿を屋根の先に立てられる。
+     */
+    private fun peakOf(sp: Sprite): FloatArray {
+        peaks[sp]?.let { return it }
+        val bitmap = sp.image.asAndroidBitmap()
+        val k = bitmap.width / sp.vw
+        val from = ((sp.ax - PEAK_BAND_VP) * k).toInt().coerceIn(0, bitmap.width - 1)
+        val until = ((sp.ax + PEAK_BAND_VP) * k).toInt().coerceIn(from + 1, bitmap.width)
+        val row = IntArray(until - from)
+        var found = floatArrayOf(0f, sp.ay * PEAK_FALLBACK)
+        for (y in 0 until bitmap.height) {
+            bitmap.getPixels(row, 0, row.size, from, y, row.size, 1)
+            var sum = 0
+            var n = 0
+            for (i in row.indices) {
+                if (row[i] ushr ALPHA_SHIFT > PEAK_ALPHA) {
+                    sum += i
+                    n++
+                }
+            }
+            if (n > 0) {
+                found = floatArrayOf((from + sum / n.toFloat()) / k - sp.ax, sp.ay - y / k)
+                break
+            }
+        }
+        peaks[sp] = found
+        return found
     }
 
     private fun flagColor(type: StructureType): Color =
@@ -384,6 +662,27 @@ internal object MapLive {
             StructureType.BARBARIAN_FORT -> ((st.level - 1) / 2 + 1).coerceIn(1, 5)
             StructureType.HOLY_LAND -> 5
         }
+
+    /** すべての拠点の段階（[WorldMap.structures] と同じ並び）。状態が変わったときに 1 度だけ求める。 */
+    fun structureTiers(
+        world: WorldMap,
+        s: GameState,
+        data: GameData,
+        castleTier: Int,
+    ): IntArray = IntArray(world.structures.size) { structureTier(world.structures[it], world, s, data, castleTier) }
+
+    /** 折れ線（タイル座標）を x, y の並びの配列にする（描画で確保なしに読める形）。 */
+    fun flatten(line: List<Offset>): FloatArray {
+        val out = FloatArray(line.size * 2)
+        for (i in line.indices) {
+            out[i * 2] = line[i].x
+            out[i * 2 + 1] = line[i].y
+        }
+        return out
+    }
+
+    /** 自城の脈打つ輪の色（城のスキンの色。無ければ金）。 */
+    fun pulseColor(castleTheme: String?): Color = territoryColor(castleTheme) ?: PULSE_GOLD
 
     private fun tierOfLv(lv: Int): Int = ((lv - 1) / TIER_LV_SPAN + 1).coerceIn(1, 5)
 
@@ -429,13 +728,16 @@ internal object MapLive {
         offX: Float,
         offY: Float,
         seconds: Float,
-        glyph: (ResourceType) -> ImageBitmap?,
+        glyphs: GlyphBitmaps,
         sprites: SpriteCache?,
-        visible: (Int, Int) -> Boolean,
+        x0: Int,
+        y0: Int,
+        x1: Int,
+        y1: Int,
     ) {
         val near = sprites != null && tile >= SPRITE_MIN_DP * density
         for (n in s.map.nodes) {
-            if (!visible(n.x, n.y)) continue
+            if (n.x !in x0..x1 || n.y !in y0..y1) continue
             val c = Offset(offX + (n.x + 0.5f) * tile, offY + (n.y + 0.5f) * tile)
             val pulse = 0.85f + 0.15f * sin(seconds * 2.4f + n.x * 0.7f + n.y)
             val color = nodeColor(n.type)
@@ -452,16 +754,14 @@ internal object MapLive {
                 continue
             }
             drawCircle(color, tile * 0.2f, c)
-            drawCircle(Color.Black.copy(alpha = 0.5f), tile * 0.2f, c, style = Stroke(1.5f))
+            drawCircle(Color.Black.copy(alpha = 0.5f), tile * 0.2f, c, style = THIN_STROKE)
             if (tile >= LOD_FAR_DP * density) {
-                glyph(n.type)?.let {
-                    val side = (tile * NODE_GLYPH).roundToInt().coerceAtLeast(1)
-                    drawImage(
-                        image = it,
-                        dstOffset = IntOffset((c.x - side / 2f).roundToInt(), (c.y - side / 2f).roundToInt()),
-                        dstSize = IntSize(side, side),
-                    )
-                }
+                val side = (tile * NODE_GLYPH).roundToInt().coerceAtLeast(1)
+                drawImage(
+                    image = glyphs.get(n.type.glyph()),
+                    dstOffset = IntOffset((c.x - side / 2f).roundToInt(), (c.y - side / 2f).roundToInt()),
+                    dstSize = IntSize(side, side),
+                )
             }
         }
     }
@@ -505,12 +805,16 @@ internal object MapLive {
         drawOval(Color(0x33000000), Offset(c.x - tile * 0.95f, c.y + tile * 0.05f), Size(tile * 1.9f, tile * 0.7f))
         drawOval(HILL_DARK, Offset(c.x - tile * 0.9f, c.y - tile * 0.45f), Size(tile * 1.8f, tile * 0.95f))
         drawOval(HILL_LIGHT, Offset(c.x - tile * 0.7f, c.y - tile * 0.52f), Size(tile * 1.35f, tile * 0.7f))
-        for ((dx, dy) in HILL_ROCKS) {
-            drawOval(Color(0xFF8E8B82), Offset(c.x + tile * dx, c.y + tile * dy), Size(tile * 0.2f, tile * 0.13f))
+        for (k in HILL_ROCKS.indices step 2) {
+            drawOval(
+                Color(0xFF8E8B82),
+                Offset(c.x + tile * HILL_ROCKS[k], c.y + tile * HILL_ROCKS[k + 1]),
+                Size(tile * 0.2f, tile * 0.13f),
+            )
         }
     }
 
-    /** 野蛮人の野営地: テントと、ゆらめく焚き火。 */
+    /** 野蛮人の野営地: テントと、ゆらめく焚き火（暖かいにじみ・炎・はぜる火の粉・細い煙）。 */
     fun DrawScope.drawCamps(
         s: GameState,
         tile: Float,
@@ -518,11 +822,15 @@ internal object MapLive {
         offY: Float,
         seconds: Float,
         sprites: SpriteCache?,
-        visible: (Int, Int) -> Boolean,
+        x0: Int,
+        y0: Int,
+        x1: Int,
+        y1: Int,
     ) {
         val near = sprites != null && tile >= SPRITE_MIN_DP * density
+        val art = LifeArt.shared
         for (b in s.map.barbarians) {
-            if (!visible(b.x, b.y)) continue
+            if (b.x !in x0..x1 || b.y !in y0..y1) continue
             val tentSprite = if (near) sprites!!.get(SpriteIds.TENT) else null
             val x = offX + b.x * tile
             val y = offY + b.y * tile
@@ -537,86 +845,198 @@ internal object MapLive {
                 tent.lineTo(x + tile * 0.68f, y + tile * 0.82f)
                 tent.close()
                 drawPath(tent, Color(0xFF8B3A2E))
-                drawPath(tent, Color.Black, style = Stroke(1.5f))
+                drawPath(tent, Color.Black, style = THIN_STROKE)
             }
-            // 焚き火（炎の大きさと揺れは時間で変える）
+            // 焚き火（炎の大きさと揺れは時間で変える。野営地ごとに位相をずらす）
             val fx = x + tile * 0.78f
-            val fy = y + tile * 0.78f
-            val flick = 0.8f + 0.25f * sin(seconds * 9f + b.x * 1.7f) + 0.1f * sin(seconds * 17f + b.y)
-            drawCircle(Color(0x55FF8A3D), tile * 0.3f * flick, Offset(fx, fy - tile * 0.12f))
-            val flame = scratch2
-            flame.rewind()
-            flame.moveTo(fx - tile * 0.07f, fy)
-            flame.quadraticTo(
-                fx - tile * 0.05f,
-                fy - tile * 0.2f * flick,
-                fx + sin(seconds * 6f) * tile * 0.03f,
-                fy - tile * 0.3f * flick,
+            val fy = y + tile * 0.8f
+            val p = b.x * 1.7f + b.y * 0.9f
+            val flick = LifeDraw.flicker(seconds, p)
+            val glow = tile * FIRE_GLOW * (0.85f + 0.3f * flick)
+            soft(art.glow, fx, fy - tile * 0.12f, glow * 2f, glow * 2f, 0.62f * flick, blend = BlendMode.Plus)
+            if (tile < LOD_FAR_DP * density) continue
+            // 細い煙
+            for (k in 0 until FIRE_SMOKE) {
+                val ph = fract(seconds * 0.32f + k / FIRE_SMOKE.toFloat() + p)
+                val r = tile * (0.05f + 0.12f * ph)
+                soft(
+                    art.puff,
+                    fx + tile * (0.22f * ph * ph + 0.03f * sin(ph * 6f + k)),
+                    fy - tile * (0.3f + 0.55f * ph),
+                    r * 2f,
+                    r * 2f,
+                    (ph / 0.2f).coerceAtMost(1f) * (1f - ph) * 0.4f,
+                )
+            }
+            drawLine(
+                Color(0xFF4A3526),
+                Offset(fx - tile * 0.08f, fy + tile * 0.01f),
+                Offset(fx + tile * 0.08f, fy - tile * 0.02f),
+                strokeWidth = tile * 0.035f,
+                cap = StrokeCap.Round,
             )
-            flame.quadraticTo(fx + tile * 0.07f, fy - tile * 0.15f, fx + tile * 0.07f, fy)
-            flame.close()
-            drawPath(flame, Color(0xFFFF8F00))
-            drawCircle(Color(0xFFFFEB3B), tile * 0.04f, Offset(fx, fy - tile * 0.07f))
+            flame(fx, fy, tile * FIRE_HEIGHT, flick, sin(seconds * 6f + p) * tile * 0.02f)
+            // はぜる火の粉
+            for (k in 0 until FIRE_SPARKS) {
+                val c = seconds * 1.3f + k * 0.37f + p
+                val f = c - floorInt(c)
+                val dx = (hash01(floorInt(c), k + b.x) - 0.5f) * 0.3f
+                drawCircle(
+                    Color(0xFFFFC85A).copy(alpha = 1f - f),
+                    tile * 0.018f,
+                    Offset(fx + tile * dx * f, fy - tile * (0.15f + 0.4f * f)),
+                )
+            }
         }
     }
 
-    /** 行軍: 自城から目標への線、3 人の隊列、後ろに舞う土ぼこり。 */
+    private fun floorInt(v: Float): Int = if (v >= 0f) v.toInt() else v.toInt() - 1
+
+    /**
+     * 行軍: 自城から目標への線、歩く 3 人の隊列（先頭は旗持ち）、後ろに舞う土ぼこり。位置は [track] がなめらかに補間する。
+     * 遠いズームでは、色のついた点だけにする。
+     */
     fun DrawScope.drawMarches(
         s: GameState,
         data: GameData,
+        track: MarchTrack,
         tile: Float,
         offX: Float,
         offY: Float,
-        nowSec: Long,
         seconds: Float,
         trailTheme: String?,
     ) {
-        val castle =
-            Offset(offX + (data.mapRules.center.x + 0.5f) * tile, offY + (data.mapRules.center.y + 0.5f) * tile)
-        for (m in s.marches) {
+        val castleX = offX + (data.mapRules.center.x + 0.5f) * tile
+        val castleY = offY + (data.mapRules.center.y + 0.5f) * tile
+        val art = LifeArt.shared
+        val detail = tile >= LOD_FAR_DP * density
+        val marches = s.marches
+        for (index in marches.indices) {
+            val m = marches[index]
             val color = trailColor(m.kind, trailTheme)
-            val target = Offset(offX + (m.target.x + 0.5f) * tile, offY + (m.target.y + 0.5f) * tile)
-            drawLine(color.copy(alpha = 0.35f), castle, target, strokeWidth = 3f)
-            val (mx, my) = MarchViews.position(m, nowSec, data)
-            val head = Offset(offX + (mx + 0.5f) * tile, offY + (my + 0.5f) * tile)
+            val targetX = offX + (m.target.x + 0.5f) * tile
+            val targetY = offY + (m.target.y + 0.5f) * tile
+            drawLine(color.copy(alpha = 0.35f), Offset(castleX, castleY), Offset(targetX, targetY), strokeWidth = 3f)
+            val hx = offX + (track.x(index) + 0.5f) * tile
+            val hy = offY + (track.y(index) + 0.5f) * tile
             // 進む向き: 往路は目標へ、復路は城へ。止まっている（待機・作業中）ときは向きだけ保ち、土ぼこりは出さない
             val moving = m.phase == MarchPhase.OUTBOUND || m.phase == MarchPhase.RETURNING
-            val goal = if (m.phase == MarchPhase.RETURNING) castle else target
-            val aim = if (moving) goal - head else target - castle
-            val dir =
-                aim.let { v ->
-                    val l = hypot(v.x, v.y).coerceAtLeast(1f)
-                    Offset(v.x / l, v.y / l)
-                }
-            // 土ぼこり（進行方向の後ろに、時間差で薄れる粒）
-            if (moving && tile >= LOD_FAR_DP * density * 0.5f) {
-                repeat(6) { i ->
-                    val u = i / 6f
-                    val rise = -tile * 0.12f * u * (1f + sin(seconds * 5f + i))
-                    val p = head - dir * (tile * (0.25f + u * 0.9f)) + Offset(0f, rise)
-                    drawCircle(
-                        (if (trailTheme == null) DUST else color).copy(alpha = 0.5f * (1f - u)),
-                        tile * (0.07f + 0.09f * u),
-                        p,
+            val goalX = if (m.phase == MarchPhase.RETURNING) castleX else targetX
+            val goalY = if (m.phase == MarchPhase.RETURNING) castleY else targetY
+            val aimX = if (moving) goalX - hx else targetX - castleX
+            val aimY = if (moving) goalY - hy else targetY - castleY
+            val aim = hypot(aimX, aimY).coerceAtLeast(1f)
+            val dirX = aimX / aim
+            val dirY = aimY / aim
+            if (!detail) {
+                drawCircle(Color.White, tile * 0.1f + 2f, Offset(hx, hy))
+                drawCircle(color, tile * 0.1f, Offset(hx, hy))
+                continue
+            }
+            // 土ぼこり（進行方向の後ろへ流れ、広がりながら薄れる）
+            if (moving) {
+                val tint = dustTint(trailTheme)
+                for (i in 0 until MARCH_DUST) {
+                    val u = fract(seconds * 0.9f + i / MARCH_DUST.toFloat() + index * 0.37f)
+                    val back = tile * (0.2f + u * 0.95f)
+                    val r = tile * (0.08f + 0.18f * u)
+                    soft(
+                        art.puff,
+                        hx - dirX * back + sin(u * 9f + i) * tile * 0.04f,
+                        hy - dirY * back - tile * 0.14f * u,
+                        r * 2f,
+                        r * 2f,
+                        (u / 0.15f).coerceAtMost(1f) * (1f - u) * 0.8f,
+                        tint,
                     )
                 }
             }
-            // 隊列（旗持ち＋兵 2 人）
-            val side = Offset(-dir.y, dir.x)
-            val bob = sin(seconds * 10f + m.target.x * 0.9f) * tile * 0.025f
-            for ((k, o) in listOf(
-                Offset.Zero,
-                side * (tile * 0.14f) - dir * (tile * 0.12f),
-                side * (-tile * 0.14f) - dir * (tile * 0.12f),
-            ).withIndex()) {
-                val p = head + o + Offset(0f, bob)
-                drawCircle(Color.White, tile * 0.1f + 2f, p)
-                drawCircle(color, tile * (if (k == 0) 0.1f else 0.08f), p)
-            }
-            drawLine(Color(0xFF3A2A18), head + Offset(0f, bob), head + Offset(0f, bob - tile * 0.3f), strokeWidth = 2f)
-            drawRect(color, head + Offset(0f, bob - tile * 0.3f), Size(tile * 0.18f, tile * 0.1f))
+            // 隊の足元の輪（種別の色。地図の上で見つけやすい）
+            drawOval(
+                color.copy(alpha = 0.3f),
+                Offset(hx - tile * 0.4f, hy - tile * 0.15f),
+                Size(tile * 0.8f, tile * 0.34f),
+            )
+            drawOval(
+                Color.White.copy(alpha = 0.75f),
+                Offset(hx - tile * 0.4f, hy - tile * 0.15f),
+                Size(tile * 0.8f, tile * 0.34f),
+                style = THIN_STROKE,
+            )
+            // 隊列（旗持ち＋兵 2 人）。奥の兵から描く
+            val u = tile * MARCH_FIGURE
+            val faceX = if (dirX >= 0f) 1f else -1f
+            val away = dirY < -0.2f
+            val stride = seconds * MARCH_STRIDE + index * 1.3f
+            val look = MARCH_LOOKS[m.kind.ordinal % MARCH_LOOKS.size]
+            val backX = -dirX * tile * 0.2f
+            val backY = -dirY * tile * 0.2f * 0.6f
+            val sideX = -dirY * tile * 0.17f
+            val sideY = dirX * tile * 0.17f * 0.6f
+            val leaderFirst = backY > 0f
+            if (leaderFirst) marchLeader(hx, hy, u, look, stride, moving, faceX, away, color, seconds, index)
+            val firstSide = if (sideY > 0f) -1f else 1f
+            figure(
+                hx + backX + sideX * firstSide,
+                hy + backY + sideY * firstSide,
+                u,
+                look,
+                stride + PI.toFloat(),
+                moving,
+                faceX,
+                away,
+                LifeDraw.GEAR_SPEAR,
+            )
+            figure(
+                hx + backX - sideX * firstSide,
+                hy + backY - sideY * firstSide,
+                u,
+                look,
+                stride + PI.toFloat() * 0.5f,
+                moving,
+                faceX,
+                away,
+                LifeDraw.GEAR_SPEAR,
+            )
+            if (!leaderFirst) marchLeader(hx, hy, u, look, stride, moving, faceX, away, color, seconds, index)
         }
     }
+
+    /** 隊の先頭の旗持ち（歩く人と、背の高い旗）。 */
+    private fun DrawScope.marchLeader(
+        x: Float,
+        y: Float,
+        u: Float,
+        look: FigureLook,
+        stride: Float,
+        moving: Boolean,
+        faceX: Float,
+        away: Boolean,
+        color: Color,
+        seconds: Float,
+        index: Int,
+    ) {
+        figure(x, y, u, look, stride, moving, faceX, away)
+        val px = x - faceX * 2.2f * u
+        val top = y - MARCH_POLE * u
+        drawLine(
+            Color(0xFF3A2A18),
+            Offset(px, y - 2f * u),
+            Offset(px, top),
+            strokeWidth = 0.8f * u,
+            cap = StrokeCap.Round,
+        )
+        flag(px + 0.3f * u, top + 0.4f * u, 7.5f * u, 5f * u, color, seconds, index * 2.1f, swallow = true)
+        drawCircle(Color(0xFFF2CB55), 0.7f * u, Offset(px, top))
+    }
+
+    private fun dustTint(theme: String?): ColorFilter =
+        when (theme) {
+            "flame", "dragon" -> LifeArt.EMBER_TINT
+            "ice" -> LifeArt.ICE_TINT
+            "sakura" -> LifeArt.PETAL_TINT
+            else -> LifeArt.DUST_TINT
+        }
 
     /** これより小さい（dp）と、飾り・粒・ラベルを省く（密度に依らず見た目の大きさで決める）。 */
     const val LOD_FAR_DP = 8f
@@ -631,8 +1051,12 @@ internal object MapLive {
     private const val FLAG_WIDTH = 0.3f
     private const val FLAG_DROOP = 0.1f
 
-    /** 段階ごとの、スプライトの足元から旗を立てる高さ（viewport 単位。城の屋根の少し上）。 */
-    private val FLAG_BASE_VP = floatArrayOf(52f, 78f, 100f, 112f, 130f)
+    /** 旗竿を屋根の先に少し沈める量と、てっぺんを探す中央の帯の半幅（viewport 単位）。 */
+    private const val FLAG_SINK_VP = 2f
+    private const val PEAK_BAND_VP = 14f
+    private const val PEAK_ALPHA = 128
+    private const val PEAK_FALLBACK = 0.8f
+    private const val ALPHA_SHIFT = 24
     private const val CASTLE_SPAN = 1.5f
     private const val HOLY_SPAN = 1.8f
     private const val NODE_SPAN = 0.95f
@@ -644,10 +1068,69 @@ internal object MapLive {
     private const val FOG_MAX_ALPHA = 0.7f
     private const val NIGHT_ALPHA = 0.28f
     private const val DUSK_ALPHA = 0.14f
-    private const val CLOUD_SPAN = 400f
     private const val CLOUD_PARALLAX = 1.3f
     private const val CLOUD_MAX_TILE_DP = 44f
 
-    @Suppress("unused")
-    private val TWO_PI = (2 * PI).toFloat()
+    /** 雲: 数・流れる速さ（dp / 秒）・大きさ（タイル）・濃さ。 */
+    private const val CLOUDS = 6
+    private const val CLOUD_SPEED_DP = 9f
+    private const val CLOUD_SPEED_STEP_DP = 3f
+    private const val CLOUD_SLANT = 0.24f
+    private const val CLOUD_TILES = 5.4f
+    private const val CLOUD_ALPHA = 0.3f
+    private const val CLOUD_SHADOW_ALPHA = 0.14f
+
+    /** 自城の脈打つ輪: 数・1 秒あたりの周回・半径（タイル）・つぶれ・濃さ・線の太さ。 */
+    private const val PULSE_RINGS = 2
+    private const val PULSE_RATE = 0.45f
+    private const val PULSE_FROM = 0.75f
+    private const val PULSE_GROW = 1.25f
+    private const val PULSE_FLAT = 0.42f
+    private const val PULSE_ALPHA = 0.95f
+    private const val PULSE_STROKE_DP = 2.2f
+    private var pulseStroke = Stroke(1f)
+    private var pulseDensity = 0f
+
+    /** 川の光: 1 行あたりの筋の数・流れる速さ・川幅の中で散らす幅（タイル）・筋の長さと太さ（タイル）。 */
+    private const val RIVER_GLINTS = 2
+    private const val RIVER_FLOW = 0.4f
+    private const val RIVER_LANE = 0.5f
+    private const val RIVER_STREAK = 0.1f
+    private const val RIVER_STREAK_WIDTH = 0.035f
+    private const val MIN_LEN = 0.001f
+    private const val WATER_RATE = 0.4f
+    private const val WATER_SPREAD = 7f
+    private const val WATER_ON = 0.3f
+
+    /** 焚き火: にじみの半径・炎の高さ（タイル）・煙の玉と火の粉の数。 */
+    private const val FIRE_GLOW = 0.34f
+    private const val FIRE_HEIGHT = 0.3f
+    private const val FIRE_SMOKE = 3
+    private const val FIRE_SPARKS = 2
+
+    /** 行軍: 兵の大きさ（タイルに対する 1 単位。背は約 0.37 タイル）・足の速さ・旗竿の高さ・土ぼこりの数。 */
+    private const val MARCH_FIGURE = 0.03f
+    private const val MARCH_STRIDE = 9f
+    private const val MARCH_POLE = 17f
+    private const val MARCH_DUST = 5
+    private val MARCH_LOOKS =
+        arrayOf(
+            FigureLook(Color(0xFF5FAE62), Color(0xFF3A3F36), Color(0xFFC8CED8)),
+            FigureLook(Color(0xFFD9534F), Color(0xFF41343A), Color(0xFFC8CED8)),
+            FigureLook(Color(0xFF3FA7DC), Color(0xFF34404C), Color(0xFFC8CED8)),
+            FigureLook(Color(0xFF9C4FB5), Color(0xFF3C3448), Color(0xFFC8CED8)),
+        )
+
+    /** 鳥: 何秒ごとに 1 群れ・横切るのにかかる秒・羽の幅（dp）・羽ばたきの速さ。 */
+    private const val BIRD_PERIOD = 31f
+    private const val BIRD_FLIGHT = 15f
+    private const val BIRD_SPAN_DP = 9f
+    private const val BIRD_MARGIN = 8f
+    private const val BIRD_SLOPE = 0.4f
+    private const val BIRD_MIN = 3
+    private const val BIRD_MAX = 5
+    private const val BIRD_FLAP = 9f
+    private val TERRITORY_STROKE = Stroke(width = 2.5f)
+    private val THIN_STROKE = Stroke(1.5f)
+    private val ICON_STROKE = Stroke(2f)
 }

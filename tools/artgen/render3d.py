@@ -52,14 +52,14 @@ CAM_F = (-_C30 * _S2, -_C30 * _S2, -_S30)             # viewing direction (into 
 # Lighting (world space; directions point towards the light).  The key light comes from the upper
 # left-front: faces looking at +y (left-front on screen) are lit, faces looking at +x are in shade.
 LIGHT = dict(
-    key_dir=(-0.25, 0.66, 0.71), key_col=(1.00, 0.88, 0.68), key=2.9,
+    key_dir=(-0.22, 0.58, 0.78), key_col=(1.00, 0.88, 0.68), key=2.9,
     sky_col=(0.50, 0.66, 1.00), sky=0.40,             # cool fill from above, scaled by ambient occlusion
-    gnd_col=(0.62, 0.60, 0.38), gnd=0.20,             # warm bounce from the ground
-    fill_dir=(0.80, 0.15, 0.45), fill_col=(0.60, 0.64, 1.00), fill=0.17,   # keeps shaded sides alive
+    gnd_col=(0.62, 0.60, 0.38), gnd=0.28,             # warm bounce from the ground
+    fill_dir=(0.80, 0.15, 0.45), fill_col=(0.60, 0.64, 1.00), fill=0.27,   # keeps shaded sides alive
     rim=0.30,                                          # grazing-angle sheen on upward silhouettes
-    exposure=0.70, saturation=1.14, contrast=1.04,
+    exposure=0.62, saturation=1.16, contrast=1.05,
     shadow_col="#17122B", shadow=0.60, contact=0.55,   # baked ground shadow (cast + contact)
-    ao=1.0, bloom=1.0, outline=0.0,
+    ao=1.0, bloom=1.0, outline=0.4,
 )
 
 
@@ -348,20 +348,26 @@ class _Move(Node):
         return self.a.d(x - self.off[0], y - self.off[1], z - self.off[2])
 
 
-class _RotZ(Node):
-    def __init__(self, a, ang, px, py):
-        self.a, self.px, self.py, self.relax = a, px, py, a.relax
+class _Rot(Node):
+    """Rotation by `ang` about the axis (0 = x, 1 = y, 2 = z) through `pivot`."""
+
+    def __init__(self, a, axis, ang, pivot):
+        self.a, self.axis, self.relax = a, axis, a.relax
+        self.i, self.j = ((1, 2), (2, 0), (0, 1))[axis]
+        self.piv = [float(v) for v in pivot]
         self.c, self.s = math.cos(ang), math.sin(ang)
-        xs, ys = [], []
-        for cx in (a.lo[0], a.hi[0]):
-            for cy in (a.lo[1], a.hi[1]):
-                xs.append(px + self.c * (cx - px) - self.s * (cy - py))
-                ys.append(py + self.s * (cx - px) + self.c * (cy - py))
-        self.lo, self.hi = np.array([min(xs), min(ys), a.lo[2]]), np.array([max(xs), max(ys), a.hi[2]])
+        cs = _corners(a.lo, a.hi)
+        dp, dq = cs[:, self.i] - self.piv[self.i], cs[:, self.j] - self.piv[self.j]
+        cs[:, self.i] = self.piv[self.i] + self.c * dp - self.s * dq
+        cs[:, self.j] = self.piv[self.j] + self.s * dp + self.c * dq
+        self.lo, self.hi = cs.min(axis=0), cs.max(axis=0)
 
     def d(self, x, y, z):
-        dx, dy = x - self.px, y - self.py
-        return self.a.d(self.px + self.c * dx + self.s * dy, self.py - self.s * dx + self.c * dy, z)
+        p = [x, y, z]
+        dp, dq = p[self.i] - self.piv[self.i], p[self.j] - self.piv[self.j]
+        p[self.i] = self.piv[self.i] + self.c * dp + self.s * dq
+        p[self.j] = self.piv[self.j] - self.s * dp + self.c * dq
+        return self.a.d(*p)
 
 
 class _Repeat(Node):
@@ -435,14 +441,14 @@ def cyl(xc, yc, r, z0, z1, r_px=0.0):
     return _Cyl(2, z0 * ZS, z1 * ZS, xc * G, yc * G, r * G, r_px)
 
 
-def cyl_x(x0, x1, yc, zc, r_px):
-    """Horizontal cylinder along x (radius in viewport units).  For arches cut into +x faces."""
-    return _Cyl(0, x0 * G, x1 * G, yc * G, zc * ZS, r_px)
+def cyl_x(x0, x1, yc, zc, r_px, round_px=0.0):
+    """Horizontal cylinder along x (radius in viewport units).  For arches cut into +x faces, barrels, bales."""
+    return _Cyl(0, x0 * G, x1 * G, yc * G, zc * ZS, r_px, round_px)
 
 
-def cyl_y(y0, y1, xc, zc, r_px):
+def cyl_y(y0, y1, xc, zc, r_px, round_px=0.0):
     """Horizontal cylinder along y (radius in viewport units).  For arches cut into +y faces."""
-    return _Cyl(1, y0 * G, y1 * G, xc * G, zc * ZS, r_px)
+    return _Cyl(1, y0 * G, y1 * G, xc * G, zc * ZS, r_px, round_px)
 
 
 def cone(xc, yc, r0, z0, z1, r1=0.0):
@@ -540,8 +546,13 @@ def move(a, dx=0.0, dy=0.0, dz=0.0):
 
 
 def rotz(a, deg, ox=0.0, oy=0.0):
-    """Rotate about the vertical axis through grid point (ox, oy)."""
-    return _RotZ(a, math.radians(deg), ox * G, oy * G)
+    """Rotate about the vertical axis through grid point (ox, oy); positive turns x towards y."""
+    return _Rot(a, 2, math.radians(deg), (ox * G, oy * G, 0.0))
+
+
+def rot(a, axis, deg, pivot):
+    """Rotate about a horizontal or vertical axis ('x' | 'y' | 'z') through the model-space point pivot."""
+    return _Rot(a, "xyz".index(axis), math.radians(deg), (pivot[0] * G, pivot[1] * G, pivot[2] * ZS))
 
 
 def repeat(a, axis, step, n):
@@ -651,7 +662,7 @@ def m_rubble(color="#A39A8C", size=4.2, var=0.2, seed=2):
     def albedo(c):
         rid, e = cells(c)
         a = _vary(base, rid, var, 0.07) * (0.9 + 0.2 * fbm2(c.u * 0.4, c.v * 0.4, 2, seed))[..., None]
-        return mixc(a, base * 0.36, (1.0 - sstep(0.25, 0.9, e)) * 0.9)
+        return mixc(a, base * 0.5, (1.0 - sstep(0.2, 0.8, e)) * 0.75)
 
     def height(c):
         _, e = cells(c)
@@ -686,7 +697,7 @@ def m_planks(color="#A56A3A", width=0.3, horizontal=False, var=0.16, seed=3, rel
     return Material(albedo, height, spec=0.04, gloss=16.0)
 
 
-def m_thatch(color="#DDB957", row=4.2, seed=4):
+def m_thatch(color="#B0965C", row=4.2, seed=4):
     """Straw thatch in ragged layers.  row = layer height in z units."""
     base = srgb(color)
     rh = row * ZS
@@ -699,8 +710,8 @@ def m_thatch(color="#DDB957", row=4.2, seed=4):
     def albedo(c):
         f = lay(c)
         strand = vnoise2(c.u * 1.9, c.v * 0.22, seed + 1)
-        k = (0.80 + 0.30 * strand) * (0.66 + 0.40 * (1.0 - sstep(0.5, 1.0, f))) * (1.0 + 0.10 * (1.0 - sstep(0.0, 0.25, f)))
-        k = k * (0.92 + 0.16 * fbm2(c.u * 0.12, c.v * 0.12, 2, seed + 2))
+        k = (0.74 + 0.36 * strand) * (0.52 + 0.52 * (1.0 - sstep(0.45, 1.0, f))) * (1.0 + 0.12 * (1.0 - sstep(0.0, 0.25, f)))
+        k = k * (0.92 + 0.16 * fbm2(c.u * 0.12, c.v * 0.12, 2, seed + 2)) * 0.8
         return base[None, :] * k[..., None] * np.array([1.0, 0.98, 0.9], F) ** ((1.0 - strand) * 0.8)[..., None]
 
     def height(c):
@@ -747,7 +758,7 @@ def m_tiles(color="#C8563A", row=3.4, width=3.0, kind="clay", var=0.14, seed=5, 
     return Material(albedo, height, bump=0.8, spec=spec, gloss=30.0, metal=metal)
 
 
-def m_plaster(plaster="#EBDcB6", timber="#6E4526", z0=4.0, z1=20.0, bay=0.45, ox=0.0, oy=0.0, beam=1.5, mid=True,
+def m_plaster(plaster="#EBDCB6", timber="#6E4526", z0=4.0, z1=20.0, bay=0.45, ox=0.0, oy=0.0, beam=1.5, mid=True,
               braces=True, seed=6):
     """Plaster wall with a dark timber frame.  z0 / z1 = sill and top-plate heights (z units); posts every
     `bay` grid units measured from grid (ox, oy); beam = timber width (viewport units)."""
@@ -798,7 +809,7 @@ def m_marble(color="#F6F1E6", vein="#8E88A6", course=9.0, seed=7, veins=0.3):
         a = base[None, :] * (0.93 + 0.09 * fbm2(c.u * 0.2, c.v * 0.2, 2, seed + 1))[..., None]
         a = mixc(a, vc, np.clip(vm, 0.0, 1.0))
         _, m = _blocks(c, ch, ch * 2.4, seed)
-        return a * (0.80 + 0.20 * sstep(0.1, 0.38, m))[..., None]
+        return a * (0.70 + 0.30 * sstep(0.1, 0.42, m))[..., None]
 
     def height(c):
         _, m = _blocks(c, ch, ch * 2.4, seed)
@@ -829,7 +840,8 @@ def m_cloth(color="#C0303C", trim=None, trim_h=1.6, stripe=None):
     st = srgb(stripe) if stripe else None
 
     def albedo(c):
-        a = np.broadcast_to(base, c.x.shape + (3,)) * (0.90 + 0.12 * np.sin(c.u * 1.3 + c.v * 0.35) + 0.06 * vnoise2(c.u * 2.0, c.v * 2.0, 11))[..., None]
+        fold = 0.90 + 0.12 * np.sin(c.u * 1.3 + c.v * 0.35) + 0.06 * vnoise2(c.u * 2.0, c.v * 2.0, 11)
+        a = np.broadcast_to(base, c.x.shape + (3,)) * fold[..., None]
         if st is not None:
             a = mixc(a, st, (np.floor(c.u / 2.4) % 2.0 == 0.0).astype(F))
         if tr is not None:
@@ -882,13 +894,16 @@ def m_foliage(color="#4F9A3E", seed=16, warm=1.0):
 
     def albedo(c):
         n = vnoise3(c.x * 0.22, c.y * 0.22, c.z * 0.22, seed)
-        n2 = vnoise3(c.x * 0.7, c.y * 0.7, c.z * 0.7, seed + 1)
-        k = 0.70 + 0.42 * n + 0.16 * n2
+        n2 = vnoise3(c.x * 1.1, c.y * 1.1, c.z * 1.1, seed + 1)
+        k = 0.58 + 0.40 * n + 0.34 * n2
         up = np.clip(c.nz * 0.5 + 0.5, 0.0, 1.0)
-        tint = np.stack([1.0 + 0.30 * warm * up * n, 1.0 + 0.10 * up, 1.0 - 0.25 * up], axis=-1)
-        return base[None, :] * k[..., None] * tint * (0.72 + 0.36 * up)[..., None]
+        tint = np.stack([1.0 + 0.22 * warm * up * n, 1.0 + 0.06 * up, 1.0 - 0.18 * up], axis=-1)
+        return base[None, :] * k[..., None] * tint * (0.52 + 0.58 * up)[..., None]
 
-    return Material(albedo, wrap=0.45, spec=0.05, gloss=10.0)
+    def height(c):
+        return vnoise2(c.u * 0.8, c.v * 0.8, seed + 2) * 0.9 + vnoise2(c.u * 2.1, c.v * 2.1, seed + 3) * 0.45
+
+    return Material(albedo, height, bump=0.8, wrap=0.28, spec=0.0)
 
 
 def m_glow(color="#FFB648", power=1.7, bars=True, bar_col="#4A2E18"):
@@ -917,10 +932,10 @@ def m_glow(color="#FFB648", power=1.7, bars=True, bar_col="#4A2E18"):
 # ---------------------------------------------------------------------------------------------
 
 class Solid:
-    __slots__ = ("node", "mat", "cast", "cyl", "ao", "name")
+    __slots__ = ("node", "mat", "cast", "cyl", "ao", "visible", "name")
 
-    def __init__(self, node, mat, cast, cyl, ao, name):
-        self.node, self.mat, self.cast, self.cyl, self.ao, self.name = node, mat, cast, cyl, ao, name
+    def __init__(self, node, mat, cast, cyl, ao, visible, name):
+        self.node, self.mat, self.cast, self.cyl, self.ao, self.visible, self.name = node, mat, cast, cyl, ao, visible, name
 
 
 class Scene:
@@ -930,20 +945,24 @@ class Scene:
              'decor' (64 x 96, anchor (32, 80), grid (0, 0) is the anchor) or
              'wall'  (64 x 64, anchor (32, 48), grid (0, 0) is the anchor).
     ground   height of the shadow-catching ground plane in z units (0, or just below a pad's top).
+    clip     (x0, y0, x1, y1) in grid units: the baked ground shadow is kept only inside this rectangle.
+             For pieces that tile (walls): clip to the piece's own cell and add its neighbours as
+             visible=False solids, and the shadows of adjacent sprites join without overlapping.
     light    overrides for entries of LIGHT.
     """
 
-    def __init__(self, kind="building", ground=0.0, **light):
-        self.kind, self.ground, self.solids = kind, ground, []
+    def __init__(self, kind="building", ground=0.0, clip=None, **light):
+        self.kind, self.ground, self.clip, self.solids = kind, ground, clip, []
         self.light = dict(LIGHT)
         self.light.update(light)
 
-    def add(self, node, mat, cast=True, cyl=None, ao=True, name=""):
+    def add(self, node, mat=None, cast=True, cyl=None, ao=True, visible=True, name=""):
         """Add a solid.  cyl=(xc, yc, r) switches the texture mapping to cylindrical around that vertical
-        axis (round towers, cones).  cast=False: no shadow.  ao=False: does not darken its neighbours."""
+        axis (round towers, cones).  cast=False: no shadow.  ao=False: does not darken its neighbours.
+        visible=False: a phantom that only casts shadow and occlusion (the neighbours of a tiling piece)."""
         if cyl is not None:
             cyl = (cyl[0] * G, cyl[1] * G, cyl[2] * G)
-        self.solids.append(Solid(node, mat, cast, cyl, ao, name))
+        self.solids.append(Solid(node, mat, cast, cyl, ao, visible, name))
         return node
 
 
@@ -973,7 +992,7 @@ class View:
 
 def camera(kind, scale):
     """The game's camera for a sprite kind at `scale` pixels per viewport unit."""
-    w, h, ax, ay, gx, gy = KINDS[kind]
+    _, _, ax, ay, gx, gy = KINDS[kind]
     return View(CAM_R, CAM_U, CAM_F, (gx * G, gy * G, 0.0), scale, ax * scale, ay * scale)
 
 
@@ -994,7 +1013,7 @@ def _trace(view, solids, W, H, shadow_pass=False):
     ids = np.full(W * H, -1, np.int32)
     fx, fy, fz = view.f
     for si, s in enumerate(solids):
-        if shadow_pass and not s.cast:
+        if (shadow_pass and not s.cast) or (not shadow_pass and not s.visible):
             continue
         node = s.node
         cs = _corners(node.lo - 0.05, node.hi + 0.05)
@@ -1176,7 +1195,7 @@ def _aces(x):
 def render(scene, ss=2, px=4, stats=None):
     """Render a Scene to a PIL RGBA image of (viewport * px) pixels.  ss = supersampling factor."""
     L = scene.light
-    vw, vh, ax, ay, gx0, gy0 = KINDS[scene.kind]
+    vw, vh = KINDS[scene.kind][:2]
     scale = px * ss
     W, H = vw * scale, vh * scale
     cam = camera(scene.kind, scale)
@@ -1262,8 +1281,10 @@ def render(scene, ss=2, px=4, stats=None):
     lv = View(lr, lu, lf, ctr, sm_scale, 4.0 - sx.min(), 4.0 - sy.min())
     sm, _ = _trace(lv, solids, sw, sh, shadow_pass=True)
 
-    grid = _Grid(solids, gz, vs=1.0 if scale >= 8 else 1.25)
-    AO = grid.ao(X, Y, Z, NX, NY, NZ)
+    grid = _Grid(solids, gz, vs=1.0 if scale >= 8 else 1.25)                 # everything: for the ground
+    own = [s for s in solids if s.visible]                                   # phantoms do not darken surfaces,
+    grid_s = grid if len(own) == len(solids) else _Grid(own, gz, vs=grid.vs)   # so cut ends stay presentable
+    AO = grid_s.ao(X, Y, Z, NX, NY, NZ)
     AO = 1.0 - (1.0 - AO) * F(L["ao"])
     rot = hash2(order % W, order // W, 77) * F(2.0 * math.pi)
 
@@ -1304,7 +1325,8 @@ def render(scene, ss=2, px=4, stats=None):
         mi = np.nonzero(METAL > 0)[0]
         rz = 2.0 * ndv[mi] * BZ[mi] - vz                                    # z of the reflected view ray
         rk = 2.0 * ndv[mi] * (BX[mi] * kx + BY[mi] * ky + BZ[mi] * kz) - (vx * kx + vy * ky + vz * kz)
-        env = mixc(np.array([0.30, 0.22, 0.14], F), np.array([1.25, 1.2, 1.1], F), sstep(-0.35, 0.55, rz))
+        env = mixc(np.array([0.22, 0.13, 0.06], F), np.array([1.5, 1.38, 1.15], F), sstep(-0.30, 0.12, rz))
+        env = mixc(env, np.array([0.62, 0.66, 0.80], F), sstep(0.15, 0.75, rz))       # bright horizon, calmer sky
         env = env + (sstep(0.55, 0.95, rk) * 2.2 * SH[mi])[:, None] * kc
         refl = ALB[mi] * env * (0.35 + 0.65 * AO[mi])[:, None] * 1.5
         col[mi] = col[mi] * (1.0 - METAL[mi])[:, None] + refl * METAL[mi][:, None]
@@ -1325,12 +1347,17 @@ def render(scene, ss=2, px=4, stats=None):
     tg = (F(gz) - goz) / fz
     gxw, gyw = gox + tg * fx, goy + tg * fy
     # fade: distance outside the solids' footprint, and distance to the image border
-    dout = np.hypot(np.maximum(np.maximum(F(lo[0]) - gxw, gxw - F(hi[0])), 0.0),
-                    np.maximum(np.maximum(F(lo[1]) - gyw, gyw - F(hi[1])), 0.0))
+    vis = [s for s in solids if s.visible]
+    vlo, vhi = np.min([s.node.lo for s in vis], axis=0), np.max([s.node.hi for s in vis], axis=0)
+    dout = np.hypot(np.maximum(np.maximum(F(vlo[0]) - gxw, gxw - F(vhi[0])), 0.0),
+                    np.maximum(np.maximum(F(vlo[1]) - gyw, gyw - F(vhi[1])), 0.0))
     reach = 1.5 * G if scene.kind == "building" else 1.1 * G
     fade = 1.0 - sstep(0.25 * reach, reach, dout)
     edge = np.minimum(np.minimum(gpx, W - gpx), np.minimum(gpy, H - gpy)) / F(scale)
     fade = fade * sstep(0.5, 5.0, edge)
+    if scene.clip is not None:
+        cx0, cy0, cx1, cy1 = (F(v * G) for v in scene.clip)
+        fade = np.where((gxw >= cx0) & (gxw < cx1) & (gyw >= cy0) & (gyw < cy1), fade, 0.0)
     sel = np.nonzero(fade > 0.003)[0]
     if sel.size:
         gxs, gys = gxw[sel], gyw[sel]
@@ -1388,7 +1415,7 @@ def selftest():
     """Check that the camera reproduces iso.py's projection: analytically, and by rendering small spheres
     and locating them in the image."""
     worst = 0.0
-    for kind, (w, h, ax, ay, gx, gy) in KINDS.items():
+    for kind, (_, _, ax, ay, gx, _) in KINDS.items():
         s = 2.0 * gx                                  # iso.S for this kind (4 for buildings, 0 for decor)
         for (x, y, z) in ((0, 0, 0), (4, 0, 0), (0, 4, 0), (4, 4, 0), (2, 2, 60), (1.1, 2.9, 44), (-0.7, 0.4, 13.5)):
             sx, sy = project_grid(kind, x, y, z)

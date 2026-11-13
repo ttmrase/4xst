@@ -128,6 +128,9 @@ internal class MapChunkCache(
     /** 道の折れ線（タイル座標）。ライブ層で橋や標識を足すときに使う。 */
     fun roadLines(): List<List<Offset>> = roads
 
+    /** 川の折れ線（タイル座標。1 行に 1 点）。ライブ層が水面の光を流すのに使う。 */
+    fun riverLine(): List<Offset> = river
+
     companion object {
         /** 1 タイルの px の段階（低い → 高い）。画面上のタイルの大きさに合わせて選ぶ。 */
         val LEVELS = intArrayOf(12, 32, 64, 96)

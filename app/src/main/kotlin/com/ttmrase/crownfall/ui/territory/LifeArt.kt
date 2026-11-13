@@ -102,6 +102,7 @@ internal class LifeArt private constructor() {
         val GOLD_TINT: ColorFilter = ColorFilter.tint(Color(0xFFFFE08A))
         val EMBER_TINT: ColorFilter = ColorFilter.tint(Color(0xFFFF9A3C))
         val ICE_TINT: ColorFilter = ColorFilter.tint(Color(0xFFD8F1FF))
+        val PETAL_TINT: ColorFilter = ColorFilter.tint(Color(0xFFFFC1D3))
 
         private const val PUFF_PX = 48
         private const val GLOW_PX = 64
@@ -130,7 +131,13 @@ internal class LifeArt private constructor() {
             block: DrawScope.() -> Unit,
         ): ImageBitmap {
             val image = ImageBitmap(w, h)
-            CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, Canvas(image), Size(w.toFloat(), h.toFloat()), block)
+            CanvasDrawScope().draw(
+                Density(1f),
+                LayoutDirection.Ltr,
+                Canvas(image),
+                Size(w.toFloat(), h.toFloat()),
+                block,
+            )
             return image
         }
     }
@@ -196,6 +203,14 @@ internal object LifeDraw {
         h = h xor (h ushr 16)
         return (h and 0xFFFF) / 65_536f
     }
+
+    /** 炎のゆらめき（0.5..1.06）。速さの違う 3 つの波を重ねて、規則的に見えないようにする。[p] は炎ごとの位相。 */
+    fun flicker(
+        seconds: Float,
+        p: Float,
+    ): Float =
+        FLICKER_BASE + 0.14f * sin(seconds * 11f + p) + 0.08f * sin(seconds * 23f + p * 1.7f) +
+            0.06f * sin(seconds * 5.3f + p * 0.6f)
 
     /** [x] の小数部分（負でも 0 以上 1 未満）。 */
     fun fract(x: Float): Float {
@@ -285,7 +300,12 @@ internal object LifeDraw {
             )
         }
         // 胴
-        drawRoundRect(look.tunic, Offset(x - 1.8f * u, top - 8.4f * u), Size(3.6f * u, 5.4f * u), CornerRadius(1.5f * u))
+        drawRoundRect(
+            look.tunic,
+            Offset(x - 1.8f * u, top - 8.4f * u),
+            Size(3.6f * u, 5.4f * u),
+            CornerRadius(1.5f * u),
+        )
         drawRoundRect(
             SHADE.copy(alpha = 0.3f),
             Offset(x + 0.3f * u, top - 8.2f * u),
@@ -377,9 +397,11 @@ internal object LifeDraw {
         swallow: Boolean = false,
         pennant: Boolean = false,
     ) {
-        val strip = length / FLAG_STRIPS
-        for (i in 0 until FLAG_STRIPS) {
-            val f = (i + 0.5f) / FLAG_STRIPS
+        // 帯の数は旗の大きさに合わせる（大きな旗でも段が見えず、小さな旗では描く数を減らす）
+        val strips = (length / FLAG_STRIP_PX).toInt().coerceIn(FLAG_STRIPS_MIN, FLAG_STRIPS_MAX)
+        val strip = length / strips
+        for (i in 0 until strips) {
+            val f = (i + 0.5f) / strips
             val arg = seconds * FLAG_SPEED - f * FLAG_WAVES * TWO_PI + phase
             // 竿の側は動かず、先ほど大きく揺れて少し垂れる
             val cy = y + sin(arg) * drop * FLAG_AMP * f + drop * FLAG_SAG * f * f
@@ -439,9 +461,21 @@ internal object LifeDraw {
         val color = if (shadow) SHADE.copy(alpha = 0.2f) else BIRD
         val w = span * (if (shadow) 0.16f else 0.11f)
         drawLine(color, Offset(x, y), Offset(x - half * 0.5f, elbowY), strokeWidth = w, cap = StrokeCap.Round)
-        drawLine(color, Offset(x - half * 0.5f, elbowY), Offset(x - half, tipY), strokeWidth = w * 0.8f, cap = StrokeCap.Round)
+        drawLine(
+            color,
+            Offset(x - half * 0.5f, elbowY),
+            Offset(x - half, tipY),
+            strokeWidth = w * 0.8f,
+            cap = StrokeCap.Round,
+        )
         drawLine(color, Offset(x, y), Offset(x + half * 0.5f, elbowY), strokeWidth = w, cap = StrokeCap.Round)
-        drawLine(color, Offset(x + half * 0.5f, elbowY), Offset(x + half, tipY), strokeWidth = w * 0.8f, cap = StrokeCap.Round)
+        drawLine(
+            color,
+            Offset(x + half * 0.5f, elbowY),
+            Offset(x + half, tipY),
+            strokeWidth = w * 0.8f,
+            cap = StrokeCap.Round,
+        )
         if (shadow) return
         // 胴と頭、翼の上面の明るみ
         drawOval(color, Offset(x - span * 0.11f, y - span * 0.07f), Size(span * 0.22f, span * 0.14f))
@@ -469,11 +503,14 @@ internal object LifeDraw {
         drawOval(FLAME_CORE, Offset(x - w * 0.18f + sway * 0.3f, y - h * 0.44f), Size(w * 0.36f, h * 0.44f))
     }
 
+    private const val FLICKER_BASE = 0.78f
     private const val BOB = 0.6f
     private const val STEP_X = 1.5f
     private const val STEP_Y = 0.75f
     private const val LIFT = 0.9f
-    private const val FLAG_STRIPS = 10
+    private const val FLAG_STRIP_PX = 2f
+    private const val FLAG_STRIPS_MIN = 8
+    private const val FLAG_STRIPS_MAX = 26
     private const val FLAG_SPEED = 5.2f
     private const val FLAG_WAVES = 1.15f
     private const val FLAG_AMP = 0.2f

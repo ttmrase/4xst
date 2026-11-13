@@ -5,7 +5,6 @@ import com.ttmrase.crownfall.core.model.BuildingType
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * 領地マップの配置（見た目の層だけ。GameState のスロットとレベルは変えない）。
@@ -136,32 +135,33 @@ internal class Ent(
     }
 }
 
-/** 通りを歩く住民。 */
-internal class Villager(
-    val alongX: Boolean,
-    val fixed: Float,
-    val from: Float,
-    val to: Float,
-    val speed: Float,
-    val phase: Float,
-    val color: Int,
-    val introBand: Int,
-)
-
 /** 領地マップの静的なシーン（決定論的に生成する）。帯ごとの地面・通りの Path もここで 1 度だけ作る。 */
 internal class TerritoryScene(
     val ents: Array<Ent>,
-    val villagers: List<Villager>,
+    /** 通りを歩く住民と衛兵（[TownLife]）。 */
+    val walkers: List<Walker>,
     val lawn: List<Path>,
     val streets: List<Path>,
     val river: Path,
     val buildingEnts: List<Ent>,
+    /** 城の区画（旗竿を立てる位置の基準）。 */
+    val castle: Ent?,
 ) {
     companion object {
         private const val TREE_STEP = 2.4f
         private const val TREE_RANGE = 22
         private const val RIVER_X = 45f
+        private const val RIVER_SWAY = 1.6f
+        private const val RIVER_FREQ = 0.11f
+        private const val RIVER_STEP = 2f
         private const val TOWN_STEP = 2.5f
+
+        /** 川の中心線が延びる範囲（グリッドの y）。 */
+        const val RIVER_FROM = -64f
+        const val RIVER_TO = 74f
+
+        /** 川の中心線の x（グリッドの y が [gy] のところ）。最大の城壁の外側をゆるく蛇行する。 */
+        fun riverX(gy: Float): Float = RIVER_X + RIVER_SWAY * kotlin.math.sin(gy * RIVER_FREQ)
 
         fun build(slotCells: List<Triple<Int, Pair<Int, Int>, BuildingType>>): TerritoryScene {
             val rng = Lcg(20_261_010L)
@@ -378,34 +378,14 @@ internal class TerritoryScene(
 
             ents.sortWith(compareBy<Ent> { it.depth }.thenBy { it.kind.ordinal })
 
-            // 住民
-            val villagers = ArrayList<Villager>()
-            val colors = intArrayOf(0xFFE6B450.toInt(), 0xFFC8553D.toInt(), 0xFF4F8FD0.toInt(), 0xFF7FB85A.toInt())
-            for (k in 0 until 14) {
-                val street = (rng.next() * 6).toInt() - 2
-                val fixed = street * PlotLayout.CELL - 0.5f
-                val intro = 1 + k / 3
-                villagers.add(
-                    Villager(
-                        alongX = k % 2 == 0,
-                        fixed = fixed,
-                        from = c - half[min(intro, 5) - 1] + 1.5f,
-                        to = c + half[min(intro, 5) - 1] - 1.5f,
-                        speed = 0.9f + rng.next() * 0.9f,
-                        phase = rng.next(),
-                        color = colors[k % colors.size],
-                        introBand = intro,
-                    ),
-                )
-            }
-
             return TerritoryScene(
                 ents = ents.toTypedArray(),
-                villagers = villagers,
+                walkers = TownLife.walkers(slotCells),
                 lawn = (1..PlotLayout.BANDS).map { lawnPath(half[it - 1] + PlotLayout.CLEAR_MARGIN) },
                 streets = (1..PlotLayout.BANDS).map { streetsPath(half[it - 1] + 0.4f) },
                 river = riverPath(),
                 buildingEnts = buildings,
+                castle = slotCells.indexOfFirst { it.third == BuildingType.CASTLE }.let { buildings.getOrNull(it) },
             )
         }
 
@@ -449,14 +429,14 @@ internal class TerritoryScene(
             close()
         }
 
-        /** 川の中心線（最大の城壁の外側をゆるく蛇行する）。 */
+        /** 川の中心線（[riverX]）の Path。 */
         private fun riverPath(): Path =
             Path().apply {
-                var gy = -64f
-                moveTo(RIVER_X + 1.6f * kotlin.math.sin(gy * 0.11f), gy)
-                while (gy < 74f) {
-                    gy += 2f
-                    lineTo(RIVER_X + 1.6f * kotlin.math.sin(gy * 0.11f), gy)
+                var gy = RIVER_FROM
+                moveTo(riverX(gy), gy)
+                while (gy < RIVER_TO) {
+                    gy += RIVER_STEP
+                    lineTo(riverX(gy), gy)
                 }
             }
     }

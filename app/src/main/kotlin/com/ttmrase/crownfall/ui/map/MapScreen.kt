@@ -16,7 +16,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -24,13 +23,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -54,24 +51,27 @@ import com.ttmrase.crownfall.core.march.MailBox
 import com.ttmrase.crownfall.core.march.MarchKind
 import com.ttmrase.crownfall.core.march.Marching
 import com.ttmrase.crownfall.core.model.GameState
-import com.ttmrase.crownfall.core.model.ResourceType
 import com.ttmrase.crownfall.core.session.GameSession
 import com.ttmrase.crownfall.core.sim.ActionResult
 import com.ttmrase.crownfall.core.sim.Actions
 import com.ttmrase.crownfall.core.skin.Skins
 import com.ttmrase.crownfall.ui.common.LocalClock
+import com.ttmrase.crownfall.ui.common.animationsEnabled
 import com.ttmrase.crownfall.ui.common.collectCalmState
 import com.ttmrase.crownfall.ui.failureMessage
-import com.ttmrase.crownfall.ui.glyph
 import com.ttmrase.crownfall.ui.kit.GameButtonSize
 import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphBitmaps
 import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.kit.rememberGlyphBitmaps
+import com.ttmrase.crownfall.ui.territory.AMBIENT_STILL_SECONDS
+import com.ttmrase.crownfall.ui.territory.FramePacer
 import com.ttmrase.crownfall.ui.territory.SpriteCache
+import com.ttmrase.crownfall.ui.territory.ambientSeconds
+import com.ttmrase.crownfall.ui.territory.rememberAmbientFrame
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.ceil
@@ -175,14 +175,14 @@ private fun MapContent(
         sprites.preload(MapLive.spriteIdsFor(MAP_SPRITE_TIERS))
     }
     val chunks = remember(world) { MapChunkCache(world, s.map.seed, cacheScope, sprites) }
-    // 動きのある部分（焚き火・光・行軍）は 24Hz で描き直す（街の画面と同じ。ドラッグ・ズーム中は操作のたびに即時に描く）
-    var tick by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            withFrameMillis { tick = it }
-            delay(TICK_GAP_MS)
-        }
-    }
+    // 動きのある部分（雲・旗・焚き火・川の光・行軍）は画面のフレームごとに描き直す（街の画面と同じ合図。重い端末では
+    // FramePacer が間合いを落とす）。端末のアニメーションが無効なら合図を出さず、静止画になる
+    val animate = animationsEnabled()
+    val pacer = remember { FramePacer() }
+    val frame = rememberAmbientFrame(pacer, animate)
+    // 川の折れ線（光を流す）と行軍のなめらかな位置。どちらも描画のたびには作らない
+    val river = remember(chunks) { MapLive.flatten(chunks.riverLine()) }
+    val track = remember { MarchTrack() }
     val fogLv = castleLevel(s).toInt()
     val fog =
         remember(world, fogLv) {
@@ -198,6 +198,9 @@ private fun MapContent(
             trailTheme = equipped[SkinCategory.TRAIL]?.theme,
         )
     val dayNight = DayNight.of(MapPrefs.dayNight(context))
+    // 拠点の見た目の段階は、状態が変わったとき（再構図）にだけ求める（描画のたびに並べ替えない）
+    val tier = castleTier(s)
+    val tiers = remember(world, s, data) { MapLive.structureTiers(world, s, data, tier) }
 
     Box(Modifier.fillMaxSize()) {
         Canvas(
@@ -209,14 +212,25 @@ private fun MapContent(
                     .transformable(transformState)
                     .pointerInput(Unit) { detectTapGestures { onTap(it) } },
         ) {
-            if (tick < 0L || chunks.version < 0 || sprites.version < 0) return@Canvas
+            if (frame.longValue < 0L || chunks.version < 0 || sprites.version < 0) return@Canvas
             if (!offX.isNaN() && !offY.isNaN()) {
+                val startNs = System.nanoTime()
+                val nowMs = startNs / NANOS_PER_MS
+                val now = clock?.value ?: s.nowEpochSec
+                track.update(s.marches, now, nowMs, data, animate)
                 drawWorld(
                     world, chunks, fog, sprites, s, data, basePx * scale, offX, offY, selected, style, dayNight,
-                    { t -> glyphs.get(t.glyph()) },
-                ) {
-                    clock?.value ?: s.nowEpochSec
-                }
+                    glyphs, tiers, river, track, now,
+                    if (animate) {
+                        ambientSeconds(
+                            nowMs,
+                        )
+                    } else {
+                        AMBIENT_STILL_SECONDS
+                    },
+                    animate,
+                )
+                pacer.reportCost(System.nanoTime() - startNs)
             }
         }
         Row(
@@ -300,11 +314,14 @@ private fun MapContent(
     }
 }
 
-/** 可視範囲だけを描く: キャッシュ済みの地面 → 領土 → 霧 → 拠点・資源・野営地・行軍 → 雲 → 昼夜の色味。 */
+/**
+ * 可視範囲だけを描く: キャッシュ済みの地面 → 領土 → 川と湖の光 → 霧 → 自城の脈打つ輪 → 拠点・資源・野営地・行軍 →
+ * 雲とその影 → 鳥 → 昼夜の色味。[seconds] は飾りの時計、[animate] が false なら静止画（鳥は出さない）。
+ */
 private fun DrawScope.drawWorld(
     world: WorldMap,
     chunks: MapChunkCache,
-    fog: ImageBitmap,
+    fog: androidx.compose.ui.graphics.ImageBitmap,
     sprites: SpriteCache,
     s: GameState,
     data: GameData,
@@ -314,20 +331,18 @@ private fun DrawScope.drawWorld(
     selected: TileRef?,
     style: MapStyle,
     dayNight: DayNight,
-    glyph: (ResourceType) -> ImageBitmap?,
-    nowEpochSec: () -> Long,
+    glyphs: GlyphBitmaps,
+    tiers: IntArray,
+    river: FloatArray,
+    track: MarchTrack,
+    now: Long,
+    seconds: Float,
+    animate: Boolean,
 ) {
-    val now = nowEpochSec()
-    val seconds = (System.currentTimeMillis() % LOOP_MS) / 1000f
     val x0 = floor(-offX / tile).toInt().coerceAtLeast(0)
     val y0 = floor(-offY / tile).toInt().coerceAtLeast(0)
     val x1 = ceil((size.width - offX) / tile).toInt().coerceAtMost(world.size - 1)
     val y1 = ceil((size.height - offY) / tile).toInt().coerceAtMost(world.size - 1)
-
-    fun visible(
-        x: Int,
-        y: Int,
-    ) = x in x0..x1 && y in y0..y1
 
     // 地面（8×8 のチャンク。焼けていないあいだは地形の平らな色）
     val res = MapChunkCache.resolutionFor(tile)
@@ -375,34 +390,43 @@ private fun DrawScope.drawWorld(
     val castleCenter = Offset(offX + (center.x + HALF) * tile, offY + (center.y + HALF) * tile)
     with(MapLive) {
         drawTerritory(castleCenter, tile, style.territoryTheme, seconds)
+        drawRiverShimmer(river, tile, offX, offY, seconds, y0, y1)
+        drawWaterGlints(world, x0, y0, x1, y1, tile, offX, offY, seconds)
         drawFog(fog, x0, y0, x1, y1, tile, offX, offY)
-        drawStructures(
-            world,
-            tile,
-            offX,
-            offY,
-            style.castleTheme,
-            { st -> structureTier(st, world, s, data, castleTier(s)) },
-            sprites,
-            ::visible,
-        )
-        drawNodes(s, tile, offX, offY, seconds, glyph, sprites, ::visible)
-        drawCamps(s, tile, offX, offY, seconds, sprites, ::visible)
-        drawMarches(s, data, tile, offX, offY, now, seconds, style.trailTheme)
+        if (center.x in x0..x1 && center.y in y0..y1) {
+            drawCastlePulse(
+                castleCenter.x,
+                castleCenter.y + tile * CASTLE_GROUND,
+                tile,
+                pulseColor(style.castleTheme),
+                seconds,
+            )
+        }
+        drawStructures(world, tile, offX, offY, style.castleTheme, tiers, sprites, seconds, x0, y0, x1, y1)
+        drawNodes(s, tile, offX, offY, seconds, glyphs, sprites, x0, y0, x1, y1)
+        drawCamps(s, tile, offX, offY, seconds, sprites, x0, y0, x1, y1)
+        drawMarches(s, data, track, tile, offX, offY, seconds, style.trailTheme)
     }
-    if (selected != null && visible(selected.x, selected.y)) {
+    if (selected != null && selected.x in x0..x1 && selected.y in y0..y1) {
         drawRect(
             SELECT,
             Offset(offX + selected.x * tile, offY + selected.y * tile),
             Size(tile, tile),
-            style = Stroke(width = 4f),
+            style = SELECT_STROKE,
         )
     }
     with(MapLive) {
         drawClouds(offX, offY, seconds, tile)
+        if (animate) drawBirds(seconds)
         drawDayNight(dayNight, (((now + s.settings.utcOffsetSec) / SECONDS_PER_HOUR) % HOURS_PER_DAY).toInt())
     }
 }
+
+private val SELECT_STROKE = Stroke(width = 4f)
+private const val NANOS_PER_MS = 1_000_000L
+
+/** 拠点のスプライトの足元（タイルの中心から下へ。[MapLive] の拠点の絵と同じ）。 */
+private const val CASTLE_GROUND = 0.3f
 
 /** 地図の端が画面の端を越えないように [off] を収める。地図 [mapPx] が画面 [view] より小さければ中央に置く。 */
 internal fun clampOffset(
@@ -428,10 +452,6 @@ private fun flatColor(t: Terrain): Color =
         Terrain.WATER -> Color(0xFF3F7FBF)
     }
 
-private const val LOOP_MS = 600_000L
-
-/** 24Hz 相当（フレーム待ち 約 16ms の前に挟む待ち）。 */
-private const val TICK_GAP_MS = 25L
 private const val FOG_BASE = 24f
 private const val FOG_PER_LV = 1.5f
 private const val SECONDS_PER_HOUR = 3600L

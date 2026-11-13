@@ -146,7 +146,7 @@ internal object TownLife {
     const val WALL_MARGIN = 1.0f
 
     /** 住民（衛兵を除く）の最大数。 */
-    const val TOWNSFOLK = 32
+    const val TOWNSFOLK = 40
 
     /** 見た目の種類の数（服の色）。 */
     const val LOOKS = 8
@@ -157,7 +157,7 @@ internal object TownLife {
     private const val WELL_STAND = 1.15f
     private const val ALWAYS_OPEN = 3
     private const val LEVELS = 25
-    private const val LEVEL_SPREAD = 30
+    private const val LEVEL_SPREAD = 38
     private const val FOOTPRINT = 4f
     private const val DOOR_AT = 2f
     private const val DOOR_STREET = 4.5f
@@ -174,6 +174,10 @@ internal object TownLife {
     private const val GATE_NEAR = 3.2f
     private const val GATE_FAR = 6.6f
     private const val SECOND_GATE_GUARD_LEVEL = 3
+
+    /** 門の見張りが城壁から離れる距離（壁の上端に足が隠れない位置）。 */
+    private const val GATE_INSIDE = 1.7f
+    private const val MIN_LANE = 0.35f
     private const val BAND_LEVELS = 5
     private const val JOIN_EPS = 0.05f
 
@@ -258,7 +262,10 @@ internal object TownLife {
                     b = if (rng.next() < OPEN_SHARE) pick(openDoors, rng) else pick(plotDoors, rng)
                 }
                 if (a === b || (a.slot >= 0 && a.slot == b.slot)) continue
-                val lane = (rng.next() - 0.5f) * 2f * LANE_MAX * LANE_USE
+                // 最初の帯は手前の通りが城壁のすぐ内側なので、壁から離れる側（奥）へ寄せる（足が壁に隠れにくい）
+                val side = rng.next()
+                val offset = if (band == 1) -(MIN_LANE + side * (1f - MIN_LANE)) else side * 2f - 1f
+                val lane = offset * LANE_MAX * LANE_USE
                 val pts = route(a, b, lane, band, rng) ?: continue
                 val role = roleFor(a.type, b.type, rng.next())
                 made =
@@ -303,7 +310,8 @@ internal object TownLife {
         val reach = PlotLayout.WALL_HALF[band - 1] - OUTER_MARGIN
         val streets = streetRange(band)
         repeat(ATTEMPTS) {
-            val k = streets.first + (rng.next() * (streets.last - streets.first + 1)).toInt().coerceAtMost(streets.count() - 1)
+            val span = streets.last - streets.first + 1
+            val k = streets.first + (rng.next() * span).toInt().coerceAtMost(span - 1)
             val s = streetCoord(k)
             val p = c + (rng.next() * 2f - 1f) * reach
             val alongX = rng.next() < 0.5f
@@ -454,8 +462,10 @@ internal object TownLife {
         roll: Float,
     ): WalkerRole =
         when {
-            a in CARRIER_SITES || b in CARRIER_SITES -> if (roll < ROLE_SHARE) WalkerRole.CARRIER else WalkerRole.TOWNSFOLK
-            a in WORKER_SITES || b in WORKER_SITES -> if (roll < ROLE_SHARE) WalkerRole.WORKER else WalkerRole.TOWNSFOLK
+            a in CARRIER_SITES || b in CARRIER_SITES ->
+                if (roll < ROLE_SHARE) WalkerRole.CARRIER else WalkerRole.TOWNSFOLK
+            a in WORKER_SITES || b in WORKER_SITES ->
+                if (roll < ROLE_SHARE) WalkerRole.WORKER else WalkerRole.TOWNSFOLK
             roll < STRAY_CARRIER -> WalkerRole.CARRIER
             else -> WalkerRole.TOWNSFOLK
         }
@@ -503,7 +513,7 @@ internal object TownLife {
             val hi = PlotLayout.MID + PlotLayout.WALL_HALF[band - 1]
             val from = (band - 1) * BAND_LEVELS + 1
             val until = if (band == PlotLayout.BANDS) Int.MAX_VALUE else band * BAND_LEVELS
-            val inside = hi - WALL_MARGIN
+            val inside = hi - GATE_INSIDE
             out +=
                 guard(
                     floatArrayOf(inside, inside),
@@ -558,7 +568,7 @@ internal object TownLife {
     /** 曲がる通りを選ぶとき、手前（画面の下）の通りを少しだけ優先する（建物の陰に入りにくい）。 */
     private const val FRONT_PULL = 0.08f
     private const val FRONT_WEIGHT = 3
-    private const val OUTER_SHARE = 0.4f
+    private const val OUTER_SHARE = 0.5f
     private const val OPEN_SHARE = 0.3f
     private const val LANE_USE = 0.85f
     private const val ROLE_SHARE = 0.7f
