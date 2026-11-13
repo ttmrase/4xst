@@ -1,32 +1,60 @@
-"""開発用: 生成した図形を PNG の見本にする（Pillow があるときだけ。成果物の生成には不要）。
-実行: python3 tools/artgen/preview.py out.png [cols]
+"""開発用: 生成した図形の見本を作る（成果物の生成には不要）。
+実行: python3 tools/artgen/preview.py out.png [type,type,...]        建物の PNG（Pillow が要る）
+      python3 tools/artgen/preview.py skins|decor|portraits out.png   城のスキン / 装飾 / 胸像の PNG（Pillow が要る）
+      python3 tools/artgen/preview.py html out.html [type,type,...]   建物・城のスキン・装飾の HTML（Pillow は不要）
+
+PNG（Pillow）は単色の多角形しか描けないので近似になる: グラデーションは stops の平均の色で塗り、
+放射グラデーションのにじみ（影・あかり）は不透明度を下げた単色にする。
+正確な見本は html のほう: Scene.to_svg() の SVG を草色の地に並べる（2 倍と等倍）。ブラウザで開けば、
+グラデーション・縁取り・落ち影まで VectorDrawable と同じに見える。
 """
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from PIL import Image, ImageDraw
-import iso, gen_buildings, gen_decor, gen_portraits
+import iso, gen_buildings, gen_decor
+
+try:
+    from PIL import Image, ImageDraw
+except ImportError:  # html の見本だけなら Pillow はいらない
+    Image = ImageDraw = None
 
 SS = 3
 
 
+def _subpaths(sh):
+    """図形の部分パス [(点の並び, 閉じるか), ...]（group の拡大縮小 xf も反映する）。"""
+    subs = [(sh.pts, sh.closed)] + list(sh.subs or ())
+    if sh.xf:
+        px, py, sx, sy = sh.xf
+        subs = [([(px + (x - px) * sx, py + (y - py) * sy) for x, y in pts], closed) for pts, closed in subs]
+    return [(pts, closed) for pts, closed in subs if len(pts) >= 2]
+
+
 def render(scene, bg="#5E8C45"):
     im = Image.new("RGB", (scene.w * SS, scene.h * SS), bg)
-    base = ImageDraw.Draw(im, "RGBA")
-    for sh in scene.shapes:
-        pts = [(x * SS, y * SS) for x, y in sh.pts]
+    shapes = scene.resolved() if hasattr(scene, "resolved") else scene.shapes
+    for sh in shapes:
         a = int(255 * sh.alpha)
-        if sh.fill is not None:
-            r, g, b = iso.hex_to_rgb(sh.fill)
-            ov = Image.new("RGBA", im.size, (0, 0, 0, 0))
-            ImageDraw.Draw(ov).polygon(pts, fill=(r, g, b, a))
-            im.paste(ov, (0, 0), ov)
-        if sh.stroke is not None and sh.sw > 0:
-            r, g, b = iso.hex_to_rgb(sh.stroke)
-            ov = Image.new("RGBA", im.size, (0, 0, 0, 0))
-            d = ImageDraw.Draw(ov)
-            seq = pts + ([pts[0]] if sh.closed else [])
-            d.line(seq, fill=(r, g, b, a if sh.fill is None else 255), width=max(1, int(sh.sw * SS)), joint="curve")
-            im.paste(ov, (0, 0), ov)
+        fill = sh.fill
+        if iso.is_grad(fill):
+            # stops の不透明度も平均して、にじみ（中心が濃く外へ消える）を薄い単色にする
+            al = [int(c.lstrip("#")[0:2], 16) / 255.0 if len(c.lstrip("#")) == 8 else 1.0 for _, c in fill.stops]
+            a = int(a * sum(al) / len(al) * (0.6 if isinstance(fill, iso.Radial) and min(al) < 0.05 else 1.0))
+            fill = iso.flat_of(fill)
+        for pts, closed in _subpaths(sh):
+            pts = [(x * SS, y * SS) for x, y in pts]
+            if fill is not None and closed and len(pts) >= 3:
+                r, g, b = iso.hex_to_rgb(fill)
+                ov = Image.new("RGBA", im.size, (0, 0, 0, 0))
+                ImageDraw.Draw(ov).polygon(pts, fill=(r, g, b, a))
+                im.paste(ov, (0, 0), ov)
+            if sh.stroke is not None and sh.sw > 0:
+                r, g, b = iso.hex_to_rgb(sh.stroke)
+                ov = Image.new("RGBA", im.size, (0, 0, 0, 0))
+                d = ImageDraw.Draw(ov)
+                seq = pts + ([pts[0]] if closed else [])
+                sa = a if sh.fill is None else int(255 * getattr(sh, "salpha", 1.0))
+                d.line(seq, fill=(r, g, b, sa), width=max(1, int(sh.sw * SS)), joint="curve")
+                im.paste(ov, (0, 0), ov)
     return im.resize((scene.w * 2, scene.h * 2), Image.LANCZOS)
 
 
@@ -49,6 +77,7 @@ def decor_sheet(out):
 
 def portraits_sheet(out):
     """英雄 12 + ペルソナ 8（個別）→ 名前だけのメンバー 22（汎用）→ プレイヤーのアバター 12 を並べる。"""
+    import gen_portraits  # 胸像の見本のときだけ読み込む
     items = [(k, gen_portraits.make(v)) for k, v in gen_portraits.SPECS.items()]
     items += [(k, gen_portraits.make(v)) for k, v in gen_portraits.generic_items() + gen_portraits.avatar_items()]
     cols = 8
@@ -77,7 +106,42 @@ def skins_sheet(out):
     print("wrote", out, sheet.size)
 
 
+def html_sheet(out, only=None):
+    """建物（5 段階）・城のスキン・装飾を SVG で並べた HTML。各行は 2 倍、続けて等倍。"""
+    rows, k = [], 0
+
+    def row(label, scenes):
+        nonlocal k
+        cells = []
+        for scale in (2, 1):
+            for sc in scenes:
+                k += 1
+                cells.append("<td>%s</td>" % sc.to_svg(sc.w * scale, "s%d_" % k))
+        rows.append("<tr><th>%s</th>%s</tr>" % (label, "".join(cells)))
+
+    for name in [n for n in gen_buildings.TYPES if (only is None or n in only)]:
+        row(name, [gen_buildings.build(name, t) for t in range(1, 6)])
+    if only is None:
+        for skin in gen_buildings.SKIN_PALETTES:
+            row("castle " + skin, [gen_buildings.build("castle", t, skin) for t in range(1, 6)])
+        names = [n for n, _ in gen_decor.DECOR]
+        for i in range(0, len(names), 6):
+            row("decor", [gen_decor.build_decor(n) for n in names[i:i + 6]])
+        for kind in ("x", "y", "tower", "gate"):
+            row("wall " + kind, [gen_decor.build_wall(kind, t) for t in range(1, 6)])
+        row("site", [gen_decor.build_site()])
+    css = "body{margin:0;background:#5a9a3c;color:#fff;font:11px sans-serif}td{vertical-align:bottom}th{text-align:left;padding:4px}"
+    pathlib.Path(out).write_text("<html><head><meta charset='utf-8'><style>%s</style></head><body><table>%s</table></body></html>"
+                                 % (css, "".join(rows)), encoding="utf-8")
+    print("wrote", out)
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "html":
+        only = sys.argv[3].split(",") if len(sys.argv) > 3 else None
+        return html_sheet(sys.argv[2] if len(sys.argv) > 2 else "/tmp/preview.html", only)
+    if Image is None:
+        sys.exit("Pillow がありません。html の見本を使ってください: preview.py html out.html")
     if len(sys.argv) > 1 and sys.argv[1] == "skins":
         return skins_sheet(sys.argv[2] if len(sys.argv) > 2 else "/tmp/castle_skins.png")
     if len(sys.argv) > 1 and sys.argv[1] == "portraits":

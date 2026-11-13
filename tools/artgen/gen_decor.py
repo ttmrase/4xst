@@ -14,9 +14,9 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import iso  # noqa: E402
-from iso import Scene, P, U, shade, mix, lit, shd, edge, vgrad, grad_perp, Linear, Radial, with_alpha  # noqa: E402
+from iso import Scene, P, shade, lit, shd, edge, vgrad, grad_perp, Linear, Radial, with_alpha  # noqa: E402
 import gen_buildings  # noqa: E402
-from gen_buildings import INK, GLOW, WOOD, STRAW, Lf, Rf, ring, boxes  # noqa: E402
+from gen_buildings import INK, GLOW, STRAW, Lf, Rf, ring, boxes  # noqa: E402
 
 OUT = pathlib.Path(__file__).resolve().parents[2] / "app/src/main/res/drawable"
 KOTLIN = pathlib.Path(__file__).resolve().parents[2] / "app/src/main/kotlin/com/ttmrase/crownfall/ui/territory/SpriteIds.kt"
@@ -379,8 +379,10 @@ def site(sc):
     m = gen_buildings.MAT[1]
     gen_buildings.base_pad(sc, m, 1)
     gen_buildings.ground(sc, 0.5, 0.5, 3.5, 3.5, "#A08A5C", "#7C6B47")
-    sc.lines([[P(0.5 + 0.5 * i, 0.5, 0), P(0.5 + 0.5 * i, 3.5, 0)] for i in range(1, 6)] + [[P(0.5, 0.5 + 0.5 * i, 0), P(3.5, 0.5 + 0.5 * i, 0)] for i in range(1, 6)],
-             "#FFFFFF", 0.4, 0.22)
+    # 縄張りの下書き（地面の白い線）
+    grid = [[P(0.5 + 0.5 * i, 0.5, 0), P(0.5 + 0.5 * i, 3.5, 0)] for i in range(1, 6)]
+    grid += [[P(0.5, 0.5 + 0.5 * i, 0), P(3.5, 0.5 + 0.5 * i, 0)] for i in range(1, 6)]
+    sc.lines(grid, "#FFFFFF", 0.4, 0.22)
     sc.cast_here()
     # 資材（板・木箱・砂の山）
     boxes(sc, [(1.2, 1.2, 2.2, 1.5, 0, 1.8), (1.26, 1.24, 2.14, 1.46, 1.8, 3.4)], "#D9B27A", cast=True)

@@ -15,7 +15,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from iso import Scene, P, U, shade, mix, lit, shd, edge, vgrad, grad_perp, Linear, Radial, with_alpha  # noqa: E402
+from iso import Scene, P, U, shade, mix, lit, shd, edge, vgrad, grad_perp, Linear, Radial  # noqa: E402
 
 OUT = pathlib.Path(__file__).resolve().parents[2] / "app/src/main/res/drawable"
 
@@ -116,10 +116,11 @@ def base_pad(sc, m, t, x0=0.0, y0=0.0, x1=4.0, y1=4.0, cast=True):
             segs.append([P(x0 + w * i / 4, y0, 0), P(x0 + w * i / 4, y1, 0)])
             segs.append([P(x0, y0 + hh * i / 4, 0), P(x1, y0 + hh * i / 4, 0)])
         sc.lines(segs, shade(pad, 0.72), 0.4, 0.5)
-    else:  # 土のむら・小石
+    else:  # 土のむら・小石と、縁の草
         sc.ovals([(P(x0 + w * fx, y0 + hh * fy)[0], P(x0 + w * fx, y0 + hh * fy)[1], rx, rx * 0.5)
                   for fx, fy, rx in ((0.2, 0.86, 5.0), (0.88, 0.3, 4.0), (0.62, 0.92, 3.2), (0.1, 0.4, 3.0), (0.93, 0.74, 3.6))],
                  shade(pad, 0.78), None, 0, 0.4)
+        tufts(sc, [(x0 + w * fx, y0 + hh * fy) for fx, fy in ((0.05, 0.66), (0.2, 0.965), (0.955, 0.56), (0.84, 0.05), (0.72, 0.965))])
     k = 0.1
     inner = [P(x0 + k, y0 + k, 0), P(x1 - k, y0 + k, 0), P(x1 - k, y1 - k, 0), P(x0 + k, y1 - k, 0), P(x0 + k, y0 + k, 0)]
     if t >= 5:
@@ -128,6 +129,21 @@ def base_pad(sc, m, t, x0=0.0, y0=0.0, x1=4.0, y1=4.0, cast=True):
         sc.line(inner, lit(pad, 1.3), 0.7, 0.8)
     if cast:
         sc.cast_here()
+
+
+def tufts(sc, pts, c="#6DB048"):
+    """草のひとむら [(x, y), ...]（地面の上）。"""
+    out = []
+    for x, y in pts:
+        px, py = P(x, y, 0)
+        out.append([(px - 1.9, py), (px - 1.2, py - 2.8), (px - 0.4, py - 0.6), (px + 0.2, py - 3.6), (px + 0.7, py - 0.6), (px + 1.5, py - 2.6),
+                    (px + 1.9, py)])
+    sc.polys(out, c, shade(c, 0.5), 0.4)
+
+
+def sparkle(sc, x, y, r=2.6, c="#FFFFFF", alpha=0.95):
+    """金や宝石のきらめき（四方向にとがった星。画面座標）。"""
+    sc.polys([_star_pts(x, y, r)], c, None, 0.0, alpha)
 
 
 def ground(sc, x0, y0, x1, y1, c, edge_c=None, grad=True):
@@ -284,6 +300,12 @@ def gable_roof(sc, m, x0, y0, x1, y1, h, rh, axis="x", over=0.25, wall=None, orn
         ridge = m["gold"] if st in ("white",) else ("#FFF6C0" if st == "marble" else None)
         kw = dict(tiles=max(3, int(slope / 3.4)), thick=1.7, ridge=ridge, rw=1.1 if ridge else 0.9)
     sc.gable(x0, y0, x1, y1, h, rh, rc, axis=axis, over=over, wall=wall or m["wall"], **kw)
+    if st == "marble" and rh >= 7:  # 金の屋根のきらめき
+        if axis == "x":
+            sx, sy = P(x0 + (x1 - x0) * 0.24, (y0 + y1) / 2.0 + (y1 - y0) * 0.16, h + rh * 0.74)
+        else:
+            sx, sy = P((x0 + x1) / 2.0 + (x1 - x0) * 0.2, y0 + (y1 - y0) * 0.7, h + rh * 0.66)
+        sparkle(sc, sx, sy, 2.8)
     if not ornament:
         return
     if axis == "x":
@@ -304,9 +326,12 @@ def gable_roof(sc, m, x0, y0, x1, y1, h, rh, axis="x", over=0.25, wall=None, orn
 
 def flat_roof(sc, m, t, x0, y0, x1, y1, h, wall, n=4):
     """胸壁つきの陸屋根。"""
-    floor = shade(mix(wall, m["base"], 0.55), 0.9)
+    floor = mix(m["roof"], wall, 0.12)  # 屋上の床は屋根の色（瓦・スレート・金）
     a0, b0, a1, b1 = x0 - 0.1, y0 - 0.1, x1 + 0.1, y1 + 0.1
     sc.box(a0, b0, a1, b1, h, h + 2.5, shade(wall, 0.95), top=floor, grad=False)
+    k = 0.22
+    sc.lines([[P(a0 + k, b0 + k, h + 2.5), P(a1 - k, b0 + k, h + 2.5), P(a1 - k, b1 - k, h + 2.5), P(a0 + k, b1 - k, h + 2.5),
+               P(a0 + k, b0 + k, h + 2.5)]], shade(floor, 0.72), 0.5, 0.7)
     cc = shade(wall, 0.99)
     top = m["gold"] if t >= 5 else None
     crenel(sc, a0, b0, a1, b1, h + 2.5, cc, n, 3.0, 0.14, top, back=True)
@@ -321,7 +346,7 @@ def hall(sc, m, t, x0, y0, x1, y1, h, roof="gable", axis="x", rh=None, wall=None
     if shadow:
         contact(sc, x0, y0, x1, y1)
     # 土台（石）
-    sc.box(x0 - 0.1, y0 - 0.1, x1 + 0.1, y1 + 0.1, 0, zb, m["base"], grad=False)
+    sc.box(x0 - 0.1, y0 - 0.1, x1 + 0.1, y1 + 0.1, 0, zb, m["base"], grad=False, cast=False)
     flat = roof == "flat"
     sc.box(x0, y0, x1, y1, zb, h, wall, eave=0.0 if flat else eave, faces="rl")
     wall_tex(sc, m, x0, y0, x1, y1, zb, h, wall)
@@ -333,6 +358,9 @@ def hall(sc, m, t, x0, y0, x1, y1, h, roof="gable", axis="x", rh=None, wall=None
         st = m["style"]
         sc.pyramid(x0, y0, x1, y1, h, rh, m["roof"], tiles=0 if st == "wood" else max(3, int(rh / 4.2)),
                    thick=2.4 if st == "wood" else 1.6)
+        if st == "marble":
+            sx, sy = P(x0 + (x1 - x0) * 0.2, y1 - (y1 - y0) * 0.1, h + rh * 0.45)
+            sparkle(sc, sx, sy, 2.8)
     elif roof == "flat":
         flat_roof(sc, m, t, x0, y0, x1, y1, h, wall)
 
@@ -340,15 +368,23 @@ def hall(sc, m, t, x0, y0, x1, y1, h, roof="gable", axis="x", rh=None, wall=None
 def tower(sc, m, t, xc, yc, r, h, cone_h, flag=True, cone=None, wall=None, z0=0.0, fw=7.0, fh=None):
     """円塔（石の帯・張り出した頭・あかりの窓・円錐屋根・旗）。"""
     wall = wall or m["wall"]
-    sc.cylinder(xc, yc, r, z0, h, wall, cap=False)
+    sc.cast_round(xc, yc, r, z0, h, apex=h + cone_h)  # 塔の影は胴と屋根をまとめて 1 つ
+    sc.cylinder(xc, yc, r, z0, h, wall, cap=False, cast=False)
     hh = h - z0
     if m["style"] != "wood":
         sc.lines([ring(xc, yc, r, z0 + hh * f) for f in ((0.3, 0.62) if hh > 30 else (0.45,))], shd(wall, 0.52), 0.4, 0.4)
+    else:  # 丸太を立てた塔: 縦の板目と、鉄のたが
+        sc.lines([[P(xc + r * math.cos(a), yc + r * math.sin(a), z0), P(xc + r * math.cos(a), yc + r * math.sin(a), h - 4)]
+                  for a in (math.radians(d) for d in (112, 86, 60, 34, 8, -18))], shade(wall, 0.6), 0.4, 0.5)
+        sc.lines([ring(xc, yc, r + 0.004, z0 + hh * 0.38)], m["trim"], 1.0)
     sc.cylinder(xc, yc, r + 0.07, h - 4.0, h, shade(wall, 1.03), cap=False, cast=False)
     if t >= 5:
         sc.line(ring(xc, yc, r + 0.07, h - 2.0), m["gold"], 1.0)
     sc.win_left(xc, z0 + hh * 0.6, 0.36, 7.0, yc + r * 0.72, m["win"], m["lit"], m["frame"])
-    sc.cone(xc, yc, r, h, cone_h, cone or m["roof"], 0.18)
+    sc.cone(xc, yc, r, h, cone_h, cone or m["roof"], 0.18, cast=False)
+    if t >= 5 and cone is None:
+        px, py = P(xc, yc, h + cone_h * 0.5)
+        sparkle(sc, px - r * U * 0.55, py + 0.5, 2.4)
     if t >= 4:
         px, py = P(xc, yc, h + cone_h + 0.6)
         sc.oval(px, py, 1.5, 1.5, m["gold"], shade(m["gold"], 0.5), 0.4, sil=True)
@@ -471,12 +507,8 @@ def shield(sc, fn, a, z, s, c, rim):
 
 # ---- 城とスキン ---------------------------------------------------------------
 
-def _star(sc, x, y, r, c, alpha=0.95):
-    """四方向にとがった小さな星（きらめき・雪の結晶）。(x, y) は画面座標。"""
-    sc.polys([_star_pts(x, y, r)], c, None, 0.0, alpha)
-
-
 def _star_pts(x, y, r):
+    """四方向にとがった小さな星（きらめき・雪の結晶）の輪郭。(x, y) は画面座標。"""
     k = r * 0.26
     return [(x, y - r), (x + k, y - k), (x + r, y), (x + k, y + k), (x, y + r), (x - k, y + k), (x - r, y), (x - k, y - k)]
 
@@ -501,7 +533,7 @@ def cherry_tree(sc, x, y, t):
     """桜の木（幹と、陰影のある花の樹冠）。"""
     sc.cylinder(x, y, 0.09, 0, 13 + t, "#6B4A3A", cast=False)
     cx, cy = P(x, y, 19 + t * 2)
-    sc.cast_round(x, y, 0.5, 12 + t, 24 + t * 2)
+    sc.cast([(x - 0.45, y, 14 + t), (x + 0.45, y, 14 + t), (x, y - 0.45, 14 + t), (x, y + 0.45, 14 + t), (x, y, 26 + t * 2)])
     sc.ovals([(cx, cy, 12.5, 9.0), (cx - 7, cy + 2.5, 7.0, 5.2), (cx + 7.5, cy + 2.0, 6.5, 5.0)],
              Radial(cx - 4, cy - 4, 17, ["#FFD3E0", "#F29BB5", "#D56C92"]), "#A2506E", 0.45, sil=True)
     sc.ovals([(cx - 5, cy - 3.5, 5.2, 3.4), (cx + 4, cy - 1, 3.6, 2.4), (cx - 1, cy + 3, 3.0, 1.9)], "#FFE4EC", None, 0, 0.75)
@@ -551,19 +583,33 @@ def skin_front(sc, m, t, skin):
             ice.append([P(x - 0.07, y, z), P(x + 0.07, y, z), P(x, y, z - ln)])
         sc.polys(ice, "#EAF7FF", "#8FC3E2", 0.3)
         # 屋根の雪（屋根の面に沿った白い帽子。主塔は上半分、塔は円錐の上半分）
-        white = "#F4FAFF"
+        white, blue = "#F8FCFF", "#CFE3F3"
+        caps_l, caps_r = [], []
+        lerp = lambda a, b, f: (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)  # noqa: E731
         if t >= 2:
-            sc.pyramid(1.45, 1.45, 2.55, 2.55, kh + rh * 0.5, rh * 0.5, white, over=0.0, cast=False, thick=0)
+            a = P(2.0, 2.0, kh + rh)
+            pl, pm, pr = P(0.9, 3.1, kh), P(3.1, 3.1, kh), P(3.1, 0.9, kh)
+            caps_l.append([a, lerp(a, pl, 0.5), lerp(a, lerp(pl, pm, 0.5), 0.58), lerp(a, pm, 0.5)])
+            caps_r.append([a, lerp(a, pm, 0.5), lerp(a, lerp(pm, pr, 0.5), 0.58), lerp(a, pr, 0.5)])
             snow_towers = corner if t >= 3 else ((0.55, 0.55), (3.45, 3.45))
             for (x, y) in snow_towers:
                 h0 = th - 4 if ((x, y) == (3.45, 3.45) and t == 2) else th
                 ch = 10 + t * 2
-                sc.cone(x, y, 0.27, h0 + ch * 0.5, ch * 0.5, white, 0.0, cast=False)
+                r = 0.55 if (x, y) == (3.45, 3.45) and t >= 3 else 0.5
+                arc = ring(x, y, (r + 0.18) * 0.5, h0 + ch * 0.5, 6)
+                top = P(x, y, h0 + ch)
+                caps_l.append(arc[:4] + [top])
+                caps_r.append(arc[3:] + [top])
         else:
-            sc.gable(1.1, 1.55, 2.9, 2.45, kh + 5.5, 5.5, white, over=0.0, cast=False, thick=0)
+            r0, r1 = P(0.85, 2.0, kh + 11), P(3.15, 2.0, kh + 11)
+            e0, e1 = P(0.85, 3.15, kh), P(3.15, 3.15, kh)
+            caps_l.append([r0, r1, lerp(r1, e1, 0.42), lerp(lerp(r0, r1, 0.75), lerp(e0, e1, 0.75), 0.52), lerp(lerp(r0, r1, 0.5), lerp(e0, e1, 0.5), 0.4),
+                           lerp(lerp(r0, r1, 0.25), lerp(e0, e1, 0.25), 0.52), lerp(r0, e0, 0.42)])
+        sc.polys(caps_r, blue, "#9CC3DE", 0.4)
+        sc.polys(caps_l, white, "#9CC3DE", 0.4)
         # 手前の水晶の尖塔と、舞う雪の結晶
-        crystal(sc, 3.8, 3.7, 20 + t * 3, 3.4, "#A6DCF8")
-        crystal(sc, 3.58, 3.8, (20 + t * 3) * 0.55, 2.2, "#86C8F0")
+        crystal(sc, 3.9, 2.3, 20 + t * 3, 3.4, "#A6DCF8")
+        crystal(sc, 3.74, 2.52, (20 + t * 3) * 0.55, 2.2, "#86C8F0")
         crystal(sc, 0.2, 3.9, 14 + t * 2, 3.0, "#A6DCF8")
         crystal(sc, 0.0, 4.0, (14 + t * 2) * 0.55, 2.0, "#86C8F0")
         sc.polys([_star_pts(x, y, r) for (x, y, r) in ((14, 36, 3.2), (112, 52, 2.6), (22, 84, 2.2), (104, 18, 2.4))],
@@ -780,7 +826,7 @@ def farm(sc, m, t):
     sacks(sc, [(0.42, 2.12), (0.7, 2.22)][: 1 + (t >= 3)])
     if t >= 4:
         crate(sc, 1.55, 2.0, 0.34, 4.5)
-        sc.flag(0.4, 0.4, h + 8 + t, 9, m["banner"], 6.0)
+        sc.flag(0.7, 1.15, h + 8 + t, 9, m["banner"], 6.0)
 
 
 def log_pile(sc, x, y, n, ln=1.1, r=2.3):
@@ -847,7 +893,7 @@ def sawmill(sc, m, t):
         sc.oval(wx + 1, wy + 9.5, 9, 3.2, "#5AA6DC", "#2E6E9E", 0.4, 0.9)
         water_wheel(sc, wx, wy, 9.0)
     if t >= 4:
-        sc.flag(3.2, 0.8, 26 + t * 2, 10, m["banner"])
+        sc.flag(2.6, 0.7, h + 8 + t, 10, m["banner"])
     sc.layer()
     # 製材台と大きな丸のこ
     boxes(sc, [(0.9, 2.75, 2.4, 3.3, 0, 5.5)], WOOD, cast=True)
@@ -902,6 +948,13 @@ def quarry(sc, m, t):
     cliff(sc, 0.2, 0.2, 3.8, 0.9, [hb, hb * 0.8, hb * 0.92], rock_c)
     cliff(sc, 0.2, 0.2, 0.9, 3.8, [hl * 0.9, hl, hl * 0.7], rock_c)
     rock(sc, 1.2, 1.25, 0.9, rock_c)
+    if t >= 2:  # はしご（左の崖に立てかける）
+        a0, a1 = P(1.25, 2.3, 0), P(0.9, 2.3, hl - 1)
+        b0, b1 = P(1.25, 2.7, 0), P(0.9, 2.7, hl - 1)
+        lad = [[a0, a1], [b0, b1]] + [[(a0[0] + (a1[0] - a0[0]) * f, a0[1] + (a1[1] - a0[1]) * f),
+                                       (b0[0] + (b1[0] - b0[0]) * f, b0[1] + (b1[1] - b0[1]) * f)] for f in (0.2, 0.4, 0.6, 0.8)]
+        sc.lines(lad, INK, 2.2, cap="round")
+        sc.lines(lad, "#B58A52", 1.0, cap="round")
     if t >= 3:  # クレーン
         top = P(2.8, 1.2, 30 + t * 2)
         jib = P(1.4, 1.9, 24 + t * 2)
@@ -990,7 +1043,7 @@ def warehouse(sc, m, t):
     sc.poly(dpts, m["door"], door_frame(m), 1.0)
     sc.lines([[lf(2.0, 0), lf(2.0, dh)], [lf(2.0 - dw / 2, dh * 0.5), lf(2.0 + dw / 2, dh * 0.5)]], shade(m["door"], 0.55), 0.5, 0.9)
     if t >= 3:
-        sc.flag(3.2, 0.8, h + 8 + t, 10, m["banner"])
+        sc.flag(3.2, 1.6, h + 8 + t, 10, m["banner"])
     # 木箱・樽・麻袋
     sc.layer()
     spots = [(0.5, 3.0), (1.05, 3.25), (3.3, 3.0)][: 1 + (t + 1) // 2]
@@ -1037,25 +1090,27 @@ def barracks(sc, m, t):
     hall(sc, m, t, 0.6, 0.6, 3.4, 2.6, h, roof="gable" if t < 3 else "flat", axis="x", rh=8 + t, nl=3, nr=2)
     # 壁の盾と垂れ幕
     lf = Lf(2.6)
-    zz = 4 + (h - 4) * 0.52
     if t >= 2:
         sc.banner(3.4, 1.6, h - 3, (h - 4) * 0.36, m["banner"], m["gold"])
     shield(sc, lf, 2.0, min(4 + (h - 4) * 0.55, 12.5) + 5.2, 4.6, m["banner"], m["gold"])
     # 旗
-    fz = h + (8 + t if t < 3 else 4)
-    sc.flag(3.4, 0.6, fz, 14, m["banner"], 8.0)
-    sc.flag(0.6, 2.6, fz - (8 + t if t < 3 else 0), 12, lit(m["banner"], 1.15, 0.0), 7.0)
+    if t < 3:  # 切妻: 棟の両端
+        sc.flag(3.3, 1.6, h + 8 + t, 14, m["banner"], 8.0)
+        sc.flag(0.7, 1.6, h + 8 + t, 12, lit(m["banner"], 1.15, 0.0), 7.0)
+    else:      # 陸屋根: 胸壁の角
+        sc.flag(3.42, 0.58, h + 5.5, 14, m["banner"], 8.0)
+        sc.flag(0.58, 2.62, h + 5.5, 12, lit(m["banner"], 1.15, 0.0), 7.0)
     # 武器架・訓練用のかかし
     sc.layer()
     weapon_rack(sc, 0.45, 3.25, 2 + t // 2)
-    dx, dy = P(3.3, 3.25, 0)
+    dx, dy = P(3.15, 3.5, 0)
     sc.lines([[(dx, dy), (dx, dy - 11)], [(dx - 4, dy - 8), (dx + 4, dy - 8)]], INK, 2.8, cap="round")
     sc.lines([[(dx, dy), (dx, dy - 11)], [(dx - 4, dy - 8), (dx + 4, dy - 8)]], "#8A6238", 1.5, cap="round")
     sc.oval(dx, dy - 7.2, 2.9, 3.6, STRAW, "#7A5A1E", 0.45, sil=True)
     sc.oval(dx, dy - 12.6, 2.1, 2.1, lit(STRAW, 1.1), "#7A5A1E", 0.45, sil=True)
     sc.oval(dx, dy - 7.2, 1.3, 1.6, "#C8382E", None, 0)
     if t >= 4:
-        chest(sc, m, 3.4, 2.85, 0.5, 5.0 + t * 0.4)
+        chest(sc, m, 3.42, 2.72, 0.5, 5.0 + t * 0.4)
     if t >= 3:
         torches(sc, [(1.52, 2.6, 13.5), (2.48, 2.6, 13.5)])
 
@@ -1130,7 +1185,7 @@ def stable(sc, m, t):
     sc.polys(tops, "#1E1418", shd(m["frame"], 0.7), 0.7)
     sc.polys(stalls, shd(m["door"], 0.82), shd(m["frame"], 0.7), 0.7)
     if t >= 3:
-        sc.flag(3.2, 0.4, h + 7 + t, 11, m["banner"])
+        sc.flag(1.85, 0.6, h + 7 + t, 11, m["banner"])
     # 柵と馬・干し草・水桶
     sc.layer()
     horse(sc, *P(2.0, 3.0, 8), "#8A5630" if t < 4 else "#F4F0E6")
@@ -1148,7 +1203,7 @@ def siege_workshop(sc, m, t):
     h = 15 + t * 2
     hall(sc, m, t, 0.4, 0.4, 2.4, 2.4, h, roof="gable", axis="x", rh=8 + t, nl=2, nr=2)
     chimney(sc, m, 0.65, 0.75, h + 2, h + 11 + t, 0.36, smk=t >= 2)
-    sc.flag(0.5, 0.5, h + 8 + t, 11, m["banner"])
+    sc.flag(2.2, 1.4, h + 8 + t, 11, m["banner"])
     # 投石機（台車・A 形の支柱・斜めの腕・おもり・石の弾）
     sc.layer()
     wood = "#8A6238"
@@ -1192,10 +1247,12 @@ def hospital(sc, m, t):
     sc.poly([(cx - a, cy - b), (cx + a, cy - b), (cx + a, cy - a), (cx + b, cy - a), (cx + b, cy + a), (cx + a, cy + a),
              (cx + a, cy + b), (cx - a, cy + b), (cx - a, cy + a), (cx - b, cy + a), (cx - b, cy - a), (cx - a, cy - a)],
             green, "#1F6A3C", 0.4)
-    if t >= 3:
-        sc.flag(3.4, 0.6, h + 6 + t, 11, green)
+    if t >= 4:
+        sc.flag(3.45, 0.55, h + 5.5, 11, green)
+    elif t >= 3:
+        sc.flag(3.3, 1.75, h + 8 + t, 11, green)
     if t >= 2:
-        sc.banner(3.5, 1.75, h - 3, (h - 4) * 0.34, "#F7F3E6", green)
+        sc.banner(3.5, 1.75, h - 3, (h - 4) * 0.34, green, "#FFFDF4")
     # 薬草園と鉢
     sc.layer()
     ground(sc, 0.3, 3.2, 1.9, 3.8, "#6B4A2A")
@@ -1336,11 +1393,11 @@ def watchtower(sc, m, t):
             merl.append((x - 0.14, y - 0.14, x + 0.14, y + 0.14, h + 5, h + 8.5))
     boxes(sc, merl, shade(wall, 1.02), m["gold"] if t >= 5 else None)
     # 屋根（4 本の柱に載る円錐）
-    posts = [[P(2.0 + 0.6 * math.cos(a), 2.0 + 0.6 * math.sin(a), h + 5), P(2.0 + 0.6 * math.cos(a), 2.0 + 0.6 * math.sin(a), h + 12)]
+    posts = [[P(2.0 + 0.6 * math.cos(a), 2.0 + 0.6 * math.sin(a), h + 5), P(2.0 + 0.6 * math.cos(a), 2.0 + 0.6 * math.sin(a), h + 10)]
              for a in (math.radians(d) for d in (135, 45, -45))]
     sc.lines(posts, INK, 2.2)
     sc.lines(posts, m["trim"] if t < 4 else m["wall"], 1.1)
-    sc.cone(2.0, 2.0, 0.65, h + 11, 10 + t * 2 - 6, m["roof"], 0.2)
+    sc.cone(2.0, 2.0, 0.7, h + 9, 6 + t * 2, m["roof"], 0.2)
     if t >= 4:
         px, py = P(2.0, 2.0, h + 15 + t * 2 + 0.6)
         sc.oval(px, py, 1.5, 1.5, m["gold"], shade(m["gold"], 0.5), 0.4, sil=True)
@@ -1396,7 +1453,7 @@ def trading_post(sc, m, t):
             sc.layer()
         stall(sc, x, y, stripes)
     if t >= 3:
-        sc.flag(2.8, 0.8, 22 + t, 11, m["banner"])
+        sc.flag(2.9, 0.6, 19.6, 11, m["banner"])
     sc.layer()
     if len(spots) < 4:
         crate(sc, 2.4, 1.75, 0.5, 6.0)
@@ -1488,7 +1545,7 @@ def tavern(sc, m, t):
     # 煙突と煙
     chimney(sc, m, 2.8, 0.7, h + 2, h + 12 + t, 0.4)
     if t >= 4:
-        sc.flag(3.4, 0.6, 28 + t * 3, 11, m["banner"])
+        sc.flag(2.0, 0.7, h + 9 + t, 11, m["banner"])
     # 入口のあかり
     d = P(2.0, 2.82, 5)
     sc.glow(d[0], d[1] + 2, 9, 6, GLOW, 0.4)
@@ -1535,7 +1592,7 @@ def builders_hut(sc, m, t):
     sc.lines(front, "#9A6E3E", 1.3, cap="round")
     sc.cast_box(2.95, 0.5, 3.45, 2.5, 0, 28)
     if t >= 4:
-        sc.flag(2.6, 0.7, h + 6 + t, 10, m["banner"])
+        sc.flag(2.4, 1.55, h + 6 + t, 10, m["banner"])
     # 工具（槌）・木箱・板・石材
     sc.layer()
     hx, hy = P(1.0, 3.3, 8)

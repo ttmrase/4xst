@@ -1,9 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- tools/artgen で生成（手で編集しない）: decor lamp -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="96dp" android:viewportWidth="64" android:viewportHeight="96">
-  <path android:fillColor="#000000" android:fillAlpha="0.20" android:pathData="M37.0,80.0L36.0,81.3L33.5,82.1L30.5,82.1L28.0,81.3L27.0,80.0L28.0,78.7L30.5,77.9L33.5,77.9L36.0,78.7Z" />
-  <path android:strokeColor="#3A3A40" android:strokeWidth="1.60" android:strokeLineJoin="round" android:pathData="M32.0,80.0L32.0,58.0" />
-  <path android:fillColor="#FFD36B" android:fillAlpha="0.28" android:pathData="M41.0,56.0L39.8,59.0L36.5,61.2L32.0,62.0L27.5,61.2L24.2,59.0L23.0,56.0L24.2,53.0L27.5,50.8L32.0,50.0L36.5,50.8L39.8,53.0Z" />
-  <path android:fillColor="#FFE7A0" android:strokeColor="#3A3A40" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M29.0,58.0L35.0,58.0L34.5,52.0L29.5,52.0Z" />
-  <path android:fillColor="#3A3A40" android:pathData="M28.5,52.0L35.5,52.0L32.0,48.0Z" />
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt" android:width="64dp" android:height="96dp" android:viewportWidth="64" android:viewportHeight="96">
+<group android:pivotX="33" android:pivotY="80.5" android:scaleX="1" android:scaleY="0.44">
+<path android:pathData="M28,80.5a5,5 0 1,0 10,0a5,5 0 1,0 -10,0Z">
+<aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="33" android:centerY="80.5" android:gradientRadius="5"><item android:offset="0" android:color="#571B1430" /><item android:offset="0.55" android:color="#451B1430" /><item android:offset="1" android:color="#001B1430" /></gradient></aapt:attr>
+</path>
+</group>
+<group android:pivotX="32" android:pivotY="80" android:scaleX="1" android:scaleY="0.5">
+<path android:pathData="M31.2,79.2l11.3,6.4 -9.7,-4.8Z">
+<aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="32" android:centerY="80" android:gradientRadius="31"><item android:offset="0" android:color="#5C1B1430" /><item android:offset="0.413" android:color="#521B1430" /><item android:offset="1" android:color="#001B1430" /></gradient></aapt:attr>
+</path>
+</group>
+<path android:strokeColor="#2B1D2B" android:strokeWidth="3.40" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M32,80l0,-21M30.4,80l3.2,0" />
+<path android:strokeColor="#4A4852" android:strokeWidth="1.80" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M32,80l0,-21" />
+<path android:strokeColor="#8A8894" android:strokeWidth="0.50" android:strokeAlpha="0.70" android:pathData="M31.5,79l0,-19" />
+<path android:strokeColor="#3A3840" android:strokeWidth="1.80" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M30.4,80l3.2,0" />
+<group android:pivotX="32" android:pivotY="55" android:scaleX="1" android:scaleY="0.818">
+<path android:pathData="M21,55a11,11 0 1,0 22,0a11,11 0 1,0 -22,0Z">
+<aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="32" android:centerY="55" android:gradientRadius="11"><item android:offset="0" android:color="#8CFFD36B" /><item android:offset="1" android:color="#00FFD36B" /></gradient></aapt:attr>
+</path>
+</group>
+<path android:fillColor="#2B1D2B" android:strokeColor="#2B1D2B" android:strokeWidth="2.20" android:strokeLineJoin="round" android:pathData="M29.4,51.8l5.2,0 0.6,6.2 -6.4,0ZM32,47.6l3.9,4.2 -7.8,0ZM32.9,47.2l-0.1,0.3 -0.2,0.3 -0.3,0.2 -0.3,0.1 -0.3,-0.1 -0.3,-0.2 -0.2,-0.3 -0.1,-0.3 0.1,-0.3 0.2,-0.3 0.3,-0.2 0.3,-0.1 0.3,0.1 0.3,0.2 0.2,0.3Z" />
+<path android:strokeColor="#33313A" android:strokeWidth="0.70" android:pathData="M28.8,58l6.4,0 -0.6,-6.2 -5.2,0Z">
+<aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="0" android:startY="51.8" android:endX="0" android:endY="58"><item android:offset="0" android:color="#FFFFF6C8" /><item android:offset="1" android:color="#FFFFC94A" /></gradient></aapt:attr>
+</path>
+<path android:strokeColor="#33313A" android:strokeWidth="0.50" android:strokeAlpha="0.80" android:pathData="M32,58l0,-6.2" />
+<path android:fillColor="#44424C" android:strokeColor="#26242C" android:strokeWidth="0.50" android:pathData="M28.1,51.8l7.8,0 -3.9,-4.2Z" />
+<path android:fillColor="#E8C547" android:strokeColor="#7A5A14" android:strokeWidth="0.30" android:pathData="M31.1,47.2a0.9,0.9 0 1,0 1.8,0a0.9,0.9 0 1,0 -1.8,0Z" />
 </vector>

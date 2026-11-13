@@ -68,7 +68,7 @@ def shd(c, f=0.72, t=0.16):
     h, s, v = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)
     if s > 0.2:
         if 0.06 < h < 0.2:
-            h = max(0.05, h - 0.03 * min(1.0, (s - 0.2) / 0.3))
+            h = max(0.05, h - 0.016 * min(1.0, (s - 0.2) / 0.3))
         s = min(1.0, s * 1.1)
     r, g, b = colorsys.hsv_to_rgb(h, s, v * f)
     k = t * (1.0 - 0.6 * min(1.0, s / 0.5))
@@ -78,14 +78,6 @@ def shd(c, f=0.72, t=0.16):
 def edge(c, f=0.46):
     """内側の細い縁取りの色。"""
     return mix(shade(c, f), SHADOW_TINT, 0.25)
-
-
-def sat(c, f):
-    """彩度を f 倍にする。"""
-    r, g, b = hex_to_rgb(c)
-    h, s, v = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)
-    r, g, b = colorsys.hsv_to_rgb(h, max(0.0, min(1.0, s * f)), v)
-    return rgb_to_hex(r * 255, g * 255, b * 255)
 
 
 def with_alpha(c, a):
@@ -179,6 +171,47 @@ def oriented(pts):
         x1, y1 = pts[(i + 1) % len(pts)]
         a += x0 * y1 - x1 * y0
     return list(reversed(pts)) if a < 0 else pts
+
+
+def _convex(poly):
+    """向きをそろえた多角形（oriented の結果）が凸か。"""
+    n = len(poly)
+    for i in range(n):
+        ax, ay = poly[i]
+        bx, by = poly[(i + 1) % n]
+        cx, cy = poly[(i + 2) % n]
+        if (bx - ax) * (cy - by) - (by - ay) * (cx - bx) < -1e-6:
+            return False
+    return True
+
+
+def _within(poly, pts, eps=0.05):
+    """凸多角形 poly（oriented 済み）が点の集まり pts をすべて含むか。"""
+    n = len(poly)
+    for px, py in pts:
+        for i in range(n):
+            ax, ay = poly[i]
+            bx, by = poly[(i + 1) % n]
+            if (bx - ax) * (py - ay) - (by - ay) * (px - ax) < -eps:
+                return False
+    return True
+
+
+def prune_contained(polys):
+    """ほかの凸多角形にすっぽり入る多角形を取り除く（まとめて塗る・縁取るときの結果は変わらない）。"""
+    conv = [_convex(p) for p in polys]
+    keep = []
+    for i, p in enumerate(polys):
+        inside = False
+        for j, q in enumerate(polys):
+            if i == j or not conv[j]:
+                continue
+            if _within(q, p) and not (conv[i] and _within(p, q) and j > i):
+                inside = True
+                break
+        if not inside:
+            keep.append(p)
+    return keep
 
 
 def rows(a0, a1, b0, b1, n, lo=0.0, hi=1.0):
@@ -328,8 +361,8 @@ class Scene:
 
     def cast_round(self, xc, yc, r, z0, z1, apex=None):
         pts = []
-        for i in range(10):
-            a = 2 * math.pi * i / 10
+        for i in range(8):
+            a = 2 * math.pi * (i + 0.5) / 8
             pts.append((xc + r * math.cos(a), yc + r * math.sin(a), z0))
             pts.append((xc + r * math.cos(a), yc + r * math.sin(a), z1))
         if apex is not None:
@@ -384,7 +417,7 @@ class Scene:
         x0, y0, x1, y1 = x0 - over, y0 - over, x1 + over, y1 + over
         st = edge(c, 0.42)
         gc = gable_c or (shd(c, 0.42) if wall else shd(c, 0.6))
-        cl, cd = c, shd(c, 0.84)
+        cl, cd = c, shd(c, 0.9, 0.1)
         if axis == "x":
             ym = (y0 + y1) / 2.0
             far = h < 2.0 * (ym - y0) * V                     # 奥の面が見えるのは浅い屋根だけ
@@ -629,15 +662,26 @@ class Scene:
             if s.kind is None:
                 out.append(s)
             elif s.kind[0] == "outline":
-                ps = self._layers[s.kind[1]]
-                if self.outline and ps:
-                    out.append(Shape(ps[0], self.outline, self.outline, self.ow * 2.0, 1.0,
-                                     subs=[(p, True) for p in ps[1:]]))
+                ps = prune_contained(self._layers[s.kind[1]]) if self.outline else []
+                # 1 本のパスが長くなりすぎないよう（lint の VectorPath は 800 文字から警告）、いくつかに分ける。
+                # 同じ色の塗りと線だけなので、分けても見た目は変わらない
+                chunk, size = [], 0
+                for q in ps:
+                    ln = len(_path_rel(q, True))
+                    if chunk and size + ln > 780:
+                        out.append(Shape(chunk[0], self.outline, self.outline, self.ow * 2.0, 1.0,
+                                         subs=[(c, True) for c in chunk[1:]]))
+                        chunk, size = [], 0
+                    chunk.append(q)
+                    size += ln
+                if chunk:
+                    out.append(Shape(chunk[0], self.outline, self.outline, self.ow * 2.0, 1.0,
+                                     subs=[(c, True) for c in chunk[1:]]))
             elif s.kind[0] == "cast" and self._casts:
                 # 2:1 につぶした放射グラデーション（group の scaleY = 0.5）なので、パスは y を 2 倍にしておく
                 cx, cy = self.cast_center
                 r0, r1 = self.cast_fade
-                ps = [[(x, cy + (y - cy) * 2.0) for x, y in p] for p in self._casts]
+                ps = [[(x, cy + (y - cy) * 2.0) for x, y in p] for p in prune_contained(self._casts)]
                 g = Radial(cx, cy, r1, [(0.0, with_alpha(SHADOW_INK, 0.36)), (r0 / r1, with_alpha(SHADOW_INK, 0.32)),
                                         (1.0, with_alpha(SHADOW_INK, 0.0))])
                 out.append(Shape(ps[0], g, None, 0, 1.0, subs=[(p, True) for p in ps[1:]], xf=(cx, cy, 1.0, 0.5)))
@@ -786,10 +830,8 @@ def _grad_xml(g, alpha=1.0):
     else:
         head = '<gradient android:type="radial" android:centerX="%s" android:centerY="%s" android:gradientRadius="%s"' % (
             _f(g.cx), _f(g.cy), _f(g.r))
-    st = g.stops
-    if len(st) == 2 and st[0][0] == 0.0 and st[1][0] == 1.0:
-        return '%s android:startColor="%s" android:endColor="%s" />' % (head, _argb8(st[0][1], alpha), _argb8(st[1][1], alpha))
-    items = "".join('<item android:offset="%s" android:color="%s" />' % (_f3(o), _argb8(c, alpha)) for o, c in st)
+    # 色は vec.py（アイコン）と同じく <item> で並べる
+    items = "".join('<item android:offset="%s" android:color="%s" />' % (_f3(o), _argb8(c, alpha)) for o, c in g.stops)
     return "%s>%s</gradient>" % (head, items)
 
 

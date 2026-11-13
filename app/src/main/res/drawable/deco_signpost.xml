@@ -1,8 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- tools/artgen で生成（手で編集しない）: decor signpost -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="96dp" android:viewportWidth="64" android:viewportHeight="96">
-  <path android:fillColor="#000000" android:fillAlpha="0.22" android:pathData="M39.0,80.0L37.7,81.8L34.2,82.9L29.8,82.9L26.3,81.8L25.0,80.0L26.3,78.2L29.8,77.1L34.2,77.1L37.7,78.2Z" />
-  <path android:strokeColor="#5A4630" android:strokeWidth="2.20" android:strokeLineJoin="round" android:pathData="M32.0,80.0L32.0,46.0" />
-  <path android:fillColor="#9C7A4A" android:strokeColor="#4A3622" android:strokeWidth="0.80" android:strokeLineJoin="round" android:pathData="M10.0,38.0L54.0,38.0L54.0,54.0L10.0,54.0Z" />
-  <path android:strokeColor="#B8935A" android:strokeWidth="0.60" android:strokeLineJoin="round" android:pathData="M12.0,41.0L52.0,41.0" />
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt" android:width="64dp" android:height="96dp" android:viewportWidth="64" android:viewportHeight="96">
+<group android:pivotX="33" android:pivotY="80.5" android:scaleX="1" android:scaleY="0.429">
+<path android:pathData="M26,80.5a7,7 0 1,0 14,0a7,7 0 1,0 -14,0Z">
+<aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="33" android:centerY="80.5" android:gradientRadius="7"><item android:offset="0" android:color="#571B1430" /><item android:offset="0.55" android:color="#451B1430" /><item android:offset="1" android:color="#001B1430" /></gradient></aapt:attr>
+</path>
+</group>
+<group android:pivotX="32" android:pivotY="80" android:scaleX="1" android:scaleY="0.5">
+<path android:pathData="M30.6,78.6l34.8,10.3 -33.6,0Z">
+<aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="32" android:centerY="80" android:gradientRadius="31"><item android:offset="0" android:color="#5C1B1430" /><item android:offset="0.413" android:color="#521B1430" /><item android:offset="1" android:color="#001B1430" /></gradient></aapt:attr>
+</path>
+</group>
+<path android:strokeColor="#2B1D2B" android:strokeWidth="4.40" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M32,80l0,-34" />
+<path android:strokeColor="#7A5530" android:strokeWidth="2.40" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M32,80l0,-34" />
+<path android:strokeColor="#A67C4A" android:strokeWidth="0.60" android:strokeAlpha="0.80" android:pathData="M31.4,79l0,-19" />
+<path android:fillColor="#2B1D2B" android:strokeColor="#2B1D2B" android:strokeWidth="2.20" android:strokeLineJoin="round" android:pathData="M10,38l44,0 0,16 -44,0Z" />
+<path android:strokeColor="#5A3E22" android:strokeWidth="0.90" android:strokeLineJoin="round" android:pathData="M10,38l44,0 0,16 -44,0Z">
+<aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="0" android:startY="38" android:endX="0" android:endY="54"><item android:offset="0" android:color="#FFE2C48C" /><item android:offset="1" android:color="#FFC9A566" /></gradient></aapt:attr>
+</path>
+<path android:strokeColor="#A8824A" android:strokeWidth="0.40" android:strokeAlpha="0.55" android:pathData="M10,43.4l44,0M10,48.7l44,0" />
+<path android:strokeColor="#F4E2B8" android:strokeWidth="0.70" android:strokeAlpha="0.80" android:pathData="M11,39l42,0" />
+<path android:fillColor="#5A5A64" android:pathData="M11.6,40.4a0.8,0.8 0 1,0 1.6,0a0.8,0.8 0 1,0 -1.6,0ZM50.8,40.4a0.8,0.8 0 1,0 1.6,0a0.8,0.8 0 1,0 -1.6,0ZM11.6,51.6a0.8,0.8 0 1,0 1.6,0a0.8,0.8 0 1,0 -1.6,0ZM50.8,51.6a0.8,0.8 0 1,0 1.6,0a0.8,0.8 0 1,0 -1.6,0Z" />
 </vector>
