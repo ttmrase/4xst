@@ -1,0 +1,246 @@
+run: 119
+commit: 82182b007a1fe323d0aa55ab7dc537412a4f975c
+job status: failure
+images: 15
+bytes: 548321
+actions: https://github.com/ttmrase/4xst/actions/runs/43363875730
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 0/34 completed. (0 skipped) (0 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 1/34 completed. (0 skipped) (1 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 2/34 completed. (0 skipped) (2 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 3/34 completed. (0 skipped) (3 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 5/34 completed. (0 skipped) (4 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 7/34 completed. (0 skipped) (5 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 8/34 completed. (0 skipped) (6 failed)
+emulator-5554 - 14 Tests 9/34 completed. (0 skipped) (6 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 10/34 completed. (0 skipped) (7 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 11/34 completed. (0 skipped) (8 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 12/34 completed. (0 skipped) (9 failed)
+emulator-5554 - 14 Tests 13/34 completed. (0 skipped) (9 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 14/34 completed. (0 skipped) (10 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 15/34 completed. (0 skipped) (11 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 16/34 completed. (0 skipped) (12 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 17/34 completed. (0 skipped) (13 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 19/34 completed. (0 skipped) (14 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 20/34 completed. (0 skipped) (15 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 21/34 completed. (0 skipped) (16 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 22/34 completed. (0 skipped) (17 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+emulator-5554 - 14 Tests 23/34 completed. (0 skipped) (18 failed)
+	androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non default root matcher, it may be picking a root that never takes focus. Root:
+--- per test (androidTest-results xml) ---
+FAIL BuilderUnlockUiTest.secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@664fcdd, window-token=android.view.ViewRootImpl$W@664fcdd, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL BuilderUnlockUiTest.barracksShowsTheTroopIcons
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@330e501, window-token=android.view.ViewRootImpl$W@330e501, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL FeatureUnlockUiTest.theShopShowsLockCardsForTheWheelAndThePiggyBankAtCastleLevelFour
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@9dd8e09, window-token=android.view.ViewRootImpl$W@9dd8e09, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL FeatureUnlockUiTest.backSkipsTheWholeCeremonyAndTheAllianceUnlocksAtLevelFour
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@6f68cf9, window-token=android.view.ViewRootImpl$W@6f68cf9, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+PASS FeatureUnlockUiTest.theFirstCastleUpgradeOfAFreshGameShowsItsDuration
+FAIL FeatureUnlockUiTest.theLevelThreeUnlockCeremonyAndTheFirstUseRewardAreClaimedOnce
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@5fda8bd, window-token=android.view.ViewRootImpl$W@5fda8bd, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+PASS FeatureUnlockUiTest.settingsShowsTheLockCardBelowLevelFour
+FAIL FeatureUnlockUiTest.freshStartShowsLocksAndEveryLockedTabAnswersAndBackWorks
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@d28a9a2, window-token=android.view.ViewRootImpl$W@d28a9a2, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+PASS HarvestSoundUiTest.theCastleLevelUpCeremonyShowsTheNewLevelAndWhatItUnlocks
+FAIL HarvestSoundUiTest.tappingAHarvestBubbleCollectsItAndFliesToTheHud
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@5121e14, window-token=android.view.ViewRootImpl$W@5121e14, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL HarvestSoundUiTest.settingsShowTheSoundAndTitleSections
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@79de4a6, window-token=android.view.ViewRootImpl$W@79de4a6, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL HarvestSoundUiTest.theChestCeremonyShowsItsStages
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@efd0f62, window-token=android.view.ViewRootImpl$W@efd0f62, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+PASS LaunchSmokeTest.titleScreenAppearsAndCanBeCaptured
+FAIL NavUiTest.cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@5c9f4d9, window-token=android.view.ViewRootImpl$W@5c9f4d9, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL PerfUiTest.lateGameCityPanFrameTimesAndSpriteMemory
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@e746eb6, window-token=android.view.ViewRootImpl$W@e746eb6, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL PortraitUiTest.chatAndDmShowTheAvatars
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@89bbaf3, window-token=android.view.ViewRootImpl$W@89bbaf3, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL PortraitUiTest.heroListAndDetailShowThePortraitsWithRarityFrames
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@eb44266, window-token=android.view.ViewRootImpl$W@eb44266, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL PortraitUiTest.allianceMembersAndSettingsAvatarPickerShowThePortraits
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@a64f393, window-token=android.view.ViewRootImpl$W@a64f393, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+PASS SeederSmokeTest.seededRichCastleReachesTheSession
+FAIL ShopVipUiTest.offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@468d891, window-token=android.view.ViewRootImpl$W@468d891, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL ShopVipUiTest.vipCinematicAndRewardDialogCloseWithBack
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@75a1ee3, window-token=android.view.ViewRootImpl$W@75a1ee3, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL ShopVipUiTest.raidBannerAndSettingsAreCaptured
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@bb8a792, window-token=android.view.ViewRootImpl$W@bb8a792, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL SkinMapUiTest.theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@33c186c, window-token=android.view.ViewRootImpl$W@33c186c, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL SkinMapUiTest.theLuckyBagTenPullShowsItsResult
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@fe6f902, window-token=android.view.ViewRootImpl$W@fe6f902, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL SkinMapUiTest.theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@c015cc, window-token=android.view.ViewRootImpl$W@c015cc, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill) 
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL SkinMapUiTest.worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@add16ac, window-token=android.view.ViewRootImpl$W@add16ac, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL SkinMapUiTest.equippedCastleSkinsChangeTheCityAndTheMapAndChat
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@73c143, window-token=android.view.ViewRootImpl$W@73c143, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill) 
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL SummonUiTest.ritualStagesAndTheTenRollListAreCaptured
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@36cc41b, window-token=android.view.ViewRootImpl$W@36cc41b, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL SummonUiTest.tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@e1e5529, window-token=android.view.ViewRootImpl$W@e1e5529, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL TerritoryUiTest.tutorialBannerSteps
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@81f7cf3, window-token=android.view.ViewRootImpl$W@81f7cf3, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL TerritoryUiTest.territoryScreenshotsForRichLateAndBuildingStates
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@c1934ad, window-token=android.view.ViewRootImpl$W@c1934ad, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL TerritoryUiTest.panAndPinchOnTheTerritoryDoNotCrash
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@33ab8c6, window-token=android.view.ViewRootImpl$W@33ab8c6, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL BackPressInstrumentedTest.systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@9774076, window-token=android.view.ViewRootImpl$W@9774076, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+FAIL BackPressInstrumentedTest.systemBackClosesTheBillingSheetBeforeAnyPayment
+      androidx.test.espresso.base.RootViewPicker$RootViewWithoutFocusException: Waited for the root of the view hierarchy to have window focus and not request layout for 10 seconds. If you specified a non d
+      Root{application-window-token=android.view.ViewRootImpl$W@5e0ba99, window-token=android.view.ViewRootImpl$W@5e0ba99, has-window-focus=false, layout-params-type=1, layout-params-string={(0,0)(fillxfill
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+--- TestRunner (started / finished / failed) ---
+11-13 04:23:33.139 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-13 04:23:46.954 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-13 04:23:46.959 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-13 04:23:47.947 theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:01.832 theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:01.842 theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:02.762 theLuckyBagTenPullShowsItsResult(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:16.787 theLuckyBagTenPullShowsItsResult(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:16.796 theLuckyBagTenPullShowsItsResult(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:17.859 theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:32.013 theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:32.019 theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:33.282 worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:46.762 worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:46.770 worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:24:47.519 equippedCastleSkinsChangeTheCityAndTheMapAndChat(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:25:01.309 equippedCastleSkinsChangeTheCityAndTheMapAndChat(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:25:01.322 equippedCastleSkinsChangeTheCityAndTheMapAndChat(com.ttmrase.crownfall.SkinMapUiTest)
+11-13 04:25:02.294 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+11-13 04:25:16.179 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+11-13 04:25:16.186 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+11-13 04:25:17.222 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+11-13 04:25:31.211 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+11-13 04:25:31.218 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+11-13 04:25:32.502 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+11-13 04:25:45.728 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+11-13 04:25:45.733 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+11-13 04:25:46.498 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+11-13 04:25:59.888 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+11-13 04:25:59.895 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+11-13 04:26:01.004 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+11-13 04:26:15.045 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+11-13 04:26:15.054 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+11-13 04:26:16.074 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-13 04:26:30.176 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-13 04:26:30.184 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-13 04:26:30.207 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-13 04:26:43.943 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-13 04:26:43.976 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-13 04:26:44.016 34 tests, 29 failed, 0 ignored
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
+Starting 34 tests on emulator-5554 - 14
+Finished 34 tests on emulator-5554 - 14
