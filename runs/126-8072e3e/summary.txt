@@ -1,0 +1,25 @@
+run: 126
+commit: 8072e3e181e85a78093e68cafdda3958a636f8a6
+job status: cancelled
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/43368360137
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 0/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 1/34 completed. (0 skipped) (1 failed)
+Tests on emulator-5554 - 14 failed: There was 1 failure(s).
+Test run failed to complete. Expected 34 tests, received 0
+> Task :app:connectedDebugAndroidTest FAILED
+> There were failing tests. See the report at: file:///home/runner/work/4xst/4xst/app/build/reports/androidTests/connected/debug/index.html
+--- per test (androidTest-results xml) ---
+FAIL BuilderUnlockUiTest.secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups
+--- TestRunner (started / finished / failed) ---
+11-13 05:11:11.774 34 tests
+11-13 05:11:11.777 secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups(com.ttmrase.crownfall.BuilderUnlockUiTest)
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
+Starting 34 tests on emulator-5554 - 14
+Finished 1 tests on emulator-5554 - 14
