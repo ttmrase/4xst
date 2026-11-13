@@ -252,6 +252,8 @@ private fun DrawScope.ridge(
 ) {
     val w = size.width
     val h = size.height
+    // 幅 0 で呼ばれると下のループが進まなくなる（step が 0）。描くものも無いので何もしない
+    if (w <= 0f || h <= 0f) return
     val path = Path().apply { moveTo(0f, h) }
     var x = 0f
     val step = w / RIDGE_STEPS
@@ -270,6 +272,7 @@ private fun DrawScope.ridge(
 
 /** 遠くの城下町のシルエット（塔と屋根の並び）。 */
 private fun DrawScope.skyline(base: Float) {
+    if (size.width <= 0f || density <= 0f) return
     val w = size.width
     val y0 = base * size.height
     val color = Color(0xFF120F33)

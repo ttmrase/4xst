@@ -35,13 +35,14 @@ while kill -0 "$gradle_pid" 2>/dev/null; do
   if [[ $SECONDS -ge $deadline ]]; then
     hung=1
     echo "::error::androidTest did not finish in 20 minutes: capturing the screen and the app stack, then stopping"
-    adb exec-out screencap -p > "$out/screenshots/HANG_screen.png" || true
-    adb root >/dev/null 2>&1 || true
-    pid="$(adb shell pidof com.ttmrase.crownfall | tr -d '\r')"
-    [[ -n "$pid" ]] && adb shell kill -3 "$pid" || true
+    # 端末やデーモンが固まっていても、ここで止まらないように各コマンドに時間切れを付ける（ui run 120・126 は後始末で 13 分止まった）
+    timeout 30 adb exec-out screencap -p > "$out/screenshots/HANG_screen.png" || true
+    timeout 20 adb root >/dev/null 2>&1 || true
+    pid="$(timeout 20 adb shell pidof com.ttmrase.crownfall | tr -d '\r')"
+    [[ -n "$pid" ]] && timeout 20 adb shell kill -3 "$pid" || true
     sleep 3
-    adb pull /data/anr "$out/logs/anr" >/dev/null 2>&1 || true
-    ./gradlew --stop >/dev/null 2>&1 || true
+    timeout 60 adb pull /data/anr "$out/logs/anr" >/dev/null 2>&1 || true
+    timeout 60 ./gradlew --stop >/dev/null 2>&1 || true
     kill "$gradle_pid" 2>/dev/null || true
     break
   fi
@@ -82,8 +83,30 @@ PY
   grep -hE 'Starting [0-9]+ tests|Finished [0-9]+ tests' "$out/logs/gradle.log" | head -10
 } > "$out/result.txt" 2>&1
 
-adb logcat -d > "$out/logs/logcat.txt" 2>&1 || true
-adb pull /sdcard/Android/data/com.ttmrase.crownfall/files/screenshots/. "$out/screenshots/" || echo "no screenshots on the device"
+timeout 60 adb logcat -d > "$out/logs/logcat.txt" 2>&1 || true
+# 固まった・落ちたときの手がかりを要約に残す（artifact に届かない環境でも qa-screenshots の summary で読める）:
+# アプリの例外と ANR の行、ANR のトレースからアプリのメインスレッドのスタック
+{
+  echo "--- crash / ANR lines (logcat) ---"
+  grep -E 'FATAL EXCEPTION|AndroidRuntime: (Process|java\.|kotlin\.|Caused by|\tat com\.ttmrase)|ANR in |am_anr|lowmemorykiller|Low on memory' \
+    "$out/logs/logcat.txt" | cut -c1-220 | tail -40
+  echo "--- main thread of the app (ANR trace) ---"
+  python3 - "$out/logs/anr" <<'PY'
+import glob, os, sys
+files = sorted(glob.glob(os.path.join(sys.argv[1], "**", "*"), recursive=True), key=os.path.getmtime, reverse=True)
+for f in files:
+    if not os.path.isfile(f):
+        continue
+    text = open(f, errors="replace").read()
+    if "com.ttmrase.crownfall" not in text:
+        continue
+    start = text.find('"main"')
+    if start >= 0:
+        print("\n".join(line[:200] for line in text[start:].splitlines()[:45]))
+    break
+PY
+} >> "$out/result.txt" 2>&1
+timeout 120 adb pull /sdcard/Android/data/com.ttmrase.crownfall/files/screenshots/. "$out/screenshots/" || echo "no screenshots on the device"
 for d in app/build/reports/androidTests app/build/outputs/androidTest-results; do
   [[ -d "$d" ]] && cp -r "$d" "$out/logs/$(basename "$d")"
 done
