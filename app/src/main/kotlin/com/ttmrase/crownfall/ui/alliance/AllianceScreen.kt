@@ -2,18 +2,18 @@ package com.ttmrase.crownfall.ui.alliance
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -61,12 +61,17 @@ import com.ttmrase.crownfall.ui.common.showReplacing
 import com.ttmrase.crownfall.ui.common.vipTextColor
 import com.ttmrase.crownfall.ui.failureMessage
 import com.ttmrase.crownfall.ui.itemName
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.CountBadge
 import com.ttmrase.crownfall.ui.kit.GameButton
+import com.ttmrase.crownfall.ui.kit.GameButtonSize
 import com.ttmrase.crownfall.ui.kit.GameCard
 import com.ttmrase.crownfall.ui.kit.GameDivider
 import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
 import com.ttmrase.crownfall.ui.kit.GameTab
 import com.ttmrase.crownfall.ui.kit.GameTabRow
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.map.FormationSheet
 import com.ttmrase.crownfall.ui.nameRes
 import com.ttmrase.crownfall.ui.namedString
@@ -75,16 +80,9 @@ import com.ttmrase.crownfall.ui.portrait.PortraitKeys
 import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.reward.LocalRewardFly
 import com.ttmrase.crownfall.ui.reward.dispatchFly
+import com.ttmrase.crownfall.ui.theme.GoldText
 import com.ttmrase.crownfall.ui.titleLabel
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.offset
-import com.ttmrase.crownfall.ui.kit.Cf
-import com.ttmrase.crownfall.ui.kit.CountBadge
-import com.ttmrase.crownfall.ui.kit.GameButtonSize
-import com.ttmrase.crownfall.ui.kit.Glyph
-import com.ttmrase.crownfall.ui.kit.GlyphIcon
-import com.ttmrase.crownfall.ui.theme.GoldText
 
 private const val SECONDS_PER_DAY = 86_400L
 private const val SECONDS_PER_HOUR = 3_600L

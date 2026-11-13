@@ -148,11 +148,13 @@ class ShotsTest {
         rig.launchToCity()
         rig.open("summon")
         rig.click(rig.str(R.string.summon_ten_deal))
-        rig.settle(600)
-        rig.shot("summon_1")
-        rig.settle(2500)
-        rig.shot("summon_2")
-        rig.settle(4000)
+        rig.settle(900)
+        rig.shot("summon_1", warmups = 1)
+        rig.settle(900)
+        rig.shot("summon_2", warmups = 1)
+        rig.settle(6000)
+        rig.click(rig.str(R.string.summon_flip_all))
+        rig.settle(1500)
         rig.shot("summon_3")
     }
 

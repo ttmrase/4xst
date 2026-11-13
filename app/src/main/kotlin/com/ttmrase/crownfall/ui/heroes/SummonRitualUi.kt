@@ -10,8 +10,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -26,14 +28,19 @@ import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ttmrase.crownfall.R
@@ -45,7 +52,13 @@ import com.ttmrase.crownfall.core.model.SummonEntry
 import com.ttmrase.crownfall.ui.common.Sfx
 import com.ttmrase.crownfall.ui.common.SfxId
 import com.ttmrase.crownfall.ui.heroNameRes
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
 import com.ttmrase.crownfall.ui.kit.GameOutlinedButton
+import com.ttmrase.crownfall.ui.kit.Glyph
+import com.ttmrase.crownfall.ui.kit.GlyphIcon
+import com.ttmrase.crownfall.ui.kit.gameFrame
+import com.ttmrase.crownfall.ui.portrait.PortraitView
 import com.ttmrase.crownfall.ui.rarityColor
 import kotlin.math.PI
 import kotlin.math.cos
@@ -135,44 +148,125 @@ private fun DrawScope.drawRitual(
             nearMissGold -> orbTint(OrbColor.PURPLE)
             else -> orbTint(color ?: OrbColor.BLUE)
         }
-    // 渦巻く光の粒（溜め中は中心へ収束、その後は薄く周回する）
+    // 地の光（色のついた霧が中心から広がる）と、床の魔法陣（遠近のついた二重の輪。溜めとともに広がって回る）
+    drawCircle(
+        Brush.radialGradient(
+            listOf(tint.copy(alpha = 0.28f + 0.2f * chargeP), Color.Transparent),
+            center,
+            unit * 0.75f,
+        ),
+        unit * 0.75f,
+        center,
+    )
+    val floor = center + Offset(0f, unit * 0.2f)
+    val ringR = unit * (0.2f + 0.16f * chargeP)
+    val spinA = elapsed / 900f
+    scale(1f, FLOOR_SQUASH, floor) {
+        drawCircle(tint.copy(alpha = 0.16f), ringR, floor)
+        drawCircle(tint.copy(alpha = 0.9f), ringR, floor, style = Stroke(unit * 0.008f))
+        drawCircle(Color.White.copy(alpha = 0.55f), ringR * 0.8f, floor, style = Stroke(unit * 0.004f))
+        for (i in 0 until RUNES) {
+            val ang = spinA + i * TAU / RUNES
+            val inner = floor + Offset(cos(ang) * ringR * 0.82f, sin(ang) * ringR * 0.82f)
+            val outer = floor + Offset(cos(ang) * ringR * 0.98f, sin(ang) * ringR * 0.98f)
+            drawLine(Color.White.copy(alpha = 0.75f), inner, outer, unit * 0.006f)
+        }
+        // 輪の中の星形（反対向きに回る）
+        val star = Path()
+        for (i in 0 until STAR_POINTS) {
+            val ang = -spinA * 0.7f + i * TAU * 2f / STAR_POINTS
+            val pt = floor + Offset(cos(ang) * ringR * 0.78f, sin(ang) * ringR * 0.78f)
+            if (i == 0) star.moveTo(pt.x, pt.y) else star.lineTo(pt.x, pt.y)
+        }
+        star.close()
+        drawPath(star, tint.copy(alpha = 0.7f), style = Stroke(unit * 0.005f))
+    }
+    // 光の柱（床から立ち上がり、溜めるほど太く明るい）
+    val beamW = unit * (0.05f + 0.16f * chargeP)
+    drawRect(
+        Brush.horizontalGradient(
+            listOf(
+                Color.Transparent,
+                tint.copy(alpha = 0.5f * chargeP),
+                Color.White.copy(alpha = 0.6f * chargeP),
+                tint.copy(alpha = 0.5f * chargeP),
+                Color.Transparent,
+            ),
+            center.x - beamW,
+            center.x + beamW,
+        ),
+        Offset(center.x - beamW, 0f),
+        Size(beamW * 2, floor.y),
+    )
+    // 渦巻く光の粒（溜め中は中心へ収束、その後は薄く周回する）。尾を 2 つ引く
     for (i in 0 until PARTICLES) {
         val a0 = i * GOLDEN
         val r0 = unit * (0.30f + 0.25f * ((i * 0.618f) % 1f))
         val r = if (chargeP < 1f) r0 * (1f - chargeP) + orbR else orbR * (1.6f + 0.4f * sin(elapsed / 300f + i))
         val a = a0 + chargeP * 5f + elapsed / 2000f
         val alpha = if (chargeP < 1f) 0.35f + 0.65f * chargeP else 0.35f
-        drawCircle(
-            color = tint.copy(alpha = alpha),
-            radius = unit * 0.008f + unit * 0.006f * (i % 3),
-            center = center + Offset(cos(a) * r, sin(a) * r),
-        )
+        val size = unit * 0.008f + unit * 0.006f * (i % 3)
+        for (k in 0..2) {
+            val ak = a - k * 0.09f
+            drawCircle(
+                color = (if (k == 0) Color.White else tint).copy(alpha = alpha * (1f - k * 0.33f)),
+                radius = size * (1f - k * 0.25f),
+                center = center + Offset(cos(ak) * r, sin(ak) * r),
+            )
+        }
+    }
+    // 立ちのぼる火花（十字の光）
+    for (i in 0 until SPARKS) {
+        val seed = (i * 0.37f) % 1f
+        val up = ((elapsed / 1400f + seed) % 1f)
+        val x = center.x + (seed - 0.5f) * unit * 0.7f + sin(up * TAU + i) * unit * 0.02f
+        val y = floor.y - up * unit * 0.6f
+        val s = unit * 0.012f * (1f - up)
+        val c = Color.White.copy(alpha = (1f - up) * 0.9f * (0.3f + 0.7f * chargeP))
+        drawLine(c, Offset(x - s, y), Offset(x + s, y), s * 0.35f)
+        drawLine(c, Offset(x, y - s), Offset(x, y + s), s * 0.35f)
     }
     // 宝珠
     val pulse = 1f + 0.06f * sin(elapsed / 90f)
     drawCircle(
-        brush = Brush.radialGradient(listOf(Color.White, tint, tint.copy(alpha = 0f)), center, orbR * 2.2f * pulse),
-        radius = orbR * 2.2f * pulse,
+        brush = Brush.radialGradient(listOf(Color.White, tint, tint.copy(alpha = 0f)), center, orbR * 2.6f * pulse),
+        radius = orbR * 2.6f * pulse,
         center = center,
     )
-    drawCircle(color = Color.White.copy(alpha = 0.9f), radius = orbR * 0.45f, center = center)
-    // 色が変わった瞬間に広がる輪
+    drawCircle(color = Color.White.copy(alpha = 0.95f), radius = orbR * 0.5f, center = center)
+    drawCircle(Color.White.copy(alpha = 0.5f), orbR * 1.05f * pulse, center, style = Stroke(unit * 0.004f))
+    // 色が変わった瞬間に広がる輪（二重）
     if (flash >= 0 && !inBurst) {
         val p = ((elapsed - CHARGE_MS - flash * FLASH_MS).toFloat() / FLASH_MS).coerceIn(0f, 1f)
+        val ringColor = orbTint(color ?: OrbColor.BLUE)
         drawCircle(
-            color = orbTint(color ?: OrbColor.BLUE).copy(alpha = 1f - p),
+            color = ringColor.copy(alpha = 1f - p),
             radius = orbR * (1.2f + 3f * p),
             center = center,
-            style = Stroke(width = unit * 0.012f),
+            style = Stroke(width = unit * 0.014f),
         )
+        drawCircle(
+            color = Color.White.copy(alpha = (1f - p) * 0.7f),
+            radius = orbR * (1.0f + 4.5f * p),
+            center = center,
+            style = Stroke(width = unit * 0.005f),
+        )
+        drawRect(ringColor.copy(alpha = (1f - p) * 0.18f))
         if (nearMissGold) drawGoldSparks(center, orbR * (1.4f + 2f * p), 1f - p)
     }
     if (inBurst) {
         val p = ((elapsed - burstStart).toFloat() / BURST_MS).coerceIn(0f, 1f)
         drawRays(center, unit, tint, 1f - p, elapsed)
+        drawCircle(Color.White.copy(alpha = 1f - p), unit * (0.1f + 0.9f * p), center, style = Stroke(unit * 0.02f))
         drawRect(Color.White.copy(alpha = (1f - p) * 0.85f))
     }
 }
+
+private const val FLOOR_SQUASH = 0.36f
+private const val SSR_STARS = 5
+private const val RUNES = 24
+private const val STAR_POINTS = 5
+private const val SPARKS = 18
 
 private fun DrawScope.drawGoldSparks(
     center: Offset,
@@ -193,15 +287,21 @@ private fun DrawScope.drawRays(
     alpha: Float,
     elapsed: Long,
 ) {
-    val rays = 16
+    // 根元が細く先が広い光の刃（線ではなく三角形）。1 本おきに白く抜く
+    val rays = 18
+    val reach = unit * 1.3f
     for (i in 0 until rays) {
-        val a = i * TAU / rays + elapsed / 1500f
-        drawLine(
-            color = tint.copy(alpha = alpha * 0.8f),
-            start = center,
-            end = center + Offset(cos(a) * unit, sin(a) * unit),
-            strokeWidth = unit * 0.02f,
-        )
+        val a0 = i * TAU / rays + elapsed / 1500f
+        val a1 = a0 + TAU / rays * 0.4f
+        val blade =
+            Path().apply {
+                moveTo(center.x, center.y)
+                lineTo(center.x + cos(a0) * reach, center.y + sin(a0) * reach)
+                lineTo(center.x + cos(a1) * reach, center.y + sin(a1) * reach)
+                close()
+            }
+        val c = if (i % 2 == 0) tint else Color.White
+        drawPath(blade, Brush.radialGradient(listOf(c.copy(alpha = alpha * 0.9f), Color.Transparent), center, reach))
     }
 }
 
@@ -238,48 +338,67 @@ internal fun SsrReveal(
         contentAlignment = Alignment.Center,
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val c = Offset(size.width / 2f, size.height * 0.4f)
+            val c = Offset(size.width / 2f, size.height * 0.36f)
             val unit = min(size.width, size.height)
-            for (i in 0 until 12) {
-                val a = i * TAU / 12 + spin
-                drawLine(
-                    brush = Brush.radialGradient(listOf(gold, gold.copy(alpha = 0f)), c, unit),
-                    start = c,
-                    end = c + Offset(cos(a) * unit, sin(a) * unit),
-                    strokeWidth = unit * 0.05f,
-                )
-            }
+            drawRays(c, unit, gold, 0.8f, (spin * 1500f).toLong())
             drawCircle(
-                brush = Brush.radialGradient(listOf(Color.White, gold, gold.copy(alpha = 0f)), c, unit * 0.35f),
-                radius = unit * 0.35f,
+                brush = Brush.radialGradient(listOf(Color.White, gold, gold.copy(alpha = 0f)), c, unit * 0.42f),
+                radius = unit * 0.42f,
                 center = c,
+            )
+            // 名前と星の後ろを暗くして読めるようにする
+            drawRect(
+                Brush.verticalGradient(
+                    0.45f to Color.Transparent,
+                    0.58f to Color(0xD9060A16),
+                    0.8f to Color(0xD9060A16),
+                    1f to Color.Transparent,
+                ),
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 stringResource(R.string.summon_ssr_banner),
-                color = gold,
-                style = MaterialTheme.typography.headlineMedium,
+                style =
+                    MaterialTheme.typography.headlineMedium.copy(
+                        color = Color.White,
+                        shadow = Shadow(Color(0xFFB8501A), Offset(0f, 3f), 14f),
+                    ),
+                fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
+            )
+            // 主役の絵（金の枠のポートレート）
+            PortraitView(
+                entry.heroId,
+                heroNameRes(entry.heroId)?.let { stringResource(it) } ?: entry.heroId,
+                size = 168.dp,
+                modifier = Modifier.padding(top = 14.dp),
+                rarity = HeroRarity.SSR,
             )
             Text(
                 heroNameRes(entry.heroId)?.let { stringResource(it) } ?: entry.heroId,
-                color = Color.White,
-                style = MaterialTheme.typography.displaySmall,
+                style =
+                    MaterialTheme.typography.displaySmall.copy(
+                        brush = Cf.GoldTextBrush,
+                        shadow = Shadow(Color(0xFF04060D), Offset(0f, 3f), 6f),
+                    ),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 12.dp),
+                modifier = Modifier.padding(top = 14.dp),
             )
-            Text(
-                stringResource(R.string.summon_stars),
-                color = gold,
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(top = 8.dp),
-            )
+            Row(modifier = Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                repeat(SSR_STARS) { GlyphIcon(Glyph.STAR, size = 30.dp) }
+            }
             if (entry.isNew) {
                 Text(
                     stringResource(R.string.summon_new),
                     color = Color.White,
+                    fontWeight = FontWeight.Black,
                     style = MaterialTheme.typography.titleLarge,
+                    modifier =
+                        Modifier
+                            .padding(top = 8.dp)
+                            .gameFrame(FrameStyle.Alarm, corner = 10.dp)
+                            .padding(horizontal = 14.dp, vertical = 2.dp),
                 )
             }
             Text(
