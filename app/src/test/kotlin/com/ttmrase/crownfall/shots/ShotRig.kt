@@ -11,10 +11,14 @@ import android.os.Looper
 import android.view.View
 import android.view.WindowManager
 import android.view.inspector.WindowInspector
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
@@ -140,6 +144,17 @@ class ShotRig(private val rule: ComposeTestRule) {
         waitText(label)
         val nodes = rule.onAllNodesWithText(label)
         nodes[nodes.fetchSemanticsNodes().size - 1].performClick()
+        settle()
+    }
+
+    /** 画面の割合の位置（0..1）をタップする（領地の建物など、文言で探せないもの用）。 */
+    fun tapAt(
+        fx: Float,
+        fy: Float,
+    ) {
+        val dm = app.resources.displayMetrics
+        rule.onAllNodes(isRoot())[0].performTouchInput { click(Offset(dm.widthPixels * fx, dm.heightPixels * fy)) }
+        settle()
         settle()
     }
 

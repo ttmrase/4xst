@@ -9,10 +9,10 @@ import com.ttmrase.crownfall.R
 import androidx.compose.ui.text.googlefonts.Font as GoogleFontEntry
 
 /**
- * 見出しと数字のフォント（docs/ASSETS.md）。Google Fonts のダウンロード方式（SIL OFL 1.1、APK には同梱しない）。
- * 端末で取得できないとき（オフライン・Play 開発者サービスなし）は、各 FontFamily の後ろの端末の serif に落ちる。
- * - [Display]: Noto Serif JP（和文の見出し。英数字も含む）
- * - [Numeric]: Cinzel（数字・「OFF」などの欧文。和文は端末のフォントに落ちる）
+ * 見出しと数字のフォント（docs/ASSETS.md）。どちらも SIL OFL 1.1。
+ * - [Display]: Noto Serif JP（和文の見出し。英数字も含む）。Google Fonts のダウンロード方式（APK には同梱しない）。
+ *   端末で取得できないとき（オフライン・Play 開発者サービスなし）は、後ろの端末の serif に落ちる。
+ * - [Numeric]: Cinzel（数字・「OFF」などの欧文・題字）。res/font に同梱（2 ウェイト、計 92 KB）。
  */
 object CrownFonts {
     private val provider =
@@ -40,14 +40,14 @@ object CrownFonts {
             fallback(FontWeight.Black),
         )
 
-    /** 数字・欧文（価格・割引・カウントダウン）。 */
+    /**
+     * 数字・欧文（価格・割引・カウントダウン・題字）。Cinzel を同梱する（OFL。オフラインでも同じ見た目）。
+     * 和文は Cinzel に無いので、文字ごとに端末のフォントへ落ちる。
+     */
     val Numeric: FontFamily =
         FontFamily(
-            google("Cinzel", FontWeight.Bold),
-            google("Cinzel", FontWeight.Black),
-            google("Cinzel", FontWeight.SemiBold),
-            fallback(FontWeight.Bold),
-            fallback(FontWeight.Black),
-            fallback(FontWeight.SemiBold),
+            Font(R.font.cinzel_bold, FontWeight.Bold),
+            Font(R.font.cinzel_bold, FontWeight.SemiBold),
+            Font(R.font.cinzel_black, FontWeight.Black),
         )
 }

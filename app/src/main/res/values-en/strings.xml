@@ -128,6 +128,7 @@
     <string name="sheet_effects">Effects</string>
     <string name="sheet_cost">Cost</string>
     <string name="sheet_missing">Short %1$s</string>
+    <string name="cost_have">Have %1$s</string>
     <string name="sheet_duration">Time %1$s</string>
     <string name="sheet_prereq_title">Requirements</string>
     <string name="sheet_prereq_item">Requires %1$s Lv %2$d</string>

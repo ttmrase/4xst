@@ -1,118 +1,92 @@
 package com.ttmrase.crownfall.ui.city
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ttmrase.crownfall.core.model.BuildingType
-import com.ttmrase.crownfall.core.session.BuildingSection
-import com.ttmrase.crownfall.core.session.UiQueries
+import com.ttmrase.crownfall.ui.kit.Cf
+import com.ttmrase.crownfall.ui.kit.FrameStyle
+import com.ttmrase.crownfall.ui.kit.gameFrame
+import com.ttmrase.crownfall.ui.territory.PlotLayout
+import com.ttmrase.crownfall.ui.territory.SpriteIds
+import com.ttmrase.crownfall.ui.theme.CrownFonts
 
-private val CoreColor = Color(0xFFC9A227)
-private val ResourceColor = Color(0xFF4F9D5B)
-private val MilitaryColor = Color(0xFFB5413A)
-private val OtherColor = Color(0xFF5B7FC7)
+private val Unbuilt = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.15f) })
 
-private fun sectionColor(type: BuildingType): Color =
-    when (UiQueries.sectionOf(type)) {
-        BuildingSection.CORE -> CoreColor
-        BuildingSection.RESOURCE -> ResourceColor
-        BuildingSection.MILITARY -> MilitaryColor
-        BuildingSection.OTHER -> OtherColor
-    }
-
-/** 自作のベクター図形で描く建物アイコン（建物種ごとに色と形を変える）。 */
+/**
+ * 建物の絵（領地に建っているのと同じスプライト。Lv の段階で見た目が変わる）を、くぼんだ台座に載せて出す。
+ * 未建設（Lv0）は最初の段階の絵を色あせさせる。[showLevel] で左下に Lv の札。
+ */
 @Composable
-fun BuildingIcon(
+fun BuildingArt(
     type: BuildingType,
+    level: Int,
     modifier: Modifier = Modifier,
-    iconSize: Dp = 40.dp,
+    size: Dp = 96.dp,
+    showLevel: Boolean = true,
 ) {
-    val color = sectionColor(type)
-    Canvas(modifier = modifier.size(iconSize)) {
-        when (type) {
-            BuildingType.CASTLE -> drawCrown(color)
-            BuildingType.FARM, BuildingType.SAWMILL, BuildingType.QUARRY, BuildingType.GOLD_MINE -> drawCircle(color)
-            BuildingType.WAREHOUSE, BuildingType.TRADING_POST -> drawBox(color)
-            BuildingType.BARRACKS, BuildingType.ARCHERY_RANGE, BuildingType.STABLE, BuildingType.SIEGE_WORKSHOP ->
-                drawTriangle(color)
-            BuildingType.WALL -> drawWall(color)
-            else -> drawDiamond(color)
+    Box(
+        modifier =
+            modifier
+                .size(size)
+                .gameFrame(FrameStyle.Inset, corner = 14.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .drawBehind {
+                    // 台座の光（足元の楕円）と、上からの淡い光
+                    val c = Offset(this.size.width / 2, this.size.height * 0.78f)
+                    drawOval(
+                        Brush.radialGradient(listOf(Color(0x664C7BFF), Color.Transparent), c, this.size.width * 0.55f),
+                        Offset(0f, this.size.height * 0.55f),
+                        androidx.compose.ui.geometry.Size(this.size.width, this.size.height * 0.5f),
+                    )
+                },
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            painter = painterResource(SpriteIds.building(type, PlotLayout.tierOfLevel(level.coerceAtLeast(1)))),
+            contentDescription = null,
+            modifier = Modifier.size(size * ART_SCALE).offset(y = -size * ART_LIFT),
+            colorFilter = if (level <= 0) Unbuilt else null,
+            alpha = if (level <= 0) UNBUILT_ALPHA else 1f,
+        )
+        if (showLevel && level > 0) {
+            Text(
+                "Lv $level",
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(4.dp)
+                        .gameFrame(FrameStyle.Panel, corner = 7.dp)
+                        .padding(horizontal = 6.dp, vertical = 1.dp),
+                color = Cf.GoldHi,
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = CrownFonts.Numeric,
+            )
         }
     }
 }
 
-private fun DrawScope.drawCircle(color: Color) {
-    drawCircle(color = color, radius = size.minDimension / 2f)
-    drawCircle(color = Color.White.copy(alpha = 0.25f), radius = size.minDimension / 4f)
-}
-
-private fun DrawScope.drawBox(color: Color) {
-    drawRect(
-        color = color,
-        topLeft = Offset(size.width * 0.1f, size.height * 0.1f),
-        size = Size(size.width * 0.8f, size.height * 0.8f),
-    )
-    drawRect(
-        color = Color.White.copy(alpha = 0.25f),
-        topLeft = Offset(size.width * 0.3f, size.height * 0.3f),
-        size = Size(size.width * 0.4f, size.height * 0.4f),
-    )
-}
-
-private fun DrawScope.drawTriangle(color: Color) {
-    val path =
-        Path().apply {
-            moveTo(size.width / 2f, size.height * 0.05f)
-            lineTo(size.width * 0.95f, size.height * 0.95f)
-            lineTo(size.width * 0.05f, size.height * 0.95f)
-            close()
-        }
-    drawPath(path, color)
-}
-
-private fun DrawScope.drawDiamond(color: Color) {
-    val path =
-        Path().apply {
-            moveTo(size.width / 2f, 0f)
-            lineTo(size.width, size.height / 2f)
-            lineTo(size.width / 2f, size.height)
-            lineTo(0f, size.height / 2f)
-            close()
-        }
-    drawPath(path, color)
-}
-
-private fun DrawScope.drawWall(color: Color) {
-    val w = size.width
-    val h = size.height
-    drawRect(color = color, topLeft = Offset(0f, h * 0.35f), size = Size(w, h * 0.6f))
-    for (i in 0..2) {
-        drawRect(color = color, topLeft = Offset(w * (0.05f + i * 0.35f), h * 0.1f), size = Size(w * 0.25f, h * 0.3f))
-    }
-}
-
-private fun DrawScope.drawCrown(color: Color) {
-    val w = size.width
-    val h = size.height
-    val path =
-        Path().apply {
-            moveTo(w * 0.1f, h * 0.8f)
-            lineTo(w * 0.05f, h * 0.25f)
-            lineTo(w * 0.3f, h * 0.5f)
-            lineTo(w * 0.5f, h * 0.1f)
-            lineTo(w * 0.7f, h * 0.5f)
-            lineTo(w * 0.95f, h * 0.25f)
-            lineTo(w * 0.9f, h * 0.8f)
-            close()
-        }
-    drawPath(path, color)
-    drawRect(color = color, topLeft = Offset(w * 0.1f, h * 0.85f), size = Size(w * 0.8f, h * 0.1f))
-}
+private const val ART_SCALE = 1.08f
+private const val ART_LIFT = 0.04f
+private const val UNBUILT_ALPHA = 0.7f

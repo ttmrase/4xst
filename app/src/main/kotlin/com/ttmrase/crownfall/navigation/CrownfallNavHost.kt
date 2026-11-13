@@ -28,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
@@ -83,10 +84,13 @@ import com.ttmrase.crownfall.ui.feature.LockedScreenBody
 import com.ttmrase.crownfall.ui.heroes.HeroesScreen
 import com.ttmrase.crownfall.ui.heroes.SummonScreen
 import com.ttmrase.crownfall.ui.kit.BottomItem
+import com.ttmrase.crownfall.ui.kit.Cf
 import com.ttmrase.crownfall.ui.kit.GameBottomBar
 import com.ttmrase.crownfall.ui.kit.GameDialog
 import com.ttmrase.crownfall.ui.kit.GameTextButton
 import com.ttmrase.crownfall.ui.kit.LocalNavigateBack
+import com.ttmrase.crownfall.ui.kit.ScreenHeader
+import com.ttmrase.crownfall.ui.kit.screenBackdrop
 import com.ttmrase.crownfall.ui.mail.MailScreen
 import com.ttmrase.crownfall.ui.map.MapScreen
 import com.ttmrase.crownfall.ui.quest.QuestScreen
@@ -293,10 +297,13 @@ fun CrownfallNavHost(
         Box(
             Modifier
                 .fillMaxSize()
+                .screenBackdrop()
                 .onGloballyPositioned { rootOrigin = it.positionInWindow() }
                 .trackTaps(flyState, { rootOrigin }) { Sfx.play(context, SfxId.TAP) },
         ) {
             Scaffold(
+                containerColor = Color.Transparent,
+                contentColor = Cf.Ivory,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 bottomBar = {
                     if (destination != null && destination.route != Screen.Title.route) {
@@ -432,7 +439,7 @@ fun CrownfallNavHost(
                         }
                         composable(Screen.Mail.route) {
                             val ready = startup as? Startup.Ready
-                            if (ready != null) MailScreen(ready.session, ready.data)
+                            if (ready != null) Titled(Screen.Mail) { MailScreen(ready.session, ready.data) }
                         }
                         composable(Screen.Alliance.route) {
                             Guard(Screen.Alliance, startup as? Startup.Ready, castleLvOrNull, upgradeCastle) { ready ->
@@ -469,7 +476,7 @@ fun CrownfallNavHost(
                         }
                         composable(Screen.Settings.route) {
                             val r = startup as? Startup.Ready
-                            SettingsScreen(ai, r?.session, snackbarHostState, r?.data)
+                            Titled(Screen.Settings) { SettingsScreen(ai, r?.session, snackbarHostState, r?.data) }
                         }
                         val implemented =
                             setOf(
@@ -584,13 +591,41 @@ private fun Guard(
 ) {
     if (ready == null || castleLv == null) return
     val feature = screen.requiredFeature()
+    val titled = screen in TitledScreens
     if (feature != null && !FeatureGate.unlockedAt(ready.data, castleLv, feature)) {
         Column(Modifier.fillMaxSize()) {
+            if (titled) ScreenHeader(stringResource(screen.titleRes), backLabel = stringResource(R.string.common_back))
             LockedScreenBody(feature, ready.data, castleLv, onUpgrade, Modifier.weight(1f).fillMaxWidth())
             // 古いセーブで買ってある権利（月パス・VIP チェスト・成長ファンド）は、ショップが未解放でも受け取れる
             if (screen == Screen.Shop) ShopClaimOnly(ready.session, ready.data)
         }
+    } else if (titled) {
+        Titled(screen) { content(ready) }
     } else {
         content(ready)
+    }
+}
+
+/** 城内から開く子画面。上端に題字と戻るボタンの帯を付ける（下部ナビのタブの根の画面には付けない）。 */
+private val TitledScreens =
+    setOf(
+        Screen.Barracks,
+        Screen.Research,
+        Screen.Quests,
+        Screen.Mail,
+        Screen.Chat,
+        Screen.Settings,
+        Screen.Summon,
+        Screen.Event,
+    )
+
+@Composable
+private fun Titled(
+    screen: Screen,
+    content: @Composable () -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        ScreenHeader(stringResource(screen.titleRes), backLabel = stringResource(R.string.common_back))
+        Box(Modifier.weight(1f).fillMaxWidth()) { content() }
     }
 }

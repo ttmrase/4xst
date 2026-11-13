@@ -128,6 +128,7 @@
     <string name="sheet_effects">効果</string>
     <string name="sheet_cost">必要資源</string>
     <string name="sheet_missing">あと %1$s</string>
+    <string name="cost_have">所持 %1$s</string>
     <string name="sheet_duration">所要時間 %1$s</string>
     <string name="sheet_prereq_title">必要な前提</string>
     <string name="sheet_prereq_item">%1$s Lv %2$d が必要</string>

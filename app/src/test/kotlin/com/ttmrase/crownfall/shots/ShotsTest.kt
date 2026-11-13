@@ -90,4 +90,20 @@ class ShotsTest {
         rig.waitFor { rig.hasDescription(rig.str(R.string.common_close)) }
         rig.shot("offer_popup")
     }
+
+    @Test
+    fun sheets() {
+        val rig = rig(Preset.BUILDING_NOW)
+        rig.launchToCity()
+        rig.tapAt(0.5f, 0.5f)
+        rig.shot("sheet_upgrade")
+    }
+
+    @Test
+    fun sheetFresh() {
+        val rig = rig(Preset.FRESH_START)
+        rig.launchToCity()
+        rig.tapAt(0.5f, 0.47f)
+        rig.shot("sheet_fresh")
+    }
 }
