@@ -1,0 +1,165 @@
+run: 154
+commit: 5719990f9e08074aa1e9bd164a3f3af8dc7d1095
+job status: failure
+images: 130
+bytes: 5994117
+actions: https://github.com/ttmrase/4xst/actions/runs/43631694711
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 0/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 1/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 2/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 3/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 4/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 5/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 6/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 7/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 8/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 9/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 10/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 11/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 12/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 13/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 14/34 completed. (0 skipped) (0 failed)
+	java.lang.AssertionError: frames measured: 21
+emulator-5554 - 14 Tests 15/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 16/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 17/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 19/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 20/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 21/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 22/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 23/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 24/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 25/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 26/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 27/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 28/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 29/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 30/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 31/34 completed. (0 skipped) (1 failed)
+emulator-5554 - 14 Tests 32/34 completed. (0 skipped) (1 failed)
+Tests on emulator-5554 - 14 failed: There was 1 failure(s).
+> Task :app:connectedDebugAndroidTest FAILED
+> There were failing tests. See the report at: file:///home/runner/work/4xst/4xst/app/build/reports/androidTests/connected/debug/index.html
+--- per test (androidTest-results xml) ---
+PASS BuilderUnlockUiTest.secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups
+PASS BuilderUnlockUiTest.barracksShowsTheTroopIcons
+PASS FeatureUnlockUiTest.theShopShowsLockCardsForTheWheelAndThePiggyBankAtCastleLevelFour
+PASS FeatureUnlockUiTest.backSkipsTheWholeCeremonyAndTheAllianceUnlocksAtLevelFour
+PASS FeatureUnlockUiTest.theFirstCastleUpgradeOfAFreshGameShowsItsDuration
+PASS FeatureUnlockUiTest.theLevelThreeUnlockCeremonyAndTheFirstUseRewardAreClaimedOnce
+PASS FeatureUnlockUiTest.settingsShowsTheLockCardBelowLevelFour
+PASS FeatureUnlockUiTest.freshStartShowsLocksAndEveryLockedTabAnswersAndBackWorks
+PASS HarvestSoundUiTest.theCastleLevelUpCeremonyShowsTheNewLevelAndWhatItUnlocks
+PASS HarvestSoundUiTest.tappingAHarvestBubbleCollectsItAndFliesToTheHud
+PASS HarvestSoundUiTest.settingsShowTheSoundAndTitleSections
+PASS HarvestSoundUiTest.theChestCeremonyShowsItsStages
+PASS LaunchSmokeTest.titleScreenAppearsAndCanBeCaptured
+PASS NavUiTest.cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks
+FAIL PerfUiTest.lateGameCityPanFrameTimesAndSpriteMemory
+      java.lang.AssertionError: frames measured: 21
+      at org.junit.Assert.fail(Assert.java:89)
+      at org.junit.Assert.assertTrue(Assert.java:42)
+      at com.ttmrase.crownfall.PerfUiTest.lateGameCityPanFrameTimesAndSpriteMemory$lambda$5(PerfUiTest.kt:129)
+PASS PortraitUiTest.chatAndDmShowTheAvatars
+PASS PortraitUiTest.heroListAndDetailShowThePortraitsWithRarityFrames
+PASS PortraitUiTest.allianceMembersAndSettingsAvatarPickerShowThePortraits
+PASS SeederSmokeTest.seededRichCastleReachesTheSession
+PASS ShopVipUiTest.offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured
+PASS ShopVipUiTest.vipCinematicAndRewardDialogCloseWithBack
+PASS ShopVipUiTest.raidBannerAndSettingsAreCaptured
+PASS SkinMapUiTest.theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview
+PASS SkinMapUiTest.theLuckyBagTenPullShowsItsResult
+PASS SkinMapUiTest.theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot
+PASS SkinMapUiTest.worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook
+PASS SkinMapUiTest.equippedCastleSkinsChangeTheCityAndTheMapAndChat
+PASS SummonUiTest.ritualStagesAndTheTenRollListAreCaptured
+PASS SummonUiTest.tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce
+PASS TerritoryUiTest.tutorialBannerSteps
+PASS TerritoryUiTest.territoryScreenshotsForRichLateAndBuildingStates
+PASS TerritoryUiTest.panAndPinchOnTheTerritoryDoNotCrash
+PASS BackPressInstrumentedTest.systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups
+PASS BackPressInstrumentedTest.systemBackClosesTheBillingSheetBeforeAnyPayment
+--- TestRunner (started / finished / failed) ---
+11-14 20:00:51.955 lateGameCityPanFrameTimesAndSpriteMemory(com.ttmrase.crownfall.PerfUiTest)
+11-14 20:00:53.202 chatAndDmShowTheAvatars(com.ttmrase.crownfall.PortraitUiTest)
+11-14 20:01:24.091 chatAndDmShowTheAvatars(com.ttmrase.crownfall.PortraitUiTest)
+11-14 20:01:25.222 heroListAndDetailShowThePortraitsWithRarityFrames(com.ttmrase.crownfall.PortraitUiTest)
+11-14 20:01:41.822 heroListAndDetailShowThePortraitsWithRarityFrames(com.ttmrase.crownfall.PortraitUiTest)
+11-14 20:01:43.383 allianceMembersAndSettingsAvatarPickerShowThePortraits(com.ttmrase.crownfall.PortraitUiTest)
+11-14 20:01:55.525 allianceMembersAndSettingsAvatarPickerShowThePortraits(com.ttmrase.crownfall.PortraitUiTest)
+11-14 20:01:56.138 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+11-14 20:01:59.705 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+11-14 20:01:59.708 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 20:02:34.128 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 20:02:36.198 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 20:03:04.598 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 20:03:06.069 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 20:03:19.326 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 20:03:20.243 theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 20:03:41.388 theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 20:03:42.797 theLuckyBagTenPullShowsItsResult(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 20:04:06.977 theLuckyBagTenPullShowsItsResult(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 20:04:08.265 theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 20:04:35.366 theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 20:04:36.493 worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 20:04:59.274 worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 20:05:00.920 equippedCastleSkinsChangeTheCityAndTheMapAndChat(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 20:05:51.486 equippedCastleSkinsChangeTheCityAndTheMapAndChat(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 20:05:52.776 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+11-14 20:06:15.923 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+11-14 20:06:16.992 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+11-14 20:06:29.597 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+11-14 20:06:30.491 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 20:06:49.921 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 20:06:50.901 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 20:07:42.366 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 20:07:43.273 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 20:08:09.645 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 20:08:10.552 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-14 20:08:15.369 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-14 20:08:15.370 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-14 20:08:20.015 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-14 20:08:20.017 34 tests, 1 failed, 0 ignored
+--- perf (logcat CrownfallPerf) ---
+city LATE_GAME idle 5s: frames=5 p50=388.3ms p95=506.8ms p99=506.8ms max=628.2ms janky(>16.7ms)=5 (100.0%)
+city LATE_GAME pan+pinch 10s: frames=21 p50=1364.1ms p95=1949.0ms p99=1949.0ms max=1970.3ms janky(>16.7ms)=21 (100.0%)
+memory: spriteCache=31.3MB/87 sprites pss=212MB javaHeap=23MB
+shop list scroll 5s: frames=12 p50=883.6ms p95=983.4ms p99=983.4ms max=1017.7ms janky(>16.7ms)=12 (100.0%)
+--- instrumentation results ---
+Starting 34 tests on emulator-5554 - 14
+Finished 34 tests on emulator-5554 - 14
+--- device state at the end ---
+List of devices attached
+emulator-5554	device
+
+3271 /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node /home/runner/work/_actions/reactivecircus/andr
+3559 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headless -port 5554 -avd test -no-snapshot
+3564 /usr/local/lib/android/sdk/emulator/crashpad_handler --no-rate-limit --database=/tmp/android-runner/emu-crash-37.2.
+--- warm-up before the tests ---
+host memory before: used 5151 MB, available 10831 MB
+warm-up start 1: device=device host_available_mb=6536
+warm-up start 2: device=device host_available_mb=6537
+warm-up start 3: device=device host_available_mb=6537
+warm-up start 4: device=device host_available_mb=6534
+warm-up start 5: device=device host_available_mb=6517
+host kernel, out-of-memory kills: 0
+--- crash / ANR lines (live logcat, warnings and above) ---
+--- waits that ran out in the tests (CrownfallTest) ---
+--- last lines before the stream ended ---
+11-14 20:08:20.667 W/PageIndicator(  834): Total number of pages invalid: 0. Assuming 1 page.
+11-14 20:08:20.713 W/A       ( 1608): Missing generator mapping for generator GENERATOR_CONTEXTUAL_SUGGESTIONS
+11-14 20:08:20.714 W/A       ( 1608): Missing generator mapping for generator GENERATOR_FRE_SUGGESTIONS_ON_TIMEOUT
+11-14 20:08:20.717 W/A       ( 1608): Missing generator mapping for generator GENERATOR_FRE_SUGGESTIONS_ON_INVOCATION
+11-14 20:08:20.753 W/A       ( 1608): Routing took 0 ms
+11-14 20:08:20.810 W/ActivityManager(  517): Unable to start service Intent { cmp=com.google.android.apps.tachyon/.clientapi.ClientApiService } U=0: not found
+11-14 20:08:20.822 W/A       ( 1784): UiCallbackStub-onGenericEvent[ServiceEvent = 241] task was not run. Callback from Service received after client was disposed.
+11-14 20:08:20.825 W/A       ( 1784): UiCallbackStub-onGenericEvent[ServiceEvent = 241] task was not run. Callback from Service received after client was disposed.
+11-14 20:08:20.826 W/A       ( 1784): UiCallbackStub-onGenericEvent[ServiceEvent = 60] task was not run. Callback from Service received after client was disposed.
+11-14 20:08:20.830 W/ActivityManager(  517): setHasOverlayUi called on unknown pid: 7276
+11-14 20:08:22.407 E/TaskPersister(  517): File error accessing recents directory (directory doesn't exist?).
+11-14 20:08:22.967 W/adbd    (  411): timeout expired while flushing socket, closing
+--- app threads when it hung (ANR trace): main, then the test thread ---
