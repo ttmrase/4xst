@@ -178,15 +178,15 @@ def tree_oak(size=1.0, leaf="#3C6A38", trunk="#4A3C30", seed=0, spread=1.0, tall
     bark = m_bark(trunk, seed=60 + seed)
     fork = 12.0 * k * tall
     limbs = []
-    for deg, ln, zz in ((195, 0.40, 20.5), (-15, 0.42, 19.5), (95, 0.22, 24.0), (268, 0.20, 18.5)):
+    for deg, ln, zz in ((193, 0.46, 20.0), (-13, 0.48, 19.0), (95, 0.22, 23.0), (268, 0.20, 18.0)):
         dx, dy = _ang(deg + 17 * seed, ln * k * spread)
         limbs.append(capsule((0, 0, fork - 2.5 * k), (dx, dy, zz * k * tall), 1.05 * k))
     sc.add(union(cone(0, 0, 0.10 * k, 0, fork + 1.5 * k, 0.07 * k), cone(0, 0, 0.17 * k, -0.5, 3.0 * k, 0.10 * k), *limbs), bark,
            cyl=(0, 0, 0.10 * k), name="trunk")
     # crown: (direction on screen, distance, height of the centre, plan radius, vertical squash)
-    clumps = [(195, 0.47, 20.5, 0.30, 0.72), (150, 0.36, 24.5, 0.29, 0.76), (-15, 0.48, 19.5, 0.29, 0.72), (30, 0.38, 24.0, 0.29, 0.76),
-              (95, 0.36, 22.5, 0.33, 0.76), (250, 0.33, 20.0, 0.27, 0.70), (295, 0.30, 21.5, 0.26, 0.70),
-              (280, 0.06, 27.0, 0.38, 0.78), (130, 0.16, 31.0, 0.29, 0.78), (20, 0.14, 32.5, 0.25, 0.8)]
+    clumps = [(193, 0.54, 20.0, 0.30, 0.70), (150, 0.40, 23.5, 0.29, 0.74), (-13, 0.56, 19.0, 0.29, 0.70), (30, 0.42, 23.0, 0.29, 0.74),
+              (95, 0.38, 22.0, 0.33, 0.74), (245, 0.36, 19.5, 0.27, 0.68), (297, 0.34, 20.5, 0.26, 0.68),
+              (280, 0.08, 26.0, 0.40, 0.72), (140, 0.22, 29.5, 0.29, 0.74), (15, 0.20, 30.5, 0.26, 0.76)]
     parts = []
     for i, (deg, dist, zz, r, sq) in enumerate(clumps):
         dx, dy = _ang(deg + 17 * seed, dist * k * spread)
@@ -366,15 +366,16 @@ def signpost():
     faces the camera, because TerritoryView.kt writes the next castle level on it."""
     sc = Scene("decor")
     wood = r3.m_planks("#6E4E30", 0.08, seed=53)
-    sc.add(union(capsule((0, 0, 0), (0, 0, 43.4), 1.25), cyl(0, 0, 0.10, 0, 1.6, 0.3)), wood, name="post")
+    sc.add(union(capsule((0, 0, 0), (0, 0, 44.2), 1.25), cyl(0, 0, 0.10, 0, 1.6, 0.3)), wood, name="post")
     d = 0.075                               # the board hangs in front of the post (towards the camera)
     L = 22.0 / G
-    sc.add(move(rotz(box(-L, -0.035, L, 0.035, 26, 42), -45), d, d), m_board(), cast=True, name="board")
+    zb = 26.0 + 2.0 * d * 7.0                # moving it towards the camera lowers it on screen: lift it back
+    sc.add(move(rotz(box(-L, -0.035, L, 0.035, zb, zb + 16.0), -45), d, d), m_board(), cast=True, name="board")
     # two battens behind the board and four nail heads on it
-    sc.add(move(rotz(union(box(-L + 0.1, -0.06, -L + 0.2, 0.0, 25.4, 42.6), box(L - 0.2, -0.06, L - 0.1, 0.0, 25.4, 42.6)), -45), d - 0.03, d - 0.03),
+    sc.add(move(rotz(union(box(-L + 0.1, -0.06, -L + 0.2, 0.0, zb - 0.6, zb + 16.6), box(L - 0.2, -0.06, L - 0.1, 0.0, zb - 0.6, zb + 16.6)), -45), d - 0.03, d - 0.03),
            wood, cast=False, name="battens")
     nails = [sphere(d + 0.03 + sx * (L - 0.12) * math.sqrt(0.5), d + 0.03 - sx * (L - 0.12) * math.sqrt(0.5), zz, 0.035)
-             for sx in (-1, 1) for zz in (28.2, 39.8)]
+             for sx in (-1, 1) for zz in (zb + 2.2, zb + 13.8)]
     sc.add(union(*nails), r3.m_metal("#4A4A54"), cast=False, name="nails")
     return sc
 
@@ -385,9 +386,9 @@ def fountain():
     sc = Scene("decor")
     st = r3.m_stone("#B4AC9A", course=3.0, length=1.8, joint=0.3)
     lt = r3.m_stone("#C6BEAC", course=3.0, length=1.6, joint=0.25, seed=33)
-    basin = sub(union(cyl(0, 0, 1.46, 0, 6.4, 0.3), cyl(0, 0, 1.52, 0, 1.5, 0.4), cyl(0, 0, 1.52, 5.6, 7.8, 0.6)), cyl(0, 0, 1.28, 2.0, 9.0))
-    sc.add(basin, st, cyl=(0, 0, 1.5), name="basin")
-    sc.add(cyl(0, 0, 1.28, 1.0, 6.6), r3.m_water("#4A94D6", "#2A62AC"), cast=False, name="pool")
+    basin = sub(union(cyl(0, 0, 1.41, 0, 6.4, 0.3), cyl(0, 0, 1.46, 0, 1.5, 0.4), cyl(0, 0, 1.46, 5.6, 7.8, 0.6)), cyl(0, 0, 1.24, 2.0, 9.0))
+    sc.add(basin, st, cyl=(0, 0, 1.45), name="basin")
+    sc.add(cyl(0, 0, 1.24, 1.0, 6.6), r3.m_water("#4A94D6", "#2A62AC"), cast=False, name="pool")
     col = union(cyl(0, 0, 0.36, 2.0, 8.6, 0.4), cone(0, 0, 0.24, 8.6, 10.0, 0.17), cone(0, 0, 0.17, 10.0, 17.4, 0.13), cone(0, 0, 0.13, 17.4, 19.6, 0.40))
     sc.add(col, lt, cyl=(0, 0, 0.3), name="column")
     sc.add(sub(cyl(0, 0, 0.46, 19.4, 21.2, 0.5), cyl(0, 0, 0.37, 20.2, 22.0)), lt, cyl=(0, 0, 0.46), name="bowl")
@@ -565,7 +566,7 @@ def m_canvas(color, stripe, n=3, x0=-0.9, x1=0.9, y0=-0.7, y1=0.7):
     def albedo(c):
         f = (c.y - y0 * G) / ((y1 - y0) * G)                   # along the ridge
         k = f * (n * 2 + 1)
-        band = sstep(0.30, 0.36, np.abs(k - np.floor(k) - 0.5)) * 0.0 + (np.abs(np.mod(k, 2.0) - 1.5) < 0.2).astype(F)
+        band = (np.abs(np.mod(k, 2.0) - 1.5) < 0.2).astype(F)          # a narrow pale stripe in every second panel
         seam = 1.0 - sstep(0.03, 0.09, np.abs(k - np.rint(k)))
         fold = 0.9 + 0.14 * r3.vnoise2(c.y * 0.45, c.z * 0.2, 27)
         a = r3.mixc(base, st, band * 0.85) * fold[..., None]
@@ -621,12 +622,14 @@ def temple():
     sc.add(union(*caps), r3.m_marble("#E6DFD0", seed=8, veins=0.1), name="capitals")
     sc.add(box(o - 1.3, o - 1.0, o + 1.3, o + 1.0, 24.0, 27.0, 0.25), mar, name="entablature")
     sc.add(union(box(o - 1.3, o + 1.0, o + 1.3, o + 1.03, 25.0, 26.2), box(o + 1.3, o - 1.0, o + 1.33, o + 1.0, 25.0, 26.2)), T.gold, cast=False, name="frieze")
-    sc.add(sub(box(o - 1.34, o - 1.04, o + 1.34, o + 1.04, 26.6, 38.4), g._gable_cut(o - 1.34, o - 1.04, o + 1.34, o + 1.04, 27.0, 10.6, "x")), mar, name="pediments")
+    # pediments: marble triangles standing just proud of the roof's two ends
+    ped = union(box(o + 1.43, o - 1.0, o + 1.50, o + 1.0, 26.8, 38.0), box(o - 1.50, o - 1.0, o - 1.43, o + 1.0, 26.8, 38.0))
+    sc.add(sub(ped, g._gable_cut(o - 1.6, o - 1.0, o + 1.6, o + 1.0, 27.0, 9.8, "x")), mar, name="pediments")
     sc.add(gable(o - 1.4, o - 1.1, o + 1.4, o + 1.1, 27.0, 11.0, "x", over=0.06, thick=1.4), T.roof, name="roof")
     sc.add(box(o - 1.5, o - 0.05, o + 1.5, o + 0.05, 37.2, 38.6, 0.4), T.gold, cast=False, name="ridge")
     # gem on the right-front pediment
-    sc.add(octa(o + 1.37, o + 0.0, 31.2, 0.05, 0.12, 2.6), r3.m_glow("#49C2F2", power=1.3, bars=False), cast=False, ao=False, name="gem")
-    sc.add(cyl_x(o + 1.345, o + 1.365, o, 31.2, 3.3), T.gold, cast=False, name="gem setting")
+    sc.add(octa(o + 1.52, o + 0.0, 31.0, 0.05, 0.12, 2.4), r3.m_glow("#49C2F2", power=1.3, bars=False), cast=False, ao=False, name="gem")
+    sc.add(cyl_x(o + 1.495, o + 1.515, o, 31.0, 3.1), T.gold, cast=False, name="gem setting")
     # star finial
     sc.add(capsule((o, o, 38.0), (o, o, 45.0), 0.5), T.gold, name="finial")
     glow = r3.m_glow("#FFE27A", power=1.9, bars=False)

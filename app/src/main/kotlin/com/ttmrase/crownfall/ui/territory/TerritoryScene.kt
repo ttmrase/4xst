@@ -5,6 +5,7 @@ import com.ttmrase.crownfall.core.model.BuildingType
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * 領地マップの配置（見た目の層だけ。GameState のスロットとレベルは変えない）。
@@ -161,6 +162,20 @@ internal class TerritoryScene(
         /** 川の中心線から、木を立てない幅（水面と川岸）。 */
         private const val RIVER_CLEAR = 2.9f
 
+        /** 門を出る道（手前の角から対角線に沿って森へ延びる。[GroundPlan]）の両脇で、木を立てない幅と、道の届く距離。 */
+        private const val GATE_ROAD_CLEAR = 1.7f
+        private const val GATE_ROAD_REACH = 8f
+
+        /** 門の外の道の上か（どの帯の門の道でも）。 */
+        private fun onGateRoad(
+            x: Float,
+            y: Float,
+        ): Boolean {
+            val from = PlotLayout.MID + PlotLayout.WALL_HALF.first()
+            val to = PlotLayout.MID + PlotLayout.WALL_HALF.last() + GATE_ROAD_REACH
+            return abs(x - y) < GATE_ROAD_CLEAR && min(x, y) > from && max(x, y) < to
+        }
+
         /** 川の中心線が延びる範囲（グリッドの y）。 */
         const val RIVER_FROM = -64f
         const val RIVER_TO = 74f
@@ -234,7 +249,7 @@ internal class TerritoryScene(
                     val sprite = treeSprites[(pick * treeSprites.size).toInt().coerceIn(0, treeSprites.size - 1)]
                     val seed = rng.next()
                     // 川と川岸には木を立てない（乱数は同じ数だけ引くので、ほかの配置は変わらない）
-                    if (abs(x - riverX(y)) < RIVER_CLEAR) continue
+                    if (abs(x - riverX(y)) < RIVER_CLEAR || onGateRoad(x, y)) continue
                     ents.add(Ent(EntKind.TREE, x, y, sprite, goneBand = gone, seed = seed))
                 }
             }

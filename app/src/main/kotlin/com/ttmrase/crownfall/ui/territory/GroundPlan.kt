@@ -312,8 +312,6 @@ internal class GroundPlan(
     ) {
         val k = floor((across + STREET_OFFSET) / PlotLayout.CELL + HALF).toInt()
         if (k !in streets) return
-        val d = abs(across - TownLife.streetCoord(k))
-        if (d > STREET_REACH) return
         val t = abs(along - MID)
         val end = cover(t, limit, END_SOFT)
         if (end <= 0f) return
@@ -321,12 +319,17 @@ internal class GroundPlan(
         // 区画の並びの中にいる割合（1 = 中、0 = 外の城下町）
         val core = if (k in CORE_FIRST..CORE_LAST) cover(t, CORE_REACH, CORE_SOFT) else 0f
         val wide = if (avenue) 1f else core
+        // 踏み分け道は、まっすぐな線にならないよう中心線をゆるく振る（区画の間の道は振らない）
+        val wander = (GroundNoise.value(along * WANDER_FREQ, k * WANDER_PER_LINE, SALT_LANE + 1) - HALF) * WANDER
+        val d = abs(across - TownLife.streetCoord(k) - wander * (1f - wide))
+        if (d > STREET_REACH) return
         val halfWidth = LANE_HALF + ((if (avenue) AVENUE_HALF else CORE_HALF) - LANE_HALF) * wide
+        // 石畳: 帯 2 は井戸を通る大通りの、区画の間だけ。帯 3 からは区画の間の道すべてと、大通りの端まで。
+        // 城下町の踏み分け道は、どの帯でも土のまま（外まで石で敷くと、芝の上に格子が浮いて見える）
         val paved =
             when (band) {
                 1 -> 0f
                 2 -> if (avenue) core else 0f
-                PlotLayout.BANDS -> 1f
                 else -> wide
             }
         // 細い道は、ところどころ草に埋もれる
@@ -686,15 +689,18 @@ internal class GroundPlan(
         private const val CORE_SOFT = 0.7f
         private const val AVENUE_HALF = 0.5f
         private const val CORE_HALF = 0.44f
-        private const val LANE_HALF = 0.27f
-        private const val LANE_PATCH_MIN = 0.45f
+        private const val LANE_HALF = 0.3f
+        private const val LANE_PATCH_MIN = 0.22f
+        private const val WANDER = 0.8f
+        private const val WANDER_FREQ = 0.17f
+        private const val WANDER_PER_LINE = 7.7f
         private const val SHOULDER = 0.15f
         private const val SOFT = 0.13f
         private const val STONE_SOFT = 0.08f
         private const val STONE_EDGE = 0.5f
         private const val END_SOFT = 0.45f
         private const val WEAR_WIDTH = 0.24f
-        private const val WEAR_LANE = 0.5f
+        private const val WEAR_LANE = 0.1f
 
         // 城壁の内側
         private const val WALL_OUTSIDE = 0.4f

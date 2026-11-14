@@ -833,6 +833,714 @@ def alliance_center(t):
 
 
 # ---------------------------------------------------------------------------------------------
+# castle skins (paid cosmetics): ice, gold, sakura, dragon.
+# They keep the standard castle's footprint, its gate and the gate torches (the game draws animated flames
+# there), but each has its own materials, roof shapes and set pieces.
+# ---------------------------------------------------------------------------------------------
+
+KEEP_H = [26.0, 34.0, 44.0, 52.0, 62.0]
+TOWER_TH = [0.0, 30.0, 38.0, 46.0, 56.0]
+CURTAIN_H = 12.0
+
+
+def pyramid(xc, yc, r, z0, z1, n=6, start=0.0):
+    """n-sided spike: base of circumradius r (grid units) at z0, apex at z1.  Flat facets, so it reads as cut
+    crystal / horn rather than as a round cone."""
+    X, Y, Z0, Z1, R = xc * G, yc * G, z0 * ZS, z1 * ZS, r * G
+    inr, H = R * math.cos(math.pi / n), (z1 - z0) * ZS
+    ln = math.hypot(H, inr)
+    planes = [(0.0, 0.0, -1.0, -Z0)]
+    for k in range(n):
+        a = math.radians(start) + 2.0 * math.pi * (k + 0.5) / n
+        nx, ny, nz = math.cos(a) * H / ln, math.sin(a) * H / ln, inr / ln
+        planes.append((nx, ny, nz, nx * X + ny * Y + nz * Z1))
+    return r3._Convex(planes, (X - R, Y - R, Z0), (X + R, Y + R, Z1))
+
+
+def crystal(xc, yc, r, z0, z1, n=6, tip=0.34, start=0.0):
+    """n-sided column with a pointed top; tip = the share of its height taken by the point."""
+    X, Y, Z0, Z1, R = xc * G, yc * G, z0 * ZS, z1 * ZS, r * G
+    inr, H = R * math.cos(math.pi / n), (z1 - z0) * ZS * tip
+    ln = math.hypot(H, inr)
+    planes = [(0.0, 0.0, -1.0, -Z0)]
+    for k in range(n):
+        a = math.radians(start) + 2.0 * math.pi * (k + 0.5) / n
+        ca, sa = math.cos(a), math.sin(a)
+        planes.append((ca, sa, 0.0, ca * X + sa * Y + inr))
+        planes.append((ca * H / ln, sa * H / ln, inr / ln, (ca * X + sa * Y) * H / ln + inr / ln * Z1))
+    return r3._Convex(planes, (X - R, Y - R, Z0), (X + R, Y + R, Z1))
+
+
+def lean(node, deg, towards, x, y, z=0.0):
+    """Tilt a node about the point (x, y, z) so that its top moves in the plan direction `towards` (degrees:
+    0 = +x, 90 = +y, -45 = screen-right, 135 = screen-left, 45 = at the camera)."""
+    return rotz(rot(node, "y", deg, (x, y, z)), towards, x, y)
+
+
+def m_crystal(color="#8ED6F6", glow="#2F9BE0", power=0.32):
+    """Glassy ice / gem crystal: mirror-like facets with a faint inner light."""
+    base, gl = r3.srgb(color), r3.srgb(glow)
+
+    def albedo(c):
+        return base[None, :] * (0.9 + 0.2 * r3.vnoise2(c.u * 0.5, c.v * 0.5, 61))[..., None]
+
+    def emis(c):
+        return gl[None, :] * (power * (0.55 + 0.9 * r3.sstep(c.lo[2], c.hi[2], c.z)))[..., None]
+
+    return r3.Material(albedo, spec=1.3, gloss=50.0, metal=0.42, emis=emis)
+
+
+def _snow(color="#DCE6F0", seed=62):
+    base = r3.srgb(color)
+    return r3.Material(lambda c: base[None, :] * (0.92 + 0.12 * r3.fbm2(c.x * 0.21, c.y * 0.21, 2, seed))[..., None], wrap=0.3, spec=0.12, gloss=10.0)
+
+
+def m_block(color, mortar, course=5.2, length=1.8, seed=74, spec=0.5, metal=0.1, gloss=38.0, var=0.1):
+    """Cut blocks with a polished, slightly reflective face (ice blocks, gilded panels)."""
+    m = r3.m_stone(color, course=course, length=length, mortar=mortar, var=var, joint=0.34, seed=seed, spec=spec)
+    m.metal, m.gloss = metal, gloss
+    return m
+
+
+def m_basalt(color="#4C444E", course=4.4, length=2.0, seed=71, glow_top=8.0, power=1.5, lava="#FF6A1E"):
+    """Dark volcanic blocks; near the ground the joints glow like cooling lava."""
+    m = r3.m_stone(color, course=course, length=length, mortar="#19141A", var=0.17, joint=0.42, seed=seed, spec=0.14)
+    lv = r3.srgb(lava)
+    ch = course * ZS
+
+    def emis(c):
+        _, e = r3._blocks(c, ch, ch * length, seed)
+        j = 1.0 - r3.sstep(0.08, 0.6, e)
+        fade = 1.0 - r3.sstep(0.5 * ZS, glow_top * ZS, c.z)
+        return lv[None, :] * (np.where(c.top, 0.0, j * fade) * power)[..., None]
+
+    m.emis = emis
+    return m
+
+
+def m_lava_ground(seed=72, power=1.15):
+    """Scorched rock crossed by glowing cracks."""
+    rock, lv = r3.srgb("#3D363B"), r3.srgb("#FF6A1E")
+
+    def crack(c):
+        n1 = r3.fbm2(c.x * 0.105, c.y * 0.105, 3, seed)
+        n2 = r3.fbm2(c.x * 0.19 + 7.0, c.y * 0.19, 2, seed + 3)
+        d = np.minimum(np.abs(n1 - 0.5), np.abs(n2 - 0.5) * 1.5)
+        return 1.0 - r3.sstep(0.004, 0.028, d)
+
+    def albedo(c):
+        k = 0.78 + 0.44 * r3.fbm2(c.x * 0.3, c.y * 0.3, 2, seed + 5)
+        return rock[None, :] * (k * (1.0 - 0.55 * crack(c)))[..., None]
+
+    def emis(c):
+        return lv[None, :] * (crack(c) * np.where(c.top, power, 0.0))[..., None]
+
+    return r3.Material(albedo, emis=emis, spec=0.1)
+
+
+SNOW = _snow()
+ICE = m_crystal()
+ICE_DEEP = m_crystal("#6FBDEB", "#2A86D8", 0.42)
+PINK = "#F08DB4"
+
+
+def _blossom(seed=90):
+    """Cherry blossom: clouds of pink that stay light and saturated in the shade."""
+    deep, mid, pale = r3.srgb("#D9628F"), r3.srgb(PINK), r3.srgb("#FFD6E4")
+
+    def albedo(c):
+        n = r3.vnoise3(c.x * 0.2, c.y * 0.2, c.z * 0.2, seed)
+        n2 = r3.vnoise3(c.x * 1.0, c.y * 1.0, c.z * 1.0, seed + 1)
+        up = np.clip(c.nz * 0.5 + 0.5, 0.0, 1.0)
+        a = r3.mixc(deep, mid, np.clip(0.25 + 0.9 * up + 0.4 * (n - 0.5), 0.0, 1.0))
+        a = r3.mixc(a, pale, np.clip((n2 - 0.55) * 2.2, 0.0, 1.0) * up)
+        return a * (0.84 + 0.3 * n)[..., None]
+
+    def height(c):
+        return r3.vnoise2(c.u * 0.8, c.v * 0.8, seed + 2) * 0.9 + r3.vnoise2(c.u * 2.1, c.v * 2.1, seed + 3) * 0.45
+
+    return r3.Material(albedo, height, bump=0.8, wrap=0.4)
+
+
+class Skin(Tier):
+    """The material set of a castle skin, with the same fields as Tier."""
+
+    def __init__(self, t, name):
+        Tier.__init__(self, t)
+        self.skin = name
+        if name == "ice":
+            self.banner = "#2F8FE0"
+            self.gold = r3.m_metal("#DCEBF6")                       # frosted silver instead of gold
+            self.glow = r3.m_glow("#B2F0FF", power=1.5, bar_col="#3A6A96")
+            self.slit = r3.m_glow("#B2F0FF", bars=False)
+            self.door = r3.m_planks("#3E5C7E", 0.14, seed=22, var=0.1)
+            self.base = m_block("#6E9FCC", "#3F6EA0", course=4.6, seed=75, spec=0.4)
+            self.roof = r3.m_tiles("#2B66B4", kind="scale", width=3.0, spec=0.5, metal=0.18)
+            self.trim = m_block("#E3EEF7", "#9FBEDB", course=3.0, length=1.6, seed=76, spec=0.3, metal=0.0)
+            self.pad = _snow("#D2DFEC", 63)
+            self.curtain = m_block("#9CC3E3", "#5B8DBE", course=4.4, seed=77) if t >= 2 else ICE_DEEP
+            self._wall = m_block("#C4DFF2", "#6C9CCB", seed=74)
+        elif name == "gold":
+            self.banner = "#B01E2C"
+            self.gold = r3.m_gold("#F7C63E")
+            self.glow = r3.m_glow("#FFE9A0", power=1.9)
+            self.door = r3.m_planks("#6A2A1E", 0.14, seed=22, var=0.1)
+            self.base = m_block("#8A5A1C", "#4E300A", course=4.4, seed=78, spec=0.8, metal=0.22)
+            self.roof = r3.m_tiles("#C88214", kind="scale", width=2.8, row=2.8, spec=0.75, metal=0.22, var=0.1)
+            self.trim = r3.m_marble("#F1E9D8", veins=0.2, seed=79)
+            self.pad = r3.m_ground("marble", "#6B3A46")
+            self.curtain = m_block("#B27A1E", "#6A420C", course=4.6, seed=80, spec=0.9, metal=0.22, var=0.08) if t >= 2 else r3.m_gold("#D29A28", 0.2)
+            self._wall = m_block("#C68E2A", "#7A4E10", course=6.0, length=1.6, seed=73, spec=0.9, metal=0.22, var=0.07)
+        elif name == "dragon":
+            self.banner = "#B8202C"
+            self.gold = r3.m_gold("#E0932E")
+            self.glow = r3.m_glow("#FF8A2A", power=2.3, bar_col="#2A1210")
+            self.slit = r3.m_glow("#FF7A1E", power=2.2, bars=False)
+            self.door = r3.m_planks("#2E1E20", 0.14, seed=22, var=0.1)
+            self.base = m_basalt("#3A343C", course=4.0, seed=81, glow_top=5.0, power=1.8)
+            self.roof = r3.m_tiles("#4A2A33", kind="scale", width=3.0, spec=0.25, var=0.22)
+            self.trim = r3.m_stone("#2C262E", course=3.0, length=1.6, seed=82, spec=0.2)
+            self.pad = m_lava_ground()
+            self.curtain = m_basalt("#514851", seed=83, glow_top=9.0) if t >= 2 else r3.m_planks("#2E2428", 0.14, seed=24, relief=0.5)
+            self._wall = m_basalt("#5A5058", course=4.6, seed=71, glow_top=11.0, power=1.2)
+        elif name == "sakura":
+            self.banner = "#D8364A"
+            self.glow = r3.m_glow("#FFD28A", power=1.6, bar_col="#4E3226")
+            self.door = r3.m_planks("#B8322C", 0.16, seed=22, var=0.08)
+            self.base = r3.m_rubble("#8D8985", size=4.4, seed=84)
+            self.roof = r3.m_tiles("#3D4656", kind="clay", row=2.6, width=2.4, spec=0.22, var=0.1)
+            self.trim = r3.m_planks("#4E3226", 0.2, seed=23)
+            self.red = r3.m_flat("#C2362C", 0.06, spec=0.15)
+            self.pad = r3.m_ground("paved", "#B4AC9A")
+            self.curtain = r3.m_flat("#E9E0CF", 0.05)
+            self._wall = None
+
+    @property
+    def stone(self):
+        return self.skin != "sakura" and (self.t >= 2 or self.skin != "dragon")
+
+    def wall(self, z0=4.0, z1=20.0, ox=0.0, oy=0.0, bay=0.45):
+        if self.skin == "sakura":
+            return r3.m_plaster("#EDE3D2", "#4E3226", z0, z1, bay, ox, oy, beam=1.25, mid=False, braces=False)
+        return self._wall
+
+
+def skin_scene(T):
+    sc = Scene("building", ground=-LIP)
+    sc.add(box(0.0, 0.0, 4.0, 4.0, -LIP, 0.0, r_px=0.35), T.pad, name="pad")
+    return sc
+
+
+def hang(sc, T, face, f, a, ztop, h, w=0.38, color=None, trim="#F2C544"):
+    """Wall banner with a hem in a chosen colour (gen_sprites3d.banner always hems in gold)."""
+    sc.add(_slab(face, f, a - w / 2, a + w / 2, 0.012, 0.035, ztop - h, ztop), r3.m_cloth(color or T.banner, trim=trim, trim_h=h * 0.14))
+    sc.add(_slab(face, f, a - w / 2 - 0.05, a + w / 2 + 0.05, 0.0, 0.06, ztop - 0.4, ztop + 0.9, 0.3), T.gold, cast=False)
+
+
+def skin_curtain(sc, T, t, frame=None, merlons=True, gate_h=11.5):
+    """Curtain wall and gatehouse on the standard castle's plan (palisade at tier 1).  The gate stays at
+    (2.0, 3.74) and the torches at the coordinates TerritoryLife.kt animates."""
+    if t == 1:
+        for seg in ((0.5, 0.5, 3.5, 0.5), (0.5, 0.5, 0.5, 3.5), (3.5, 0.5, 3.5, 3.5), (0.5, 3.5, 1.5, 3.5), (2.5, 3.5, 3.5, 3.5)):
+            palisade(sc, T, *seg)
+        for gx in (1.5, 2.5):
+            sc.add(box(gx - 0.1, 3.4, gx + 0.1, 3.6, 0, 13.6, 0.3), T.trim, name="gate post")
+        sc.add(box(1.4, 3.42, 2.6, 3.58, 10.6, 12.4, 0.3), T.trim)
+        torch(sc, T, 1.53, 3.62, 15.5)
+        torch(sc, T, 2.47, 3.62, 15.5)
+        return 10.0
+    cm, wh = T.curtain, CURTAIN_H
+    gate = door(sc, T, "L", 3.74, 2.0, 0.68, gate_h, True, frame=frame or T.base, fw=0.07)
+    ring = union(box(0.4, 0.4, 3.6, 0.8, 0, wh), box(0.4, 0.4, 0.8, 3.6, 0, wh), box(0.4, 3.2, 3.6, 3.6, 0, wh), box(3.2, 0.4, 3.6, 3.6, 0, wh))
+    sc.add(sub(union(ring, box(1.38, 3.16, 2.62, 3.74, 0, 16.5)), gate), cm, name="curtain")
+    if merlons:
+        sc.add(union(merlon_ring(0.4, 0.4, 3.6, 3.6, wh, 3.2, 9, 0.12, sides="LR"), merlon_ring(0.4, 0.4, 3.6, 3.6, wh, 3.2, 9, 0.12, sides="BF")), cm)
+        sc.add(merlon_ring(1.38, 3.16, 2.62, 3.74, 16.5, 3.0, 4, 0.12, ny=2, sides="LR"), cm)
+    sc.add(union(box(0.4, 3.6, 1.38, 3.64, 0, 2.6, 0.2), box(2.62, 3.6, 3.6, 3.64, 0, 2.6, 0.2), box(3.6, 0.4, 3.64, 3.6, 0, 2.6, 0.2)), T.base, cast=False,
+           name="plinth")
+    torch(sc, T, 1.56, 3.79, 11.5, 0.85)
+    torch(sc, T, 2.44, 3.79, 11.5, 0.85)
+    return wh
+
+
+def tower_shaft(sc, T, xc, yc, r, h, z0=0.0, wall=None, win=True, slit_deg=62.0, band=None):
+    """A round tower up to its flared head, without a roof.  Returns the radius of the head."""
+    wall = wall or T.wall()
+    cm = (xc, yc, r)
+    hh = h - z0
+    slits = []
+    if win:
+        for zf in ((0.62,) if hh < 34 else (0.36, 0.72)):
+            zc = z0 + hh * zf
+            slits.append(rotz(box(xc + r - 0.12, yc - 0.075, xc + r + 0.2, yc + 0.075, zc - 3.6, zc + 3.6), slit_deg, xc, yc))
+            sc.add(rotz(box(xc + r - 0.13, yc - 0.075, xc + r - 0.07, yc + 0.075, zc - 3.6, zc + 3.6), slit_deg, xc, yc), T.slit, cast=False, ao=False)
+    sc.add(sub(cyl(xc, yc, r, z0, h - 3.0), *slits), wall, cyl=cm, name="tower")
+    if band is not None and hh > 20:
+        sc.add(cyl(xc, yc, r + 0.035, z0 + hh * 0.5 - 0.9, z0 + hh * 0.5 + 0.9, 0.35), band, cyl=cm, cast=False)
+    sc.add(union(cone(xc, yc, r, h - 6.5, h - 4.0, r + 0.09), cyl(xc, yc, r + 0.09, h - 4.0, h, 0.25)), wall, cyl=(xc, yc, r + 0.09))
+    return r + 0.09
+
+
+def skin_keep(sc, T, t, kh, x0=1.1, y0=1.1, x1=2.9, y1=2.9, zb=5.0, ww=0.36):
+    """The keep's body: plinth, walls, lit windows on both visible faces (and the hall door at tier 1)."""
+    sc.add(box(x0 - 0.1, y0 - 0.1, x1 + 0.1, y1 + 0.1, 0, zb, 0.4), T.base, name="keep base")
+    hh = kh - zb
+    rows = [zb + hh * 0.56] if hh < 36 else [zb + hh * 0.34, zb + hh * 0.74]
+    wh = min(9.0, hh * 0.3)
+    holes = []
+    for zi, zz in enumerate(rows):
+        for a in ((1.55, 2.45) if (zi == 0 or t >= 3) else (1.55, 2.0, 2.45)):
+            holes.append(window(sc, T, "L", y1, a, zz, ww, wh))
+            holes.append(window(sc, T, "R", x1, a, zz, ww, wh))
+    if t == 1:
+        holes.append(door(sc, T, "L", y1, 2.0, 0.6, 11.0, T.stone, z0=0.0))
+    sc.add(sub(box(x0, y0, x1, y1, zb - 1, kh), *holes), T.wall(zb, kh, x0, y0, bay=0.45), name="keep")
+
+
+def keep_parapet(sc, T, kh, wall=None, cap=None, x0=1.1, y0=1.1, x1=2.9, y1=2.9, zb=5.0, pil=None):
+    """Corner pilasters, corbelled parapet and merlons of a stone keep."""
+    wall = wall or T.curtain
+    sc.add(union(*[box(px - 0.1, py - 0.1, px + 0.1, py + 0.1, zb, kh + 1.0, 0.3) for px, py in ((x0, y1), (x1, y1), (x1, y0))]), pil or T.base, name="pilasters")
+    sc.add(box(x0 - 0.12, y0 - 0.12, x1 + 0.12, y1 + 0.12, kh - 3.2, kh + 0.8, 0.3), wall, name="parapet")
+    sc.add(merlon_ring(x0 - 0.12, y0 - 0.12, x1 + 0.12, y1 + 0.12, kh + 0.8, 3.2, 5, 0.13), cap or wall, name="merlons")
+
+
+# ---- ice --------------------------------------------------------------------------------------
+
+def icicles(axis, lo, hi, other, z, n, ln=5.0, r=0.042):
+    """A row of n icicles hanging from height z along x (at y = other) or along y (at x = other); every second
+    one is shorter."""
+    step = (hi - lo) / max(n - 1, 1)
+    parts = []
+    for k, f in ((0, 1.0), (1, 0.6)):
+        cnt = (n + 1 - k) // 2
+        if cnt < 1:
+            continue
+        c0 = cone(lo + k * step, other, 0.0, z - ln * f, z + 0.3, r) if axis == "x" else cone(other, lo + k * step, 0.0, z - ln * f, z + 0.3, r)
+        parts.append(repeat(c0, axis, step * 2.0, cnt) if cnt > 1 else c0)
+    return union(*parts)
+
+
+def icicle_ring(xc, yc, r, z, n=9, ln=5.0, start=0.0):
+    a = ring_of(cone(xc + r, yc, 0.0, z - ln, z + 0.3, 0.042), n, xc, yc, start)
+    b = ring_of(cone(xc + r, yc, 0.0, z - ln * 0.55, z + 0.3, 0.042), n, xc, yc, start + 180.0 / n)
+    return union(a, b)
+
+
+def crystal_cluster(sc, x, y, h, r=0.17, towards=-45.0, mat=None, seed=0):
+    """A tall crystal with two shorter ones leaning away from it."""
+    mat = mat or ICE
+    sc.add(lean(crystal(x, y, r, -1.0, h, 6, 0.34, 15.0 * seed), 5.0, towards, x, y), mat, name="crystal")
+    side = union(lean(crystal(x, y, r * 0.72, -1.0, h * 0.62, 6, 0.4, 20.0), 24.0, towards, x, y),
+                 lean(crystal(x, y, r * 0.62, -1.0, h * 0.46, 6, 0.4, 5.0), 27.0, towards + 150.0, x, y))
+    sc.add(side, ICE_DEEP if mat is ICE else mat, name="crystal")
+
+
+def ice_tower(sc, T, xc, yc, r, h, spire, win=True, deg=62.0):
+    hr = tower_shaft(sc, T, xc, yc, r, h, win=win, slit_deg=deg, band=T.base)
+    sc.add(icicle_ring(xc, yc, hr + 0.01, h - 3.9, 9, 5.6, 10.0), ICE, cast=False, name="icicles")
+    sc.add(lumpy(torus(xc, yc, h + 0.5, hr - 0.02, 1.9), 0.7, 0.45, int(xc * 7 + yc * 3)), SNOW, name="snow")
+    sc.add(pyramid(xc, yc, hr + 0.02, h + 0.2, h + spire, 6, 30.0), ICE, name="spire")
+
+
+def castle_ice(t):
+    T = Skin(t, "ice")
+    sc = skin_scene(T)
+    kh, th = KEEP_H[t - 1], TOWER_TH[t - 1]
+    x0, y0, x1, y1 = 1.1, 1.1, 2.9, 2.9
+    wh = skin_curtain(sc, T, t, frame=T.trim)
+    if t >= 2:
+        # snow on the battlements, icicles along the two front walls
+        caps = union(merlon_ring(0.4, 0.4, 3.6, 3.6, wh + 3.5, 0.75, 9, 0.12, sides="LR"), merlon_ring(0.4, 0.4, 3.6, 3.6, wh + 3.5, 0.75, 9, 0.12, sides="BF"),
+                     merlon_ring(1.38, 3.16, 2.62, 3.74, 19.8, 0.75, 4, 0.12, ny=2, sides="LR"))
+        sc.add(caps, SNOW, name="snow caps")
+        sc.add(union(icicles("x", 0.55, 1.3, 3.615, wh - 0.2, 5, 5.2), icicles("x", 2.72, 3.0, 3.615, wh - 0.2, 3, 4.6),
+                     icicles("y", 1.0, 2.95, 3.615, wh - 0.2, 9, 5.2), icicles("x", 1.5, 2.5, 3.755, 16.3, 6, 3.6)), ICE, cast=False, name="icicles")
+        spire = 15.0 + 3.0 * t
+        ice_tower(sc, T, 3.45, 0.55, 0.5, th, spire)
+        ice_tower(sc, T, 0.55, 3.45, 0.5, th, spire, deg=28.0)
+    if t >= 3:
+        ice_tower(sc, T, 0.55, 0.55, 0.5, th + 4, spire, win=False)
+        ice_tower(sc, T, 3.45, 3.45, 0.5, wh + 6 + t, spire * 0.62, win=False)
+    skin_keep(sc, T, t, kh)
+    if t == 1:
+        sc.add(gable(x0, y0, x1, y1, kh, 12, "x", over=0.24, thick=2.2), T.roof, name="roof")
+        sc.add(lumpy(gable(x0 - 0.1, y0 + 0.42, x1 + 0.1, y1 - 0.42, kh + 5.6, 7.4, "x", over=0.2, thick=0.6), 0.6, 0.5, 2), SNOW, name="snow")
+        sc.add(icicles("x", 1.0, 3.0, y1 + 0.245, kh - 2.0, 10, 5.4), ICE, cast=False, name="icicles")
+        sc.add(crystal(2.0, 2.0, 0.2, kh + 9.0, kh + 30.0, 6, 0.5, 30.0), ICE, name="spire")
+    elif t == 2:
+        rh = 14.0
+        sc.add(hip(x0, y0, x1, y1, kh, rh, over=0.22, thick=1.8), T.roof, name="roof")
+        sc.add(lumpy(hip(x0 + 0.34, y0 + 0.34, x1 - 0.34, y1 - 0.34, kh + rh * 0.42, rh * 0.6 + 0.9, thick=0.5), 0.6, 0.5, 3), SNOW, name="snow")
+        sc.add(union(icicles("x", 1.0, 3.0, y1 + 0.225, kh - 1.6, 9, 5.0), icicles("y", 1.0, 3.0, x1 + 0.225, kh - 1.6, 9, 5.0)), ICE, cast=False, name="icicles")
+        sc.add(crystal(2.0, 2.0, 0.22, kh + rh - 3.0, kh + rh + 16.0, 6, 0.5, 30.0), ICE, name="spire")
+    else:
+        keep_parapet(sc, T, kh, cap=T.curtain)
+        sc.add(merlon_ring(x0 - 0.12, y0 - 0.12, x1 + 0.12, y1 + 0.12, kh + 4.3, 0.75, 5, 0.13), SNOW, name="snow caps")
+        sc.add(union(icicles("x", 1.05, 2.95, y1 + 0.125, kh - 3.1, 9, 5.6), icicles("y", 1.05, 2.95, x1 + 0.125, kh - 3.1, 9, 5.6)), ICE, cast=False, name="icicles")
+        sc.add(lumpy(ellipsoid(2.0, 2.0, kh + 0.6, 0.8, 0.8, 5.0), 0.7, 0.4, 4), SNOW, name="snow")
+        # the crown: a great crystal spire with four leaning shards
+        ch = 22.0 + 3.6 * t
+        sc.add(crystal(2.0, 2.0, 0.3 + 0.015 * t, kh - 1.0, kh + ch, 6, 0.42, 30.0), ICE, name="spire")
+        shards = [lean(crystal(2.0 + 0.36 * math.cos(math.radians(a)), 2.0 + 0.36 * math.sin(math.radians(a)), 0.17, kh - 1.0, kh + ch * 0.55, 6, 0.42, a),
+                       19.0, a, 2.0 + 0.36 * math.cos(math.radians(a)), 2.0 + 0.36 * math.sin(math.radians(a)), kh) for a in (-45.0, 135.0, 45.0, 225.0)]
+        sc.add(union(*shards), ICE_DEEP, name="shards")
+        hang(sc, T, "L", y1, 2.0, kh - 6, kh * 0.30, 0.38, trim="#EAF4FB")
+        hang(sc, T, "R", x1, 2.0, kh - 6, kh * 0.30, 0.38, trim="#EAF4FB")
+    # crystal outcrops around the walls, drifts of snow
+    crystal_cluster(sc, 3.84, 2.3, 17.0 + 3.0 * t, 0.16 + 0.008 * t, -45.0, seed=1)
+    crystal_cluster(sc, 0.22, 3.8, 12.0 + 2.2 * t, 0.15 + 0.006 * t, 135.0, seed=2)
+    if t >= 2:
+        crystal_cluster(sc, 3.8, 0.26, 16.0 + 3.0 * t, 0.16, -45.0, seed=3)
+        crystal_cluster(sc, 0.26, 0.95, 13.0 + 3.0 * t, 0.15, 135.0, seed=4)
+    drifts = [ellipsoid(0.95, 3.74, 0.0, 0.42, 0.16, 2.6), ellipsoid(3.08, 3.76, 0.0, 0.3, 0.14, 2.2), ellipsoid(3.74, 1.5, 0.0, 0.16, 0.5, 2.6),
+              ellipsoid(2.0, 3.86, 0.0, 0.5, 0.1, 1.2)]
+    sc.add(lumpy(smooth(1.0, *drifts), 0.5, 0.4, 6), SNOW, cast=False, name="drifts")
+    return sc
+
+
+# ---- gold -------------------------------------------------------------------------------------
+
+def gem(sc, T, face, f, a, z, color, r=0.075):
+    """A big cabochon in a gold setting on a wall face."""
+    rod = (lambda d0, d1, rr: cyl_y(f + d0, f + d1, a, z, rr)) if face == "L" else (lambda d0, d1, rr: cyl_x(f + d0, f + d1, a, z, rr))
+    sc.add(rod(0.0, 0.04, r * G + 0.9), T.gold, cast=False)
+    x, y = (a, f + 0.045) if face == "L" else (f + 0.045, a)
+    sc.add(sphere(x, y, z, r), r3.m_glow(color, power=1.0, bars=False), cast=False, ao=False)
+
+
+def onion(xc, yc, r, z, h):
+    """Onion dome: a bulb wider than its drum, drawn up into a point."""
+    return smooth(2.2, cyl(xc, yc, r * 0.92, z - 0.6, z + h * 0.2), ellipsoid(xc, yc, z + h * 0.36, r * 1.2, r * 1.2, h * 0.38),
+                  cone(xc, yc, r * 0.8, z + h * 0.42, z + h, 0.0))
+
+
+def gold_tower(sc, T, xc, yc, r, h, dh, win=True, deg=62.0, jewel="#FF3A58"):
+    hr = tower_shaft(sc, T, xc, yc, r, h, win=win, slit_deg=deg, band=T.trim)
+    sc.add(cyl(xc, yc, hr + 0.03, h - 1.6, h + 0.5, 0.3), T.trim, cyl=(xc, yc, hr), name="cornice")
+    sc.add(onion(xc, yc, hr - 0.02, h + 0.5, dh), T.roof, cyl=(xc, yc, hr), name="dome")
+    top = h + 0.5 + dh
+    sc.add(capsule((xc, yc, top - 1.5), (xc, yc, top + 2.4), 0.45), T.gold, cast=False)
+    sc.add(sphere(xc, yc, top + 3.2, 0.06), r3.m_glow(jewel, power=1.1, bars=False), cast=False, ao=False)
+
+
+def coin_pile(sc, T, x, y, r=0.24, h=5.0, seed=0):
+    coins = r3.m_gold("#F0B02A", 0.12)
+    heap = smooth(1.2, cone(x, y, r, -0.5, h, r * 0.2), sphere(x + r * 0.45, y + r * 0.2, h * 0.18, r * 0.5), sphere(x - r * 0.4, y + r * 0.35, h * 0.2, r * 0.45))
+    sc.add(lumpy(heap, 0.4, 1.3, seed), coins, name="coins")
+    loose = [cyl(x + r * 1.3 * math.cos(a), y + r * 1.3 * math.sin(a), 0.05, 0.0, 0.5) for a in (math.radians(v + 40 * seed) for v in (20, 95, 170, 250, 310))]
+    sc.add(union(*loose), coins, cast=False)
+    sc.add(sphere(x - r * 0.2, y + r * 0.1, h + 0.5, 0.022), r3.m_glow("#FFF3B8", power=3.0, bars=False), cast=False, ao=False)
+
+
+def castle_gold(t):
+    T = Skin(t, "gold")
+    sc = skin_scene(T)
+    sc.add(sub(box(0.08, 0.08, 3.92, 3.92, -0.3, 0.12), box(0.16, 0.16, 3.84, 3.84, -1, 1)), T.gold, cast=False, name="inlay")
+    kh, th = KEEP_H[t - 1], TOWER_TH[t - 1]
+    x0, y0, x1, y1 = 1.1, 1.1, 2.9, 2.9
+    wh = skin_curtain(sc, T, t, frame=T.trim)
+    if t >= 2:
+        # marble string course, and a ruby over the gate
+        sc.add(union(box(0.4, 3.6, 1.38, 3.63, wh - 2.6, wh - 1.2), box(2.62, 3.6, 3.6, 3.63, wh - 2.6, wh - 1.2), box(3.6, 0.4, 3.63, 3.6, wh - 2.6, wh - 1.2)), T.trim,
+               cast=False, name="string course")
+        gem(sc, T, "L", 3.74, 2.0, 14.3, "#FF3A58", 0.07)
+        dh = 11.0 + 1.6 * t
+        gold_tower(sc, T, 3.45, 0.55, 0.5, th, dh, jewel="#5CF08A")
+        gold_tower(sc, T, 0.55, 3.45, 0.5, th, dh, deg=28.0, jewel="#5CF08A")
+    if t >= 3:
+        gold_tower(sc, T, 0.55, 0.55, 0.5, th + 4, dh, win=False)
+        gold_tower(sc, T, 3.45, 3.45, 0.5, wh + 6 + t, dh * 0.8, win=False, jewel="#4AD8FF")
+    skin_keep(sc, T, t, kh)
+    if t == 1:
+        sc.add(gable(x0, y0, x1, y1, kh, 12, "x", over=0.24, thick=2.0), T.roof, name="roof")
+        sc.add(box(x0 - 0.3, 1.94, x1 + 0.3, 2.06, kh + 11.2, kh + 12.8, 0.5), T.gold, cast=False)
+        sc.add(union(*[box(px - 0.08, py - 0.08, px + 0.08, py + 0.08, 4.0, kh, 0.3) for px, py in ((x0, y1), (x1, y1), (x1, y0))]), T.trim, name="pilasters")
+        for fx in (x0 - 0.2, x1 + 0.2):
+            sc.add(sphere(fx, 2.0, kh + 14.0, 0.065), r3.m_glow("#FF3A58", power=1.1, bars=False), cast=False, ao=False)
+            sc.add(capsule((fx, 2.0, kh + 11.5), (fx, 2.0, kh + 13.4), 0.5), T.gold, cast=False)
+        gem(sc, T, "L", y1, 2.0, 15.4, "#4AD8FF", 0.06)
+    else:
+        keep_parapet(sc, T, kh, wall=T.trim, cap=T.gold, pil=T.trim)
+        sc.add(box(x0 - 0.14, y0 - 0.14, x1 + 0.14, y1 + 0.14, kh - 2.3, kh - 1.0, 0.25), T.gold, cast=False, name="band")
+        # drum and the great dome
+        dr = 0.6 + 0.02 * t
+        dz, dh2 = kh + 5.0 + t * 0.6, 13.0 + 2.8 * t
+        sc.add(cyl(2.0, 2.0, dr, kh, dz), T.wall(), cyl=(2.0, 2.0, dr), name="drum")
+        sc.add(cyl(2.0, 2.0, dr + 0.05, dz - 1.4, dz + 0.4, 0.3), T.trim, cyl=(2.0, 2.0, dr), name="drum cornice")
+        sc.add(onion(2.0, 2.0, dr + 0.03, dz + 0.4, dh2), T.roof, cyl=(2.0, 2.0, dr), name="great dome")
+        top = dz + 0.4 + dh2
+        sc.add(capsule((2.0, 2.0, top - 2.0), (2.0, 2.0, top + 4.0), 0.55), T.gold, cast=False)
+        sc.add(sphere(2.0, 2.0, top + 5.2, 0.085), r3.m_glow("#FF3A58", power=1.2, bars=False), cast=False, ao=False)
+        if t >= 4:      # four small domes on the keep's corners
+            for px, py in ((x0, y1), (x1, y1), (x1, y0), (x0, y0)):
+                sc.add(cyl(px, py, 0.2, kh - 4.0, kh + 5.0), T.trim, cyl=(px, py, 0.2), name="turret")
+                sc.add(onion(px, py, 0.21, kh + 5.0, 7.0 + t * 0.6), T.roof, cyl=(px, py, 0.21), name="turret dome")
+        hang(sc, T, "L", y1, 2.0, kh - 6, kh * 0.30, 0.38)
+        hang(sc, T, "R", x1, 2.0, kh - 6, kh * 0.30, 0.38)
+        if t >= 3:
+            for a, col in ((1.55, "#4AD8FF"), (2.45, "#5CF08A")):
+                gem(sc, T, "L", y1, a, 5.0 + (kh - 5.0) * 0.54, col, 0.075)
+                gem(sc, T, "R", x1, a, 5.0 + (kh - 5.0) * 0.54, col, 0.075)
+    # treasure spilling out in front of the walls
+    coin_pile(sc, T, 0.86, 3.84, 0.27, 5.0 + 0.4 * t, 1)
+    coin_pile(sc, T, 3.84, 2.42, 0.24, 4.4 + 0.4 * t, 2)
+    if t >= 3:
+        coin_pile(sc, T, 3.84, 1.2, 0.2, 4.0, 3)
+        g.chest(sc, T, 0.2, 3.5, 0.4, 4.6)
+    return sc
+
+
+# ---- dragon -----------------------------------------------------------------------------------
+
+BONE = r3.m_flat("#E6D6B4", 0.06, spec=0.2)
+OBSIDIAN = r3.m_flat("#2B2430", 0.08, spec=0.6, gloss=40.0)
+
+
+def _wing_mat(color="#C2402A"):
+    base, gl = r3.srgb(color), r3.srgb("#FF5A1E")
+    return r3.Material(lambda c: base[None, :] * (0.85 + 0.3 * r3.vnoise2(c.u * 0.35, c.v * 0.35, 66))[..., None], wrap=0.45, spec=0.1,
+                       emis=lambda c: gl[None, :] * 0.10 * np.ones(c.x.shape, F)[..., None])
+
+
+WING = [(0.0, -1.0), (1.6, 4.4), (5.5, 12.0), (16.5, 18.5), (12.5, 10.5), (19.0, 7.5), (12.0, 3.2), (16.0, -4.0), (8.2, -1.6), (4.4, -6.6), (0.0, -3.8)]
+
+
+def dragon(sc, x, y, z, k=1.0, hdg=45.0, body="#B41E2A"):
+    """A dragon sitting at (x, y, z) and looking along hdg (45 = straight at the camera), wings spread.
+    k scales it; at k = 1 it is about 40 viewport units from wing tip to wing tip and 26 tall."""
+    c, s = math.cos(math.radians(hdg)), math.sin(math.radians(hdg))
+
+    def P(f, sd, zz):          # forward and left in grid units, up in z units, all scaled by k
+        return (x + (f * c - sd * s) * k, y + (f * s + sd * c) * k, z + zz * k)
+
+    def cap(a, b, r):
+        return capsule(P(*a), P(*b), r * k)
+
+    def ball(a, r):
+        p = P(*a)
+        return sphere(p[0], p[1], p[2], r * k)
+
+    t0 = P(-0.02, 0.0, 5.4)
+    parts = [ellipsoid(t0[0], t0[1], t0[2], 0.25 * k, 0.25 * k, 5.0 * k), ball((0.1, 0.0, 6.8), 0.24),
+             cap((0.1, 0.0, 8.4), (0.2, 0.0, 11.6), 2.2), cap((0.2, 0.0, 11.6), (0.27, 0.0, 13.8), 1.9), cap((0.26, 0.0, 14.4), (0.62, 0.0, 12.0), 1.85),
+             cap((-0.14, 0.0, 3.0), (-0.3, -0.34, 0.6), 1.8), cap((-0.3, -0.34, 0.6), (-0.2, -0.68, -3.6), 1.35), cap((-0.2, -0.68, -3.6), (-0.02, -0.9, -7.2), 0.85)]
+    for sd in (-1.0, 1.0):
+        parts += [ball((-0.03, 0.24 * sd, 2.9), 0.2), cap((0.14, 0.19 * sd, 5.6), (0.27, 0.24 * sd, 0.7), 1.25)]
+    sc.add(smooth(1.0 * k, *parts), r3.m_flat(body, 0.1, spec=0.4, gloss=28.0), name="dragon")
+    horns = [cap((0.22, 0.09 * sd, 15.2), (0.04, 0.19 * sd, 19.6), 0.72) for sd in (-1.0, 1.0)]
+    horns += [cap((0.29, 0.23 * sd, 0.3), (0.37, 0.24 * sd, -0.5), 0.65) for sd in (-1.0, 1.0)]              # claws
+    horns += [cap((0.04 - 0.04 * i, 0.0, 12.6 - 1.9 * i), (-0.06 - 0.04 * i, 0.0, 13.8 - 1.9 * i), 0.5) for i in range(3)]       # crest down the neck
+    sc.add(union(*horns), BONE, cast=False, name="horns")
+    eyes = [ball((0.44, 0.09 * sd, 14.4), 0.03) for sd in (-1.0, 1.0)]
+    sc.add(union(*eyes), r3.m_glow("#FFE45A", power=3.2, bars=False), cast=False, ao=False)
+    m = P(0.67, 0.0, 11.5)
+    sc.add(ellipsoid(m[0], m[1], m[2], 0.04 * k, 0.04 * k, 1.0 * k), r3.m_glow("#FF7A1E", power=3.6, bars=False), cast=False, ao=False)
+    # wings: membranes that face the way the dragon looks, with dark finger bones
+    wing = _wing_mat()
+    for sd in (-1.0, 1.0):
+        root = P(-0.07, 0.13 * sd, 9.0)
+        pts = [(-a * sd, b) for a, b in WING]
+        sc.add(_Prism([(a * k, b * k * ZS) for a, b in pts], (root[0] * G, root[1] * G, root[2] * ZS), math.radians(hdg - 90.0), 0.28 * k), wing, name="wing")
+
+        def wp(a, b, fwd=0.035):
+            return P(-0.07 + fwd, 0.13 * sd + a * sd / G, 9.0 + b)
+
+        bones = [capsule(wp(0.0, -1.0), wp(5.5, 12.0), 0.8 * k)] + [capsule(wp(5.5, 12.0), wp(a, b), 0.55 * k) for a, b in ((16.5, 18.5), (19.0, 7.5), (16.0, -4.0))]
+        sc.add(union(*bones), r3.m_flat("#5A1418", 0.08, spec=0.3), cast=False, name="wing bones")
+
+
+def spike_ring(xc, yc, r, z, n=5, ln=7.0, start=0.0, out=24.0):
+    """Horn-like spikes around a tower head, leaning outwards."""
+    return union(*[lean(pyramid(xc + r * math.cos(math.radians(a)), yc + r * math.sin(math.radians(a)), 0.085, z - 1.0, z + ln, 4, 45.0 + a), out, a,
+                        xc + r * math.cos(math.radians(a)), yc + r * math.sin(math.radians(a)), z) for a in (start + 360.0 * k / n for k in range(n))])
+
+
+def dragon_tower(sc, T, xc, yc, r, h, roof_h, win=True, deg=62.0):
+    hr = tower_shaft(sc, T, xc, yc, r, h, win=win, slit_deg=deg, band=T.base)
+    sc.add(spike_ring(xc, yc, hr - 0.02, h - 0.6, 6, 6.6, 15.0), OBSIDIAN, name="spikes")
+    sc.add(union(cone(xc, yc, hr + 0.1, h, h + roof_h, 0.03), cyl(xc, yc, hr + 0.1, h - 0.9, h + 0.05, 0.2)), T.roof, cyl=(xc, yc, hr + 0.1), name="roof")
+    sc.add(sphere(xc, yc, h + roof_h + 0.6, 0.055), EMBER, cast=False, ao=False)
+
+
+def castle_dragon(t):
+    T = Skin(t, "dragon")
+    sc = skin_scene(T)
+    kh, th = KEEP_H[t - 1], TOWER_TH[t - 1]
+    x0, y0, x1, y1 = 1.1, 1.1, 2.9, 2.9
+    wh = skin_curtain(sc, T, t, frame=T.trim)
+    if t >= 2:
+        # an ember-lit arrow slit either side of the gate, fire bowls on the gatehouse
+        for bx in (1.5, 2.5):
+            sc.add(union(cone(bx, 3.45, 0.05, 16.5, 18.2, 0.13), cyl(bx, 3.45, 0.04, 16.3, 16.9)), IRON, name="fire bowl")
+            sc.add(ellipsoid(bx, 3.45, 19.6, 0.06, 0.06, 2.0), FLAME, cast=False, ao=False)
+        rh = 15.0 + 3.0 * t
+        dragon_tower(sc, T, 3.45, 0.55, 0.5, th, rh)
+        dragon_tower(sc, T, 0.55, 3.45, 0.5, th, rh, deg=28.0)
+    if t >= 3:      # no back tower: its roof would stand right behind the dragon and spoil the silhouette
+        dragon_tower(sc, T, 3.45, 3.45, 0.5, wh + 6 + t, rh * 0.6, win=False)
+    skin_keep(sc, T, t, kh, ww=0.3)
+    k = [0.72, 0.86, 0.98, 1.06, 1.14][t - 1]
+    if t == 1:
+        sc.add(gable(x0, y0, x1, y1, kh, 12, "x", over=0.24, thick=2.0), T.roof, name="roof")
+        sc.add(box(x0 - 0.3, 1.9, x1 + 0.3, 2.1, kh + 10.6, kh + 12.4, 0.5), T.trim, name="ridge")
+        sc.add(union(*[lean(pyramid(fx, 2.0, 0.1, kh + 10.0, kh + 19.0, 4, 45.0), 22.0, a, fx, 2.0, kh + 11.0) for fx, a in ((x0 - 0.22, 180.0), (x1 + 0.22, 0.0))]), OBSIDIAN,
+               name="horns")
+        dragon(sc, 2.0, 2.0, kh + 12.2, k)
+    else:
+        zt = kh + 1.6 + (8.0 + t * 1.4)
+        if t == 2:
+            sc.add(inter(hip(x0, y0, x1, y1, kh, 16.0, over=0.22, thick=1.8), box(0, 0, 4, 4, kh - 3, zt)), T.roof, name="roof")
+        else:
+            keep_parapet(sc, T, kh)
+            sc.add(inter(hip(x0 + 0.08, y0 + 0.08, x1 - 0.08, y1 - 0.08, kh + 1.6, 22.0 + t, thick=1.0), box(0, 0, 4, 4, kh, zt)), T.roof, name="roof")
+            sc.add(union(*[lean(pyramid(px, py, 0.11, kh + 2.0, kh + 12.0 + t, 4, 45.0 + a), 18.0, a, px, py, kh + 3.0)
+                           for px, py, a in ((x0 - 0.02, y1 + 0.02, 135.0), (x1 + 0.02, y1 + 0.02, 45.0), (x1 + 0.02, y0 - 0.02, -45.0))]), OBSIDIAN, name="horns")
+            hang(sc, T, "L", y1, 2.0, kh - 6, kh * 0.30, 0.38)
+            hang(sc, T, "R", x1, 2.0, kh - 6, kh * 0.30, 0.38)
+        sc.add(box(1.62, 1.62, 2.38, 2.38, zt - 1.0, zt + 0.6, 0.3), T.trim, name="perch")
+        dragon(sc, 2.0, 2.0, zt + 0.6, k)
+    # embers drifting up, obsidian shards in the corners
+    for i, (ex, ey, ez) in enumerate(((0.5, 3.6, 22.0), (3.7, 2.2, 30.0), (1.3, 3.2, kh + 4.0), (3.2, 1.2, kh + 9.0), (0.9, 2.6, kh - 6.0), (2.9, 3.4, 34.0))):
+        sc.add(sphere(ex, ey, ez, 0.022 + 0.004 * (i % 2)), EMBER, cast=False, ao=False)
+    sc.add(union(lean(pyramid(3.82, 2.3, 0.15, -1.0, 13.0 + 2 * t, 5, 10.0), 14.0, -45.0, 3.82, 2.3), lean(pyramid(3.7, 2.62, 0.11, -1.0, 8.0 + t, 5, 40.0), 24.0, 0.0, 3.7, 2.62),
+                 lean(pyramid(0.22, 3.8, 0.14, -1.0, 11.0 + 2 * t, 5, 30.0), 14.0, 135.0, 0.22, 3.8), lean(pyramid(0.5, 3.86, 0.1, -1.0, 7.0 + t, 5, 0.0), 22.0, 90.0, 0.5, 3.86)),
+           OBSIDIAN, name="shards")
+    return sc
+
+
+# ---- sakura -----------------------------------------------------------------------------------
+
+def cherry_tree(sc, x, y, s=1.0, seed=0):
+    """Blossoming cherry: a short forked trunk under a cloud of pink."""
+    bark = r3.m_planks("#5A3A30", 0.05, seed=63, relief=0.5)
+    sc.add(union(cone(x, y, 0.105 * s, -0.5, 11.0 * s, 0.055 * s), capsule((x, y, 8.0 * s), (x + 0.22 * s, y - 0.1 * s, 14.0 * s), 1.0 * s),
+                 capsule((x, y, 7.0 * s), (x - 0.2 * s, y + 0.14 * s, 13.5 * s), 0.9 * s)), bark, name="trunk")
+    blobs = [(0.0, 0.0, 19.5, 0.43), (0.3, -0.14, 16.0, 0.3), (-0.28, 0.16, 16.2, 0.31), (0.12, 0.3, 15.6, 0.27), (-0.12, -0.3, 16.6, 0.27), (0.02, 0.02, 25.0, 0.27)]
+    canopy = smooth(1.6 * s, *[sphere(x + bx * s, y + by * s, bz * s, br * s) for bx, by, bz, br in blobs])
+    sc.add(lumpy(canopy, 0.9 * s, 0.5 / s, seed), _blossom(90 + seed), name="blossom")
+    # petals on the ground
+    sc.add(lumpy(ellipsoid(x + 0.1 * s, y + 0.1 * s, 0.0, 0.5 * s, 0.42 * s, 0.55), 0.3, 0.9, seed + 3), r3.m_flat("#F6C3D4", 0.1), cast=False, name="petals")
+
+
+def curved_roof(sc, T, x0, y0, x1, y1, z, h, over=0.3, thick=0.9, tips=None):
+    """Hipped roof with wide eaves whose corners sweep upwards."""
+    sc.add(hip(x0, y0, x1, y1, z, h, over=over, thick=thick), T.roof, name="roof")
+    sc.add(sub(box(x0 - over - 0.02, y0 - over - 0.02, x1 + over + 0.02, y1 + over + 0.02, z - thick - 0.5, z - thick + 0.25),
+               box(x0 - over + 0.06, y0 - over + 0.06, x1 + over - 0.06, y1 + over - 0.06, z - thick - 1, z + 1)), tips or T.red, cast=False, name="eave line")
+    horns = []
+    for sx, cx in ((-1, x0 - over), (1, x1 + over)):
+        for sy, cy in ((-1, y0 - over), (1, y1 + over)):
+            horns.append(capsule((cx - 0.16 * sx, cy - 0.16 * sy, z - thick * 0.5 + 0.9), (cx + 0.07 * sx, cy + 0.07 * sy, z + 2.6), 1.0))
+    sc.add(union(*horns), T.roof, name="upswept corners")
+    if tips is not None:
+        sc.add(union(*[sphere(cx + 0.07 * sx, cy + 0.07 * sy, z + 3.1, 0.045) for sx, cx in ((-1, x0 - over), (1, x1 + over)) for sy, cy in ((-1, y0 - over), (1, y1 + over))]),
+               tips, cast=False)
+
+
+def paper_lantern(sc, T, x, y, z, s=1.0):
+    """Red paper lantern; (x, y, z) is its middle (the animated flame is drawn on the same point)."""
+    sc.add(ellipsoid(x, y, z, 0.085 * s, 0.085 * s, 2.5 * s), r3.m_glow("#FF4A34", power=1.25, bars=False), cast=False, ao=False, name="lantern")
+    sc.add(union(cyl(x, y, 0.05 * s, z + 2.2 * s, z + 3.0 * s), cyl(x, y, 0.05 * s, z - 3.0 * s, z - 2.2 * s)), r3.m_flat("#2E1E1A", 0.05), cast=False)
+
+
+def battered_base(x0, y0, x1, y1, h, b=0.22):
+    """Stone footing with sloping sides: (x0, y0)-(x1, y1) is its top, b the spread at the ground."""
+    W = min(x1 - x0, y1 - y0) / 2.0 + b
+    return inter(hip(x0 - b, y0 - b, x1 + b, y1 + b, 0.0, h * W / b, thick=0.6), box(x0 - b - 0.1, y0 - b - 0.1, x1 + b + 0.1, y1 + b + 0.1, -0.6, h))
+
+
+def yagura(sc, T, xc, yc, w, zb, hs, rh, gold=None):
+    """Small corner turret: stone footing, a white storey, a curved roof."""
+    sc.add(battered_base(xc - w, yc - w, xc + w, yc + w, zb, 0.1), T.base, name="turret base")
+    holes = [window(sc, T, "L", yc + w, xc, zb + hs * 0.55, 0.26, hs * 0.42, arch=False), window(sc, T, "R", xc + w, yc, zb + hs * 0.55, 0.26, hs * 0.42, arch=False)]
+    sc.add(sub(box(xc - w, yc - w, xc + w, yc + w, zb - 0.5, zb + hs), *holes), T.wall(zb, zb + hs, xc - w, yc - w, bay=w), name="turret")
+    curved_roof(sc, T, xc - w, yc - w, xc + w, yc + w, zb + hs, rh, over=0.2, thick=0.8, tips=gold)
+    sc.add(sphere(xc, yc, zb + hs + rh + 0.4, 0.05), T.gold, cast=False)
+
+
+def castle_sakura(t):
+    T = Skin(t, "sakura")
+    sc = skin_scene(T)
+    gold = T.gold if t >= 4 else None
+    xc = yc = 2.0
+    if t == 1:
+        # garden pavilion behind a low fence and a red gate with lanterns
+        g.fence(sc, T, [(1.5, 3.52), (0.5, 3.52), (0.5, 0.5), (3.5, 0.5), (3.5, 3.52), (2.5, 3.52)], h=6.0)
+        for gx in (1.5, 2.5):
+            sc.add(box(gx - 0.075, 3.44, gx + 0.075, 3.6, 0, 13.0, 0.3), T.red, name="gate post")
+        sc.add(union(box(1.26, 3.44, 2.74, 3.6, 11.4, 12.8, 0.4), box(1.4, 3.46, 2.6, 3.58, 8.6, 9.6, 0.3)), T.red, name="gate beams")
+        paper_lantern(sc, T, 1.53, 3.62, 15.5, 0.9)
+        paper_lantern(sc, T, 2.47, 3.62, 15.5, 0.9)
+        sc.add(box(0.95, 0.95, 3.05, 3.05, 0, 3.0, 0.4), T.base, name="platform")
+        w, kh = 0.8, 17.0
+        holes = [door(sc, T, "L", yc + w, xc, 0.5, 9.5, False, z0=3.0), window(sc, T, "L", yc + w, 1.55, 11.0, 0.3, 5.5), window(sc, T, "L", yc + w, 2.45, 11.0, 0.3, 5.5),
+                 window(sc, T, "R", xc + w, 1.62, 11.0, 0.3, 5.5), window(sc, T, "R", xc + w, 2.38, 11.0, 0.3, 5.5)]
+        sc.add(sub(box(xc - w, yc - w, xc + w, yc + w, 2.5, kh), *holes), T.wall(3.0, kh, xc - w, yc - w, bay=0.4), name="hall")
+        posts = [box(px - 0.06, py - 0.06, px + 0.06, py + 0.06, 3.0, kh, 0.25) for px in (xc - w - 0.2, xc + w + 0.2) for py in (yc - w - 0.2, yc + w + 0.2)]
+        sc.add(union(*posts), T.red, name="veranda posts")
+        curved_roof(sc, T, xc - w, yc - w, xc + w, yc + w, kh, 12.5, over=0.42, thick=1.1)
+        sc.add(union(sphere(xc, yc, kh + 13.4, 0.07), cyl(xc, yc, 0.035, kh + 10.5, kh + 13.0)), T.gold, name="finial")
+        cherry_tree(sc, 0.95, 2.85, 1.1, 1)
+        cherry_tree(sc, 3.05, 1.0, 1.0, 2)
+        return sc
+    # outer wall: white plaster on a stone footing with a tiled coping
+    wh = 9.6
+    gate_h = 10.5
+    gate = door(sc, T, "L", 3.74, 2.0, 0.72, gate_h, False, frame=T.red, fw=0.08)
+    foot = union(box(0.38, 0.38, 3.62, 0.82, 0, 3.6), box(0.38, 0.38, 0.82, 3.62, 0, 3.6), box(0.38, 3.18, 3.62, 3.62, 0, 3.6), box(3.18, 0.38, 3.62, 3.62, 0, 3.6))
+    sc.add(foot, T.base, name="wall footing")
+    ring = union(box(0.42, 0.42, 3.58, 0.78, 3.0, wh), box(0.42, 0.42, 0.78, 3.58, 3.0, wh), box(0.42, 3.22, 3.58, 3.58, 3.0, wh), box(3.22, 0.42, 3.58, 3.58, 3.0, wh))
+    sc.add(ring, T.curtain, name="wall")
+    cope = union(gable(0.36, 0.36, 3.64, 0.84, wh, 2.6, "x", thick=0.7), gable(0.36, 0.36, 0.84, 3.64, wh, 2.6, "y", thick=0.7),
+                 gable(0.36, 3.16, 3.64, 3.64, wh, 2.6, "x", thick=0.7), gable(3.16, 0.36, 3.64, 3.64, wh, 2.6, "y", thick=0.7))
+    sc.add(cope, T.roof, name="coping")
+    # gatehouse with a curved roof and two lanterns where the torches burn
+    gh = 14.0
+    sc.add(sub(box(1.38, 3.12, 2.62, 3.74, 0, gh), gate), T.trim, name="gatehouse")
+    curved_roof(sc, T, 1.38, 3.12, 2.62, 3.74, gh, 5.5, over=0.2, thick=0.9, tips=gold)
+    paper_lantern(sc, T, 1.56, 3.79, 11.5, 0.9)
+    paper_lantern(sc, T, 2.44, 3.79, 11.5, 0.9)
+    sc.add(union(capsule((1.56, 3.76, 14.3), (1.56, 3.79, 13.2), 0.3), capsule((2.44, 3.76, 14.3), (2.44, 3.79, 13.2), 0.3)), T.pole, cast=False)
+    # the keep: a stone footing and one storey per tier, each under its own curved roof
+    n = t
+    hb = 5.0 + 1.5 * t
+    w = 0.98
+    dw = 0.17 if n <= 3 else 0.14
+    sc.add(battered_base(xc - w, yc - w, xc + w, yc + w, hb, 0.22), T.base, name="footing")
+    z = hb
+    for i in range(n):
+        hs = 12.4 - 0.6 * i
+        aa = (xc - w * 0.5, xc + w * 0.5) if w > 0.6 else (xc,)
+        holes = []
+        for a in aa:
+            holes.append(window(sc, T, "L", yc + w, a, z + hs * 0.56, min(0.34, w * 0.42), hs * 0.44, arch=False))
+            holes.append(window(sc, T, "R", xc + w, a, z + hs * 0.56, min(0.34, w * 0.42), hs * 0.44, arch=False))
+        sc.add(sub(box(xc - w, yc - w, xc + w, yc + w, z - 3.0, z + hs), *holes), T.wall(z, z + hs, xc - w, yc - w, bay=w / (2.0 if w > 0.6 else 1.0)), name="storey")
+        if i < n - 1:
+            w2 = w - dw
+            curved_roof(sc, T, xc - w, yc - w, xc + w, yc + w, z + hs, 3.0 / (w + 0.26 - w2) * (w + 0.26), over=0.26, tips=gold)
+            z, w = z + hs + 2.2, w2
+        else:
+            rh = 9.0 + t
+            curved_roof(sc, T, xc - w, yc - w, xc + w, yc + w, z + hs, rh, over=0.32, thick=1.0, tips=gold)
+            top = z + hs + rh
+            sc.add(union(cyl(xc, yc, 0.04, top - 2.0, top + 3.0 + t), sphere(xc, yc, top + 3.6 + t, 0.065), torus(xc, yc, top + 1.2, 0.09, 0.45)), T.gold, name="finial")
+            if t >= 3:      # red balcony round the top storey
+                rail = sub(box(xc - w - 0.16, yc - w - 0.16, xc + w + 0.16, yc + w + 0.16, z + 0.2, z + 2.6), box(xc - w - 0.11, yc - w - 0.11, xc + w + 0.11, yc + w + 0.11, z - 1, z + 4))
+                sc.add(rail, T.red, name="balcony")
+    # corner turrets and trees
+    if t >= 3:
+        yagura(sc, T, 3.38, 3.38, 0.36, wh + 1.0, 7.0, 5.0, gold)
+        yagura(sc, T, 0.62, 0.62, 0.38, wh + 1.0, 9.0 + t, 5.5, gold)
+    cherry_tree(sc, 0.95, 2.98, 1.1 + 0.04 * t, 1)
+    cherry_tree(sc, 3.0, 0.95, 1.02 + 0.04 * t, 2)
+    if t >= 3:
+        cherry_tree(sc, 3.84, 2.25, 0.7, 3)
+    return sc
+
+
+# ---------------------------------------------------------------------------------------------
 # registry
 # ---------------------------------------------------------------------------------------------
 
@@ -843,3 +1551,6 @@ for _name, _fn in (("archery_range", archery_range), ("stable", stable), ("siege
                    ("wall", wall_building), ("watchtower", watchtower), ("alliance_center", alliance_center)):
     for _t in range(1, 6):
         SPRITES["bld_%s_t%d" % (_name, _t)] = (lambda t=_t, fn=_fn: fn(t))
+for _skin, _fn in (("ice", castle_ice), ("gold", castle_gold), ("sakura", castle_sakura), ("dragon", castle_dragon)):
+    for _t in range(1, 6):
+        SPRITES["bld_castle_%s_t%d" % (_skin, _t)] = (lambda t=_t, fn=_fn: fn(t))

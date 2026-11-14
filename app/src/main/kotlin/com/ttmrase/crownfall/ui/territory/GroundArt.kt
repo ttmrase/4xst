@@ -128,7 +128,7 @@ internal class GroundArt private constructor(
         ): Paint {
             paint.shader = shaders[GroundPlan.textureLevel(ppu, sc)]
             paint.alpha = alpha
-            paint.colorFilter = filter
+            paint.colorFilter = null
             return paint
         }
     }
