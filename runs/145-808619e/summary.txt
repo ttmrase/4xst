@@ -1,0 +1,165 @@
+run: 145
+commit: 808619e945a5855b94af1a22fb96b8ceba021c1c
+job status: failure
+images: 95
+bytes: 3747414
+actions: https://github.com/ttmrase/4xst/actions/runs/43623987919
+--- result ---
+gradle exit status: 124
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 0/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 1/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 2/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 3/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 4/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 5/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 7/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 8/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 9/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 11/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 13/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 14/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 15/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 16/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 17/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 19/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 20/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 21/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 22/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 23/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 24/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 25/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 26/36 completed. (0 skipped) (0 failed)
+--- per test (androidTest-results xml) ---
+--- TestRunner (started / finished / failed) ---
+11-14 18:12:11.442 settingsShowsTheLockCardBelowLevelFour(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 18:12:11.982 freshStartShowsLocksAndEveryLockedTabAnswersAndBackWorks(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 18:12:23.413 freshStartShowsLocksAndEveryLockedTabAnswersAndBackWorks(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 18:12:24.051 theCastleLevelUpCeremonyShowsTheNewLevelAndWhatItUnlocks(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 18:12:34.103 theCastleLevelUpCeremonyShowsTheNewLevelAndWhatItUnlocks(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 18:12:34.894 tappingAHarvestBubbleCollectsItAndFliesToTheHud(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 18:12:45.109 tappingAHarvestBubbleCollectsItAndFliesToTheHud(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 18:12:45.635 settingsShowTheSoundAndTitleSections(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 18:12:52.993 settingsShowTheSoundAndTitleSections(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 18:12:53.500 theChestCeremonyShowsItsStages(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 18:13:07.184 theChestCeremonyShowsItsStages(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 18:13:08.200 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+11-14 18:13:10.700 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+11-14 18:13:10.704 cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks(com.ttmrase.crownfall.NavUiTest)
+11-14 18:13:18.054 cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks(com.ttmrase.crownfall.NavUiTest)
+11-14 18:13:18.759 lateGameCityPanFrameTimesAndSpriteMemory(com.ttmrase.crownfall.PerfUiTest)
+11-14 18:13:44.205 lateGameCityPanFrameTimesAndSpriteMemory(com.ttmrase.crownfall.PerfUiTest)
+11-14 18:13:44.799 chatAndDmShowTheAvatars(com.ttmrase.crownfall.PortraitUiTest)
+11-14 18:14:03.960 chatAndDmShowTheAvatars(com.ttmrase.crownfall.PortraitUiTest)
+11-14 18:14:04.610 heroListAndDetailShowThePortraitsWithRarityFrames(com.ttmrase.crownfall.PortraitUiTest)
+11-14 18:14:13.672 heroListAndDetailShowThePortraitsWithRarityFrames(com.ttmrase.crownfall.PortraitUiTest)
+11-14 18:14:14.380 allianceMembersAndSettingsAvatarPickerShowThePortraits(com.ttmrase.crownfall.PortraitUiTest)
+11-14 18:14:21.667 allianceMembersAndSettingsAvatarPickerShowThePortraits(com.ttmrase.crownfall.PortraitUiTest)
+11-14 18:14:22.263 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+11-14 18:14:24.206 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+11-14 18:14:24.209 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 18:14:41.514 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 18:14:42.466 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 18:15:00.016 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 18:15:00.719 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 18:15:07.442 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 18:15:08.206 theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 18:15:20.934 theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 18:15:21.851 theLuckyBagTenPullShowsItsResult(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 18:15:29.901 theLuckyBagTenPullShowsItsResult(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 18:15:30.577 theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 18:15:44.330 theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 18:15:44.941 worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 18:15:59.436 worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 18:16:00.477 equippedCastleSkinsChangeTheCityAndTheMapAndChat(com.ttmrase.crownfall.SkinMapUiTest)
+--- perf (logcat CrownfallPerf) ---
+city LATE_GAME idle 5s: frames=6 p50=200.2ms p95=200.7ms p99=200.7ms max=214.9ms janky(>16.7ms)=6 (100.0%)
+city LATE_GAME pan+pinch 10s: frames=43 p50=395.0ms p95=571.1ms p99=633.6ms max=667.4ms janky(>16.7ms)=43 (100.0%)
+memory: spriteCache=31.3MB/87 sprites pss=204MB javaHeap=18MB
+shop list scroll 5s: frames=24 p50=317.2ms p95=383.5ms p99=390.4ms max=666.8ms janky(>16.7ms)=24 (100.0%)
+--- instrumentation results ---
+Starting 36 tests on emulator-5554 - 14
+--- device state at the end ---
+List of devices attached
+emulator-5554	device
+
+2487 /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node /home/runner/work/_actions/reactivecircus/andr
+2773 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headless -port 5554 -avd test -no-snapshot
+2777 /usr/local/lib/android/sdk/emulator/crashpad_handler --no-rate-limit --database=/tmp/android-runner/emu-crash-37.2.
+--- crash / ANR lines (live logcat, warnings and above) ---
+--- title diagnostics (CrownfallDiag) ---
+--- last lines before the stream ended ---
+11-14 18:29:28.139 W/AudioTrack(  467): pauseAndWait: timeout expired state:7 still pausing:7 after 40 ms
+11-14 18:29:28.145 W/Codec2Client(  467): query -- param skipped: index = 1342179345.
+11-14 18:29:28.145 W/Codec2Client(  467): query -- param skipped: index = 2415921170.
+11-14 18:29:38.745 W/healthd (    0): battery l=100 v=5000 t=25.0 h=2 st=2 c=900000 fc=3000000 cc=10 chg=a
+11-14 18:29:57.821 W/AudioTrack(  467): pauseAndWait: timeout expired state:7 still pausing:7 after 40 ms
+11-14 18:29:57.826 W/Codec2Client(  467): query -- param skipped: index = 1342179345.
+11-14 18:29:57.826 W/Codec2Client(  467): query -- param skipped: index = 2415921170.
+11-14 18:30:00.018 W/PageIndicator(  832): Total number of pages invalid: 0. Assuming 1 page.
+11-14 18:30:00.726 E/WifiStaIfaceAidlImpl(  518): installApfPacketFilter failed with service-specific exception: android.os.ServiceSpecificException:  (code 4)
+11-14 18:30:17.685 W/BpBinder( 9416): Linking to death on android.gui.ISurfaceComposer but there are no threads (yet?) listening to incoming transactions. See ProcessState::startThreadPool and Process
+11-14 18:30:17.685 W/ProcessState( 9416): Extra binder thread started, but 0 threads requested. Do not use *startThreadPool when zero threads are requested.
+11-14 18:30:17.687 W/ServiceManagerCppClient(  400): Permission failure: android.permission.CAPTURE_BLACKOUT_CONTENT from uid=2000 pid=9416
+--- main thread of the app (ANR trace) ---
+"main" prio=5 tid=1 Native
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x73349dc8 self=0x7316a12ee6f0
+  | sysTid=7826 nice=-10 cgrp=top-app sched=0/0 handle=0x7317770444f8
+  | state=S schedstat=( 67282443894 43869945319 129178 ) utm=6269 stm=458 core=0 HZ=100
+  | stack=0x7fffa3932000-0x7fffa3934000 stackSize=8188KB
+  | held mutexes=
+  native: #00 pc 000b94da  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+10) (BuildId: fa337969c798946280caa45e2d71a2e7)
+  native: #01 pc 0000fa9f  /system/lib64/libutils.so (android::Looper::pollOnce+303) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
+  native: #02 pc 00179ea3  /system/lib64/libandroid_runtime.so (android::android_os_MessageQueue_nativePollOnce+35) (BuildId: 58f47cb2665b829aa74415f458f1922a)
+  native: #03 pc 00391a4b  /apex/com.android.art/lib64/libart.so (art_quick_generic_jni_trampoline+219) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #04 pc 0247b503  /memfd:jit-cache (deleted) (offset 2000000) (android.os.MessageQueue.next+259)
+  native: #05 pc 003784c4  /apex/com.android.art/lib64/libart.so (art_quick_invoke_stub+756) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #06 pc 003c535c  /apex/com.android.art/lib64/libart.so (art::ArtMethod::Invoke+204) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #07 pc 0056ddd0  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>+2080) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #08 pc 0039ae32  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>+16546) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #09 pc 003937a5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #10 pc 001fbe08  /system/framework/framework.jar (android.os.Looper.loopOnce)
+  native: #11 pc 00566017  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute +647) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #12 pc 0056d13e  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge+110) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #13 pc 0056ddb6  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>+2054) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #14 pc 0039b0a1  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>+17169) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #15 pc 003937a5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #16 pc 001fc57c  /system/framework/framework.jar (android.os.Looper.loop)
+  native: #17 pc 00566017  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute +647) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #18 pc 0056d13e  /apex/com.android.art/lib64/libart.so (art::interpreter::ArtInterpreterToInterpreterBridge+110) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #19 pc 0056ddb6  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>+2054) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #20 pc 0039b0a1  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>+17169) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #21 pc 003937a5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #22 pc 001c3970  /system/framework/framework.jar (android.app.ActivityThread.main)
+  native: #23 pc 00566017  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute +647) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #24 pc 0091f056  /apex/com.android.art/lib64/libart.so (artQuickToInterpreterBridge+902) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #25 pc 00391bdc  /apex/com.android.art/lib64/libart.so (art_quick_to_interpreter_bridge+140) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #26 pc 00378826  /apex/com.android.art/lib64/libart.so (art_quick_invoke_static_stub+806) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #27 pc 003c538f  /apex/com.android.art/lib64/libart.so (art::ArtMethod::Invoke+255) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #28 pc 007f07f4  /apex/com.android.art/lib64/libart.so (_jobject* art::InvokeMethod<8>+1476) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #29 pc 0075a387  /apex/com.android.art/lib64/libart.so (art::Method_invoke +39) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #30 pc 00391a4b  /apex/com.android.art/lib64/libart.so (art_quick_generic_jni_trampoline+219) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #31 pc 003784c4  /apex/com.android.art/lib64/libart.so (art_quick_invoke_stub+756) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #32 pc 003c535c  /apex/com.android.art/lib64/libart.so (art::ArtMethod::Invoke+204) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #33 pc 0056ddd0  /apex/com.android.art/lib64/libart.so (bool art::interpreter::DoCall<false>+2080) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #34 pc 0039ae32  /apex/com.android.art/lib64/libart.so (void art::interpreter::ExecuteSwitchImplCpp<false>+16546) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #35 pc 003937a5  /apex/com.android.art/lib64/libart.so (ExecuteSwitchImplAsm+5) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #36 pc 0050cd00  /system/framework/framework.jar (com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run)
+  native: #37 pc 00566017  /apex/com.android.art/lib64/libart.so (art::interpreter::Execute +647) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+  native: #38 pc 0091f056  /apex/com.android.art/lib64/libart.so (artQuickToInterpreterBridge+902) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+--- cold start probe (title parts, new process each) ---
+host memory before: used 5352 MB, available 10629 MB
+cold start mask=0 device=device app_pid=6081 host_available_mb=7006
+cold start mask=128 device=device app_pid=6271 host_available_mb=7002
+cold start mask=64 device=device app_pid=6437 host_available_mb=6961
+cold start mask=16 device=device app_pid=6599 host_available_mb=6940
+cold start mask=8 device=device app_pid=6747 host_available_mb=6928
+cold start mask=2 device=device app_pid=6907 host_available_mb=6881
+cold start mask=4 device=device app_pid=7053 host_available_mb=6880
+cold start mask=1 device=device app_pid=7207 host_available_mb=6880
+cold start mask=32 device=device app_pid=7346 host_available_mb=6905
+cold start mask=255 device=device app_pid=7496 host_available_mb=6905
+instrumented cold start, all parts: device=device OK (1 test) 
+host memory after: used 5766 MB, available 10215 MB
+--- host kernel: out-of-memory kills ---
