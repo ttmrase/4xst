@@ -21,7 +21,7 @@ concurrency:
 jobs:
   ui:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 50
     permissions:
       contents: write # qa-screenshots ブランチへ画像を追記するため（このジョブだけ）
     steps:

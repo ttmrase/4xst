@@ -47,19 +47,19 @@ perf_pid=$!
 # （ui run 133: 最初のテストで端末が落ち、要約の crash / ANR の欄が空だった）
 adb logcat -v time '*:W' > "$out/logs/warn.txt" 2>&1 &
 warn_pid=$!
-# gradle はバックグラウンドで動かし、20 分で見切る（pipe で tee に繋ぐと、固まったときに timeout が効かず job の上限まで待つ）
+# gradle はバックグラウンドで動かし、30 分で見切る（swangle_indirect は描画が遅く、全 34 本で 21 分ほどかかる）。以前は 20 分で見切っていた（pipe で tee に繋ぐと、固まったときに timeout が効かず job の上限まで待つ）
 ./gradlew :app:connectedDebugAndroidTest -PwithAndroid=true \
   -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
   > "$out/logs/gradle.log" 2>&1 &
 gradle_pid=$!
 tail -n +1 -f "$out/logs/gradle.log" &
 tail_pid=$!
-deadline=$((SECONDS + 1200))
+deadline=$((SECONDS + 1800))
 hung=0
 while kill -0 "$gradle_pid" 2>/dev/null; do
   if [[ $SECONDS -ge $deadline ]]; then
     hung=1
-    echo "::error::androidTest did not finish in 20 minutes: capturing the screen and the app stack, then stopping"
+    echo "::error::androidTest did not finish in 30 minutes: capturing the screen and the app stack, then stopping"
     # 端末やデーモンが固まっていても、ここで止まらないように各コマンドに時間切れを付ける（ui run 120・126 は後始末で 13 分止まった）
     timeout 30 adb exec-out screencap -p > "$out/screenshots/HANG_screen.png" || true
     timeout 20 adb root >/dev/null 2>&1 || true

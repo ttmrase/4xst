@@ -139,7 +139,9 @@ class PerfUiTest {
         const val IDLE_STEP_MS = 250L
         const val SWIPE_MS = 700L
         const val JANK_MS = 16.7
-        const val MIN_FRAMES = 30
+        // 計測が動いたことの確認だけ。エミュレータはソフトウェア描画で、数は描画の方式で大きく変わる
+        // （swiftshader_indirect で 40〜80、swangle_indirect で 20 前後）。速さの判定は実機で行う
+        const val MIN_FRAMES = 5
         const val MB = 1024.0 * 1024.0
         const val KB = 1024.0
     }
