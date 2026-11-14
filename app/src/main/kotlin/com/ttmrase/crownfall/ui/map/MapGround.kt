@@ -74,6 +74,20 @@ internal object MapGround {
                     }
                 }
             }
+            // 拠点（城・野営地など）のタイルとその隣には水を描かない。池の縁はにじませて描くので、
+            // そのままだと隣の拠点が水の上に乗って見える
+            for (st in world.structures) {
+                val i0 = st.x - (x0 - PAD)
+                val j0 = st.y - (y0 - PAD)
+                if (i0 < -1 || j0 < -1 || i0 > side || j0 > side) continue
+                for (dj in -1..1) {
+                    for (di in -1..1) {
+                        val i = i0 + di
+                        val j = j0 + dj
+                        if (i in 0 until side && j in 0 until side) share[j * side + i] = 0f
+                    }
+                }
+            }
         }
 
         /** 水タイルの深さ: 2 タイル以内のいちばん近い陸までの距離から 0 / 0.5 / 1。 */
