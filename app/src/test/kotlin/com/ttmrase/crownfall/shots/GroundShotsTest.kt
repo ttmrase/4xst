@@ -121,11 +121,17 @@ class GroundShotsTest {
         val rig = rig(Preset.RICH_CASTLE)
         rig.launchToCity()
         castleTo(rig, BAND2_LEVEL)
+        rig.clearPopups()
         rig.settle(BAND_SETTLE_MS)
         rig.shot("ground_city_b2")
         castleTo(rig, BAND4_LEVEL)
+        rig.clearPopups()
+        // 帯の拡張の途中（前の帯の上に、次の帯の草地と道が現れてくる）
+        rig.shot("ground_city_b4_growing", warmups = 1)
         rig.settle(BAND_SETTLE_MS)
         rig.shot("ground_city_b4")
+        pinch(rig, HALF, CITY_FOCUS_Y)
+        rig.shot("ground_city_b4_zoom")
     }
 
     @Test

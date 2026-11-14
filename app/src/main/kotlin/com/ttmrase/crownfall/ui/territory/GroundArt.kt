@@ -7,7 +7,6 @@ import android.graphics.BitmapShader
 import android.graphics.Canvas
 import android.graphics.ColorFilter
 import android.graphics.ColorMatrixColorFilter
-import android.graphics.LightingColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PorterDuff
@@ -42,6 +41,7 @@ internal class GroundTextures private constructor(context: Context) {
     private val res = context.applicationContext.resources
     private val tiles = HashMap<Int, GroundTexture>()
     private val sheets = HashMap<Int, Bitmap>()
+    private val tints = HashMap<String, GroundTexture>()
 
     /** 並べて使うテクスチャ（段階つき）。 */
     fun get(id: Int): GroundTexture =
@@ -57,6 +57,32 @@ internal class GroundTextures private constructor(context: Context) {
                 )
             }
         }
+
+    /**
+     * 色を変えた写し（領地のテーマの草など）。[key] ごとに 1 度だけ作る。
+     * 描くときに ColorFilter をかける代わりに、先に染めておく: 濃さの下絵（ALPHA_8）を Shader と ColorFilter の両方で
+     * 塗る組み合わせは、描画エンジンによっては絵が崩れる（Robolectric の描画で黒い帯になるのを確認した）。
+     */
+    fun tinted(
+        id: Int,
+        key: String,
+        filter: ColorFilter,
+    ): GroundTexture {
+        val source = get(id)
+        return synchronized(tints) {
+            tints.getOrPut(key) {
+                val paint = Paint().apply { colorFilter = filter }
+                GroundTexture(
+                    Array(source.levels.size) { k ->
+                        val from = source.levels[k]
+                        Bitmap.createBitmap(from.width, from.height, Bitmap.Config.ARGB_8888).also {
+                            Canvas(it).drawBitmap(from, 0f, 0f, paint)
+                        }
+                    },
+                )
+            }
+        }
+    }
 
     /** 切り出して使う絵（小物・山の絵のアトラス）。 */
     fun sheet(id: Int): Bitmap = synchronized(sheets) { sheets.getOrPut(id) { decode(id) } }
@@ -124,11 +150,9 @@ internal class GroundArt private constructor(
         fun use(
             sc: Float,
             alpha: Int = OPAQUE,
-            filter: ColorFilter? = null,
         ): Paint {
             paint.shader = shaders[GroundPlan.textureLevel(ppu, sc)]
             paint.alpha = alpha
-            paint.colorFilter = null
             return paint
         }
     }
@@ -164,6 +188,7 @@ internal class GroundArt private constructor(
         val dirt = Material(textures.get(R.drawable.tex_dirt), DIRT_SPAN, DIRT_TURN)
         val water = Material(textures.get(R.drawable.tex_water), WATER_SPAN, 0f)
         val snow = Material(textures.get(R.drawable.tex_snow), SNOW_SPAN, SNOW_TURN)
+        val sand = Material(textures.get(R.drawable.tex_sand), SAND_SPAN, SAND_TURN)
         val forest = Mask(plan.bakeForest())
         val river: Mask
         val bank: Mask
@@ -189,6 +214,11 @@ internal class GroundArt private constructor(
     private val bands = AtomicReferenceArray<BandArt?>(PlotLayout.BANDS + 2)
     private val pending = ConcurrentHashMap.newKeySet<Int>()
     private val stones = arrayOfNulls<Material>(STONE_KINDS)
+
+    /** 領地のテーマで染めた草（春 / 秋）。そのテーマを初めて描くときに作る。 */
+    @Volatile private var springGrass: Material? = null
+
+    @Volatile private var autumnGrass: Material? = null
 
     private val shadePaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val decalPaint = Paint(Paint.FILTER_BITMAP_FLAG)
@@ -226,7 +256,7 @@ internal class GroundArt private constructor(
         seconds: Float,
     ): Boolean {
         adopt(plan)
-        if (failed) return false
+        if (failed || sc > 0f) return false
         val base = this.base
         if (base == null) {
             requestBase(plan)
@@ -241,7 +271,7 @@ internal class GroundArt private constructor(
         val core = main.coreHalf
         canvas.save()
         canvas.clipOutRect(MID - core, MID - core, MID + core, MID + core)
-        canvas.drawBitmap(base.forest.bitmap, base.forest.matrix, forestPaint(base, sc, winter))
+        canvas.drawBitmap(base.forest.bitmap, base.forest.matrix, forestMaterial(base, winter).use(sc))
         canvas.restore()
         drawBand(canvas, base, main, sc, OPAQUE, season)
         if (from != null && to != null) drawBand(canvas, base, to, sc, (ease * OPAQUE).toInt().coerceIn(0, OPAQUE), season)
@@ -251,11 +281,23 @@ internal class GroundArt private constructor(
         return true
     }
 
-    private fun forestPaint(
+    /** 森の床の絵の具。冬は森も雪（木陰の青みは、色むらの下絵が足す）。 */
+    private fun forestMaterial(
         base: BaseArt,
-        sc: Float,
         winter: Boolean,
-    ): Paint = if (winter) base.snow.use(sc, filter = SNOW_SHADE) else base.forestFloor.use(sc)
+    ): Material = if (winter) base.snow else base.forestFloor
+
+    /** 草地の絵の具。春と秋は染めた草（まだ無ければ作り始めて、できるまでは夏の草）、冬は雪。 */
+    private fun lawnMaterial(
+        base: BaseArt,
+        season: String?,
+    ): Material =
+        when (season) {
+            SEASON_WINTER -> base.snow
+            SEASON_SPRING -> springGrass ?: base.grass.also { requestSeason(KEY_SPRING) }
+            SEASON_AUTUMN -> autumnGrass ?: base.grass.also { requestSeason(KEY_AUTUMN) }
+            else -> base.grass
+        }
 
     /** 帯 1 つぶん: 草地 → 土 → 石畳 → 色むら。 */
     private fun drawBand(
@@ -266,14 +308,7 @@ internal class GroundArt private constructor(
         alpha: Int,
         season: String?,
     ) {
-        val lawn =
-            when (season) {
-                SEASON_WINTER -> base.snow.use(sc, alpha)
-                SEASON_SPRING -> base.grass.use(sc, alpha, SPRING_GRASS)
-                SEASON_AUTUMN -> base.grass.use(sc, alpha, AUTUMN_GRASS)
-                else -> base.grass.use(sc, alpha)
-            }
-        canvas.drawBitmap(art.lawn.bitmap, art.lawn.matrix, lawn)
+        canvas.drawBitmap(art.lawn.bitmap, art.lawn.matrix, lawnMaterial(base, season).use(sc, alpha))
         canvas.drawBitmap(art.earth.bitmap, art.earth.matrix, base.dirt.use(sc, alpha))
         val stone = art.stone
         val material = art.stoneMaterial
@@ -293,7 +328,7 @@ internal class GroundArt private constructor(
         sc: Float,
         seconds: Float,
     ) {
-        canvas.drawBitmap(base.bank.bitmap, base.bank.matrix, base.dirt.use(sc, filter = BANK_SAND))
+        canvas.drawBitmap(base.bank.bitmap, base.bank.matrix, base.sand.use(sc))
         flow(canvas, base.river, 0f, (seconds * WATER_FLOW) % WATER_SPAN, base.water.use(sc))
         val drift = (seconds * WATER_FLOW_TOP) % WATER_SPAN + WATER_TOP_SHIFT
         flow(canvas, base.river, WATER_TOP_SHIFT, drift, base.water.use(sc, WATER_TOP_ALPHA))
@@ -370,7 +405,7 @@ internal class GroundArt private constructor(
         val base = this.base ?: return
         scratch.setScale(2f * LOCK_HALF / BLOB_PX, 2f * LOCK_HALF / BLOB_PX)
         scratch.postTranslate(gx - LOCK_HALF, gy - LOCK_HALF)
-        canvas.drawBitmap(base.blob, scratch, forestPaint(base, sc, season == SEASON_WINTER))
+        canvas.drawBitmap(base.blob, scratch, forestMaterial(base, season == SEASON_WINTER).use(sc))
     }
 
     /** 帯 [band] の下絵。まだ無ければ null を返して、焼き始める。 */
@@ -410,6 +445,16 @@ internal class GroundArt private constructor(
                     bands.set(b, made)
                     version++
                 }
+            }
+        }
+    }
+
+    private fun requestSeason(key: Int) {
+        work(key) {
+            if (key == KEY_SPRING) {
+                springGrass = Material(textures.tinted(R.drawable.tex_grass, SEASON_SPRING, SPRING_GRASS), GRASS_SPAN, GRASS_TURN)
+            } else {
+                autumnGrass = Material(textures.tinted(R.drawable.tex_grass, SEASON_AUTUMN, AUTUMN_GRASS), GRASS_SPAN, GRASS_TURN)
             }
         }
     }
@@ -471,6 +516,8 @@ internal class GroundArt private constructor(
         private const val MID = PlotLayout.MID
         private const val OPAQUE = 255
         private const val KEY_BASE = 0
+        private const val KEY_SPRING = -1
+        private const val KEY_AUTUMN = -2
 
         /** テクスチャ 1 枚が覆う幅（グリッド単位）と、格子に対する回転（度。通りの格子とくり返しの向きをずらす）。 */
         private const val GRASS_SPAN = 12f
@@ -483,6 +530,8 @@ internal class GroundArt private constructor(
         private const val WATER_SPAN = 6.4f
         private const val SNOW_SPAN = 9f
         private const val SNOW_TURN = 21f
+        private const val SAND_SPAN = 6f
+        private const val SAND_TURN = 13f
         private const val STONE_KINDS = 3
         private const val COBBLE_UNTIL = 3
 
@@ -521,12 +570,8 @@ internal class GroundArt private constructor(
                 ),
             )
 
-        /** 冬: 森の床は木陰の青い雪、色むらはすべて青い影にする。 */
-        private val SNOW_SHADE: ColorFilter = LightingColorFilter(0xFF8FA6C4.toInt(), 0)
+        /** 冬: 色むら（日なた・木陰・踏み跡）は、すべて雪の上の青い影にする。 */
         private val SNOW_SHADOWS: ColorFilter = PorterDuffColorFilter(0xFF5F7FA8.toInt(), PorterDuff.Mode.SRC_IN)
-
-        /** 川岸は、道の土より明るい砂の色。 */
-        private val BANK_SAND: ColorFilter = LightingColorFilter(0xFFFFF6E0.toInt(), 0x00141208)
 
         private fun frameMatrix(frame: SheetFrame): Matrix =
             Matrix().apply {
