@@ -586,9 +586,7 @@ def gold_mine(t):
     cy0, cy1, cz0, cz1 = 2.78, 3.46, 2.6, 7.8
     tub = sub(box(ex - 0.37, cy0, ex + 0.37, cy1, cz0, cz1, 0.25), box(ex - 0.3, cy0 + 0.07, ex + 0.3, cy1 - 0.07, cz0 + 1.5, cz1 + 3))
     sc.add(tub, r3.m_planks("#6E5038", 0.16, seed=55), name="cart")
-    sc.add(union(box(ex - 0.385, cy0 - 0.015, ex + 0.385, cy1 + 0.015, cz1 - 1.3, cz1 + 0.1, 0.2),
-                 box(ex - 0.385, cy0 - 0.015, ex + 0.385, cy1 + 0.015, cz0, cz0 + 1.0, 0.2)) if False else
-           sub(box(ex - 0.385, cy0 - 0.015, ex + 0.385, cy1 + 0.015, cz1 - 1.2, cz1 + 0.1, 0.2), box(ex - 0.3, cy0 + 0.07, ex + 0.3, cy1 - 0.07, 0, 20)),
+    sc.add(sub(box(ex - 0.385, cy0 - 0.015, ex + 0.385, cy1 + 0.015, cz1 - 1.2, cz1 + 0.1, 0.2), box(ex - 0.3, cy0 + 0.07, ex + 0.3, cy1 - 0.07, 0, 20)),
            T.gold if t >= 5 else HOOP, cast=False, name="cart rim")
     for wy in (cy0 + 0.16, cy1 - 0.16):
         sc.add(cyl_x(ex + 0.37, ex + 0.43, wy, 1.9, 1.9, 0.15), HOOP, name="cart wheel")

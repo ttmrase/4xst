@@ -301,12 +301,32 @@ def m_board(face="#E0C48E", edge="#B08A52"):
     return Material(albedo, shadeless=True)
 
 
+def m_bale(color, yc=0.0, zc=0.0):
+    """Round straw bale lying along y: straw wound around the curved side, a spiral on the flat ends."""
+    base = r3.srgb(color)
+
+    def albedo(c):
+        end = np.abs(c.ny) > 0.7
+        rad = np.hypot(c.x, c.z - zc * ZS)
+        ring = 0.5 + 0.5 * np.sin(rad * 2.6 + np.arctan2(c.z - zc * ZS, c.x) * 1.0)
+        wound = r3.vnoise2(c.y * 2.2, np.arctan2(c.z - zc * ZS, c.x) * 2.0, 44)
+        k = np.where(end, 0.74 + 0.30 * ring, 0.74 + 0.34 * wound) * (0.92 + 0.16 * r3.vnoise3(c.x * 0.3, c.y * 0.3, c.z * 0.3, 45))
+        return base[None, :] * k[..., None]
+
+    def height(c):
+        return r3.vnoise2(c.u * 1.6, c.v * 0.5, 46) * 0.5
+
+    return Material(albedo, height, bump=0.7, wrap=0.2)
+
+
 def hay():
-    """Round straw bale standing on end, tied with twine."""
+    """Hay: a big round bale on its side (spiral end towards the light) and a small one leaning on it."""
     sc = Scene("decor")
-    straw = r3.m_thatch("#B8923F", row=2.2, seed=41)
-    sc.add(union(cyl(0, 0, 0.5, 0, 9.0, 1.1), torus(0, 0, 8.7, 0.30, 0.55), torus(0, 0, 8.8, 0.12, 0.5)), straw, cyl=(0, 0, 0.5), name="bale")
-    sc.add(union(cyl(0, 0, 0.507, 2.5, 3.1, 0.2), cyl(0, 0, 0.507, 6.0, 6.6, 0.2)), r3.m_flat("#7A5A22", 0.1), cast=False, name="twine")
+    r = 6.0
+    zc = r / ZS - 0.3
+    sc.add(cyl_y(-0.34, 0.30, 0.0, zc, r, 0.6), m_bale("#A88C4A", zc=zc), name="bale")
+    sc.add(union(cyl_y(-0.16, -0.10, 0.0, zc, r + 0.2, 0.1), cyl_y(0.07, 0.13, 0.0, zc, r + 0.2, 0.1)), r3.m_flat("#6E5220", 0.1), cast=False, name="twine")
+    sc.add(lumpy(ellipsoid(0.34, 0.36, 0.0, 0.26, 0.2, 2.4), 0.5, 0.5, 6), r3.m_thatch("#A88C4A", row=1.6, seed=47), name="loose hay")
     return sc
 
 
@@ -432,8 +452,8 @@ def house(kind):
              g.window(sc, T, "R", x1, -0.05, 7.0, 0.4, 4.8, fw=0.05, arch=False)]
     sc.add(sub(box(x0, y0, x1, y1, 1.8, h + rh), *holes, g._gable_cut(x0, y0, x1, y1, h, rh, "x")), r3.m_planks("#9A6038", 0.2, seed=55), name="walls")
     sc.add(union(*[box(px - 0.06, py - 0.06, px + 0.06, py + 0.06, 0, h, 0.3) for px, py in ((x0, y1), (x1, y1), (x1, y0))]), T.trim, name="posts")
-    sc.add(gable(x0, y0, x1, y1, h, rh, "x", over=0.22, thick=2.4), r3.m_thatch("#B0965C", row=3.4), name="roof")
-    sc.add(box(x0 - 0.26, -0.07, x1 + 0.26, 0.07, h + rh - 1.0, h + rh + 0.6, 0.6), r3.m_thatch("#9C8450", row=2.0, seed=7), cast=False, name="ridge")
+    sc.add(gable(x0, y0, x1, y1, h, rh, "x", over=0.22, thick=2.4), T.roof, name="roof")
+    sc.add(box(x0 - 0.26, -0.07, x1 + 0.26, 0.07, h + rh - 1.0, h + rh + 0.6, 0.6), T.trim, cast=False, name="ridge")
     _barrel(sc, 0.62, y1 + 0.26, 0.16, 5.0)
     return sc
 
@@ -545,7 +565,7 @@ def m_canvas(color, stripe, n=3, x0=-0.9, x1=0.9, y0=-0.7, y1=0.7):
     def albedo(c):
         f = (c.y - y0 * G) / ((y1 - y0) * G)                   # along the ridge
         k = f * (n * 2 + 1)
-        band = (np.mod(np.floor(k), 2.0) == 1.0).astype(F)
+        band = sstep(0.30, 0.36, np.abs(k - np.floor(k) - 0.5)) * 0.0 + (np.abs(np.mod(k, 2.0) - 1.5) < 0.2).astype(F)
         seam = 1.0 - sstep(0.03, 0.09, np.abs(k - np.rint(k)))
         fold = 0.9 + 0.14 * r3.vnoise2(c.y * 0.45, c.z * 0.2, 27)
         a = r3.mixc(base, st, band * 0.85) * fold[..., None]
@@ -670,6 +690,421 @@ def site():
 
 
 # ---------------------------------------------------------------------------------------------
+# city wall kit: materials that repeat with the piece length
+#
+# TerritoryScene.kt puts a wall piece every 2 grid units, so every pattern on a piece must be periodic
+# with that length: block joints, the per-block shade and the slow noise all wrap (lattice indices are
+# taken modulo the number of cells in a piece).  The stock materials only line up their joints.
+# ---------------------------------------------------------------------------------------------
+
+PER = 2.0 * G                      # length of a wall piece, world units
+
+
+def _pnoise(u, v, nu, nv, seed):
+    """Value noise on a lattice that wraps every nu cells in u and (when nv > 0) every nv cells in v."""
+    iu, iv = np.floor(u), np.floor(v)
+    fu, fv = u - iu, v - iv
+    fu = fu * fu * (3.0 - 2.0 * fu)
+    fv = fv * fv * (3.0 - 2.0 * fv)
+    u0, u1 = np.mod(iu, nu), np.mod(iu + 1.0, nu)
+    v0, v1 = (np.mod(iv, nv), np.mod(iv + 1.0, nv)) if nv else (iv, iv + 1.0)
+    a, b = r3.hash2(u0, v0, seed), r3.hash2(u1, v0, seed)
+    c, d = r3.hash2(u0, v1, seed), r3.hash2(u1, v1, seed)
+    return a + (b - a) * fu + (c - a) * fv + (a - b - c + d) * fu * fv
+
+
+def _slow(c, seed, cells=12):
+    """Low-frequency tone variation, periodic along the wall (and both ways on the wall-walk)."""
+    k = cells / PER
+    side = _pnoise((c.u + G) * k, c.v * k, cells, 0, seed)
+    top = _pnoise((c.u + G) * k, (c.v + G) * k, cells, cells, seed)
+    return np.where(c.top, top, side)
+
+
+def _lin(color):
+    return r3.srgb(color) if isinstance(color, str) else np.asarray(color, F)
+
+
+def _pblocks(c, ch, n, pave, seed):
+    """Running-bond blocks on the faces (n per piece), square flags on tops (pave per piece, pave even).
+    Returns the per-block random number and the distance to the nearest joint (world units)."""
+    bl, cs = PER / n, PER / pave
+    vv = c.v / ch
+    row = np.floor(vv)
+    fv = vv - row
+    ri = row.astype(np.int32)
+    uo = (c.u + G) / bl + 0.5 * (ri & 1)
+    col = np.floor(uo)
+    fu = uo - col
+    rnd = r3.hash2(np.mod(col, n), ri, seed + 1)
+    m = np.minimum(np.minimum(fu, 1.0 - fu) * bl, np.minimum(fv, 1.0 - fv) * ch)
+    tv = (c.v + G) / cs
+    trow = np.floor(tv)
+    tfv = tv - trow
+    tri = trow.astype(np.int32)
+    tu = (c.u + G) / cs + 0.5 * (tri & 1)
+    tcol = np.floor(tu)
+    tfu = tu - tcol
+    trnd = r3.hash2(np.mod(tcol, pave), np.mod(trow, pave), seed + 2)
+    tm = np.minimum(np.minimum(tfu, 1.0 - tfu), np.minimum(tfv, 1.0 - tfv)) * cs
+    return np.where(c.top, trnd, rnd), np.where(c.top, tm, m)
+
+
+def p_stone(color, course=4.0, n=4, var=0.13, joint=0.4, seed=1, spec=0.05, pave=6):
+    """Cut stone like r3.m_stone, periodic with the wall piece: n blocks per piece."""
+    base = _lin(color)
+    mort = base * 0.5
+    ch = course * ZS
+
+    def albedo(c):
+        rnd, m = _pblocks(c, ch, n, pave, seed)
+        a = r3._vary(base, rnd, var) * (0.90 + 0.2 * _slow(c, seed + 3))[..., None]
+        a = a * (0.90 + 0.14 * sstep(joint, joint + 1.3, m))[..., None]
+        return r3.mixc(a, mort, (1.0 - sstep(joint * 0.35, joint, m)) * 0.75)
+
+    def height(c):
+        _, m = _pblocks(c, ch, n, pave, seed)
+        return sstep(joint * 0.3, joint * 1.5, m) * 0.32
+
+    return Material(albedo, height, spec=spec, gloss=18.0)
+
+
+def p_marble(color, vein="#8E88A6", course=9.0, n=2, seed=7, veins=0.3, pave=4):
+    """White marble like r3.m_marble, periodic with the wall piece."""
+    base, vc = _lin(color), r3.srgb(vein)
+    ch = course * ZS
+
+    def albedo(c):
+        w = _slow(c, seed, 6)
+        ph = (c.u + G) / PER * 2.0 * math.pi
+        t1 = np.abs(np.sin(ph * 2.0 + c.v * 0.11 + w * 9.0))
+        t2 = np.abs(np.sin(ph * 3.0 - c.v * 0.28 + w * 14.0 + 2.0))
+        vm = (1.0 - sstep(0.0, 0.16, t1)) * veins + (1.0 - sstep(0.0, 0.10, t2)) * veins * 0.5
+        a = base[None, :] * (0.93 + 0.09 * _slow(c, seed + 1, 12))[..., None]
+        a = r3.mixc(a, vc, np.clip(vm, 0.0, 1.0))
+        _, m = _pblocks(c, ch, n, pave, seed)
+        return a * (0.70 + 0.30 * sstep(0.1, 0.42, m))[..., None]
+
+    def height(c):
+        _, m = _pblocks(c, ch, n, pave, seed)
+        return sstep(0.1, 0.5, m) * 0.2
+
+    return Material(albedo, height, spec=0.35, gloss=38.0)
+
+
+def p_rubble(color, n=9, var=0.2, seed=2):
+    """Field stone like r3.m_rubble, periodic with the wall piece: n Voronoi cells per piece."""
+    base = _lin(color)
+    size = PER / n
+
+    def cells(c):
+        u = (c.u + G) / size
+        v = np.where(c.top, (c.v + G) / size, c.v / size)
+        iu, iv = np.floor(u), np.floor(v)
+        f1 = np.full(u.shape, 9.0, F)
+        f2 = np.full(u.shape, 9.0, F)
+        rid = np.zeros(u.shape, F)
+        for dj in (-1.0, 0.0, 1.0):
+            for di in (-1.0, 0.0, 1.0):
+                cu, cv = iu + di, iv + dj
+                wu, wv = np.mod(cu, n), np.where(c.top, np.mod(cv, n), cv)
+                px = cu + 0.15 + 0.7 * r3.hash2(wu, wv, seed)
+                py = cv + 0.15 + 0.7 * r3.hash2(wu, wv, seed + 1)
+                dd = np.hypot(u - px, (v - py) * 1.25)
+                near = dd < f1
+                f2 = np.where(near, f1, np.minimum(f2, dd))
+                rid = np.where(near, r3.hash2(wu, wv, seed + 2), rid)
+                f1 = np.where(near, dd, f1)
+        return rid, (f2 - f1) * size
+
+    def albedo(c):
+        rid, e = cells(c)
+        a = r3._vary(base, rid, var, 0.07) * (0.9 + 0.2 * _slow(c, seed))[..., None]
+        return r3.mixc(a, base * 0.5, (1.0 - sstep(0.2, 0.8, e)) * 0.75)
+
+    def height(c):
+        _, e = cells(c)
+        return sstep(0.15, 1.6, e) * 0.5
+
+    return Material(albedo, height, spec=0.03, gloss=14.0)
+
+
+def p_flat(color, noise=0.07, spec=0.0, seed=12):
+    """Plain surface with a little periodic noise (beams and bands that run the length of a piece)."""
+    base = _lin(color)
+    return Material(lambda c: base[None, :] * (1.0 - noise + 2.0 * noise * _slow(c, seed, 16))[..., None], spec=spec)
+
+
+def m_logs(color, pitch, along="x", seed=0):
+    """Palisade logs: one shade per log (taken from its position along the wall, so a log never changes
+    tone across its round face) and bark furrows running up it."""
+    base = r3.srgb(color)
+
+    def albedo(c):
+        a = c.x if along == "x" else c.y
+        k = np.mod(np.floor(a / (pitch * G)), round(2.0 / pitch))
+        rnd = r3.hash2(k, k * 0 + 3, seed)
+        fur = r3.vnoise2((c.x + c.y) * 1.3 + rnd * 40.0, c.z * 0.09, seed + 1)
+        tip = sstep(0.25, 0.7, c.nz)                                   # the axe-cut points are paler
+        col = r3._vary(base, rnd, 0.17, 0.05) * (0.80 + 0.36 * fur)[..., None]
+        return col * (1.0 + 0.45 * tip)[..., None]
+
+    return Material(albedo, lambda c: r3.vnoise2((c.x + c.y) * 1.3, c.z * 0.09, seed + 1) * 0.5, bump=0.8, spec=0.03)
+
+
+def _mean(mat):
+    """Mean linear albedo of a material on a plain wall face (to copy a Tier colour into a periodic material)."""
+    u, v = np.meshgrid(np.linspace(0.0, 80.0, 96, dtype=F), np.linspace(0.0, 40.0, 48, dtype=F))
+    u, v = u.ravel(), v.ravel()
+    z, o = np.zeros_like(u), np.ones_like(u)
+    c = r3.Ctx(u, z, v, z, o, z, u, v, z.astype(bool), o.astype(bool), np.zeros(3), np.zeros(3))
+    return np.asarray(mat.albedo(c), np.float64).reshape(-1, 3).mean(axis=0)
+
+
+def _like(make, target):
+    """make(linear base colour) -> material; returns the one whose mean albedo equals `target`'s.
+    This is how the wall pieces follow gen_sprites3d.Tier when its palette is retuned."""
+    return make((_mean(target) / _mean(make(np.ones(3, F)))).astype(F))
+
+
+WALL_H = 12.0                      # height of the wall-walk (as in the old art)
+MERLON_H = 3.4
+EXT = 0.06                         # each piece runs this far past its cell at the far end (see wall_piece)
+
+
+def _wall_half(t):
+    """Half thickness of the wall: the palisade is one row of logs, the stone walls are 1 grid unit thick."""
+    return 0.155 if t == 1 else 0.5
+
+
+def _wall_mat(t, T):
+    """The periodic material of a tier's curtain wall, matched to Tier(t).curtain."""
+    if t == 2:
+        return _like(lambda b: p_rubble(b), T.curtain)
+    if t == 3:
+        return _like(lambda b: p_stone(b, course=4.0, n=4), T.curtain)
+    if t == 4:
+        return _like(lambda b: p_stone(b, course=4.0, n=4, joint=0.32, var=0.07), T.curtain)
+    return _like(lambda b: p_marble(b), T.curtain)
+
+
+def wall_piece(t, along="x"):
+    """Wall segment, 2 grid units long (64 x 64 sprite, the anchor is the middle of its base line).
+    along = 'x' runs right-down on screen, 'y' runs left-down.
+
+    Tiling (TerritoryScene.kt draws a piece every 2 units, the far ones first):
+    - flat cut ends, every feature and every texture repeats with the piece length;
+    - the body runs EXT past the far end, under the next piece, so that the next piece's anti-aliased
+      edge blends with the same surface and not with a dark end cap (no hairline at the joints);
+    - no outline; the two neighbours are phantoms (shadow and occlusion only) and the baked ground
+      shadow is clipped to the piece's own cell, so the shadows of adjacent pieces meet without overlap."""
+    cell = (-1.0, -50.0, 1.0, 50.0) if along == "x" else (-50.0, -1.0, 50.0, 1.0)
+    sc = Scene("wall", clip=cell, outline=0.0)
+    parts = wall_parts(t, along)
+    for i, (node, mat, cast) in enumerate(parts):
+        # only the body darkens its surroundings: with occlusion from the merlons the narrow wall-walk
+        # between them turns dark at game size
+        sc.add(node, mat, cast=cast, ao=(i == 0))
+    solid = union(*[node for node, _, cast in parts if cast])
+    for k in (-2.0, 2.0):                                    # the neighbouring pieces: shadow and occlusion only
+        sc.add(move(solid, k if along == "x" else 0.0, 0.0 if along == "x" else k), visible=False)
+    return sc
+
+
+def wall_parts(t, along="x"):
+    """The solids of one wall piece: [(node, material, casts a shadow)], the body first."""
+    T = Tier(t)
+
+    def B(a0, a1, c0, c1, z0, z1, r=0.0):
+        """Box from a0..a1 along the wall and c0..c1 across it (+c is the side that faces the camera)."""
+        return box(a0, c0, a1, c1, z0, z1, r) if along == "x" else box(c0, a0, c1, a1, z0, z1, r)
+
+    def rep(node, step, n):
+        return repeat(node, along, step, n)
+
+    parts = []                                               # (node, material, casts a shadow)
+    a1 = 1.0 + EXT
+    if t == 1:
+        r, n = 0.155, 6
+        st = 2.0 / n
+        a0 = -1.0 + st / 2
+        log = union(cyl(a0, 0, r, -0.5, 10.8), cone(a0, 0, r, 10.8, 13.6)) if along == "x" else union(cyl(0, a0, r, -0.5, 10.8), cone(0, a0, r, 10.8, 13.6))
+        parts.append((rep(log, st, n), m_logs("#7E5638", st, along, seed=24), True))
+        parts.append((B(-1.0, a1, -0.05, 0.05, 0, 10.6), p_flat("#3E2A1A", 0.05), True))             # closes the chinks between logs
+        parts.append((union(B(-1.0, a1, r * 0.78, r * 1.22, 6.3, 7.8, 0.3), B(-1.0, a1, -r * 1.22, -r * 0.78, 6.3, 7.8, 0.3)), p_flat("#4E3420", 0.08), False))
+    else:
+        wm = _wall_mat(t, T)
+        parts.append((B(-1.0, a1, -0.5, 0.5, 0, WALL_H), wm, True))
+        if t >= 3:                                           # darker plinth course, as on the castle's curtain
+            pm = _like(lambda b: p_marble(b, seed=9), T.base) if t >= 5 else _like(lambda b: p_stone(b, course=2.6, n=5, seed=31), T.base)
+            parts.append((union(B(-1.0, a1, 0.5, 0.54, 0, 2.6, 0.2), B(-1.0, a1, -0.54, -0.5, 0, 2.6, 0.2)), pm, False))
+        m0 = -1.0 + 1.0 / 3.0
+        if t == 2:
+            # timber wall-plates and a parapet of plank mantlets
+            beam = p_flat("#5E3F26", 0.08)
+            parts.append((union(B(-1.0, a1, 0.42, 0.56, WALL_H - 1.5, WALL_H + 0.5, 0.3), B(-1.0, a1, -0.56, -0.42, WALL_H - 1.5, WALL_H + 0.5, 0.3)), beam, True))
+            mant = union(rep(B(m0 - 0.2, m0 + 0.2, 0.40, 0.50, WALL_H, WALL_H + 3.8, 0.2), 2.0 / 3.0, 3),
+                         rep(B(m0 - 0.2, m0 + 0.2, -0.50, -0.40, WALL_H, WALL_H + 3.8, 0.2), 2.0 / 3.0, 3))
+            parts.append((mant, r3.m_planks("#8A5E38", 0.133, seed=25, relief=0.5), True))
+        else:
+            # merlons on both edges of the wall-walk (no continuous parapet: its shaded inner face would
+            # close the walk into a dark slot on the walls that run left-down)
+            mer = union(rep(B(m0 - 0.19, m0 + 0.19, 0.29, 0.5, WALL_H - 0.3, WALL_H + MERLON_H, 0.18), 2.0 / 3.0, 3),
+                        rep(B(m0 - 0.19, m0 + 0.19, -0.5, -0.29, WALL_H - 0.3, WALL_H + MERLON_H, 0.18), 2.0 / 3.0, 3))
+            parts.append((mer, wm, True))
+            if t >= 4:                                       # gold string course on both faces
+                parts.append((union(B(-1.0, a1, 0.5, 0.525, WALL_H - 2.6, WALL_H - 1.4), B(-1.0, a1, -0.525, -0.5, WALL_H - 2.6, WALL_H - 1.4)), T.gold, False))
+            if t >= 5:                                       # a gilded rim around the top of every merlon
+                zc0, zc1 = WALL_H + MERLON_H - 0.9, WALL_H + MERLON_H + 0.15
+                rims = union(rep(sub(B(m0 - 0.215, m0 + 0.215, 0.265, 0.525, zc0, zc1, 0.15), B(m0 - 0.15, m0 + 0.15, 0.33, 0.46, zc0 - 1, zc1 + 1)), 2.0 / 3.0, 3),
+                             rep(sub(B(m0 - 0.215, m0 + 0.215, -0.525, -0.265, zc0, zc1, 0.15), B(m0 - 0.15, m0 + 0.15, -0.46, -0.33, zc0 - 1, zc1 + 1)), 2.0 / 3.0, 3))
+                parts.append((rims, T.gold, False))
+    return parts
+
+
+def _tower_centre(t, r):
+    """Where the tower's axis stands relative to the anchor (the crossing of the wall centre lines).
+
+    The game draws the walls that leave a tower towards +x / +y AFTER the tower (they are nearer to the
+    camera) and the walls that arrive from -x / -y before it.  A tower centred on the anchor would have
+    its front bulge painted over by the leaving walls.  Moving the axis back along the diagonal until
+    the circle passes through the leaving walls' front corners, (0, w) and (w, 0), makes those walls
+    emerge exactly from the tower's surface; the arriving walls simply run into its side."""
+    w = _wall_half(t)
+    d = (-w + math.sqrt(2.0 * r * r - w * w)) / 2.0
+    return -d, -d
+
+
+def wall_tower(t):
+    """Round wall tower (64 x 96 sprite): log drum with a thatched cap, field stone with a timber-framed
+    head and clay tiles, then cut stone / white stone / marble with slate, blue and gilded spires."""
+    sc = Scene("decor")
+    T = Tier(t)
+    r = 0.66 if t == 1 else 0.75
+    xc, yc = _tower_centre(t, r)
+    h = 22.0 + 3.0 * t
+    cone_h = 11.0 + t
+    cm = (xc, yc, r)
+    if t == 1:
+        g.round_tower(sc, T, xc, yc, r, h, cone_h, wall=r3.m_planks("#84583A", 0.21, seed=24, relief=0.6), flag_h=9.5, flag_w=7.0)
+        sc.add(union(cyl(xc, yc, r + 0.012, h * 0.36, h * 0.36 + 1.3, 0.3), cyl(xc, yc, r + 0.012, 1.2, 2.5, 0.3)), r3.m_flat("#3E2E22", 0.1), cyl=cm, cast=False, name="hoops")
+    elif t == 2:
+        zt = h - 8.5
+        slit = rotz(box(xc + r - 0.12, yc - 0.075, xc + r + 0.2, yc + 0.075, zt * 0.52 - 3.4, zt * 0.52 + 3.4), 62.0, xc, yc)
+        sc.add(rotz(box(xc + r - 0.13, yc - 0.075, xc + r - 0.07, yc + 0.075, zt * 0.52 - 3.4, zt * 0.52 + 3.4), 62.0, xc, yc), T.slit, cast=False, ao=False)
+        sc.add(sub(cyl(xc, yc, r, 0, zt), slit), T.curtain, cyl=cm, name="drum")
+        sc.add(union(cone(xc, yc, r, zt - 2.4, zt, r + 0.12), cyl(xc, yc, r + 0.12, zt, zt + 1.4, 0.3)), T.trim, cyl=cm, name="jetty")
+        holes = [rotz(box(xc + r, yc - 0.11, xc + r + 0.3, yc + 0.11, zt + 2.6, zt + 6.2), deg, xc, yc) for deg in (20.0, 62.0, 104.0)]
+        for deg in (20.0, 62.0, 104.0):
+            sc.add(rotz(box(xc + r + 0.03, yc - 0.11, xc + r + 0.07, yc + 0.11, zt + 2.6, zt + 6.2), deg, xc, yc), T.glow, cast=False, ao=False)
+        sc.add(sub(cyl(xc, yc, r + 0.1, zt + 1.2, h), *holes), r3.m_plaster("#E9D9B0", "#6E4526", zt + 1.4, h, 0.33, beam=1.3, mid=False, braces=False),
+               cyl=(xc, yc, r + 0.1), name="head")
+        sc.add(union(cone(xc, yc, r + 0.3, h, h + cone_h), cyl(xc, yc, r + 0.3, h - 0.9, h + 0.05, 0.2)), T.roof, cyl=(xc, yc, r + 0.3), name="roof")
+        g.flagpole(sc, T, xc, yc, h + cone_h - 1.5, 9.5, w=7.0)
+    else:
+        g.round_tower(sc, T, xc, yc, r, h, cone_h, flag_h=9.5 if t < 5 else 10.5, flag_w=7.0)
+        sc.add(cyl(xc, yc, r + 0.04, 0, 2.6, 0.3), T.base, cyl=cm, cast=False, name="plinth")
+    return sc
+
+
+def _gate_wood(sc, T, a):
+    """Tier 1 gate: a plank gatehouse with a big iron-bound double door between log posts, and an open,
+    thatched lookout on top."""
+    zp, zr = 16.0, 25.5
+    pw, ph = 1.04, 12.6
+    hole = g.opening("L", a, 0.0, 0.0, pw, ph, False, -0.14, 0.3)
+    sc.add(sub(box(-a, -a, a, a, 0, zp), hole), T.wall(), name="body")
+    sc.add(g._slab("L", a, -pw / 2, pw / 2, -0.16, -0.10, 0.0, ph), r3.m_planks("#6A452A", 0.13, seed=22, var=0.12), name="doors")
+    sc.add(union(g._slab("L", a, -pw / 2, pw / 2, -0.10, -0.07, 3.2, 4.3), g._slab("L", a, -pw / 2, pw / 2, -0.10, -0.07, 8.6, 9.7),
+                 g._slab("L", a, -0.025, 0.025, -0.10, -0.07, 0.0, ph)), T.iron, cast=False, name="straps")
+    sc.add(union(g._slab("L", a, -pw / 2 - 0.1, pw / 2 + 0.1, -0.02, 0.06, ph, ph + 1.6, 0.3),
+                 g._slab("L", a, -pw / 2 - 0.1, -pw / 2, -0.02, 0.06, 0.0, ph, 0.3), g._slab("L", a, pw / 2, pw / 2 + 0.1, -0.02, 0.06, 0.0, ph, 0.3)),
+           T.trim, name="door frame")
+    # corner logs with axe-cut points, the platform, the lookout's posts, rail and thatch
+    logs = [union(cyl(px, py, 0.11, -0.5, zp + 3.2), cone(px, py, 0.11, zp + 3.2, zp + 5.4)) for px, py in ((-a, a), (a, a), (a, -a), (-a, -a))]
+    sc.add(union(*logs), m_logs("#7E5638", 0.3, "x", seed=26), name="corner logs")
+    sc.add(box(-a - 0.07, -a - 0.07, a + 0.07, a + 0.07, zp - 0.6, zp + 0.9, 0.3), T.trim, name="platform")
+    posts = [capsule((px, py, zp), (px, py, zr + 0.5), 0.8) for px, py in ((-a + 0.1, a - 0.1), (a - 0.1, a - 0.1), (a - 0.1, -a + 0.1), (-a + 0.1, -a + 0.1))]
+    sc.add(union(*posts), T.dark_wood, name="posts")
+    rail = sub(box(-a + 0.02, -a + 0.02, a - 0.02, a - 0.02, zp + 0.8, zp + 4.4), box(-a + 0.1, -a + 0.1, a - 0.1, a - 0.1, zp, zp + 9.0))
+    sc.add(rail, r3.m_planks("#94603A", 0.15, seed=27), name="rail")
+    sc.add(box(-0.1, -0.1, 0.1, 0.1, zr - 4.6, zr - 1.8), r3.m_glow("#FFB84A", power=1.8, bars=False), cast=False, ao=False, name="lantern")
+    sc.add(hip(-a, -a, a, a, zr, 10.5, over=0.12, thick=2.2), T.roof, name="roof")
+    g.flagpole(sc, T, 0.0, 0.0, zr + 9.0, 11.0, w=8.0)
+    g.torch(sc, T, -0.68, a + 0.05, 12.5, 0.9)
+    g.torch(sc, T, 0.68, a + 0.05, 12.5, 0.9)
+    return sc
+
+
+def gate(t):
+    """Gatehouse on the front corner of the ring (64 x 96 sprite, footprint -0.9..0.9).  The portal is
+    in the left-front face; its two torches burn at (-0.68, 0.9, 12.5) and (0.68, 0.9, 12.5) as before."""
+    sc = Scene("decor")
+    T = Tier(t)
+    a = 0.9
+    if t == 1:
+        return _gate_wood(sc, T, a)
+    h = 26.0 + 3.0 * t
+    pw, ph = 0.84, 15.5
+    wm = T.wall(4.0, h, -a, -a, bay=0.45)
+    holes = []
+    if t == 2:
+        # closed plank gate, iron-bound
+        holes.append(g.door(sc, T, "L", a, 0.0, pw, ph, True, frame=T.base, fw=0.08, leaf=r3.m_planks("#6A452A", 0.14, seed=22, var=0.12)))
+        sc.add(union(g._slab("L", a, -pw / 2, pw / 2, -0.10, -0.06, 4.0, 5.0), g._slab("L", a, -pw / 2, pw / 2, -0.10, -0.06, 9.6, 10.6),
+                     g._slab("L", a, -0.02, 0.02, -0.10, -0.06, 0.0, ph - 1.0)), T.iron, cast=False, name="straps")
+    else:
+        # open passage with a raised portcullis
+        holes.append(g.opening("L", a, 0.0, 0.0, pw, ph, True, -0.62, 0.3))
+        sc.add(g._slab("L", a, -pw / 2 - 0.05, pw / 2 + 0.05, -0.66, -0.6, 0.0, ph + 0.5), r3.m_flat("#17120F", 0.04), cast=False, name="passage")
+        fz = 0.08 * G / ZS
+        sc.add(sub(g.opening("L", a, 0.0, 0.0, pw + 0.16, ph + fz, True, -0.02, 0.045), g.opening("L", a, 0.0, -1.0, pw, ph + 1.0, True, -0.3, 0.3)),
+               T.base if t < 4 else T.trim, name="arch")
+        bars = [capsule((bx, a - 0.16, 6.2), (bx, a - 0.16, ph - 0.4), 0.34) for bx in (-0.28, -0.14, 0.0, 0.14, 0.28)]
+        bars += [capsule((-pw / 2, a - 0.16, zz), (pw / 2, a - 0.16, zz), 0.34) for zz in (7.4, 10.6)]
+        bars += [cone(bx, a - 0.16, 0.03, 4.6, 6.4, 0.012) for bx in (-0.28, -0.14, 0.0, 0.14, 0.28)]
+        sc.add(inter(union(*bars), g.opening("L", a, 0.0, 0.0, pw, ph, True, -0.4, 0.1)), T.iron, cast=False, name="portcullis")
+    holes.append(g.window(sc, T, "L", a, 0.0, h - 6.4, 0.32, 5.4, fw=0.05))
+    for wa in (-0.42, 0.42):
+        holes.append(g.window(sc, T, "R", a, wa, h - 8.6, 0.28, 5.8, fw=0.05))
+    if t == 2:
+        zt = h * 0.56
+        sc.add(sub(box(-a, -a, a, a, 0, zt), *holes), T.curtain, name="base storey")
+        sc.add(box(-a - 0.07, -a - 0.07, a + 0.07, a + 0.07, zt - 0.4, zt + 1.4, 0.3), T.trim, name="jetty")
+        sc.add(sub(box(-a - 0.05, -a - 0.05, a + 0.05, a + 0.05, zt + 1.2, h + 12.0), *[move(hh, 0.05, 0.05) for hh in holes],
+                   g._gable_cut(-a - 0.05, -a - 0.05, a + 0.05, a + 0.05, h, 10.0, "x")),
+               r3.m_plaster("#EDDDB4", "#6E4526", zt + 1.4, h, 0.475, -a - 0.05, -a - 0.05, beam=1.4, mid=False), name="upper storey")
+    else:
+        sc.add(box(-a - 0.05, -a - 0.05, a + 0.05, a + 0.05, 0, 2.8, 0.3), T.base, name="plinth")
+        sc.add(sub(box(-a, -a, a, a, 2.0, h), *holes), wm, name="body")
+        par = T.curtain if t < 5 else T.wall()
+        sc.add(box(-a - 0.1, -a - 0.1, a + 0.1, a + 0.1, h - 3.0, h + 0.8, 0.3), par, name="parapet")
+        sc.add(g.merlon_ring(-a - 0.1, -a - 0.1, a + 0.1, a + 0.1, h + 0.8, 3.2, 5, 0.13), par, name="merlons")
+        if t >= 4:
+            sc.add(box(-a - 0.12, -a - 0.12, a + 0.12, a + 0.12, h - 2.1, h - 0.9, 0.25), T.gold, cast=False, name="band")
+        sc.add(union(*[box(px - 0.09, py - 0.09, px + 0.09, py + 0.09, 2.6, h - 2.6, 0.3) for px, py in ((-a, a), (a, a), (a, -a))]), T.base if t < 5 else T.wall(), name="pilasters")
+    # roof and flag
+    if t == 2:
+        rh, o = 10.0, 0.05
+        sc.add(gable(-a - o, -a - o, a + o, a + o, h, rh, "x", over=0.13, thick=1.5), T.roof, name="roof")
+        sc.add(box(-a - 0.2, -0.05, a + 0.2, 0.05, h + rh - 0.9, h + rh + 0.45, 0.45), T.trim, cast=False, name="ridge")
+        g.flagpole(sc, T, 0.0, 0.0, h + rh - 1.0, 12.0, w=8.0)
+    else:
+        rh = 9.0 + t
+        sc.add(hip(-a + 0.1, -a + 0.1, a - 0.1, a - 0.1, h + 1.4, rh, thick=1.0), T.roof, name="roof")
+        if t >= 4:
+            sc.add(sphere(0.0, 0.0, h + 1.4 + rh + 0.2, 0.07), T.gold, name="finial")
+        g.flagpole(sc, T, 0.0, 0.0, h + rh, 11.0, w=8.0, finial=t < 4)
+    g.banner(sc, T, "R", a, 0.0, h - 5.2, 9.0, 0.3)
+    if t >= 5:   # ruby over the portal
+        sc.add(sphere(0.0, a + 0.03, ph + 3.0, 0.055), r3.m_glow("#FF3A58", power=0.9, bars=False), cast=False, ao=False)
+        sc.add(torus(0.0, a + 0.03, ph + 3.0, 0.055, 0.33), T.gold, cast=False)
+    g.torch(sc, T, -0.68, a + 0.05, 12.5, 0.9)
+    g.torch(sc, T, 0.68, a + 0.05, 12.5, 0.9)
+    return sc
+
+
+# ---------------------------------------------------------------------------------------------
 # registry
 # ---------------------------------------------------------------------------------------------
 
@@ -699,3 +1134,8 @@ SPRITES = {
     "deco_temple": temple,
     "deco_site": site,
 }
+for _t in range(1, 6):
+    SPRITES["deco_wall_x_t%d" % _t] = (lambda t=_t: wall_piece(t, "x"))
+    SPRITES["deco_wall_y_t%d" % _t] = (lambda t=_t: wall_piece(t, "y"))
+    SPRITES["deco_wall_tower_t%d" % _t] = (lambda t=_t: wall_tower(t))
+    SPRITES["deco_gate_t%d" % _t] = (lambda t=_t: gate(t))

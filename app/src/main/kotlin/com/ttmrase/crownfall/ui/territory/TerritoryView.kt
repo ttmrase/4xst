@@ -24,9 +24,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -68,6 +68,7 @@ import com.ttmrase.crownfall.ui.kit.GlyphBitmaps
 import com.ttmrase.crownfall.ui.kit.drawGlyph
 import com.ttmrase.crownfall.ui.kit.rememberGlyphBitmaps
 import com.ttmrase.crownfall.ui.nameRes
+import com.ttmrase.crownfall.ui.territory.LifeDraw.soft
 import com.ttmrase.crownfall.ui.theme.CrownFonts
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -156,6 +157,7 @@ fun TerritoryView(
 ) {
     val context = LocalContext.current
     val cache = remember { SpriteCache.shared(context) }
+    val ground = remember { GroundArt.shared(context) }
     val measurer = rememberTextMeasurer()
     val texts = remember(measurer) { TextCache(measurer) }
     val glyphs = rememberGlyphBitmaps(22.dp)
@@ -325,17 +327,20 @@ fun TerritoryView(
             val startNs = System.nanoTime()
             val nowMs = startNs / NANOS_PER_MS
             val loadTick = cache.version
-            if (!cam.ready || loadTick < 0) return@Canvas
+            // 地面の下絵が焼けたときにも描き直す（アニメーション無効の端末では、これが無いと平らな色のまま残る）
+            val groundTick = ground.version
+            if (!cam.ready || loadTick < 0 || groundTick < 0) return@Canvas
             val sc = cam.sc
             val nowSec = clock?.value ?: state.nowEpochSec
             // アニメーション無効なら、帯の拡張も途中の形を見せずに終わった形で描く
             val t = if (animate) ((nowMs - anim.startMs) / BAND_ANIM_MS).coerceIn(0f, 1f) else 1f
             val e = 1f - (1f - t) * (1f - t)
             painter.begin(
-                this, cache, texts, glyphs, scene, sc, size.width / 2f - cam.cx * sc, size.height / 2f - cam.cy * sc,
-                nowMs, nowSec, anim.from, anim.to, if (t >= 1f) 1f else e, t >= 1f, animate, castleLevel,
+                this, cache, ground, texts, glyphs, scene, sc, size.width / 2f - cam.cx * sc,
+                size.height / 2f - cam.cy * sc, nowMs, nowSec, anim.from, anim.to, if (t >= 1f) 1f else e, t >= 1f,
+                animate, castleLevel,
             )
-            painter.drawGround()
+            painter.drawGround(lockLabels)
             painter.drawEntities(
                 levels,
                 jobs,
@@ -455,6 +460,7 @@ private const val A11Y_LIFT = 40f
 private class TerritoryPainter {
     private lateinit var scope: DrawScope
     private lateinit var cache: SpriteCache
+    private lateinit var ground: GroundArt
     private lateinit var texts: TextCache
     private lateinit var glyphs: GlyphBitmaps
     private lateinit var scene: TerritoryScene
@@ -478,11 +484,11 @@ private class TerritoryPainter {
 
     /** 装備中の領地のテーマ（spring / autumn / winter は地面の色も変わる。無ければ標準）。M11 T11.4。 */
     var season: String? = null
+    private val fogArt = LifeArt.shared
     private val iso = android.graphics.Matrix()
     private val isoValues = FloatArray(MATRIX_VALUES)
     private val ringPath = Path()
     private val arrowPath = Path()
-    private val diamond = Path()
     private var timerSec = LongArray(0)
     private var timerText = arrayOfNulls<String>(0)
     private var pillStroke = Stroke(1f)
@@ -492,6 +498,7 @@ private class TerritoryPainter {
     fun begin(
         scope: DrawScope,
         cache: SpriteCache,
+        ground: GroundArt,
         texts: TextCache,
         glyphs: GlyphBitmaps,
         scene: TerritoryScene,
@@ -509,6 +516,7 @@ private class TerritoryPainter {
     ) {
         this.scope = scope
         this.cache = cache
+        this.ground = ground
         this.texts = texts
         this.glyphs = glyphs
         this.scene = scene
@@ -552,29 +560,50 @@ private class TerritoryPainter {
 
     // ---- 地面 -----------------------------------------------------------------
 
-    fun drawGround() {
+    /**
+     * 地面: 森の床・草地・道・広場・川を、テクスチャで描く（[GroundArt]）。建設できない区画（[locks] が非 null）は
+     * 森の床で覆う。テクスチャと下絵の用意が済むまでの数フレームは、平らな色で描く。
+     */
+    fun drawGround(locks: Array<String?>) {
         with(scope) {
-            drawRect(if (season == "winter") WINTER_BG else Color(0xFF1B3524))
-            val lawn = lawnColor()
+            drawRect(if (season == GroundArt.SEASON_WINTER) WINTER_BG else FOREST_BG)
             // グリッド座標のまま描くための行列。ネイティブの Canvas に直接かける（Compose の transform(Matrix) は
             // 呼ぶたびに android.graphics.Matrix を確保する）
             val canvas = drawContext.canvas.nativeCanvas
             canvas.save()
             canvas.concat(isoMatrix())
-            // 草地（開かれた土地）。帯が進むと広がる
-            drawPath(scene.lawn[fromBand - 1], lawn)
-            if (!settled && toBand != fromBand) drawPath(scene.lawn[toBand - 1], lawn, alpha = ease)
-            // 通り
-            drawPath(scene.streets[fromBand - 1], streetColor(fromBand))
-            if (!settled && toBand != fromBand) drawPath(scene.streets[toBand - 1], streetColor(toBand), alpha = ease)
-            // 川
-            drawPath(scene.river, RIVER_BANK, style = RIVER_BANK_STROKE)
-            drawPath(scene.river, RIVER, style = RIVER_STROKE)
-            drawPath(scene.river, RIVER_FOAM, style = FOAM_STROKE)
+            val textured =
+                ground.draw(
+                    canvas, scene.ground, sc, ox, oy, size.width, size.height, fromBand, toBand, ease, settled,
+                    season, seconds,
+                )
+            if (textured) {
+                for (ent in scene.buildingEnts) {
+                    if (locks[ent.slotId] != null && !isOffScreen(sx(ent.gx, ent.gy), sy(ent.gx, ent.gy))) {
+                        ground.drawLockPatch(canvas, ent.gx, ent.gy, sc, season)
+                    }
+                }
+            } else {
+                drawFlatGround()
+            }
             canvas.restore()
         }
         // 水面を流れる光
         life.drawWater()
+    }
+
+    /** テクスチャの用意ができるまでの地面（平らな色の草地・通り・川）。グリッド座標の行列がかかった状態で呼ぶ。 */
+    private fun DrawScope.drawFlatGround() {
+        val lawn = lawnColor()
+        // 草地（開かれた土地）。帯が進むと広がる
+        drawPath(scene.lawn[fromBand - 1], lawn)
+        if (!settled && toBand != fromBand) drawPath(scene.lawn[toBand - 1], lawn, alpha = ease)
+        // 通り
+        drawPath(scene.streets[fromBand - 1], streetColor(fromBand))
+        if (!settled && toBand != fromBand) drawPath(scene.streets[toBand - 1], streetColor(toBand), alpha = ease)
+        // 川
+        drawPath(scene.river, RIVER_BANK, style = RIVER_BANK_STROKE)
+        drawPath(scene.river, RIVER, style = RIVER_STROKE)
     }
 
     /** 雲の影・森の縁の粒・鳥（建物と住民の上、札の下）。 */
@@ -586,9 +615,9 @@ private class TerritoryPainter {
 
     private fun lawnColor(): Color =
         when (season) {
-            "spring" -> LAWN_SPRING
-            "autumn" -> LAWN_AUTUMN
-            "winter" -> LAWN_WINTER
+            GroundArt.SEASON_SPRING -> LAWN_SPRING
+            GroundArt.SEASON_AUTUMN -> LAWN_AUTUMN
+            GroundArt.SEASON_WINTER -> LAWN_WINTER
             else -> LAWN
         }
 
@@ -757,25 +786,23 @@ private class TerritoryPainter {
         return lo
     }
 
-    /** 建設できない区画: 森と霧で覆い、札は [drawBadges] が出す。 */
+    /**
+     * 建設できない区画: 森と霧で覆い、札は [drawBadges] が出す。足元の森の床は [drawGround] が描いてある。
+     * 霧は縁のやわらかい雲の形（四角い板に見えないように、2 つ重ねてゆっくり揺らす）。
+     */
     private fun drawLocked(ent: Ent) {
-        with(scope) {
-            val h = 2.6f
-            diamond.rewind()
-            diamond.moveTo(sx(ent.gx, ent.gy - h), sy(ent.gx, ent.gy - h))
-            diamond.lineTo(sx(ent.gx + h, ent.gy), sy(ent.gx + h, ent.gy))
-            diamond.lineTo(sx(ent.gx, ent.gy + h), sy(ent.gx, ent.gy + h))
-            diamond.lineTo(sx(ent.gx - h, ent.gy), sy(ent.gx - h, ent.gy))
-            diamond.close()
-            drawPath(diamond, Color(0xFF14301E))
-        }
         for (k in LOCK_TREES.indices step 2) {
             val gx = ent.gx + LOCK_TREES[k]
             val gy = ent.gy + LOCK_TREES[k + 1]
             drawSprite(SpriteIds.TREE_PINE_A, gx, gy, 1f, tilt = life.treeSway(gx, gy, ent.seed + k * 0.11f))
         }
+        val x = sx(ent.gx, ent.gy)
+        val y = sy(ent.gx, ent.gy) - FOG_LIFT * sc
+        val drift = sin(seconds * FOG_DRIFT_SPEED + ent.seed * FOG_PHASE) * FOG_DRIFT * sc
+        val w = FOG_WIDTH * sc
         with(scope) {
-            drawPath(diamond, FOG.copy(alpha = 0.55f))
+            soft(fogArt.cloud, x + drift, y, w, w * FOG_FLAT, FOG_ALPHA, FOG_TINT)
+            soft(fogArt.puff, x - drift * 0.5f, y + FOG_LOW * sc, w * FOG_LOW_WIDTH, w * FOG_LOW_FLAT, FOG_LOW_ALPHA, FOG_TINT)
         }
     }
 
@@ -1160,15 +1187,13 @@ private class TerritoryPainter {
         val LOCK_TREES = floatArrayOf(-1.2f, -1.2f, 1.2f, -1.2f, -1.2f, 1.2f, 1.2f, 1.2f)
         val RIVER_BANK_STROKE = Stroke(5.6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         val RIVER_STROKE = Stroke(3.6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-        val RIVER_FOAM = Color.White.copy(alpha = 0.45f)
-        val DASH = PathEffect.dashPathEffect(floatArrayOf(1.6f, 4.4f), 0f)
-        val FOAM_STROKE = Stroke(0.5f, cap = StrokeCap.Round, pathEffect = DASH)
         val GOLD = Color(0xFFC9A227)
         val LAWN = Color(0xFF5C9944)
         val LAWN_SPRING = Color(0xFF6DBA55)
         val LAWN_AUTUMN = Color(0xFF8E8A3A)
         val LAWN_WINTER = Color(0xFFE3EBF0)
         val WINTER_BG = Color(0xFF2C3B49)
+        val FOREST_BG = Color(0xFF1B3524)
         const val SEASON_COUNT = 26
 
         class SeasonParticle(
@@ -1193,7 +1218,20 @@ private class TerritoryPainter {
         val STREET_COBBLE = Color(0xFF9A9486)
         val RIVER = Color(0xFF3E7FC4)
         val RIVER_BANK = Color(0xFFC9B88A)
-        val FOG = Color(0xFF0F1A33)
+
+        /** 建設できない区画の霧: 色、大きさ（ワールド px）、地面からの高さ、ゆっくり揺れる幅と速さ。 */
+        val FOG_TINT: ColorFilter = ColorFilter.tint(Color(0xFF0F1A33))
+        const val FOG_WIDTH = 112f
+        const val FOG_FLAT = 0.62f
+        const val FOG_LIFT = 14f
+        const val FOG_ALPHA = 0.78f
+        const val FOG_LOW = 12f
+        const val FOG_LOW_WIDTH = 0.9f
+        const val FOG_LOW_FLAT = 0.5f
+        const val FOG_LOW_ALPHA = 0.5f
+        const val FOG_DRIFT = 3f
+        const val FOG_DRIFT_SPEED = 0.35f
+        const val FOG_PHASE = 6f
         val PILL_STYLE = TextStyle(fontFamily = CrownFonts.Numeric, fontWeight = FontWeight.Bold, fontSize = 9.sp)
         val BUBBLE_RIM = Color(0xFF7FB2E5)
         const val BUBBLE_ICON = 1.5f

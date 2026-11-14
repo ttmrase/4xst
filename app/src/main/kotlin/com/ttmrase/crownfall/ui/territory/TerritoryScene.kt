@@ -146,6 +146,8 @@ internal class TerritoryScene(
     val buildingEnts: List<Ent>,
     /** 城の区画（旗竿を立てる位置の基準）。 */
     val castle: Ent?,
+    /** 地面の設計図（草地・道・広場・小物の配置。[GroundArt] が下絵に焼く）。 */
+    val ground: GroundPlan,
 ) {
     companion object {
         private const val TREE_STEP = 2.4f
@@ -155,6 +157,9 @@ internal class TerritoryScene(
         private const val RIVER_FREQ = 0.11f
         private const val RIVER_STEP = 2f
         private const val TOWN_STEP = 2.5f
+
+        /** 川の中心線から、木を立てない幅（水面と川岸）。 */
+        private const val RIVER_CLEAR = 2.9f
 
         /** 川の中心線が延びる範囲（グリッドの y）。 */
         const val RIVER_FROM = -64f
@@ -227,7 +232,10 @@ internal class TerritoryScene(
                     if (gone == 1 || onPlot(x, y, 1.2f)) continue
                     val pick = rng.next()
                     val sprite = treeSprites[(pick * treeSprites.size).toInt().coerceIn(0, treeSprites.size - 1)]
-                    ents.add(Ent(EntKind.TREE, x, y, sprite, goneBand = gone, seed = rng.next()))
+                    val seed = rng.next()
+                    // 川と川岸には木を立てない（乱数は同じ数だけ引くので、ほかの配置は変わらない）
+                    if (abs(x - riverX(y)) < RIVER_CLEAR) continue
+                    ents.add(Ent(EntKind.TREE, x, y, sprite, goneBand = gone, seed = seed))
                 }
             }
 
@@ -377,15 +385,17 @@ internal class TerritoryScene(
             }
 
             ents.sortWith(compareBy<Ent> { it.depth }.thenBy { it.kind.ordinal })
+            val all = ents.toTypedArray()
 
             return TerritoryScene(
-                ents = ents.toTypedArray(),
+                ents = all,
                 walkers = TownLife.walkers(slotCells),
                 lawn = (1..PlotLayout.BANDS).map { lawnPath(half[it - 1] + PlotLayout.CLEAR_MARGIN) },
                 streets = (1..PlotLayout.BANDS).map { streetsPath(half[it - 1] + 0.4f) },
                 river = riverPath(),
                 buildingEnts = buildings,
                 castle = slotCells.indexOfFirst { it.third == BuildingType.CASTLE }.let { buildings.getOrNull(it) },
+                ground = GroundPlan.of(slotCells, all),
             )
         }
 
