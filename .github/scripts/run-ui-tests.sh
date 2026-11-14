@@ -22,6 +22,10 @@ logcat_pid=$!
 # 性能の行（PerfUiTest）は、あとのテストの logcat に押し流されないよう、流れてくるそばからファイルに残す
 adb logcat -v time -s CrownfallPerf:I > "$out/logs/perf.txt" 2>&1 &
 perf_pid=$!
+# 警告以上の行も流れてくるそばから残す。端末が途中で応答しなくなると、あとから `adb logcat -d` では何も取れない
+# （ui run 133: 最初のテストで端末が落ち、要約の crash / ANR の欄が空だった）
+adb logcat -v time '*:W' > "$out/logs/warn.txt" 2>&1 &
+warn_pid=$!
 # gradle はバックグラウンドで動かし、20 分で見切る（pipe で tee に繋ぐと、固まったときに timeout が効かず job の上限まで待つ）
 ./gradlew :app:connectedDebugAndroidTest -PwithAndroid=true \
   -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
@@ -52,7 +56,7 @@ wait "$gradle_pid"
 status=$?
 [[ $hung -eq 1 ]] && status=124
 kill "$tail_pid" 2>/dev/null || true
-kill "$logcat_pid" "$perf_pid" 2>/dev/null || true
+kill "$logcat_pid" "$perf_pid" "$warn_pid" 2>/dev/null || true
 
 # 結果の要約（コンパイルエラー、失敗したテスト）。ジョブのサマリと qa-screenshots の summary に出す
 {
@@ -87,9 +91,14 @@ timeout 60 adb logcat -d > "$out/logs/logcat.txt" 2>&1 || true
 # 固まった・落ちたときの手がかりを要約に残す（artifact に届かない環境でも qa-screenshots の summary で読める）:
 # アプリの例外と ANR の行、ANR のトレースからアプリのメインスレッドのスタック
 {
-  echo "--- crash / ANR lines (logcat) ---"
-  grep -E 'FATAL EXCEPTION|AndroidRuntime: (Process|java\.|kotlin\.|Caused by|\tat com\.ttmrase)|ANR in |am_anr|lowmemorykiller|Low on memory' \
-    "$out/logs/logcat.txt" | cut -c1-220 | tail -40
+  echo "--- device state at the end ---"
+  timeout 20 adb devices 2>&1 | tail -3
+  pgrep -fa 'qemu-system|emulator' | cut -c1-120 | head -3 || echo "no emulator process"
+  echo "--- crash / ANR lines (live logcat, warnings and above) ---"
+  grep -aE 'FATAL EXCEPTION|AndroidRuntime|Fatal signal|DEBUG   :|ANR in |am_anr|lowmemorykiller|Low on memory|has died|OutOfMemory|WIN DEATH|Force finishing|Killing [0-9]+:com\.ttmrase|system_server|SurfaceFlinger.*(crash|abort|died)' \
+    "$out/logs/warn.txt" | cut -c1-240 | tail -60
+  echo "--- last lines before the stream ended ---"
+  tail -n 30 "$out/logs/warn.txt" | cut -c1-240
   echo "--- main thread of the app (ANR trace) ---"
   python3 - "$out/logs/anr" <<'PY'
 import glob, os, sys
