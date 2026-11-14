@@ -95,10 +95,12 @@ timeout 60 adb logcat -d > "$out/logs/logcat.txt" 2>&1 || true
   timeout 20 adb devices 2>&1 | tail -3
   pgrep -fa 'qemu-system|emulator' | cut -c1-120 | head -3 || echo "no emulator process"
   echo "--- crash / ANR lines (live logcat, warnings and above) ---"
-  grep -aE 'FATAL EXCEPTION|AndroidRuntime|Fatal signal|DEBUG   :|ANR in |am_anr|lowmemorykiller|Low on memory|has died|OutOfMemory|WIN DEATH|Force finishing|Killing [0-9]+:com\.ttmrase|system_server|SurfaceFlinger.*(crash|abort|died)' \
-    "$out/logs/warn.txt" | cut -c1-240 | tail -60
+  grep -aE 'FATAL EXCEPTION|E/AndroidRuntime|Fatal signal|F/DEBUG|ANR in |am_anr|lowmemorykiller|Low on memory|OutOfMemory|WIN DEATH|Force finishing|Killing [0-9]+:com\.ttmrase|SurfaceFlinger.*(crash|abort|died)' \
+    "$out/logs/warn.txt" | cut -c1-200 | tail -25
+  echo "--- title diagnostics (CrownfallDiag) ---"
+  grep -a 'CrownfallDiag' "$out/logs/warn.txt" | cut -c1-120 | tail -24
   echo "--- last lines before the stream ended ---"
-  tail -n 30 "$out/logs/warn.txt" | cut -c1-240
+  tail -n 12 "$out/logs/warn.txt" | cut -c1-200
   echo "--- main thread of the app (ANR trace) ---"
   python3 - "$out/logs/anr" <<'PY'
 import glob, os, sys

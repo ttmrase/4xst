@@ -46,6 +46,32 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
+ * タイトルの絵を部品ごとに切る診断用のスイッチ（CI のエミュレータが、タイトルを描いた直後に落ちる原因の切り分け。ui run 120〜134）。
+ * 通常はすべて描く。エミュレータの計測テスト（androidTest）の中では既定で何も描かず、診断テストが 1 つずつ有効にする。
+ * 原因が分かって直したら、この仕組みごと消す。
+ */
+object TitleDiag {
+    const val SCENE = 1
+    const val SPARKS = 2
+    const val RAYS = 4
+    const val CASTLE = 8
+    const val CROWN = 16
+    const val OUTLINE = 32
+    const val GOLD_TEXT = 64
+    const val FLOURISH = 128
+    const val ALL = 255
+
+    @Volatile
+    var mask: Int = if (underInstrumentation()) 0 else ALL
+
+    fun on(bit: Int): Boolean = mask and bit != 0
+
+    private fun underInstrumentation(): Boolean =
+        android.os.Build.FINGERPRINT != "robolectric" &&
+            runCatching { Class.forName("androidx.test.espresso.Espresso") }.isSuccess
+}
+
+/**
  * タイトルの一枚絵。夕暮れの空・月・星・山並み・丘の上の城を、手続きの図形で描く（画像ファイルは使わない）。
  * 雲と星のまたたき、舞い上がる火の粉がゆっくり動く。アニメーションを切った端末では止め絵にする。
  */
@@ -58,7 +84,7 @@ fun TitleBackdrop(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize()) {
         // 動かない景色（空・月・山並み・城下町・丘）は 1 度だけ画像に焼いて、毎フレームは貼るだけにする。
         // 毎フレーム描くのは、星のまたたきと火の粉だけ（自分の層の中）
-        Box(
+        if (TitleDiag.on(TitleDiag.SCENE)) Box(
             Modifier.fillMaxSize().drawWithCache {
                 val w = size.width.toInt().coerceAtLeast(1)
                 val h = size.height.toInt().coerceAtLeast(1)
@@ -77,7 +103,7 @@ fun TitleBackdrop(modifier: Modifier = Modifier) {
                 onDrawBehind { drawImage(still) }
             },
         )
-        Canvas(Modifier.fillMaxSize().graphicsLayer()) {
+        if (TitleDiag.on(TitleDiag.SPARKS)) Canvas(Modifier.fillMaxSize().graphicsLayer()) {
             val time = if (animate) t.value else 0.2f
             stars(stars, time)
             embers(embers, time)
@@ -87,7 +113,7 @@ fun TitleBackdrop(modifier: Modifier = Modifier) {
             modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().offset(y = CASTLE_TOP.dp),
             contentAlignment = Alignment.TopCenter,
         ) {
-            Box(
+            if (TitleDiag.on(TitleDiag.RAYS)) Box(
                 Modifier
                     .size(CASTLE_SIZE.dp)
                     .graphicsLayer { rotationZ = if (animate) t.value * FULL_TURN * RAY_TURNS else 0f }
@@ -112,7 +138,7 @@ fun TitleBackdrop(modifier: Modifier = Modifier) {
                         }
                     },
             )
-            Image(
+            if (TitleDiag.on(TitleDiag.CASTLE)) Image(
                 painter = painterResource(R.drawable.bld_castle_t5),
                 contentDescription = null,
                 modifier = Modifier.size(CASTLE_SIZE.dp),
@@ -128,7 +154,7 @@ fun TitleLogo(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
+        if (TitleDiag.on(TitleDiag.CROWN)) Box(
             Modifier.drawBehind {
                 val c = Offset(size.width / 2, size.height / 2)
                 drawCircle(
@@ -149,7 +175,7 @@ fun TitleLogo(
             )
         Box(contentAlignment = Alignment.Center) {
             // 縁取り（太い暗い線）→ 金の面、の順に重ねる
-            Text(
+            if (TitleDiag.on(TitleDiag.OUTLINE)) Text(
                 name,
                 style =
                     base.copy(
@@ -160,21 +186,25 @@ fun TitleLogo(
                 maxLines = 1,
                 softWrap = false,
             )
-            Text(
-                name,
-                style =
-                    base.copy(
-                        brush =
-                            Brush.verticalGradient(
-                                listOf(Color(0xFFFFFBE0), Cf.GoldHi, Cf.Gold, Color(0xFFE89A1C), Color(0xFFFFE08A)),
-                            ),
-                    ),
-                maxLines = 1,
-                softWrap = false,
-            )
+            if (TitleDiag.on(TitleDiag.GOLD_TEXT)) {
+                Text(
+                    name,
+                    style =
+                        base.copy(
+                            brush =
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFFFFFBE0), Cf.GoldHi, Cf.Gold, Color(0xFFE89A1C), Color(0xFFFFE08A)),
+                                ),
+                        ),
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            } else {
+                Text(name, color = Cf.Ivory, fontSize = 40.sp, maxLines = 1, softWrap = false)
+            }
         }
         // 題字の下の飾り線
-        Box(
+        if (TitleDiag.on(TitleDiag.FLOURISH)) Box(
             Modifier
                 .padding(top = 2.dp)
                 .size(width = 220.dp, height = 12.dp)
