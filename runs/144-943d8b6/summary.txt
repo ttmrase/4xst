@@ -1,0 +1,185 @@
+run: 144
+commit: 943d8b68c9f6a0bde71fcdc30a3cc14af73403e0
+job status: success
+images: 129
+bytes: 5835937
+actions: https://github.com/ttmrase/4xst/actions/runs/43622882793
+--- result ---
+gradle exit status: 0
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 0/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 2/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 3/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 4/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 5/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 7/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 8/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 9/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 10/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 11/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 13/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 14/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 15/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 16/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 17/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 19/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 20/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 21/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 22/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 23/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 24/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 25/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 26/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 27/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 28/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 30/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 31/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 32/36 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 34/36 completed. (0 skipped) (0 failed)
+--- per test (androidTest-results xml) ---
+PASS BuilderUnlockUiTest.secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups
+PASS BuilderUnlockUiTest.barracksShowsTheTroopIcons
+PASS FeatureUnlockUiTest.theShopShowsLockCardsForTheWheelAndThePiggyBankAtCastleLevelFour
+PASS FeatureUnlockUiTest.backSkipsTheWholeCeremonyAndTheAllianceUnlocksAtLevelFour
+PASS FeatureUnlockUiTest.theFirstCastleUpgradeOfAFreshGameShowsItsDuration
+PASS FeatureUnlockUiTest.theLevelThreeUnlockCeremonyAndTheFirstUseRewardAreClaimedOnce
+PASS FeatureUnlockUiTest.settingsShowsTheLockCardBelowLevelFour
+PASS FeatureUnlockUiTest.freshStartShowsLocksAndEveryLockedTabAnswersAndBackWorks
+PASS HarvestSoundUiTest.theCastleLevelUpCeremonyShowsTheNewLevelAndWhatItUnlocks
+PASS HarvestSoundUiTest.tappingAHarvestBubbleCollectsItAndFliesToTheHud
+PASS HarvestSoundUiTest.settingsShowTheSoundAndTitleSections
+PASS HarvestSoundUiTest.theChestCeremonyShowsItsStages
+PASS LaunchSmokeTest.titleScreenAppearsAndCanBeCaptured
+PASS NavUiTest.cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks
+PASS PerfUiTest.lateGameCityPanFrameTimesAndSpriteMemory
+PASS PortraitUiTest.chatAndDmShowTheAvatars
+PASS PortraitUiTest.heroListAndDetailShowThePortraitsWithRarityFrames
+PASS PortraitUiTest.allianceMembersAndSettingsAvatarPickerShowThePortraits
+PASS SeederSmokeTest.seededRichCastleReachesTheSession
+PASS ShopVipUiTest.offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured
+PASS ShopVipUiTest.vipCinematicAndRewardDialogCloseWithBack
+PASS ShopVipUiTest.raidBannerAndSettingsAreCaptured
+PASS SkinMapUiTest.theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview
+PASS SkinMapUiTest.theLuckyBagTenPullShowsItsResult
+PASS SkinMapUiTest.theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot
+PASS SkinMapUiTest.worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook
+PASS SkinMapUiTest.equippedCastleSkinsChangeTheCityAndTheMapAndChat
+PASS SummonUiTest.ritualStagesAndTheTenRollListAreCaptured
+PASS SummonUiTest.tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce
+PASS TerritoryUiTest.tutorialBannerSteps
+PASS TerritoryUiTest.territoryScreenshotsForRichLateAndBuildingStates
+PASS TerritoryUiTest.panAndPinchOnTheTerritoryDoNotCrash
+PASS ZzTitleDiagTest.eachTitlePartRendersWithoutKillingTheDevice
+PASS ZzTitleDiagTest.coldAll
+PASS BackPressInstrumentedTest.systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups
+PASS BackPressInstrumentedTest.systemBackClosesTheBillingSheetBeforeAnyPayment
+--- TestRunner (started / finished / failed) ---
+11-14 17:57:22.706 heroListAndDetailShowThePortraitsWithRarityFrames(com.ttmrase.crownfall.PortraitUiTest)
+11-14 17:57:23.404 allianceMembersAndSettingsAvatarPickerShowThePortraits(com.ttmrase.crownfall.PortraitUiTest)
+11-14 17:57:30.839 allianceMembersAndSettingsAvatarPickerShowThePortraits(com.ttmrase.crownfall.PortraitUiTest)
+11-14 17:57:31.320 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+11-14 17:57:33.217 seededRichCastleReachesTheSession(com.ttmrase.crownfall.SeederSmokeTest)
+11-14 17:57:33.222 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 17:57:50.487 offerPopupAndShopTabsAndPurchaseCelebrationAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 17:57:51.422 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 17:58:05.535 vipCinematicAndRewardDialogCloseWithBack(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 17:58:05.977 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 17:58:11.805 raidBannerAndSettingsAreCaptured(com.ttmrase.crownfall.ShopVipUiTest)
+11-14 17:58:12.334 theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 17:58:24.566 theSkinsTabShowsTheWeeklyLimitedTheBagAndThePreview(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 17:58:25.299 theLuckyBagTenPullShowsItsResult(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 17:58:32.372 theLuckyBagTenPullShowsItsResult(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 17:58:33.187 theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 17:58:46.819 theSnowDesertRiverAndTheOwnersOfTheCastlesAreShot(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 17:58:47.418 worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 17:59:02.211 worldMapAtThreeZoomsWithAMarchingTroopAndTheNightLook(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 17:59:03.275 equippedCastleSkinsChangeTheCityAndTheMapAndChat(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 17:59:37.583 equippedCastleSkinsChangeTheCityAndTheMapAndChat(com.ttmrase.crownfall.SkinMapUiTest)
+11-14 17:59:38.169 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+11-14 17:59:46.904 ritualStagesAndTheTenRollListAreCaptured(com.ttmrase.crownfall.SummonUiTest)
+11-14 17:59:47.528 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+11-14 17:59:55.603 tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce(com.ttmrase.crownfall.SummonUiTest)
+11-14 17:59:56.050 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 18:00:03.755 tutorialBannerSteps(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 18:00:04.203 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 18:00:24.768 territoryScreenshotsForRichLateAndBuildingStates(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 18:00:25.190 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 18:00:32.015 panAndPinchOnTheTerritoryDoNotCrash(com.ttmrase.crownfall.TerritoryUiTest)
+11-14 18:00:32.639 eachTitlePartRendersWithoutKillingTheDevice(com.ttmrase.crownfall.ZzTitleDiagTest)
+11-14 18:01:19.965 eachTitlePartRendersWithoutKillingTheDevice(com.ttmrase.crownfall.ZzTitleDiagTest)
+11-14 18:01:19.969 coldAll(com.ttmrase.crownfall.ZzTitleDiagTest)
+11-14 18:01:24.832 coldAll(com.ttmrase.crownfall.ZzTitleDiagTest)
+11-14 18:01:24.840 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-14 18:01:28.162 systemBackClosesTheOfferPopupAndStopsTheRestOfTheSessionsAutoPopups(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-14 18:01:28.168 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-14 18:01:31.180 systemBackClosesTheBillingSheetBeforeAnyPayment(com.ttmrase.crownfall.ui.BackPressInstrumentedTest)
+11-14 18:01:31.227 36 tests, 0 failed, 0 ignored
+--- perf (logcat CrownfallPerf) ---
+city LATE_GAME idle 5s: frames=6 p50=185.5ms p95=200.1ms p99=200.1ms max=233.5ms janky(>16.7ms)=6 (100.0%)
+city LATE_GAME pan+pinch 10s: frames=51 p50=405.2ms p95=555.6ms p99=596.8ms max=633.5ms janky(>16.7ms)=51 (100.0%)
+memory: spriteCache=31.3MB/87 sprites pss=215MB javaHeap=35MB
+shop list scroll 5s: frames=24 p50=343.5ms p95=433.5ms p99=434.6ms max=817.3ms janky(>16.7ms)=24 (100.0%)
+--- instrumentation results ---
+Starting 36 tests on emulator-5554 - 14
+Finished 36 tests on emulator-5554 - 14
+--- device state at the end ---
+List of devices attached
+emulator-5554	device
+
+2497 /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node /home/runner/work/_actions/reactivecircus/andr
+2783 /usr/local/lib/android/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headless -port 5554 -avd test -no-snapshot
+2787 /usr/local/lib/android/sdk/emulator/crashpad_handler --no-rate-limit --database=/tmp/android-runner/emu-crash-37.2.
+--- crash / ANR lines (live logcat, warnings and above) ---
+--- title diagnostics (CrownfallDiag) ---
+11-14 18:00:32.641 W/CrownfallDiag( 7911): title part BEGIN none mask=0
+11-14 18:00:37.308 W/CrownfallDiag( 7911): title part OK none
+11-14 18:00:37.308 W/CrownfallDiag( 7911): title part BEGIN flourish mask=128
+11-14 18:00:41.833 W/CrownfallDiag( 7911): title part OK flourish
+11-14 18:00:41.833 W/CrownfallDiag( 7911): title part BEGIN gold_text mask=64
+11-14 18:00:46.741 W/CrownfallDiag( 7911): title part OK gold_text
+11-14 18:00:46.741 W/CrownfallDiag( 7911): title part BEGIN crown mask=16
+11-14 18:00:51.667 W/CrownfallDiag( 7911): title part OK crown
+11-14 18:00:51.667 W/CrownfallDiag( 7911): title part BEGIN castle mask=8
+11-14 18:00:55.826 W/CrownfallDiag( 7911): title part OK castle
+11-14 18:00:55.826 W/CrownfallDiag( 7911): title part BEGIN sparks mask=2
+11-14 18:01:01.291 W/CrownfallDiag( 7911): title part OK sparks
+11-14 18:01:01.291 W/CrownfallDiag( 7911): title part BEGIN rays mask=4
+11-14 18:01:05.868 W/CrownfallDiag( 7911): title part OK rays
+11-14 18:01:05.869 W/CrownfallDiag( 7911): title part BEGIN scene mask=1
+11-14 18:01:10.634 W/CrownfallDiag( 7911): title part OK scene
+11-14 18:01:10.637 W/CrownfallDiag( 7911): title part BEGIN outline mask=32
+11-14 18:01:15.329 W/CrownfallDiag( 7911): title part OK outline
+11-14 18:01:15.329 W/CrownfallDiag( 7911): title part BEGIN all mask=255
+11-14 18:01:19.940 W/CrownfallDiag( 7911): title part OK all
+11-14 18:01:20.000 W/CrownfallDiag( 7911): title part BEGIN cold all mask=255
+11-14 18:01:24.820 W/CrownfallDiag( 7911): title part OK cold all
+--- last lines before the stream ended ---
+11-14 18:01:31.761 W/A       ( 1679): Routing took 0 ms
+11-14 18:01:31.783 W/ActivityManager(  518): setHasOverlayUi called on unknown pid: 7911
+11-14 18:01:31.787 W/A       ( 1679): Missing generator mapping for generator GENERATOR_CONTEXTUAL_SUGGESTIONS
+11-14 18:01:31.788 W/A       ( 1679): Missing generator mapping for generator GENERATOR_FRE_SUGGESTIONS_ON_TIMEOUT
+11-14 18:01:31.788 W/A       ( 1679): Missing generator mapping for generator GENERATOR_FRE_SUGGESTIONS_ON_INVOCATION
+11-14 18:01:31.850 W/ActivityManager(  518): Unable to start service Intent { cmp=com.google.android.apps.tachyon/.clientapi.ClientApiService } U=0: not found
+11-14 18:01:31.851 W/A       ( 1798): UiCallbackStub-onGenericEvent[ServiceEvent = 241] task was not run. Callback from Service received after client was disposed.
+11-14 18:01:31.851 W/A       ( 1798): UiCallbackStub-onGenericEvent[ServiceEvent = 241] task was not run. Callback from Service received after client was disposed.
+11-14 18:01:31.853 W/A       ( 1798): UiCallbackStub-onGenericEvent[ServiceEvent = 60] task was not run. Callback from Service received after client was disposed.
+11-14 18:01:32.754 E/TaskPersister(  518): File error accessing recents directory (directory doesn't exist?).
+11-14 18:01:33.048 W/adbd    (  416): timeout expired while flushing socket, closing
+11-14 18:01:33.218 W/logd    (    0): SocketClient: write error (Broken pipe)
+--- main thread of the app (ANR trace) ---
+--- cold start probe (title parts, new process each) ---
+host memory before: used 5319 MB, available 10663 MB
+cold start mask=0 device=device app_pid=6126 host_available_mb=6757
+cold start mask=128 device=device app_pid=6332 host_available_mb=6758
+cold start mask=64 device=device app_pid=6495 host_available_mb=6724
+cold start mask=16 device=device app_pid=6675 host_available_mb=6651
+cold start mask=8 device=device app_pid=6828 host_available_mb=6654
+cold start mask=2 device=device app_pid=6978 host_available_mb=6655
+cold start mask=4 device=device app_pid=7129 host_available_mb=6645
+cold start mask=1 device=device app_pid=7280 host_available_mb=6625
+cold start mask=32 device=device app_pid=7425 host_available_mb=6601
+cold start mask=255 device=device app_pid=7583 host_available_mb=6601
+instrumented cold start, all parts: device=device OK (1 test) 
+host memory after: used 9957 MB, available 6025 MB
+--- host kernel: out-of-memory kills ---
