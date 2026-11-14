@@ -14,6 +14,7 @@ import com.ttmrase.crownfall.data.Startup
 import com.ttmrase.crownfall.debug.DebugStateSeeder
 import com.ttmrase.crownfall.notify.NotificationPrefs
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * 実アプリ（MainActivity）をエミュレータで動かす androidTest の共通部品。DebugStateSeeder で状態を作り、
@@ -34,13 +35,30 @@ class AppHarness(private val rule: ComposeTestRule) {
     /** 実行中のセッションの状態を直接書き換える（シードでは足りない細かい前提を作る）。 */
     fun update(block: (GameState) -> GameState) {
         val ready = app.container.repository.startup.value as Startup.Ready
-        runBlocking { ready.session.dispatch { s -> ActionResult.Success(block(s), tracked = true) } }
+        bounded("update the session state") {
+            ready.session.dispatch { s -> ActionResult.Success(block(s), tracked = true) }
+        }
+    }
+
+    /**
+     * テストのスレッドで待つ処理には上限を付ける。上限が無いと、何かの取り合いで止まったときに 20 分の時間切れまで
+     * 固まり、どこで止まったかも分からない（ui run 145）。時間切れなら、何を待っていたかを添えて失敗させる。
+     */
+    private fun bounded(
+        what: String,
+        block: suspend () -> Unit,
+    ) {
+        runBlocking {
+            checkNotNull(withTimeoutOrNull(BOUNDED_WAIT_MS) { block() }) {
+                "timed out after ${BOUNDED_WAIT_MS / 1000} s waiting to $what"
+            }
+        }
     }
 
     fun seed(preset: DebugStateSeeder.Preset) {
         // チュートリアル完了のシードで通知権限のシステムダイアログが出て、以降のテストがフォーカスを失うのを防ぐ
         NotificationPrefs(context).permissionAsked = true
-        runBlocking { DebugStateSeeder.seed(app.container, preset) }
+        bounded("seed the ${preset.name} state") { DebugStateSeeder.seed(app.container, preset) }
         // 決済の「エラー: もう一度お試しください」演出は 2% で乱数で出る（設計どおり）。テストが不安定にならないよう切る
         update { s -> s.copy(shop = s.shop.copy(settings = s.shop.settings.copy(errorAnimation = false))) }
     }
@@ -127,5 +145,9 @@ class AppHarness(private val rule: ComposeTestRule) {
             Screenshots.save("FAIL_$name")
             throw t
         }
+    }
+
+    private companion object {
+        const val BOUNDED_WAIT_MS = 60_000L
     }
 }
