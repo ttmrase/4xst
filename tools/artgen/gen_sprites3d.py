@@ -48,7 +48,7 @@ class Tier:
         self.slit = r3.m_glow("#FFC65A", bars=False)
         if t == 1:
             self.base = r3.m_rubble("#9C9486")
-            self.roof = r3.m_thatch("#A68C62")
+            self.roof = r3.m_thatch("#96846A")                 # weathered straw: calm, greyer than the plank walls
             self.trim = r3.m_planks("#6B4426", 0.2, seed=23)
             self.pad = r3.m_ground("dirt", "#8C7A60")
             self.curtain = r3.m_planks("#84583A", 0.14, seed=24, relief=0.5)
@@ -72,7 +72,8 @@ class Tier:
             self.curtain = r3.m_stone("#D0C9B9", course=5.4, joint=0.32, var=0.07)
         else:
             self.base = r3.m_marble("#8F8672", veins=0.3, seed=9)
-            self.roof = r3.m_tiles("#C27D16", kind="scale", width=3.2, spec=0.6, metal=0.14, var=0.12)
+            # amber gold.  Keep spec / metal low: a strong sheen bleaches the big lit roof planes to lemon yellow at 1x
+            self.roof = r3.m_tiles("#B8700F", kind="scale", width=3.2, spec=0.3, metal=0.08, var=0.12)
             self.trim = self.gold
             self.pad = r3.m_ground("marble", "#AEA592")
             self.curtain = r3.m_marble("#D9D0BD", seed=8)

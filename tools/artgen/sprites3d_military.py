@@ -986,7 +986,7 @@ class Skin(Tier):
             self.glow = r3.m_glow("#FFE9A0", power=1.9)
             self.door = r3.m_planks("#6A2A1E", 0.14, seed=22, var=0.1)
             self.base = m_block("#8A5A1C", "#4E300A", course=4.4, seed=78, spec=0.8, metal=0.22)
-            self.roof = r3.m_tiles("#C88214", kind="scale", width=2.8, row=2.8, spec=0.75, metal=0.22, var=0.1)
+            self.roof = r3.m_tiles("#BC760F", kind="scale", width=2.8, row=2.8, spec=0.35, metal=0.10, var=0.1)
             self.trim = r3.m_marble("#F1E9D8", veins=0.2, seed=79)
             self.pad = r3.m_ground("marble", "#6B3A46")
             self.curtain = m_block("#B27A1E", "#6A420C", course=4.6, seed=80, spec=0.9, metal=0.22, var=0.08) if t >= 2 else r3.m_gold("#D29A28", 0.2)
