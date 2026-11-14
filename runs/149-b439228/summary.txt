@@ -1,0 +1,45 @@
+run: 149
+commit: b4392282d06a5b62149dac467e191767f089e234
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/43625529086
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 0/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 1/34 completed. (0 skipped) (1 failed)
+Tests on emulator-5554 - 14 failed: There was 1 failure(s).
+Test run failed to complete. Expected 34 tests, received 0
+> Task :app:connectedDebugAndroidTest FAILED
+> There were failing tests. See the report at: file:///home/runner/work/4xst/4xst/app/build/reports/androidTests/connected/debug/index.html
+--- per test (androidTest-results xml) ---
+FAIL BuilderUnlockUiTest.secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups
+--- TestRunner (started / finished / failed) ---
+11-14 18:37:28.482 34 tests
+11-14 18:37:28.487 secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups(com.ttmrase.crownfall.BuilderUnlockUiTest)
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
+Starting 34 tests on emulator-5554 - 14
+Finished 1 tests on emulator-5554 - 14
+--- device state at the end ---
+List of devices attached
+
+2499 /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node /home/runner/work/_actions/reactivecircus/andr
+--- crash / ANR lines (live logcat, warnings and above) ---
+11-14 18:33:43.972 E/ActivityManager(  518): ANR in com.google.android.apps.nexuslauncher (com.google.android.apps.nexuslauncher/.NexusLauncherActivity)
+--- last lines before the stream ended ---
+11-14 18:37:44.362 W/System  ( 6281): A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+11-14 18:37:44.362 W/System  ( 6281): java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+11-14 18:37:44.362 W/System  ( 6281): 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+11-14 18:37:44.362 W/System  ( 6281): 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+11-14 18:37:44.362 W/System  ( 6281): 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+11-14 18:37:44.999 W/WindowOnBackDispatcher( 6305): sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@60415ef
+11-14 18:37:45.091 W/InputManager-JNI(  518): Input channel object 'e793087 com.ttmrase.crownfall/com.ttmrase.crownfall.MainActivity (client)' was disposed without first being removed with the input m
+11-14 18:37:45.115 W/WindowOnBackDispatcher( 6305): OnBackInvokedCallback is not enabled for the application.
+11-14 18:37:45.115 W/WindowOnBackDispatcher( 6305): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+11-14 18:37:45.174 W/WindowOnBackDispatcher( 6305): OnBackInvokedCallback is not enabled for the application.
+11-14 18:37:45.174 W/WindowOnBackDispatcher( 6305): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+11-14 18:37:46.462 W/mrase.crownfall( 6305): Cleared Reference was only reachable from finalizer (only reported once)
+--- main thread of the app (ANR trace) ---
