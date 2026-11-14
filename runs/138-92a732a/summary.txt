@@ -1,0 +1,177 @@
+run: 138
+commit: 92a732a5cbf0585c4452f79a15fe9b71ae1cbde9
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/43618248993
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 0/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 1/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 2/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 3/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 5/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 7/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 8/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 9/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 11/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 13/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 14/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 15/34 completed. (0 skipped) (1 failed)
+Tests on emulator-5554 - 14 failed: There was 1 failure(s).
+> Task :app:connectedDebugAndroidTest FAILED
+Test run failed to complete. Expected 34 tests, received 14
+> There were failing tests. See the report at: file:///home/runner/work/4xst/4xst/app/build/reports/androidTests/connected/debug/index.html
+--- per test (androidTest-results xml) ---
+PASS BuilderUnlockUiTest.secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups
+PASS BuilderUnlockUiTest.barracksShowsTheTroopIcons
+PASS FeatureUnlockUiTest.theShopShowsLockCardsForTheWheelAndThePiggyBankAtCastleLevelFour
+PASS FeatureUnlockUiTest.backSkipsTheWholeCeremonyAndTheAllianceUnlocksAtLevelFour
+PASS FeatureUnlockUiTest.theFirstCastleUpgradeOfAFreshGameShowsItsDuration
+PASS FeatureUnlockUiTest.theLevelThreeUnlockCeremonyAndTheFirstUseRewardAreClaimedOnce
+PASS FeatureUnlockUiTest.settingsShowsTheLockCardBelowLevelFour
+PASS FeatureUnlockUiTest.freshStartShowsLocksAndEveryLockedTabAnswersAndBackWorks
+PASS HarvestSoundUiTest.theCastleLevelUpCeremonyShowsTheNewLevelAndWhatItUnlocks
+PASS HarvestSoundUiTest.tappingAHarvestBubbleCollectsItAndFliesToTheHud
+PASS HarvestSoundUiTest.settingsShowTheSoundAndTitleSections
+PASS HarvestSoundUiTest.theChestCeremonyShowsItsStages
+PASS LaunchSmokeTest.titleScreenAppearsAndCanBeCaptured
+PASS NavUiTest.cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks
+FAIL PerfUiTest.lateGameCityPanFrameTimesAndSpriteMemory
+--- TestRunner (started / finished / failed) ---
+11-14 17:03:31.196 34 tests
+11-14 17:03:31.199 secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups(com.ttmrase.crownfall.BuilderUnlockUiTest)
+11-14 17:03:48.870 secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups(com.ttmrase.crownfall.BuilderUnlockUiTest)
+11-14 17:03:50.063 barracksShowsTheTroopIcons(com.ttmrase.crownfall.BuilderUnlockUiTest)
+11-14 17:03:54.716 barracksShowsTheTroopIcons(com.ttmrase.crownfall.BuilderUnlockUiTest)
+11-14 17:03:55.304 theShopShowsLockCardsForTheWheelAndThePiggyBankAtCastleLevelFour(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:08.607 theShopShowsLockCardsForTheWheelAndThePiggyBankAtCastleLevelFour(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:09.072 backSkipsTheWholeCeremonyAndTheAllianceUnlocksAtLevelFour(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:23.123 backSkipsTheWholeCeremonyAndTheAllianceUnlocksAtLevelFour(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:24.151 theFirstCastleUpgradeOfAFreshGameShowsItsDuration(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:26.983 theFirstCastleUpgradeOfAFreshGameShowsItsDuration(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:27.706 theLevelThreeUnlockCeremonyAndTheFirstUseRewardAreClaimedOnce(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:42.415 theLevelThreeUnlockCeremonyAndTheFirstUseRewardAreClaimedOnce(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:43.140 settingsShowsTheLockCardBelowLevelFour(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:45.993 settingsShowsTheLockCardBelowLevelFour(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:46.437 freshStartShowsLocksAndEveryLockedTabAnswersAndBackWorks(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:55.225 freshStartShowsLocksAndEveryLockedTabAnswersAndBackWorks(com.ttmrase.crownfall.FeatureUnlockUiTest)
+11-14 17:04:55.658 theCastleLevelUpCeremonyShowsTheNewLevelAndWhatItUnlocks(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 17:05:04.826 theCastleLevelUpCeremonyShowsTheNewLevelAndWhatItUnlocks(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 17:05:05.324 tappingAHarvestBubbleCollectsItAndFliesToTheHud(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 17:05:13.821 tappingAHarvestBubbleCollectsItAndFliesToTheHud(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 17:05:14.303 settingsShowTheSoundAndTitleSections(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 17:05:20.255 settingsShowTheSoundAndTitleSections(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 17:05:20.717 theChestCeremonyShowsItsStages(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 17:05:32.929 theChestCeremonyShowsItsStages(com.ttmrase.crownfall.HarvestSoundUiTest)
+11-14 17:05:33.714 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+11-14 17:05:37.018 titleScreenAppearsAndCanBeCaptured(com.ttmrase.crownfall.LaunchSmokeTest)
+11-14 17:05:37.035 cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks(com.ttmrase.crownfall.NavUiTest)
+11-14 17:05:43.958 cityTabFromChatReturnsToTheCityAndAnotherTabAndBackWorks(com.ttmrase.crownfall.NavUiTest)
+11-14 17:05:44.671 lateGameCityPanFrameTimesAndSpriteMemory(com.ttmrase.crownfall.PerfUiTest)
+--- perf (logcat CrownfallPerf) ---
+city LATE_GAME idle 5s: frames=6 p50=150.2ms p95=166.9ms p99=166.9ms max=200.1ms janky(>16.7ms)=6 (100.0%)
+city LATE_GAME pan+pinch 10s: frames=57 p50=305.1ms p95=466.1ms p99=494.8ms max=516.8ms janky(>16.7ms)=57 (100.0%)
+memory: spriteCache=31.3MB/87 sprites pss=206MB javaHeap=24MB
+--- instrumentation results ---
+Starting 34 tests on emulator-5554 - 14
+Finished 15 tests on emulator-5554 - 14
+--- device state at the end ---
+List of devices attached
+
+3165 /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node /home/runner/work/_actions/reactivecircus/andr
+--- crash / ANR lines (live logcat, warnings and above) ---
+11-14 17:00:20.726 E/system_server(  519): No package ID 7f found for resource ID 0x7f041721.
+11-14 17:00:20.726 E/system_server(  519): No package ID 7f found for resource ID 0x7f0202f4.
+11-14 17:00:20.726 E/system_server(  519): No package ID 7f found for resource ID 0x7f040768.
+11-14 17:00:20.726 E/system_server(  519): No package ID 7f found for resource ID 0x7f0202f3.
+11-14 17:00:20.726 E/system_server(  519): No package ID 7f found for resource ID 0x7f040f6f.
+11-14 17:00:21.075 E/android.hardware.bluetooth.service.default(  379): Bluetooth remote service has died
+11-14 17:00:26.746 E/system_server(  519): No package ID 7f found for resource ID 0x7f0806ce.
+11-14 17:00:26.746 E/system_server(  519): No package ID 7f found for resource ID 0x7f140b31.
+11-14 17:00:26.746 E/system_server(  519): No package ID 7f found for resource ID 0x7f0806cc.
+11-14 17:00:26.746 E/system_server(  519): No package ID 7f found for resource ID 0x7f140af3.
+11-14 17:00:26.746 E/system_server(  519): No package ID 7f found for resource ID 0x7f0806d0.
+11-14 17:00:26.746 E/system_server(  519): No package ID 7f found for resource ID 0x7f140c3f.
+11-14 17:00:26.746 E/system_server(  519): No package ID 7f found for resource ID 0x7f0806ca.
+11-14 17:00:26.746 E/system_server(  519): No package ID 7f found for resource ID 0x7f140422.
+11-14 17:00:27.318 E/system_server(  519): No package ID 7f found for resource ID 0x7f08038b.
+11-14 17:00:27.318 E/system_server(  519): No package ID 7f found for resource ID 0x7f150be5.
+11-14 17:00:27.318 E/system_server(  519): No package ID 7f found for resource ID 0x7f150be5.
+11-14 17:00:27.318 E/system_server(  519): No package ID 7f found for resource ID 0x7f150be4.
+11-14 17:00:27.910 E/system_server(  519): No package ID 7f found for resource ID 0x7f080577.
+11-14 17:00:27.910 E/system_server(  519): No package ID 7f found for resource ID 0x7f140ba2.
+11-14 17:00:27.910 E/system_server(  519): No package ID 7f found for resource ID 0x7f080606.
+11-14 17:00:27.910 E/system_server(  519): No package ID 7f found for resource ID 0x7f141fd7.
+11-14 17:00:36.283 E/system_server(  519): No package ID 7f found for resource ID 0x7f08038b.
+11-14 17:00:36.283 E/system_server(  519): No package ID 7f found for resource ID 0x7f150be5.
+11-14 17:00:36.283 E/system_server(  519): No package ID 7f found for resource ID 0x7f150be5.
+11-14 17:00:36.283 E/system_server(  519): No package ID 7f found for resource ID 0x7f150be4.
+11-14 17:00:36.730 W/system_server(  519): Long monitor contention with owner binder:519_14 (2426) at boolean com.android.server.am.ActivityManagerService.unbindService(android.app.IServiceConnection)(ActivityManagerService.java:13426) wait
+11-14 17:00:36.782 E/system_server(  519): No package ID 7f found for resource ID 0x7f08060c.
+11-14 17:00:36.782 E/system_server(  519): No package ID 7f found for resource ID 0x7f15043b.
+11-14 17:00:37.107 E/system_server(  519): No package ID 7f found for resource ID 0x7f080107.
+11-14 17:00:37.107 E/system_server(  519): No package ID 7f found for resource ID 0x7f150560.
+11-14 17:00:43.697 W/system_server(  519): Long monitor contention with owner binder:519_1E (2724) at android.util.Pair com.android.server.am.ProcessList.getNumForegroundServices()(ProcessList.java:5416) waiters=0 in void com.android.server
+11-14 17:00:46.042 E/system_server(  519): No package ID 7f found for resource ID 0x7f080107.
+11-14 17:00:46.042 E/system_server(  519): No package ID 7f found for resource ID 0x7f150560.
+11-14 17:00:55.052 E/system_server(  519): No package ID 7f found for resource ID 0x7f080107.
+11-14 17:00:55.052 E/system_server(  519): No package ID 7f found for resource ID 0x7f150560.
+11-14 17:01:08.463 E/system_server(  519): No package ID 7f found for resource ID 0x7f080107.
+11-14 17:01:08.465 E/system_server(  519): No package ID 7f found for resource ID 0x7f150560.
+11-14 17:01:51.170 E/system_server(  519): No package ID 7f found for resource ID 0x7f080107.
+11-14 17:01:51.170 E/system_server(  519): No package ID 7f found for resource ID 0x7f150560.
+11-14 17:02:01.213 E/system_server(  519): No package ID 7f found for resource ID 0x7f080107.
+11-14 17:02:01.213 E/system_server(  519): No package ID 7f found for resource ID 0x7f150560.
+11-14 17:03:28.168 W/binder:519_10(  519): type=1400 audit(0.0:180): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 17:03:28.168 W/binder:519_10(  519): type=1400 audit(0.0:181): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 17:03:28.168 W/binder:519_10(  519): type=1400 audit(0.0:182): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 17:03:28.644 W/binder:519_10(  519): type=1400 audit(0.0:183): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 17:03:28.644 W/binder:519_10(  519): type=1400 audit(0.0:184): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 17:03:29.184 W/binder:519_1A(  519): type=1400 audit(0.0:197): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 17:03:29.184 W/binder:519_1A(  519): type=1400 audit(0.0:198): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 17:03:29.184 W/binder:519_1A(  519): type=1400 audit(0.0:199): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 17:03:31.596 W/system_server(  519): Long monitor contention with owner appscheduling.default (599) at int com.android.server.am.ActivityManagerService.bindServiceInstance(android.app.IApplicationThread, android.os.IBinder, android.co
+11-14 17:03:49.491 W/system_server(  519): Long monitor contention with owner android.anim (542) at void com.android.server.wm.WindowSurfacePlacer$Traverser.run()(WindowSurfacePlacer.java:58) waiters=0 in void com.android.server.wm.Activity
+11-14 17:04:27.341 W/system_server(  519): Long monitor contention with owner android.anim (542) at void com.android.server.wm.WindowSurfacePlacer$Traverser.run()(WindowSurfacePlacer.java:58) waiters=0 in void com.android.server.wm.WindowMa
+11-14 17:04:27.352 W/system_server(  519): Long monitor contention with owner android.anim (542) at void com.android.server.wm.WindowAnimator.lambda$new$1(long)(WindowAnimator.java:103) waiters=1 in void com.android.server.wm.WindowManagerS
+11-14 17:05:33.278 W/system_server(  519): Long monitor contention with owner android.anim (542) at void com.android.server.wm.WindowSurfacePlacer$Traverser.run()(WindowSurfacePlacer.java:58) waiters=0 in void com.android.server.wm.WindowMa
+11-14 17:05:33.285 W/system_server(  519): Long monitor contention with owner android.anim (542) at void com.android.server.wm.WindowSurfacePlacer$Traverser.run()(WindowSurfacePlacer.java:58) waiters=2 in void com.android.server.wm.WindowMa
+11-14 17:05:40.413 E/system_server(  519): No package ID 7f found for resource ID 0x7f080107.
+11-14 17:05:40.413 E/system_server(  519): No package ID 7f found for resource ID 0x7f150560.
+11-14 17:05:50.056 E/system_server(  519): No package ID 7f found for resource ID 0x7f080107.
+11-14 17:05:50.056 E/system_server(  519): No package ID 7f found for resource ID 0x7f150560.
+--- last lines before the stream ended ---
+11-14 17:05:46.276 W/MediaPlayer( 6231): mediaplayer went away with unhandled events
+11-14 17:05:46.303 E/PersistableBundle(  396): Failed at frameworks/native/libs/binder/PersistableBundle.cpp:160 (erase)
+11-14 17:05:47.355 W/WindowOnBackDispatcher( 6231): sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@d81d21
+11-14 17:05:47.360 W/InputManager-JNI(  519): Input channel object 'f693fea com.ttmrase.crownfall/com.ttmrase.crownfall.MainActivity (client)' was disposed without first being removed with the input manager!
+11-14 17:05:47.905 W/AMessage(  474): failed to post message as target looper for handler 0 is gone.
+11-14 17:05:48.020 W/JobScheduler(  519): Job didn't exist in JobStore: d222081 #u0a155/7 com.google.android.contacts/com.google.android.apps.contacts.shortcut.ShortcutJobService
+11-14 17:05:48.678 E/TaskPersister(  519): File error accessing recents directory (directory doesn't exist?).
+11-14 17:05:49.013 W/JobScheduler(  519): Job didn't exist in JobStore: 8cfcb2f #u0a155/100008 com.google.android.contacts/androidx.work.impl.background.systemjob.SystemJobService
+11-14 17:05:50.056 E/system_server(  519): No package ID 7f found for resource ID 0x7f080107.
+11-14 17:05:50.056 E/system_server(  519): No package ID 7f found for resource ID 0x7f150560.
+11-14 17:05:50.531 W/ChimeraUtils( 5237): Module com.google.android.gms.nearby_en missing resource null(0)
+11-14 17:05:50.533 W/ChimeraUtils( 5237): Module com.google.android.gms.nearby_en missing resource null(0)
+11-14 17:05:51.780 W/ZappDownloader( 5310): No successful module downloads for requested features [vision.ocr].
+11-14 17:05:51.784 W/ChimeraConfigService( 5310): Retry attempt was throttled. [CONTEXT service_id=264 ]
+11-14 17:05:51.785 W/Vision  ( 5310): Request for optional module download of ocr failed. Request again.
+11-14 17:05:51.786 W/Vision  ( 5310): Would have logged:
+11-14 17:05:51.786 W/Vision  ( 5310): # dsae@37884fe7
+11-14 17:05:53.065 W/ProcessStats(  519): Tracking association SourceState{63e0c20 android.process.acore/10084 BFgs #13460} whose proc state 4 is better than process ProcessState{93a21d9 com.google.android.contacts/10155 pkg=com.google.andr
+11-14 17:05:55.473 W/A       ( 3530): Queue length for executor EventBus is now 11. Perhaps some tasks are too long, or the pool is too small.
+11-14 17:06:00.067 W/PageIndicator(  827): Total number of pages invalid: 0. Assuming 1 page.
+11-14 17:06:03.019 W/Codec2Client(  474): query -- param skipped: index = 1107298332.
+11-14 17:06:03.020 W/Codec2Client(  474): query -- param skipped: index = 1342179345.
+11-14 17:06:03.020 W/Codec2Client(  474): query -- param skipped: index = 2415921170.
+11-14 17:06:03.021 W/WindowOnBackDispatcher( 6231): OnBackInvokedCallback is not enabled for the application.
+11-14 17:06:03.021 W/WindowOnBackDispatcher( 6231): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+11-14 17:06:03.036 W/AudioFlinger(  396): createTrack_l(): mismatch between requested flags (00000008) and output flags (00000002)
+11-14 17:06:03.395 E/PersistableBundle(  396): Failed at frameworks/native/libs/binder/PersistableBundle.cpp:160 (erase)
+11-14 17:06:05.289 W/AMessage(  474): failed to post message as target looper for handler 0 is gone.
+11-14 17:06:05.429 W/MediaPlayer( 6231): mediaplayer went away with unhandled events
+11-14 17:06:05.430 W/MediaPlayer( 6231): mediaplayer went away with unhandled events
+--- main thread of the app (ANR trace) ---
