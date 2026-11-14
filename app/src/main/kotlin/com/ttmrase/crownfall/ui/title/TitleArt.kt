@@ -61,6 +61,9 @@ object TitleDiag {
     const val FLOURISH = 128
     const val ALL = 255
 
+    /** CI の起動直後の切り分けで、`am start --ei title_mask <n>` が渡す部品の選択。 */
+    const val EXTRA_MASK = "title_mask"
+
     @Volatile
     var mask: Int = if (underInstrumentation()) 0 else ALL
 
@@ -84,65 +87,77 @@ fun TitleBackdrop(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize()) {
         // 動かない景色（空・月・山並み・城下町・丘）は 1 度だけ画像に焼いて、毎フレームは貼るだけにする。
         // 毎フレーム描くのは、星のまたたきと火の粉だけ（自分の層の中）
-        if (TitleDiag.on(TitleDiag.SCENE)) Box(
-            Modifier.fillMaxSize().drawWithCache {
-                val w = size.width.toInt().coerceAtLeast(1)
-                val h = size.height.toInt().coerceAtLeast(1)
-                val still = ImageBitmap(w, h)
-                CanvasDrawScope().draw(this, layoutDirection, Canvas(still), size) {
-                    sky()
-                    moon()
-                    ridge(0.50f, 0.085f, 3.1f, 0.6f, Color(0xFF3A2F7A), Color(0xFF2A2362), 0f)
-                    mist(0.56f, Color(0x33FFB38A))
-                    ridge(0.58f, 0.07f, 4.3f, 2.1f, Color(0xFF241D58), Color(0xFF17143F), 0f)
-                    skyline(0.635f)
-                    mist(0.66f, Color(0x26FF9A6B))
-                    hill()
-                    vignette()
-                }
-                onDrawBehind { drawImage(still) }
-            },
-        )
-        if (TitleDiag.on(TitleDiag.SPARKS)) Canvas(Modifier.fillMaxSize().graphicsLayer()) {
-            val time = if (animate) t.value else 0.2f
-            stars(stars, time)
-            embers(embers, time)
+        if (TitleDiag.on(TitleDiag.SCENE)) {
+            Box(
+                Modifier.fillMaxSize().drawWithCache {
+                    val w = size.width.toInt().coerceAtLeast(1)
+                    val h = size.height.toInt().coerceAtLeast(1)
+                    val still = ImageBitmap(w, h)
+                    CanvasDrawScope().draw(this, layoutDirection, Canvas(still), size) {
+                        sky()
+                        moon()
+                        ridge(0.50f, 0.085f, 3.1f, 0.6f, Color(0xFF3A2F7A), Color(0xFF2A2362), 0f)
+                        mist(0.56f, Color(0x33FFB38A))
+                        ridge(0.58f, 0.07f, 4.3f, 2.1f, Color(0xFF241D58), Color(0xFF17143F), 0f)
+                        skyline(0.635f)
+                        mist(0.66f, Color(0x26FF9A6B))
+                        hill()
+                        vignette()
+                    }
+                    onDrawBehind { drawImage(still) }
+                },
+            )
+        }
+        if (TitleDiag.on(TitleDiag.SPARKS)) {
+            Canvas(Modifier.fillMaxSize().graphicsLayer()) {
+                val time = if (animate) t.value else 0.2f
+                stars(stars, time)
+                embers(embers, time)
+            }
         }
         // 丘の上の城（ゲーム内の最上段階の城のスプライト）と、その後ろでゆっくり回る光条
         Box(
             modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().offset(y = CASTLE_TOP.dp),
             contentAlignment = Alignment.TopCenter,
         ) {
-            if (TitleDiag.on(TitleDiag.RAYS)) Box(
-                Modifier
-                    .size(CASTLE_SIZE.dp)
-                    .graphicsLayer { rotationZ = if (animate) t.value * FULL_TURN * RAY_TURNS else 0f }
-                    .drawWithCache {
-                        val c = Offset(size.width / 2, size.height / 2)
-                        val r = size.width * 0.78f
-                        val rays = Path()
-                        for (i in 0 until RAYS) {
-                            val a0 = (2 * PI * i / RAYS).toFloat()
-                            val a1 = a0 + RAY_WIDTH
-                            rays.moveTo(c.x, c.y)
-                            rays.lineTo(c.x + r * cos(a0), c.y + r * sin(a0))
-                            rays.lineTo(c.x + r * cos(a1), c.y + r * sin(a1))
-                            rays.close()
-                        }
-                        val rayBrush = Brush.radialGradient(listOf(Color(0x40FFE9A8), Color.Transparent), c, r)
-                        val glow =
-                            Brush.radialGradient(listOf(Color(0x88FFD27A), Color(0x33FF8A4A), Color.Transparent), c, r)
-                        onDrawBehind {
-                            drawCircle(glow, r, c)
-                            drawPath(rays, rayBrush)
-                        }
-                    },
-            )
-            if (TitleDiag.on(TitleDiag.CASTLE)) Image(
-                painter = painterResource(R.drawable.bld_castle_t5),
-                contentDescription = null,
-                modifier = Modifier.size(CASTLE_SIZE.dp),
-            )
+            if (TitleDiag.on(TitleDiag.RAYS)) {
+                Box(
+                    Modifier
+                        .size(CASTLE_SIZE.dp)
+                        .graphicsLayer { rotationZ = if (animate) t.value * FULL_TURN * RAY_TURNS else 0f }
+                        .drawWithCache {
+                            val c = Offset(size.width / 2, size.height / 2)
+                            val r = size.width * 0.78f
+                            val rays = Path()
+                            for (i in 0 until RAYS) {
+                                val a0 = (2 * PI * i / RAYS).toFloat()
+                                val a1 = a0 + RAY_WIDTH
+                                rays.moveTo(c.x, c.y)
+                                rays.lineTo(c.x + r * cos(a0), c.y + r * sin(a0))
+                                rays.lineTo(c.x + r * cos(a1), c.y + r * sin(a1))
+                                rays.close()
+                            }
+                            val rayBrush = Brush.radialGradient(listOf(Color(0x40FFE9A8), Color.Transparent), c, r)
+                            val glow =
+                                Brush.radialGradient(
+                                    listOf(Color(0x88FFD27A), Color(0x33FF8A4A), Color.Transparent),
+                                    c,
+                                    r,
+                                )
+                            onDrawBehind {
+                                drawCircle(glow, r, c)
+                                drawPath(rays, rayBrush)
+                            }
+                        },
+                )
+            }
+            if (TitleDiag.on(TitleDiag.CASTLE)) {
+                Image(
+                    painter = painterResource(R.drawable.bld_castle_t5),
+                    contentDescription = null,
+                    modifier = Modifier.size(CASTLE_SIZE.dp),
+                )
+            }
         }
     }
 }
@@ -154,16 +169,18 @@ fun TitleLogo(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        if (TitleDiag.on(TitleDiag.CROWN)) Box(
-            Modifier.drawBehind {
-                val c = Offset(size.width / 2, size.height / 2)
-                drawCircle(
-                    Brush.radialGradient(listOf(Color(0x99FFD86A), Color.Transparent), c, size.width),
-                    size.width,
-                    c,
-                )
-            },
-        ) { GlyphIcon(Glyph.VIP, size = 64.dp) }
+        if (TitleDiag.on(TitleDiag.CROWN)) {
+            Box(
+                Modifier.drawBehind {
+                    val c = Offset(size.width / 2, size.height / 2)
+                    drawCircle(
+                        Brush.radialGradient(listOf(Color(0x99FFD86A), Color.Transparent), c, size.width),
+                        size.width,
+                        c,
+                    )
+                },
+            ) { GlyphIcon(Glyph.VIP, size = 64.dp) }
+        }
         val base =
             TextStyle(
                 fontFamily = CrownFonts.Numeric,
@@ -175,17 +192,23 @@ fun TitleLogo(
             )
         Box(contentAlignment = Alignment.Center) {
             // 縁取り（太い暗い線）→ 金の面、の順に重ねる
-            if (TitleDiag.on(TitleDiag.OUTLINE)) Text(
-                name,
-                style =
-                    base.copy(
-                        color = Color(0xFF2A1503),
-                        drawStyle = Stroke(width = OUTLINE_PX, join = androidx.compose.ui.graphics.StrokeJoin.Round),
-                        shadow = Shadow(Color(0xCC000000), Offset(0f, 8f), 14f),
-                    ),
-                maxLines = 1,
-                softWrap = false,
-            )
+            if (TitleDiag.on(TitleDiag.OUTLINE)) {
+                Text(
+                    name,
+                    style =
+                        base.copy(
+                            color = Color(0xFF2A1503),
+                            drawStyle =
+                                Stroke(
+                                    width = OUTLINE_PX,
+                                    join = androidx.compose.ui.graphics.StrokeJoin.Round,
+                                ),
+                            shadow = Shadow(Color(0xCC000000), Offset(0f, 8f), 14f),
+                        ),
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
             if (TitleDiag.on(TitleDiag.GOLD_TEXT)) {
                 Text(
                     name,
@@ -204,30 +227,32 @@ fun TitleLogo(
             }
         }
         // 題字の下の飾り線
-        if (TitleDiag.on(TitleDiag.FLOURISH)) Box(
-            Modifier
-                .padding(top = 2.dp)
-                .size(width = 220.dp, height = 12.dp)
-                .drawBehind {
-                    val cy = size.height / 2
-                    val line =
-                        Brush.horizontalGradient(
-                            listOf(Color.Transparent, Cf.Gold, Cf.GoldHi, Cf.Gold, Color.Transparent),
-                        )
-                    drawLine(line, Offset(0f, cy), Offset(size.width, cy), 1.6.dp.toPx())
-                    val d = 4.dp.toPx()
-                    val gem =
-                        Path().apply {
-                            moveTo(size.width / 2, cy - d)
-                            lineTo(size.width / 2 + d, cy)
-                            lineTo(size.width / 2, cy + d)
-                            lineTo(size.width / 2 - d, cy)
-                            close()
-                        }
-                    drawPath(gem, Cf.GoldHi)
-                    drawPath(gem, Cf.GoldDeep, style = Stroke(1.dp.toPx()))
-                },
-        )
+        if (TitleDiag.on(TitleDiag.FLOURISH)) {
+            Box(
+                Modifier
+                    .padding(top = 2.dp)
+                    .size(width = 220.dp, height = 12.dp)
+                    .drawBehind {
+                        val cy = size.height / 2
+                        val line =
+                            Brush.horizontalGradient(
+                                listOf(Color.Transparent, Cf.Gold, Cf.GoldHi, Cf.Gold, Color.Transparent),
+                            )
+                        drawLine(line, Offset(0f, cy), Offset(size.width, cy), 1.6.dp.toPx())
+                        val d = 4.dp.toPx()
+                        val gem =
+                            Path().apply {
+                                moveTo(size.width / 2, cy - d)
+                                lineTo(size.width / 2 + d, cy)
+                                lineTo(size.width / 2, cy + d)
+                                lineTo(size.width / 2 - d, cy)
+                                close()
+                            }
+                        drawPath(gem, Cf.GoldHi)
+                        drawPath(gem, Cf.GoldDeep, style = Stroke(1.dp.toPx()))
+                    },
+            )
+        }
     }
 }
 

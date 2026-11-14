@@ -8,9 +8,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import com.ttmrase.crownfall.core.map.WorldMap
+import com.ttmrase.crownfall.ui.territory.GroundTextures
 import com.ttmrase.crownfall.ui.territory.SpriteCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * ワールドマップの地面を 8×8 タイルのチャンクごとにビットマップへ焼いて貯める（M11 T11.4）。
+ * 地面は領地と同じテクスチャ（[GroundTextures]）で塗る（[MapGround]）。
  * 画面上のタイルの大きさに合わせて 12 / 32 / 64 / 96px の段階で焼く（12px は飾りなしの LOD）。
  * 焼くのはバックグラウンド。まだ無いチャンクは null を返し、焼けたら [version] を進めて再描画させる。
  * 容量は [maxBytes]（アクセス順の LRU。既定 32MB。スプライトの 56MB とは別に、マップ画面を開いている間だけ使う）。
@@ -27,6 +30,7 @@ internal class MapChunkCache(
     private val world: WorldMap,
     private val seed: Long,
     private val scope: CoroutineScope,
+    private val textures: GroundTextures,
     private val sprites: SpriteCache? = null,
     private val maxBytes: Long = DEFAULT_MAX_BYTES,
 ) {
@@ -56,8 +60,8 @@ internal class MapChunkCache(
     private fun spritesReady(): Boolean {
         if (spritesLoaded) return true
         val sp = sprites ?: return true
-        // 全部を読み込み要求に出してから、揃ったか見る
-        val ready = MapArt.BAKE_SPRITES.map { sp.get(it) != null }.all { it }
+        // 全部を読み込み要求に出してから、揃ったか見る（読めないと分かったスプライトは待たない。地面まで焼けなくなる）
+        val ready = MapArt.BAKE_SPRITES.map { sp.settled(it) }.all { it }
         if (ready) spritesLoaded = true
         return ready
     }
@@ -116,11 +120,17 @@ internal class MapChunkCache(
         cy: Int,
         px: Int,
     ): ImageBitmap {
-        val side = MapArt.CHUNK * px
+        // まわりに APRON px の縁をつけて焼く（縁には隣のチャンクと同じ絵が入る）。貼るときは縁を除いた範囲を使うので、
+        // 拡大のぼかしが縁の画素を拾い、テクスチャの地面でもチャンクの継ぎ目に線が出ない
+        val side = MapArt.CHUNK * px + 2 * APRON
         val image = ImageBitmap(side, side)
         val scopeDraw = CanvasDrawScope()
         scopeDraw.draw(Density(1f), LayoutDirection.Ltr, Canvas(image), Size(side.toFloat(), side.toFloat())) {
-            with(MapArt) { drawChunk(world, cx, cy, px.toFloat(), seed, roads, px >= DETAIL_MIN_PX, sprites, river) }
+            translate(APRON.toFloat(), APRON.toFloat()) {
+                with(MapArt) {
+                    drawChunk(world, cx, cy, px.toFloat(), seed, roads, px >= DETAIL_MIN_PX, textures, sprites, river)
+                }
+            }
         }
         return image
     }
@@ -135,6 +145,9 @@ internal class MapChunkCache(
         /** 1 タイルの px の段階（低い → 高い）。画面上のタイルの大きさに合わせて選ぶ。 */
         val LEVELS = intArrayOf(12, 32, 64, 96)
         const val LO_PX = 12
+
+        /** 焼いた絵のまわりの縁（px）。貼る側は、この縁を除いた範囲を使う。 */
+        const val APRON = 1
 
         /** この px 以上で飾り（木・花・岩など）を焼く。 */
         const val DETAIL_MIN_PX = 32

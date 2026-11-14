@@ -417,9 +417,9 @@ def sand(n=256):
     warp = (fbm(n, 4, 2, 902) - 0.5) * 2.4
     ripple = 0.5 + 0.5 * np.sin((x + y) * (2 * math.pi * 14 / n) + warp * 2.5)
     fine = fbm(n, 64, 2, 903)
-    t = np.clip(0.5 + (dune - 0.5) * 0.9 + (ripple - 0.5) * 0.16 + (fine - 0.5) * 0.22, 0, 1)
+    t = np.clip(0.5 + (dune - 0.5) * 0.9 + (ripple - 0.5) * 0.07 + (fine - 0.5) * 0.22, 0, 1)
     col = ramp(t, [(0.0, "#B8935A"), (0.35, "#D0AD6E"), (0.65, "#E2C486"), (1.0, "#F2DCA4")])
-    height = dune * 1.4 + ripple * 0.16 + fine * 0.05
+    height = dune * 1.4 + ripple * 0.07 + fine * 0.05
     return finish(light(col, height, 10.0, ambient=0.6))
 
 

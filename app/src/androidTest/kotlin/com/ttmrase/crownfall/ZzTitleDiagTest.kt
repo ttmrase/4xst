@@ -44,6 +44,15 @@ class ZzTitleDiagTest {
         show("all", TitleDiag.ALL)
     }
 
+    /**
+     * 新しいプロセスの最初の描画で、タイトルを全部描く（もとの落ち方と同じ条件）。CI のスクリプトが、ほかのテストを終えて
+     * 成果物を集めたあとに、このテストだけを別の計測プロセスで走らせる。
+     */
+    @Test
+    fun coldAll() {
+        show("cold all", TitleDiag.ALL)
+    }
+
     private companion object {
         const val TAG = "CrownfallDiag"
         const val SHOW_MS = 3000L

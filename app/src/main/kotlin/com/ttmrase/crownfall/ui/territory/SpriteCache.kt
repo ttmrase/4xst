@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,28 +43,44 @@ internal class SpriteCache private constructor(
     private var bytes = 0L
     private val loading = ConcurrentHashMap.newKeySet<Int>()
 
+    /** 読み込めなかったもの（壊れた画像など）。描くたびに読み直しに行かない。 */
+    private val failed = ConcurrentHashMap.newKeySet<Int>()
+
     /** 読み込みが終わるたびに増える（描画が読んで再描画の目印にする）。 */
     var version by mutableIntStateOf(0)
         private set
 
     fun get(id: Int): Sprite? {
         synchronized(sprites) { sprites[id] }?.let { return it }
-        if (loading.add(id)) {
+        if (id !in failed && loading.add(id)) {
             scope.launch(Dispatchers.Default) {
-                val made = rasterize(id)
+                val made =
+                    try {
+                        rasterize(id)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Throwable) {
+                        null
+                    }
                 if (made != null) {
                     synchronized(sprites) {
                         sprites[id] = made
                         bytes += made.image.width.toLong() * made.image.height * BYTES_PER_PIXEL
                         trim()
                     }
+                } else {
+                    failed.add(id)
                 }
                 loading.remove(id)
-                if (made != null) version++
+                // 失敗でも進める（このスプライトを待っている側が、待つのをやめられる）
+                version++
             }
         }
         return null
     }
+
+    /** [id] の読み込みが済んだか（読めたか、読めないと分かったか）。済んでいなければ読み込みを始める。 */
+    fun settled(id: Int): Boolean = get(id) != null || id in failed
 
     /** ラスタライズ済みスプライトの実メモリ（byte）と枚数。性能の計測用。 */
     val usedBytes: Long get() = synchronized(sprites) { bytes }

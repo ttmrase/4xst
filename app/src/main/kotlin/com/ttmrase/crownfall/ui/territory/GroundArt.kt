@@ -41,7 +41,6 @@ internal class GroundTextures private constructor(context: Context) {
     private val res = context.applicationContext.resources
     private val tiles = HashMap<Int, GroundTexture>()
     private val sheets = HashMap<Int, Bitmap>()
-    private val tints = HashMap<String, GroundTexture>()
 
     /** 並べて使うテクスチャ（段階つき）。 */
     fun get(id: Int): GroundTexture =
@@ -57,32 +56,6 @@ internal class GroundTextures private constructor(context: Context) {
                 )
             }
         }
-
-    /**
-     * 色を変えた写し（領地のテーマの草など）。[key] ごとに 1 度だけ作る。
-     * 描くときに ColorFilter をかける代わりに、先に染めておく: 濃さの下絵（ALPHA_8）を Shader と ColorFilter の両方で
-     * 塗る組み合わせは、描画エンジンによっては絵が崩れる（Robolectric の描画で黒い帯になるのを確認した）。
-     */
-    fun tinted(
-        id: Int,
-        key: String,
-        filter: ColorFilter,
-    ): GroundTexture {
-        val source = get(id)
-        return synchronized(tints) {
-            tints.getOrPut(key) {
-                val paint = Paint().apply { colorFilter = filter }
-                GroundTexture(
-                    Array(source.levels.size) { k ->
-                        val from = source.levels[k]
-                        Bitmap.createBitmap(from.width, from.height, Bitmap.Config.ARGB_8888).also {
-                            Canvas(it).drawBitmap(from, 0f, 0f, paint)
-                        }
-                    },
-                )
-            }
-        }
-    }
 
     /** 切り出して使う絵（小物・山の絵のアトラス）。 */
     fun sheet(id: Int): Bitmap = synchronized(sheets) { sheets.getOrPut(id) { decode(id) } }
@@ -102,6 +75,25 @@ internal class GroundTextures private constructor(context: Context) {
         fun shared(context: Context): GroundTextures =
             instance ?: synchronized(this) { instance ?: GroundTextures(context).also { instance = it } }
     }
+}
+
+/** 濃さの配列（1 画素 1 byte、[w] x [h]）から ALPHA_8 のビットマップを作る。 */
+internal fun alphaBitmap(
+    w: Int,
+    h: Int,
+    data: ByteArray,
+): Bitmap {
+    val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ALPHA_8)
+    val row = bitmap.rowBytes
+    if (row == w) {
+        bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(data))
+    } else {
+        // 行の長さが幅と違う実装でも、行ごとに詰め直せば同じ絵になる
+        val padded = ByteArray(row * h)
+        for (y in 0 until h) System.arraycopy(data, y * w, padded, y * row, w)
+        bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(padded))
+    }
+    return bitmap
 }
 
 /**
@@ -150,9 +142,11 @@ internal class GroundArt private constructor(
         fun use(
             sc: Float,
             alpha: Int = OPAQUE,
+            filter: ColorFilter? = null,
         ): Paint {
             paint.shader = shaders[GroundPlan.textureLevel(ppu, sc)]
             paint.alpha = alpha
+            paint.colorFilter = filter
             return paint
         }
     }
@@ -215,11 +209,6 @@ internal class GroundArt private constructor(
     private val pending = ConcurrentHashMap.newKeySet<Int>()
     private val stones = arrayOfNulls<Material>(STONE_KINDS)
 
-    /** 領地のテーマで染めた草（春 / 秋）。そのテーマを初めて描くときに作る。 */
-    @Volatile private var springGrass: Material? = null
-
-    @Volatile private var autumnGrass: Material? = null
-
     private val shadePaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val decalPaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val scratch = Matrix()
@@ -256,10 +245,10 @@ internal class GroundArt private constructor(
         seconds: Float,
     ): Boolean {
         adopt(plan)
-        if (failed || sc > 0f) return false
+        if (failed) return false
         val base = this.base
         if (base == null) {
-            requestBase(plan)
+            if (!pending.contains(KEY_BASE)) requestBase(plan)
             return false
         }
         val to = band(plan, toBand)
@@ -274,7 +263,16 @@ internal class GroundArt private constructor(
         canvas.drawBitmap(base.forest.bitmap, base.forest.matrix, forestMaterial(base, winter).use(sc))
         canvas.restore()
         drawBand(canvas, base, main, sc, OPAQUE, season)
-        if (from != null && to != null) drawBand(canvas, base, to, sc, (ease * OPAQUE).toInt().coerceIn(0, OPAQUE), season)
+        if (from != null && to != null) {
+            drawBand(
+                canvas,
+                base,
+                to,
+                sc,
+                (ease * OPAQUE).toInt().coerceIn(0, OPAQUE),
+                season,
+            )
+        }
         if (settled) retain(toBand)
         drawRiver(canvas, base, sc, seconds)
         drawDecals(canvas, base, sc, ox, oy, viewW, viewH, fromBand, toBand, ease, moving, season)
@@ -287,18 +285,6 @@ internal class GroundArt private constructor(
         winter: Boolean,
     ): Material = if (winter) base.snow else base.forestFloor
 
-    /** 草地の絵の具。春と秋は染めた草（まだ無ければ作り始めて、できるまでは夏の草）、冬は雪。 */
-    private fun lawnMaterial(
-        base: BaseArt,
-        season: String?,
-    ): Material =
-        when (season) {
-            SEASON_WINTER -> base.snow
-            SEASON_SPRING -> springGrass ?: base.grass.also { requestSeason(KEY_SPRING) }
-            SEASON_AUTUMN -> autumnGrass ?: base.grass.also { requestSeason(KEY_AUTUMN) }
-            else -> base.grass
-        }
-
     /** 帯 1 つぶん: 草地 → 土 → 石畳 → 色むら。 */
     private fun drawBand(
         canvas: Canvas,
@@ -308,7 +294,15 @@ internal class GroundArt private constructor(
         alpha: Int,
         season: String?,
     ) {
-        canvas.drawBitmap(art.lawn.bitmap, art.lawn.matrix, lawnMaterial(base, season).use(sc, alpha))
+        // 領地のテーマ: 春は明るい若草、秋は枯れ草色（同じ草のテクスチャを色フィルタで染める）、冬は雪
+        val lawn =
+            when (season) {
+                SEASON_WINTER -> base.snow.use(sc, alpha)
+                SEASON_SPRING -> base.grass.use(sc, alpha, SPRING_GRASS)
+                SEASON_AUTUMN -> base.grass.use(sc, alpha, AUTUMN_GRASS)
+                else -> base.grass.use(sc, alpha)
+            }
+        canvas.drawBitmap(art.lawn.bitmap, art.lawn.matrix, lawn)
         canvas.drawBitmap(art.earth.bitmap, art.earth.matrix, base.dirt.use(sc, alpha))
         val stone = art.stone
         val material = art.stoneMaterial
@@ -413,9 +407,10 @@ internal class GroundArt private constructor(
         plan: GroundPlan,
         band: Int,
     ): BandArt? {
-        bands.get(band)?.let { return it }
-        requestBand(plan, band)
-        return null
+        val ready = bands.get(band)
+        // 焼いている間は、描くたびに頼み直さない（頼むたびにラムダを確保しない）
+        if (ready == null && !pending.contains(band)) requestBand(plan, band)
+        return ready
     }
 
     /** いまの帯と、先に焼いた次の帯だけを残す。 */
@@ -445,16 +440,6 @@ internal class GroundArt private constructor(
                     bands.set(b, made)
                     version++
                 }
-            }
-        }
-    }
-
-    private fun requestSeason(key: Int) {
-        work(key) {
-            if (key == KEY_SPRING) {
-                springGrass = Material(textures.tinted(R.drawable.tex_grass, SEASON_SPRING, SPRING_GRASS), GRASS_SPAN, GRASS_TURN)
-            } else {
-                autumnGrass = Material(textures.tinted(R.drawable.tex_grass, SEASON_AUTUMN, AUTUMN_GRASS), GRASS_SPAN, GRASS_TURN)
             }
         }
     }
@@ -516,8 +501,6 @@ internal class GroundArt private constructor(
         private const val MID = PlotLayout.MID
         private const val OPAQUE = 255
         private const val KEY_BASE = 0
-        private const val KEY_SPRING = -1
-        private const val KEY_AUTUMN = -2
 
         /** テクスチャ 1 枚が覆う幅（グリッド単位）と、格子に対する回転（度。通りの格子とくり返しの向きをずらす）。 */
         private const val GRASS_SPAN = 12f
@@ -578,25 +561,6 @@ internal class GroundArt private constructor(
                 setScale(1f / frame.ppu, 1f / frame.ppu)
                 postTranslate(frame.x0, frame.y0)
             }
-
-        /** 濃さの配列（1 画素 1 byte）から ALPHA_8 のビットマップを作る。 */
-        private fun alphaBitmap(
-            w: Int,
-            h: Int,
-            data: ByteArray,
-        ): Bitmap {
-            val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ALPHA_8)
-            val row = bitmap.rowBytes
-            if (row == w) {
-                bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(data))
-            } else {
-                // 行の長さが幅と違う実装でも、行ごとに詰め直せば同じ絵になる
-                val padded = ByteArray(row * h)
-                for (y in 0 until h) System.arraycopy(data, y * w, padded, y * row, w)
-                bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(padded))
-            }
-            return bitmap
-        }
 
         /** 縁がやわらかく消える正方形の型（[n] x [n]）。 */
         private fun softSquare(n: Int): ByteArray {

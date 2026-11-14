@@ -575,8 +575,11 @@ internal class GroundPlan(
         val p = Paving()
         for (b in -n..n) {
             for (a in -n..n) {
-                val gx = MID + (a + (GroundNoise.value(a * 7.3f, b * 3.1f, SALT_DECAL) - HALF) * DECAL_JITTER) * DECAL_STEP
-                val gy = MID + (b + (GroundNoise.value(a * 5.7f, b * 9.1f, SALT_DECAL + 1) - HALF) * DECAL_JITTER) * DECAL_STEP
+                // 格子の点を、マスの中でずらす（a, b に掛けている数は、乱数の種を散らすだけの値）
+                val jx = (GroundNoise.value(a * 7.3f, b * 3.1f, SALT_DECAL) - HALF) * DECAL_JITTER
+                val jy = (GroundNoise.value(a * 5.7f, b * 9.1f, SALT_DECAL + 1) - HALF) * DECAL_JITTER
+                val gx = MID + (a + jx) * DECAL_STEP
+                val gy = MID + (b + jy) * DECAL_STEP
                 val roll = GroundNoise.value(a * 13.7f, b * 17.9f, SALT_DECAL + 2)
                 val kind = decalKind(gx, gy, roll)
                 if (kind < 0) continue
@@ -678,7 +681,6 @@ internal class GroundPlan(
         private const val FRAME_MARGIN = 4.4f
         private const val FRAME_FADE = 0.8f
 
-        // 通り
         /** 通りの線は k x CELL - 0.5 にある。 */
         private const val STREET_OFFSET = 0.5f
         private const val STREET_REACH = 1.1f
@@ -784,8 +786,8 @@ internal class GroundPlan(
         private const val ACC_A = 3
         private const val TONE_FREQ = 0.075f
         private const val TONE_GAIN = 3.4f
-        private const val TONE_SUN = 0.2f
-        private const val TONE_DEEP = 0.26f
+        private const val TONE_SUN = 0.24f
+        private const val TONE_DEEP = 0.3f
         private const val MOTTLE_FREQ = 0.36f
         private const val MOTTLE = 0.07f
         private const val WEAR_ALPHA = 0.2f
@@ -961,16 +963,24 @@ internal class GroundPlan(
 
         /**
          * 画面の倍率 [sc] のとき、1 グリッド単位あたり [ppu] px のテクスチャに使う段階（0 = 等倍、1 = 1/2 …）。
-         * 画面上で 1 グリッド単位は、いちばん長い向き（左右）でおよそ [SCREEN_PX_PER_UNIT] x [sc] px。それより
-         * [SHARPNESS] 倍を超えて細かいテクスチャは、縮小でちらつくので粗い段階に替える。
+         * 画面上で 1 グリッド単位は、いちばん長い向き（左右）でおよそ [SCREEN_PX_PER_UNIT] x [sc] px。
          */
         fun textureLevel(
             ppu: Float,
             sc: Float,
+        ): Int = textureLevelFor(ppu, SCREEN_PX_PER_UNIT * sc)
+
+        /**
+         * 1 単位あたり [texels] px のテクスチャを、1 単位が [pixels] px になる大きさで描くときの段階。
+         * 描く大きさの [SHARPNESS] 倍を超えて細かいテクスチャは、縮小でちらつくので粗い段階に替える。
+         */
+        fun textureLevelFor(
+            texels: Float,
+            pixels: Float,
         ): Int {
-            val wanted = SCREEN_PX_PER_UNIT * sc * SHARPNESS
+            val wanted = pixels * SHARPNESS
             var level = 0
-            var density = ppu
+            var density = texels
             while (level < TEXTURE_LEVELS - 1 && density > wanted) {
                 density /= 2f
                 level++

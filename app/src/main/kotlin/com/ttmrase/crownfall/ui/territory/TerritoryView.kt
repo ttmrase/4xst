@@ -348,7 +348,6 @@ fun TerritoryView(
                 popAt,
                 bounceAt,
                 tutorialSlotId,
-                signLabels,
                 lockLabels,
                 upgradeFlags,
             )
@@ -363,6 +362,7 @@ fun TerritoryView(
                 upgradeFlags,
                 sc * BADGE_SPAN >= size.width,
                 levelText,
+                signLabels,
             )
             painter.drawSeason()
             if (currentBubbles.isNotEmpty()) painter.drawBubbles(frontToBack, currentBubbles)
@@ -578,7 +578,10 @@ private class TerritoryPainter {
                     season, seconds,
                 )
             if (textured) {
-                for (ent in scene.buildingEnts) {
+                // 添字で回す（for-in は List の Iterator を毎フレーム確保する）
+                val plots = scene.buildingEnts
+                for (i in plots.indices) {
+                    val ent = plots[i]
                     if (locks[ent.slotId] != null && !isOffScreen(sx(ent.gx, ent.gy), sy(ent.gx, ent.gy))) {
                         ground.drawLockPatch(canvas, ent.gx, ent.gy, sc, season)
                     }
@@ -714,7 +717,6 @@ private class TerritoryPainter {
         popAt: LongArray,
         bounceAt: LongArray,
         tutorialSlotId: Int?,
-        signLabels: Array<String>,
         locks: Array<String?>,
         upgradable: BooleanArray,
     ) {
@@ -753,11 +755,8 @@ private class TerritoryPainter {
                         scale = 0.7f + 0.3f * a,
                         tilt = life.treeSway(ent.gx, ent.gy, ent.seed),
                     )
-                EntKind.SIGN -> {
-                    drawSprite(ent.sprite, ent.gx, ent.gy, a)
-                    val label = signLabels.getOrNull(ent.band).orEmpty()
-                    if (label.isNotEmpty()) drawSignText(ent, label, a)
-                }
+                // 立て札の文字は drawBadges が札として出す（ここで地面に書くと、手前の木に隠れる）
+                EntKind.SIGN -> drawSprite(ent.sprite, ent.gx, ent.gy, a)
                 else -> {
                     drawSprite(ent.sprite, ent.gx, ent.gy, a, scale = 0.88f + 0.12f * a)
                     // 帯が上がって街並みが建つ・消えるとき、足元に土埃を立てる
@@ -802,7 +801,15 @@ private class TerritoryPainter {
         val w = FOG_WIDTH * sc
         with(scope) {
             soft(fogArt.cloud, x + drift, y, w, w * FOG_FLAT, FOG_ALPHA, FOG_TINT)
-            soft(fogArt.puff, x - drift * 0.5f, y + FOG_LOW * sc, w * FOG_LOW_WIDTH, w * FOG_LOW_FLAT, FOG_LOW_ALPHA, FOG_TINT)
+            soft(
+                fogArt.puff,
+                x - drift * 0.5f,
+                y + FOG_LOW * sc,
+                w * FOG_LOW_WIDTH,
+                w * FOG_LOW_FLAT,
+                FOG_LOW_ALPHA,
+                FOG_TINT,
+            )
         }
     }
 
@@ -835,23 +842,6 @@ private class TerritoryPainter {
     ): Boolean {
         val m = OFF * sc
         return px < -m || px > scope.size.width + m || py < -m || py > scope.size.height + m
-    }
-
-    private fun drawSignText(
-        ent: Ent,
-        label: String,
-        alpha: Float,
-    ) {
-        val layout = texts.layout(label, SIGN_STYLE)
-        val cx = sx(ent.gx, ent.gy)
-        val cy = sy(ent.gx, ent.gy) - 30f * sc
-        with(scope) {
-            drawText(
-                layout,
-                color = Color(0xFF3A2A18).copy(alpha = alpha),
-                topLeft = Offset(cx - layout.size.width / 2f, cy - layout.size.height / 2f),
-            )
-        }
     }
 
     // ---- 建物 -----------------------------------------------------------------
@@ -1002,7 +992,19 @@ private class TerritoryPainter {
         upgradable: BooleanArray,
         showLevels: Boolean,
         levelText: (Int) -> String,
+        signLabels: Array<String>,
     ) {
+        // 「Lv n で拡張」の立て札の文字。建設できない区画の札と同じ見た目で、立て札の上に出す
+        val signs = scene.signs
+        for (i in signs.indices) {
+            val sign = signs[i]
+            if (presence(sign) < SIGN_SHOWN) continue
+            val label = signLabels.getOrNull(sign.band).orEmpty()
+            val px = sx(sign.gx, sign.gy)
+            val py = sy(sign.gx, sign.gy) - SIGN_PLAQUE_LIFT * sc
+            if (label.isEmpty() || isOffScreen(px, py)) continue
+            drawPill(label, px, py, active = false, empty = true)
+        }
         for (ent in order) {
             val px = sx(ent.gx, ent.gy)
             val py = sy(ent.gx, ent.gy) + 12f * sc
@@ -1235,6 +1237,9 @@ private class TerritoryPainter {
         val PILL_STYLE = TextStyle(fontFamily = CrownFonts.Numeric, fontWeight = FontWeight.Bold, fontSize = 9.sp)
         val BUBBLE_RIM = Color(0xFF7FB2E5)
         const val BUBBLE_ICON = 1.5f
-        val SIGN_STYLE = TextStyle(fontFamily = CrownFonts.Display, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+
+        /** 立て札の札: 立て札の足元からの高さ（ワールド px）と、帯の拡張の途中で出し始める濃さ。 */
+        const val SIGN_PLAQUE_LIFT = 34f
+        const val SIGN_SHOWN = 0.5f
     }
 }

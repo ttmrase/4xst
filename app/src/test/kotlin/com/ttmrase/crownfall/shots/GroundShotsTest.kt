@@ -22,7 +22,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * 開発用: 地面（領地の草地・道・広場・川、ワールドマップの地形）の見た目を確かめる画面キャプチャ（[ShotRig]）。
- * 城の帯（Lv 1 / 6 / 12 / 16 / 24）ごとの街、拡大、門と川、領地のテーマ（秋・冬）、地図の拡大縮小と雪原・砂漠。
+ * 城の帯（Lv 1 / 6 / 12 / 16 / 24）ごとの街、拡大、門と川、領地のテーマ（秋・冬・春）、地図の拡大縮小と雪原・砂漠。
  * `./gradlew :app:testDebugUnitTest --tests '*GroundShotsTest*' -Pshots=<dir>`。`-Pshots` が無ければ skip する。
  */
 @RunWith(AndroidJUnit4::class)
@@ -153,7 +153,10 @@ class GroundShotsTest {
         val data = ClasspathDataSource.load()
         for (season in listOf("autumn", "winter", "spring")) {
             val rig = rig(Preset.RICH_CASTLE)
-            rig.update { s -> Skins.grant(s.copy(shop = s.shop.copy(skins = s.shop.skins.copy())), "territory_$season", data) }
+            rig.update {
+                    s ->
+                Skins.grant(s.copy(shop = s.shop.copy(skins = s.shop.skins.copy())), "territory_$season", data)
+            }
             val scenario = rig.launchToCity()
             rig.shot("ground_city_$season")
             scenario.close()
@@ -168,15 +171,20 @@ class GroundShotsTest {
         rig.shot("ground_map", warmups = MAP_WARMUPS)
         pinch(rig, HALF, HALF)
         rig.shot("ground_map_zoom", warmups = MAP_WARMUPS)
-        pinch(rig, HALF, HALF, out = true)
-        pinch(rig, HALF, HALF, out = true)
-        pinch(rig, HALF, HALF, out = true)
+        repeat(MAP_PINCHES) { pinch(rig, HALF, HALF, out = true) }
         rig.shot("ground_map_far", warmups = MAP_WARMUPS)
-        // 北の雪原へ
-        repeat(MAP_DRAGS) { drag(rig, 0f, DRAG_FAR) }
+    }
+
+    /** 北の雪原と南東の砂漠（地図の端まで指でなぞって運ぶ）。 */
+    @Test
+    fun mapBiomes() {
+        val rig = rig(Preset.RICH_CASTLE)
+        rig.launchToCity()
+        rig.tapNav(rig.str(R.string.nav_map))
+        rig.settle()
+        repeat(MAP_DRAGS) { drag(rig, 0f, MAP_DRAG) }
         rig.shot("ground_map_snow", warmups = MAP_WARMUPS)
-        // 南東の砂漠へ
-        repeat(MAP_DRAGS * 2) { drag(rig, -DRAG_FAR, -DRAG_FAR) }
+        repeat(MAP_DRAGS * 2) { drag(rig, -MAP_DRAG, -MAP_DRAG) }
         rig.shot("ground_map_desert", warmups = MAP_WARMUPS)
         pinch(rig, HALF, HALF)
         rig.shot("ground_map_desert_zoom", warmups = MAP_WARMUPS)
@@ -193,6 +201,8 @@ class GroundShotsTest {
         const val BAND4_LEVEL = 16
         const val BAND_SETTLE_MS = 2500L
         const val MAP_WARMUPS = 8
-        const val MAP_DRAGS = 6
+        const val MAP_PINCHES = 3
+        const val MAP_DRAGS = 12
+        const val MAP_DRAG = 0.45f
     }
 }

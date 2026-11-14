@@ -150,6 +150,9 @@ internal class TerritoryScene(
     /** 地面の設計図（草地・道・広場・小物の配置。[GroundArt] が下絵に焼く）。 */
     val ground: GroundPlan,
 ) {
+    /** 「Lv n で拡張」の立て札（文字は木に隠れないよう、札として最前面に描く）。 */
+    val signs: List<Ent> = ents.filter { it.kind == EntKind.SIGN }
+
     companion object {
         private const val TREE_STEP = 2.4f
         private const val TREE_RANGE = 22

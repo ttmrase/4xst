@@ -1,25 +1,24 @@
 package com.ttmrase.crownfall.ui.map
 
 import android.graphics.Bitmap
-import androidx.compose.ui.geometry.CornerRadius
+import android.graphics.BlurMaskFilter
+import android.graphics.Canvas
+import android.graphics.LightingColorFilter
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.RectF
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.map.StructureType
 import com.ttmrase.crownfall.core.map.Terrain
 import com.ttmrase.crownfall.core.map.WorldMap
+import com.ttmrase.crownfall.ui.territory.GroundPlan
+import com.ttmrase.crownfall.ui.territory.GroundTextures
 import com.ttmrase.crownfall.ui.territory.SpriteCache
 import com.ttmrase.crownfall.ui.territory.SpriteIds
 import kotlin.math.abs
@@ -29,43 +28,31 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
- * ワールドマップの地面の絵（M11 T11.4）。すべて手続き的なベクター描画（外部画像なし）。
- * 8×8 タイルのチャンクごとにビットマップへ 1 度だけ焼き、毎フレームは貼るだけにする（[MapChunkCache]）。
- * - バイオーム: 低周波のノイズで草原の色味（緑 / 黄緑 / 乾いた土）、山の雪、森の濃淡を変える。
- * - 隣り合う地形の境目はぼかす（辺ごとのグラデーション。マーチングスクエアの代わりに 4 辺と 4 隅で近似）。
- * - 海岸: 陸の縁に砂と白い波、水は岸に近いほど浅い色。細い水の連なりは川（岸に砂）。
- * - 道: 自城から同盟の城・NPC 城・砦・聖地へ、水をよけて引く土の道。
- * - 飾り: 森の木、山の峰（雪帽子）、草原の草花と岩。ズームが遠いと省く（LOD）。
+ * ワールドマップの地面の絵（M11 T11.4）。8×8 タイルのチャンクごとにビットマップへ 1 度だけ焼き、毎フレームは貼るだけにする
+ * （[MapChunkCache]）。
+ * - 地面: 領地と同じテクスチャ（草・森の床・岩・雪・砂・水。tools/artgen/gen_ground.py）を、地形の割合の下絵で型抜きして
+ *   重ね、色むらと起伏の陰影をかける（[MapGround]）。北は雪原、南東は砂漠。境目はタイルの形にせず、ノイズで揺らす。
+ * - 川: 北から南へ蛇行する飾りの川（砂の岸・水のテクスチャ・深みの青）。細い水の連なりのタイルも川として細く塗る。
+ * - 道: 自城から同盟の城・NPC 城・砦・聖地へ、水をよけて引く土の道（土のテクスチャと、暗い縁）。
+ * - 飾り: 山の絵（tex_peaks。左手前から光が当たる立体の山塊）、森の木と岩のスプライト、草原の花と草むら。
+ *   ズームが遠いと省く（LOD）。
  * 出力は [seed] だけで決まる（決定論）。
  */
 internal object MapArt {
     const val CHUNK = 8
 
-    private val PLAIN_A = Color(0xFF6FA35A)
-    private val PLAIN_B = Color(0xFF93B85A)
-    private val PLAIN_DRY = Color(0xFFB4AE62)
-    private val FOREST_A = Color(0xFF2F6B3A)
-    private val FOREST_B = Color(0xFF3F7F3A)
-    private val ROCK_A = Color(0xFF8A8579)
-    private val ROCK_B = Color(0xFFA29C90)
-    private val SNOW = Color(0xFFF1F4F8)
-    private val SAND = Color(0xFFD8C690)
-    private val SHALLOW = Color(0xFF5FA4D8)
-    private val DEEP = Color(0xFF2E6AAE)
-    private val FOAM = Color(0xCCFFFFFF)
-    private val ROAD = Color(0xFFB8955A)
-    private val ROAD_EDGE = Color(0xFF7E6338)
-    private val SNOWFIELD = Color(0xFFE9EFF3)
-    private val SNOW_FOREST = Color(0xFF9DB7AE)
-    private val ICE = Color(0xFFBFDDEE)
-    private val DESERT = Color(0xFFE0C987)
-    private val DRY_FOREST = Color(0xFF8A8140)
-    private val BANK = Color(0xFFBDB27C)
-
     /** 北の端の雪原の強さ 0..1（y が小さいほど強い。縁はノイズで揺らす）。 */
     fun snowT(
         x: Int,
         y: Int,
+        size: Int,
+        seed: Long,
+    ): Float = snowAt(x.toFloat(), y.toFloat(), size, seed)
+
+    /** [snowT] と同じ式を、タイルの途中の点でも求める（境目をタイルの形にしないため）。 */
+    fun snowAt(
+        x: Float,
+        y: Float,
         size: Int,
         seed: Long,
     ): Float {
@@ -77,6 +64,14 @@ internal object MapArt {
     fun sandT(
         x: Int,
         y: Int,
+        size: Int,
+        seed: Long,
+    ): Float = sandAt(x.toFloat(), y.toFloat(), size, seed)
+
+    /** [sandT] と同じ式を、タイルの途中の点でも求める。 */
+    fun sandAt(
+        x: Float,
+        y: Float,
         size: Int,
         seed: Long,
     ): Float {
@@ -183,29 +178,6 @@ internal object MapArt {
         return out
     }
 
-    private fun DrawScope.drawRiver(
-        river: List<Offset>,
-        x0: Int,
-        y0: Int,
-        px: Float,
-    ) {
-        if (river.size < 2) return
-        clipRect(0f, 0f, CHUNK * px, CHUNK * px) {
-            val p = Path()
-            p.moveTo((river[0].x - x0) * px, (river[0].y - y0) * px)
-            for (k in 1 until river.lastIndex) {
-                val mx = (river[k].x + river[k + 1].x) / 2f
-                val my = (river[k].y + river[k + 1].y) / 2f
-                p.quadraticTo((river[k].x - x0) * px, (river[k].y - y0) * px, (mx - x0) * px, (my - y0) * px)
-            }
-            p.lineTo((river.last().x - x0) * px, (river.last().y - y0) * px)
-            drawPath(p, SAND, style = Stroke(px * 1.45f, cap = StrokeCap.Round))
-            drawPath(p, DEEP, style = Stroke(px * 1.0f, cap = StrokeCap.Round))
-            drawPath(p, SHALLOW, style = Stroke(px * 0.55f, cap = StrokeCap.Round))
-            drawPath(p, FOAM, style = Stroke(px * 0.06f, cap = StrokeCap.Round))
-        }
-    }
-
     /** 折れ線の途中の点を、タイルの中でゆらがせる（両端は動かさない）。決定論。 */
     private fun wobble(
         line: List<Offset>,
@@ -289,74 +261,9 @@ internal object MapArt {
         fallback: Terrain,
     ): Terrain = if (world.inBounds(x, y)) world.terrainAt(x, y) else fallback
 
-    private fun baseColor(
-        world: WorldMap,
-        x: Int,
-        y: Int,
-        seed: Long,
-        t: Terrain,
-    ): Color {
-        val n = noise(x * 0.18f, y * 0.18f, seed, 1)
-        val jitter = (hash(x, y, seed, 2) - 0.5f) * 0.03f
-        val c =
-            when (t) {
-                Terrain.PLAIN -> {
-                    val dry = noise(x * 0.09f, y * 0.09f, seed, 3)
-                    lerp(lerp(PLAIN_A, PLAIN_B, n), PLAIN_DRY, ((dry - 0.55f) * 2f).coerceIn(0f, 0.7f))
-                }
-                Terrain.FOREST -> lerp(FOREST_A, FOREST_B, n)
-                Terrain.MOUNTAIN -> lerp(ROCK_A, ROCK_B, n)
-                Terrain.WATER -> {
-                    var near = 3
-                    for (r in 1..2) {
-                        for (dy in -r..r) for (dx in -r..r) {
-                            if (world.inBounds(x + dx, y + dy) && world.terrainAt(x + dx, y + dy) != Terrain.WATER) {
-                                near = minOf(near, maxOf(abs(dx), abs(dy)))
-                            }
-                        }
-                    }
-                    lerp(SHALLOW, DEEP, ((near - 1) / 2f).coerceIn(0f, 1f) * 0.9f + n * 0.1f)
-                }
-            }
-        val size = world.size
-        val snow = snowT(x, y, size, seed)
-        val sand = sandT(x, y, size, seed)
-        var out = c
-        if (snow > 0f) {
-            out =
-                when (t) {
-                    Terrain.PLAIN -> lerp(out, SNOWFIELD, snow * 0.92f)
-                    Terrain.FOREST -> lerp(out, SNOW_FOREST, snow * 0.65f)
-                    Terrain.WATER -> lerp(out, ICE, snow * 0.55f)
-                    Terrain.MOUNTAIN -> lerp(out, SNOW, snow * 0.5f)
-                }
-        }
-        if (sand > 0f) {
-            out =
-                when (t) {
-                    Terrain.PLAIN -> lerp(out, DESERT, sand * 0.95f)
-                    Terrain.FOREST -> lerp(out, DRY_FOREST, sand * 0.75f)
-                    Terrain.MOUNTAIN -> lerp(out, Color(0xFFB59A74), sand * 0.5f)
-                    Terrain.WATER -> out
-                }
-        }
-        return shift(out, jitter)
-    }
-
-    private fun shift(
-        c: Color,
-        d: Float,
-    ): Color =
-        Color(
-            (c.red + d).coerceIn(0f, 1f),
-            (c.green + d).coerceIn(0f, 1f),
-            (c.blue + d).coerceIn(0f, 1f),
-            c.alpha,
-        )
-
     /**
      * チャンク ([cx], [cy]) を [px]（1 タイルの px）で描く。呼び出し側が (0,0)〜(CHUNK*px) のキャンバスを用意する。
-     * [detail] が false なら飾りを省く（遠いズーム）。
+     * [detail] が false なら飾りを省く（遠いズーム）。テクスチャのデコードを含むので、バックグラウンドで呼ぶ。
      */
     fun DrawScope.drawChunk(
         world: WorldMap,
@@ -366,242 +273,237 @@ internal object MapArt {
         seed: Long,
         roads: List<List<Offset>>,
         detail: Boolean,
+        textures: GroundTextures,
         sprites: SpriteCache? = null,
         river: List<Offset> = emptyList(),
     ) {
         val x0 = cx * CHUNK
         val y0 = cy * CHUNK
-        // 地面: 1 タイル = 1px の色の画像を、双一次補間で拡大して貼る（タイルの境目が市松に見えず、色がなだらかにつながる）。
-        // 隣のタイルへ 1 つはみ出して作るので、チャンクの継ぎ目も出ない
-        drawGround(world, x0, y0, px, seed)
-        // 川: 川のタイルを岸の色にして、その上につながった水の線（丸い端）を引く
-        drawRivers(world, x0, y0, px)
-        // 境目のぼかし・海岸
-        for (ty in 0 until CHUNK) {
-            for (tx in 0 until CHUNK) {
-                val x = x0 + tx
-                val y = y0 + ty
-                if (!world.inBounds(x, y)) continue
-                edges(world, x, y, tx * px, ty * px, px, seed)
-            }
+        val tile = px.roundToInt()
+        val canvas = drawContext.canvas.nativeCanvas
+        // 地面（テクスチャ・境目・色むら・陰影）
+        MapGround.bake(canvas, world, x0, y0, tile, seed, textures)
+        if (px >= ROAD_MIN_PX) {
+            canvas.save()
+            // チャンクの外へは、焼いた絵の縁（[MapChunkCache.APRON]）のぶんだけはみ出してよい
+            val apron = MapChunkCache.APRON.toFloat()
+            canvas.clipRect(-apron, -apron, CHUNK * px + apron, CHUNK * px + apron)
+            // 川（見た目だけの装飾）。道はその上に重ねる（橋に見える）
+            drawRiver(canvas, river, x0, y0, tile, textures)
+            drawRoads(canvas, roads, x0, y0, tile, textures)
+            canvas.restore()
         }
-        // 川（見た目だけの装飾）。道はその上に重ねる
-        if (px >= ROAD_MIN_PX) drawRiver(river, x0, y0, px)
-        // 道
-        if (px >= ROAD_MIN_PX) drawRoads(roads, x0, y0, px)
         // 飾り
         if (detail) {
-            for (ty in 0 until CHUNK) {
-                for (tx in 0 until CHUNK) {
-                    val x = x0 + tx
-                    val y = y0 + ty
-                    if (!world.inBounds(x, y) || world.structureAt(x, y) != null) continue
-                    decor(
-                        world.terrainAt(x, y), x, y, tx * px, ty * px, px, seed,
-                        snowT(x, y, world.size, seed), sandT(x, y, world.size, seed), sprites == null,
-                    )
-                }
-            }
+            drawMeadow(canvas, world, x0, y0, px, seed, textures.sheet(R.drawable.tex_decals))
+            drawPeaks(canvas, world, x0, y0, px, seed, textures.sheet(R.drawable.tex_peaks))
             if (sprites != null) drawForest(world, x0, y0, px, seed, sprites)
         }
     }
 
-    private fun DrawScope.drawGround(
-        world: WorldMap,
+    /**
+     * 折れ線 [line] のうち、チャンクの近くを通る部分だけを、なめらかな曲線の Path にして [draw] に渡す
+     * （各点を制御点に、隣り合う点の中点どうしをつなぐ。座標はチャンクの左上を原点にした px）。
+     * 地図を縦断する川や長い道をまるごと Path にすると、縁のぼかしが線全体のマスクを作って遅い。曲線の 1 区間は
+     * 前後 3 点だけで決まるので、近くの点に前後 [CURVE_LEAD] 点を足せば、チャンクの中の形は切り出す前と同じになる。
+     */
+    private inline fun nearCurves(
+        line: List<Offset>,
         x0: Int,
         y0: Int,
-        px: Float,
-        seed: Long,
+        px: Int,
+        draw: (android.graphics.Path) -> Unit,
     ) {
-        val side = CHUNK + 2
-        val pixels = IntArray(side * side)
-        for (iy in 0 until side) {
-            for (ix in 0 until side) {
-                // 地図の外は、いちばん近い内側のタイルの色
-                val x = (x0 + ix - 1).coerceIn(0, world.size - 1)
-                val y = (y0 + iy - 1).coerceIn(0, world.size - 1)
-                pixels[iy * side + ix] = baseColor(world, x, y, seed, world.terrainAt(x, y)).toArgb()
+        var k = 0
+        while (k < line.size) {
+            if (!near(line[k], x0, y0)) {
+                k++
+                continue
             }
-        }
-        val image = Bitmap.createBitmap(pixels, side, side, Bitmap.Config.ARGB_8888).asImageBitmap()
-        val dst = (side * px).roundToInt()
-        drawImage(
-            image,
-            srcOffset = IntOffset.Zero,
-            srcSize = IntSize(side, side),
-            dstOffset = IntOffset(-px.roundToInt(), -px.roundToInt()),
-            dstSize = IntSize(dst, dst),
-            filterQuality = FilterQuality.Medium,
-        )
-    }
-
-    private fun DrawScope.drawRivers(
-        world: WorldMap,
-        x0: Int,
-        y0: Int,
-        px: Float,
-    ) {
-        for (ty in -1..CHUNK) {
-            for (tx in -1..CHUNK) {
-                if (isRiver(world, x0 + tx, y0 + ty)) drawRect(BANK, Offset(tx * px, ty * px), Size(px + 1f, px + 1f))
-            }
-        }
-        val w = px * 0.62f
-        for (ty in -1..CHUNK) {
-            for (tx in -1..CHUNK) {
-                val x = x0 + tx
-                val y = y0 + ty
-                if (!isRiver(world, x, y)) continue
-                val c = Offset((tx + 0.5f) * px, (ty + 0.5f) * px)
-                var linked = false
-                for ((dx, dy) in RIVER_LINKS) {
-                    val nx = x + dx
-                    val ny = y + dy
-                    if (world.inBounds(nx, ny) && world.terrainAt(nx, ny) == Terrain.WATER) {
-                        linked = true
-                        val o = Offset((tx + dx + 0.5f) * px, (ty + dy + 0.5f) * px)
-                        drawLine(DEEP, c, o, strokeWidth = w, cap = StrokeCap.Round)
-                        drawLine(SHALLOW, c, o, strokeWidth = w * 0.55f, cap = StrokeCap.Round)
-                    }
-                }
-                if (!linked) drawCircle(DEEP, w / 2f, c)
-            }
+            var end = k
+            while (end + 1 < line.size && near(line[end + 1], x0, y0)) end++
+            val from = (k - CURVE_LEAD).coerceAtLeast(0)
+            val to = (end + CURVE_LEAD).coerceAtMost(line.lastIndex)
+            if (to > from) draw(curve(line, from, to, x0, y0, px))
+            k = end + 1
         }
     }
 
-    private val RIVER_LINKS = listOf(1 to 0, 0 to 1, -1 to 0, 0 to -1)
+    private fun near(
+        o: Offset,
+        x0: Int,
+        y0: Int,
+    ): Boolean =
+        o.x > x0 - CURVE_NEAR && o.x < x0 + CHUNK + CURVE_NEAR && o.y > y0 - CURVE_NEAR && o.y < y0 + CHUNK + CURVE_NEAR
 
-    private fun DrawScope.edges(
-        world: WorldMap,
-        x: Int,
-        y: Int,
-        ox: Float,
-        oy: Float,
-        px: Float,
-        seed: Long,
-    ) {
-        val t = world.terrainAt(x, y)
-        val dirs = arrayOf(intArrayOf(0, -1), intArrayOf(1, 0), intArrayOf(0, 1), intArrayOf(-1, 0))
-        for ((i, d) in dirs.withIndex()) {
-            val nx = x + d[0]
-            val ny = y + d[1]
-            if (!world.inBounds(nx, ny)) continue
-            val nt = world.terrainAt(nx, ny)
-            if (nt == t) continue
-            val strip = px * 0.28f
-            val (rx, ry, rw, rh) =
-                when (i) {
-                    0 -> arrayOf(ox, oy, px, strip)
-                    1 -> arrayOf(ox + px - strip, oy, strip, px)
-                    2 -> arrayOf(ox, oy + px - strip, px, strip)
-                    else -> arrayOf(ox, oy, strip, px)
-                }
-            val land = t != Terrain.WATER
-            if (land && nt == Terrain.WATER) {
-                // 陸の縁: 砂と波の白い線
-                val sand = px * 0.12f
-                val (sx, sy, sw, sh) =
-                    when (i) {
-                        0 -> arrayOf(ox, oy, px, sand)
-                        1 -> arrayOf(ox + px - sand, oy, sand, px)
-                        2 -> arrayOf(ox, oy + px - sand, px, sand)
-                        else -> arrayOf(ox, oy, sand, px)
-                    }
-                drawRect(SAND, Offset(sx, sy), Size(sw, sh))
-                val foam = px * 0.05f
-                val (fx, fy, fw, fh) =
-                    when (i) {
-                        0 -> arrayOf(ox, oy - foam, px, foam * 2)
-                        1 -> arrayOf(ox + px - foam, oy, foam * 2, px)
-                        2 -> arrayOf(ox, oy + px - foam, px, foam * 2)
-                        else -> arrayOf(ox - foam, oy, foam * 2, px)
-                    }
-                if (!isRiver(world, nx, ny)) drawRect(FOAM, Offset(fx, fy), Size(fw, fh))
-            } else if (!land && nt != Terrain.WATER) {
-                if (isRiver(world, x, y)) continue
-                // 水の縁: 浅い色へ
-                val shallow =
-                    Brush.linearGradient(
-                        listOf(SHALLOW.copy(alpha = 0.7f), Color.Transparent),
-                        start = Offset(rx + if (i == 1) rw else 0f, ry + if (i == 2) rh else 0f),
-                        end =
-                            Offset(
-                                rx +
-                                    if (i == 3) {
-                                        rw
-                                    } else if (i == 1) {
-                                        0f
-                                    } else {
-                                        rw / 2f
-                                    },
-                                ry +
-                                    if (i == 0) {
-                                        rh
-                                    } else if (i == 2) {
-                                        0f
-                                    } else {
-                                        rh / 2f
-                                    },
-                            ),
-                    )
-                drawRect(shallow, Offset(rx, ry), Size(rw, rh))
+    /** [line] の [from]..[to] 番目の点の曲線。 */
+    private fun curve(
+        line: List<Offset>,
+        from: Int,
+        to: Int,
+        x0: Int,
+        y0: Int,
+        px: Int,
+    ): android.graphics.Path {
+        val p = android.graphics.Path()
+        // 途中から始めるときは、区間の継ぎ目（隣の点との中点）から
+        val first = line[from]
+        val start =
+            if (from == 0) {
+                first
             } else {
-                // 陸どうしの境目: 隣の色をにじませる
-                val c = baseColor(world, nx, ny, seed, nt).copy(alpha = 0.55f)
-                val edgeStart = Offset(rx + if (i == 1) rw else 0f, ry + if (i == 2) rh else 0f)
-                val edgeEnd =
-                    Offset(
-                        rx +
-                            if (i == 3) {
-                                rw
-                            } else if (i == 1) {
-                                0f
-                            } else {
-                                rw / 2f
-                            },
-                        ry +
-                            if (i == 0) {
-                                rh
-                            } else if (i == 2) {
-                                0f
-                            } else {
-                                rh / 2f
-                            },
-                    )
-                drawRect(
-                    Brush.linearGradient(listOf(c, Color.Transparent), edgeStart, edgeEnd),
-                    Offset(rx, ry),
-                    Size(rw, rh),
+                Offset(
+                    (first.x + line[from + 1].x) / 2f,
+                    (first.y + line[from + 1].y) / 2f,
                 )
             }
+        p.moveTo((start.x - x0) * px, (start.y - y0) * px)
+        for (k in from + 1 until to) {
+            val mx = (line[k].x + line[k + 1].x) / 2f
+            val my = (line[k].y + line[k + 1].y) / 2f
+            p.quadTo((line[k].x - x0) * px, (line[k].y - y0) * px, (mx - x0) * px, (my - y0) * px)
+        }
+        if (to == line.lastIndex) p.lineTo((line[to].x - x0) * px, (line[to].y - y0) * px)
+        return p
+    }
+
+    /** 線を太さ [width]（タイル）でなぞる Paint。縁は [soft]（タイル）ぶんぼかす。 */
+    private fun stroke(
+        px: Int,
+        width: Float,
+        soft: Float,
+    ): Paint =
+        Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = px * width
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+            if (px * soft >= MIN_BLUR_PX) maskFilter = BlurMaskFilter(px * soft, BlurMaskFilter.Blur.NORMAL)
+        }
+
+    /** 飾りの川: 砂の岸、水のテクスチャ、流れの芯の深い青。縁はぼかして、岸と水をなじませる。 */
+    private fun drawRiver(
+        canvas: Canvas,
+        river: List<Offset>,
+        x0: Int,
+        y0: Int,
+        px: Int,
+        textures: GroundTextures,
+    ) {
+        val bank = stroke(px, RIVER_BANK, RIVER_BANK_SOFT)
+        bank.shader = MapGround.shader(textures, R.drawable.tex_sand, MapGround.SAND_TILES, x0, y0, px)
+        val water = stroke(px, RIVER_WATER, RIVER_WATER_SOFT)
+        water.shader = MapGround.shader(textures, R.drawable.tex_water, MapGround.WATER_TILES, x0, y0, px)
+        val deep = stroke(px, RIVER_DEEP, RIVER_DEEP_SOFT)
+        deep.color = RIVER_DEEP_COLOR
+        nearCurves(river, x0, y0, px) { path ->
+            canvas.drawPath(path, bank)
+            canvas.drawPath(path, water)
+            canvas.drawPath(path, deep)
         }
     }
 
-    private fun DrawScope.drawRoads(
+    /** 道: 暗い縁（踏み固めた土の影）の上に、土のテクスチャ。 */
+    private fun drawRoads(
+        canvas: Canvas,
         roads: List<List<Offset>>,
         x0: Int,
         y0: Int,
-        px: Float,
+        px: Int,
+        textures: GroundTextures,
     ) {
-        val bounds = Size(CHUNK * px, CHUNK * px)
-        clipRect(0f, 0f, bounds.width, bounds.height) {
-            for (line in roads) {
-                if (line.none { it.x in (x0 - 1f)..(x0 + CHUNK + 1f) && it.y in (y0 - 1f)..(y0 + CHUNK + 1f) }) continue
-                val p = Path()
+        val edge = stroke(px, ROAD_EDGE, ROAD_EDGE_SOFT)
+        edge.color = ROAD_EDGE_COLOR
+        val body = stroke(px, ROAD_WIDTH, ROAD_SOFT)
+        body.shader = MapGround.shader(textures, R.drawable.tex_dirt, MapGround.DIRT_TILES, x0, y0, px)
+        for (line in roads) {
+            nearCurves(line, x0, y0, px) { path ->
+                canvas.drawPath(path, edge)
+                canvas.drawPath(path, body)
+            }
+        }
+    }
 
-                // 点の列をなめらかな曲線にする（各点を制御点に、隣り合う点の中点どうしをつなぐ）
-                fun tx(o: Offset) = (o.x - x0) * px
+    /**
+     * 山の絵（tex_peaks: 3 種類 x 岩 / 雪）。山のタイルごとに 1 つ、少しずらして大きさを変えて置く。奥（北）の行から
+     * 手前へ重ねるので、連なった山並みになる。山塊は隣のタイルやチャンクにはみ出すので、まわりのタイルの分も描く。
+     */
+    private fun drawPeaks(
+        canvas: Canvas,
+        world: WorldMap,
+        x0: Int,
+        y0: Int,
+        px: Float,
+        seed: Long,
+        atlas: Bitmap,
+    ) {
+        val cell = atlas.width / PEAK_KINDS
+        val src = Rect()
+        val dst = RectF()
+        val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+        for (ty in -1..CHUNK + 1) {
+            for (tx in -2..CHUNK + 1) {
+                val x = x0 + tx
+                val y = y0 + ty
+                if (!world.inBounds(x, y) || world.terrainAt(x, y) != Terrain.MOUNTAIN) continue
+                if (world.structureAt(x, y) != null || hash(x, y, seed, 40) > PEAK_CHANCE) continue
+                val kind = (hash(x, y, seed, 41) * PEAK_KINDS).toInt().coerceAtMost(PEAK_KINDS - 1)
+                val snowy = snowT(x, y, world.size, seed) > PEAK_SNOW_FROM
+                val size = px * (PEAK_SIZE + PEAK_SIZE_VARY * hash(x, y, seed, 42))
+                val ax = (tx + 0.5f + (hash(x, y, seed, 43) - 0.5f) * PEAK_JITTER) * px
+                val ay = (ty + PEAK_FOOT + (hash(x, y, seed, 44) - 0.5f) * PEAK_JITTER) * px
+                src.set(kind * cell, if (snowy) cell else 0, (kind + 1) * cell, if (snowy) 2 * cell else cell)
+                dst.set(ax - size / 2f, ay - size * PEAK_ANCHOR, ax + size / 2f, ay + size * (1f - PEAK_ANCHOR))
+                // 砂漠の山は、砂岩の色に寄せる
+                paint.colorFilter = if (sandT(x, y, world.size, seed) > PEAK_SNOW_FROM) SANDSTONE_PEAK else null
+                canvas.drawBitmap(atlas, src, dst, paint)
+            }
+        }
+    }
 
-                fun ty(o: Offset) = (o.y - y0) * px
-                p.moveTo(tx(line[0]), ty(line[0]))
-                for (k in 1 until line.lastIndex) {
-                    val mx = (tx(line[k]) + tx(line[k + 1])) / 2f
-                    val my = (ty(line[k]) + ty(line[k + 1])) / 2f
-                    p.quadraticTo(tx(line[k]), ty(line[k]), mx, my)
-                }
-                p.lineTo(tx(line.last()), ty(line.last()))
-                drawPath(p, ROAD_EDGE, style = Stroke(px * 0.26f, cap = StrokeCap.Round))
-                drawPath(p, ROAD, style = Stroke(px * 0.18f, cap = StrokeCap.Round))
+    /** 草原の花の群れ・草むら・小石（tex_decals。領地と同じ絵）。雪原には置かず、砂漠には小石だけ。 */
+    private fun drawMeadow(
+        canvas: Canvas,
+        world: WorldMap,
+        x0: Int,
+        y0: Int,
+        px: Float,
+        seed: Long,
+        atlas: Bitmap,
+    ) {
+        val src = Rect()
+        val dst = RectF()
+        val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+        for (ty in 0 until CHUNK) {
+            for (tx in 0 until CHUNK) {
+                val x = x0 + tx
+                val y = y0 + ty
+                if (!world.inBounds(x, y) || world.terrainAt(x, y) != Terrain.PLAIN) continue
+                if (world.structureAt(x, y) != null || snowT(x, y, world.size, seed) > MEADOW_BIOME_LIMIT) continue
+                val r = hash(x, y, seed, 7)
+                val desert = sandT(x, y, world.size, seed) > MEADOW_BIOME_LIMIT
+                // 花の色は、数タイルの一帯ごとにそろえる
+                val bloom = (hash(x / FLOWER_PATCH, y / FLOWER_PATCH, seed, 50) * FLOWER_KINDS).toInt()
+                val kind =
+                    when {
+                        desert -> if (r < MEADOW_PEBBLES) GroundPlan.DECAL_PEBBLES else continue
+                        r < MEADOW_FLOWERS -> bloom.coerceAtMost(FLOWER_KINDS - 1)
+                        r < MEADOW_DARK -> GroundPlan.DECAL_TUFT_DARK
+                        r < MEADOW_TUFTS -> GroundPlan.DECAL_TUFT_LIGHT
+                        r < MEADOW_STONES -> GroundPlan.DECAL_PEBBLES
+                        else -> continue
+                    }
+                val size = px * (MEADOW_SIZE + MEADOW_SIZE_VARY * hash(x, y, seed, 51))
+                // タイルの中に収める（チャンクの継ぎ目で切れない）
+                val room = px - size
+                val left = tx * px + room * hash(x, y, seed, 52)
+                val top = ty * px + room * hash(x, y, seed, 53)
+                val col = kind % DECAL_COLUMNS
+                val row = kind / DECAL_COLUMNS
+                val cell = atlas.width / DECAL_COLUMNS
+                src.set(col * cell, row * cell, (col + 1) * cell, (row + 1) * cell)
+                dst.set(left, top, left + size, top + size)
+                canvas.drawBitmap(atlas, src, dst, paint)
             }
         }
     }
@@ -692,136 +594,52 @@ internal object MapArt {
     val BAKE_SPRITES: IntArray = TREES + ROCKS
     private const val TREE_TILE_DIV = 54f
 
-    private fun DrawScope.decor(
-        t: Terrain,
-        x: Int,
-        y: Int,
-        ox: Float,
-        oy: Float,
-        px: Float,
-        seed: Long,
-        snow: Float,
-        sand: Float,
-        procTrees: Boolean,
-    ) {
-        val r = hash(x, y, seed, 7)
-        when (t) {
-            Terrain.FOREST -> {
-                if (!procTrees) return
-                val n = 2 + (hash(x, y, seed, 8) * 2.99f).toInt()
-                for (k in 0 until n) {
-                    val fx = ox + px * (0.15f + 0.7f * hash(x, y, seed, 10 + k))
-                    val fy = oy + px * (0.3f + 0.6f * hash(x, y, seed, 20 + k))
-                    val tree = px * (0.22f + 0.1f * hash(x, y, seed, 30 + k))
-                    drawRect(Color(0xFF5A3A1E), Offset(fx - tree * 0.12f, fy), Size(tree * 0.24f, tree * 0.6f))
-                    val g = if (k % 2 == 0) Color(0xFF1F5A2C) else Color(0xFF2E7A3A)
-                    drawCircle(g, tree * 0.62f, Offset(fx, fy - tree * 0.1f))
-                    drawCircle(shift(g, 0.08f), tree * 0.34f, Offset(fx - tree * 0.15f, fy - tree * 0.3f))
-                    if (snow > 0.5f) {
-                        // 雪をかぶった木
-                        drawCircle(Color(0xE6FFFFFF), tree * 0.42f, Offset(fx, fy - tree * 0.38f))
-                    }
-                }
-            }
-            Terrain.MOUNTAIN -> {
-                val cx = ox + px * (0.3f + 0.4f * hash(x, y, seed, 40))
-                val base = oy + px * 0.82f
-                val h = px * (0.5f + 0.25f * hash(x, y, seed, 41))
-                val w = px * 0.34f
-                val peak =
-                    Path().apply {
-                        moveTo(cx - w, base)
-                        lineTo(cx, base - h)
-                        lineTo(cx + w, base)
-                        close()
-                    }
-                drawPath(peak, Color(0xFF6E695E))
-                drawPath(
-                    Path().apply {
-                        moveTo(cx, base - h)
-                        lineTo(cx + w, base)
-                        lineTo(cx + w * 0.2f, base)
-                        close()
-                    },
-                    Color(0x33000000),
-                )
-                if (noise(x * 0.25f, y * 0.25f, seed, 42) > 0.45f) {
-                    drawPath(
-                        Path().apply {
-                            moveTo(cx - w * 0.38f, base - h * 0.62f)
-                            lineTo(cx, base - h)
-                            lineTo(cx + w * 0.38f, base - h * 0.62f)
-                            lineTo(cx + w * 0.1f, base - h * 0.5f)
-                            lineTo(cx - w * 0.1f, base - h * 0.58f)
-                            close()
-                        },
-                        SNOW,
-                    )
-                }
-            }
-            Terrain.PLAIN -> {
-                if (sand > 0.5f && r < 0.09f) {
-                    if (r < 0.03f) {
-                        // サボテン
-                        val bx = ox + px * 0.5f
-                        val by = oy + px * 0.82f
-                        val cw = px * 0.09f
-                        drawRect(Color(0xFF4E8A4A), Offset(bx - cw, by - px * 0.42f), Size(cw * 2f, px * 0.42f))
-                        drawRect(Color(0xFF4E8A4A), Offset(bx - cw * 3.2f, by - px * 0.3f), Size(cw * 2.2f, cw * 1.4f))
-                        drawRect(Color(0xFF4E8A4A), Offset(bx + cw * 1f, by - px * 0.24f), Size(cw * 2.2f, cw * 1.4f))
-                    } else {
-                        // 砂丘の筋
-                        val a = Offset(ox + px * 0.15f, oy + px * (0.4f + 0.3f * r * 10f))
-                        drawLine(Color(0x55B79A55), a, a + Offset(px * 0.6f, -px * 0.06f), strokeWidth = px * 0.05f)
-                    }
-                } else if (snow > 0.5f && r < 0.2f) {
-                    // 雪だまり
-                    drawOval(
-                        Color(0xFFFFFFFF),
-                        Offset(ox + px * 0.2f, oy + px * 0.5f),
-                        Size(px * 0.5f, px * 0.2f),
-                    )
-                    drawOval(
-                        Color(0x33708CA8),
-                        Offset(ox + px * 0.25f, oy + px * 0.64f),
-                        Size(px * 0.42f, px * 0.07f),
-                    )
-                } else if (r < 0.06f) {
-                    // 草花
-                    val c = if (r < 0.03f) Color(0xFFFFF3B0) else Color(0xFFFFFFFF)
-                    for (k in 0 until 3) {
-                        drawCircle(
-                            c,
-                            px * 0.035f,
-                            Offset(
-                                ox + px * (0.2f + 0.6f * hash(x, y, seed, 50 + k)),
-                                oy + px * (0.2f + 0.6f * hash(x, y, seed, 60 + k)),
-                            ),
-                        )
-                    }
-                } else if (r < 0.09f) {
-                    // 岩
-                    drawRoundRect(
-                        Color(0xFF8B8A84),
-                        Offset(ox + px * 0.35f, oy + px * 0.5f),
-                        Size(px * 0.22f, px * 0.14f),
-                        CornerRadius(px * 0.06f),
-                    )
-                } else if (r > 0.94f) {
-                    // 草むら
-                    drawCircle(Color(0xFF4F8A45), px * 0.1f, Offset(ox + px * 0.5f, oy + px * 0.62f))
-                }
-            }
-            Terrain.WATER -> {
-                if (r < 0.1f) {
-                    val a = Offset(ox + px * 0.25f, oy + px * 0.5f)
-                    drawLine(Color(0x55FFFFFF), a, a + Offset(px * 0.22f, -px * 0.04f), strokeWidth = px * 0.03f)
-                }
-            }
-        }
-    }
-
     private const val ROAD_MIN_PX = 8f
+
+    /** 飾りの川の太さ（タイル）: 砂の岸・水面・流れの芯と、それぞれの縁のぼかし。 */
+    private const val RIVER_BANK = 1.5f
+    private const val RIVER_BANK_SOFT = 0.1f
+    private const val RIVER_WATER = 1.02f
+    private const val RIVER_WATER_SOFT = 0.05f
+    private const val RIVER_DEEP = 0.4f
+    private const val RIVER_DEEP_SOFT = 0.16f
+    private const val RIVER_DEEP_COLOR = 0x731B4E96
+
+    /** 道の太さ（タイル）と、暗い縁。 */
+    private const val ROAD_WIDTH = 0.2f
+    private const val ROAD_SOFT = 0.02f
+    private const val ROAD_EDGE = 0.3f
+    private const val ROAD_EDGE_SOFT = 0.05f
+    private const val ROAD_EDGE_COLOR = 0x70402C16
+    private const val MIN_BLUR_PX = 0.5f
+
+    /** 線のうち「チャンクの近く」とみなす幅（タイル。線の太さとぼかしが収まる）と、切り出すときに前後へ足す点の数。 */
+    private const val CURVE_NEAR = 1.5f
+    private const val CURVE_LEAD = 2
+
+    /** 山の絵: 種類の数、置く割合、大きさ（タイル）、足元の位置、雪の山に替える雪の強さ。 */
+    private const val PEAK_KINDS = 3
+    private const val PEAK_CHANCE = 0.86f
+    private const val PEAK_SIZE = 1.7f
+    private const val PEAK_SIZE_VARY = 0.7f
+    private const val PEAK_JITTER = 0.3f
+    private const val PEAK_FOOT = 0.72f
+    private const val PEAK_ANCHOR = 0.74f
+    private const val PEAK_SNOW_FROM = 0.45f
+    private val SANDSTONE_PEAK = LightingColorFilter(0xFFF0CFA2.toInt(), 0x00100800)
+
+    /** 草原の小物: 花・草むら・小石の割合（乱数のしきい値）と大きさ（タイル）。 */
+    private const val MEADOW_FLOWERS = 0.07f
+    private const val MEADOW_DARK = 0.12f
+    private const val MEADOW_TUFTS = 0.17f
+    private const val MEADOW_STONES = 0.2f
+    private const val MEADOW_PEBBLES = 0.05f
+    private const val MEADOW_SIZE = 0.42f
+    private const val MEADOW_SIZE_VARY = 0.2f
+    private const val MEADOW_BIOME_LIMIT = 0.5f
+    private const val FLOWER_PATCH = 3
+    private const val FLOWER_KINDS = 4
+    private const val DECAL_COLUMNS = 4
     private const val RIVER_START_MIN = 0.2f
     private const val RIVER_START_SPAN = 0.2f
     private const val RIVER_PHASE = 6.28f

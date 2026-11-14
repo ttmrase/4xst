@@ -67,6 +67,7 @@ import com.ttmrase.crownfall.ui.kit.GlyphIcon
 import com.ttmrase.crownfall.ui.kit.rememberGlyphBitmaps
 import com.ttmrase.crownfall.ui.territory.AMBIENT_STILL_SECONDS
 import com.ttmrase.crownfall.ui.territory.FramePacer
+import com.ttmrase.crownfall.ui.territory.GroundTextures
 import com.ttmrase.crownfall.ui.territory.SpriteCache
 import com.ttmrase.crownfall.ui.territory.ambientSeconds
 import com.ttmrase.crownfall.ui.territory.rememberAmbientFrame
@@ -174,7 +175,8 @@ private fun MapContent(
         sprites.preload(MapArt.BAKE_SPRITES.toList())
         sprites.preload(MapLive.spriteIdsFor(MAP_SPRITE_TIERS))
     }
-    val chunks = remember(world) { MapChunkCache(world, s.map.seed, cacheScope, sprites) }
+    val chunks =
+        remember(world) { MapChunkCache(world, s.map.seed, cacheScope, GroundTextures.shared(context), sprites) }
     // 動きのある部分（雲・旗・焚き火・川の光・行軍）は画面のフレームごとに描き直す（街の画面と同じ合図。重い端末では
     // FramePacer が間合いを落とす）。端末のアニメーションが無効なら合図を出さず、静止画になる
     val animate = animationsEnabled()
@@ -352,10 +354,11 @@ private fun DrawScope.drawWorld(
             val dst = Offset(offX + cx * chunkPx, offY + cy * chunkPx)
             val img = chunks.get(cx, cy, res)
             if (img != null) {
+                // 焼いた絵の縁（隣のチャンクと重なる 1px）は除いて貼る
                 drawImage(
                     img,
-                    srcOffset = IntOffset.Zero,
-                    srcSize = IntSize(img.width, img.height),
+                    srcOffset = IntOffset(MapChunkCache.APRON, MapChunkCache.APRON),
+                    srcSize = IntSize(img.width - 2 * MapChunkCache.APRON, img.height - 2 * MapChunkCache.APRON),
                     dstOffset = IntOffset(dst.x.toInt(), dst.y.toInt()),
                     dstSize = IntSize(ceil(chunkPx).toInt() + 1, ceil(chunkPx).toInt() + 1),
                 )
