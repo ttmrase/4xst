@@ -60,7 +60,10 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34-x86_64-google_apis-pixel6-v2
+          key: avd-34-x86_64-google_apis-pixel6-swangle-v3
+      # GPU は swangle_indirect（ANGLE + SwiftShader）。従来の swiftshader_indirect では、最初のテストでポップアップを閉じた直後に
+      # エミュレータのプロセスごと落ちることが続いた（ui run 133〜152。アプリ側には例外も ANR も無い。docs/02 §21）。
+      # 描画の方式を変えたら、スナップショットを作り直すためにキャッシュのキーも変える。
       - name: Create AVD and generate the snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
@@ -71,7 +74,7 @@ jobs:
           profile: pixel_6
           ram-size: 3072M
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          emulator-options: -no-window -gpu swangle_indirect -noaudio -no-boot-anim
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
       - name: Run androidTest on the emulator
@@ -83,7 +86,7 @@ jobs:
           profile: pixel_6
           ram-size: 3072M
           force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          emulator-options: -no-snapshot-save -no-window -gpu swangle_indirect -noaudio -no-boot-anim
           disable-animations: true
           script: bash .github/scripts/run-ui-tests.sh
       - name: Publish screenshots to the qa-screenshots branch
