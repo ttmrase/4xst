@@ -1,0 +1,122 @@
+run: 137
+commit: 3a3f37473f6dc32a7ae6240e7f56dc34147eb266
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/43617528914
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 0/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 1/34 completed. (0 skipped) (1 failed)
+Tests on emulator-5554 - 14 failed: There was 1 failure(s).
+Test run failed to complete. Expected 34 tests, received 0
+> Task :app:connectedDebugAndroidTest FAILED
+> There were failing tests. See the report at: file:///home/runner/work/4xst/4xst/app/build/reports/androidTests/connected/debug/index.html
+--- per test (androidTest-results xml) ---
+FAIL BuilderUnlockUiTest.secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups
+--- TestRunner (started / finished / failed) ---
+11-14 16:54:51.044 34 tests
+11-14 16:54:51.047 secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups(com.ttmrase.crownfall.BuilderUnlockUiTest)
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
+Starting 34 tests on emulator-5554 - 14
+Finished 1 tests on emulator-5554 - 14
+--- device state at the end ---
+List of devices attached
+
+3762 /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node /home/runner/work/_actions/reactivecircus/andr
+--- crash / ANR lines (live logcat, warnings and above) ---
+11-14 16:50:34.086 E/system_server(  521): No package ID 7f found for resource ID 0x7f040768.
+11-14 16:50:34.086 E/system_server(  521): No package ID 7f found for resource ID 0x7f0202f3.
+11-14 16:50:34.086 E/system_server(  521): No package ID 7f found for resource ID 0x7f040f6f.
+11-14 16:50:34.657 W/system_server(  521): Long monitor contention with owner ActivityManager (550) at void com.android.server.am.BroadcastQueueModernImpl.checkPendingColdStartValidity()(BroadcastQueueModernImpl.java:551) waiters=1 in andro
+11-14 16:50:34.695 W/system_server(  521): Long monitor contention with owner appscheduling.default (606) at long com.android.server.job.JobSchedulerService.getMinJobExecutionGuaranteeMs(com.android.server.job.controllers.JobStatus)(JobSche
+11-14 16:50:36.080 E/system_server(  521): No package ID 7f found for resource ID 0x7f08038b.
+11-14 16:50:36.081 E/system_server(  521): No package ID 7f found for resource ID 0x7f150be5.
+11-14 16:50:36.081 E/system_server(  521): No package ID 7f found for resource ID 0x7f150be5.
+11-14 16:50:36.083 E/system_server(  521): No package ID 7f found for resource ID 0x7f150be4.
+11-14 16:50:36.168 E/system_server(  521): No package ID 7f found for resource ID 0x7f080107.
+11-14 16:50:36.168 E/system_server(  521): No package ID 7f found for resource ID 0x7f150560.
+11-14 16:50:37.393 W/system_server(  521): Long monitor contention with owner ActivityManager (550) at void com.android.server.am.BroadcastQueueModernImpl.checkPendingColdStartValidity()(BroadcastQueueModernImpl.java:551) waiters=1 in void 
+11-14 16:50:37.399 W/system_server(  521): Long monitor contention with owner ActivityManager (550) at void com.android.server.am.BroadcastQueueModernImpl.checkPendingColdStartValidity()(BroadcastQueueModernImpl.java:551) waiters=3 in boole
+11-14 16:50:37.401 W/system_server(  521): Long monitor contention with owner ActivityManager (550) at void com.android.server.am.BroadcastQueueModernImpl.checkPendingColdStartValidity()(BroadcastQueueModernImpl.java:551) waiters=5 in int c
+11-14 16:50:37.408 W/system_server(  521): Long monitor contention with owner ActivityManager (550) at void com.android.server.am.BroadcastQueueModernImpl.checkPendingColdStartValidity()(BroadcastQueueModernImpl.java:551) waiters=7 in int c
+11-14 16:50:37.840 W/system_server(  521): Long monitor contention with owner android.bg (549) at void com.android.server.appwidget.AppWidgetServiceImpl$SaveStateRunnable.run()(AppWidgetServiceImpl.java:4516) waiters=0 in void com.android.s
+11-14 16:50:37.947 E/system_server(  521): No package ID 7f found for resource ID 0x7f0806ce.
+11-14 16:50:37.947 E/system_server(  521): No package ID 7f found for resource ID 0x7f140b31.
+11-14 16:50:37.947 E/system_server(  521): No package ID 7f found for resource ID 0x7f0806cc.
+11-14 16:50:37.947 E/system_server(  521): No package ID 7f found for resource ID 0x7f140af3.
+11-14 16:50:37.947 E/system_server(  521): No package ID 7f found for resource ID 0x7f0806d0.
+11-14 16:50:37.947 E/system_server(  521): No package ID 7f found for resource ID 0x7f140c3f.
+11-14 16:50:37.947 E/system_server(  521): No package ID 7f found for resource ID 0x7f0806ca.
+11-14 16:50:37.947 E/system_server(  521): No package ID 7f found for resource ID 0x7f140422.
+11-14 16:50:38.709 E/system_server(  521): No package ID 7f found for resource ID 0x7f08060c.
+11-14 16:50:38.709 E/system_server(  521): No package ID 7f found for resource ID 0x7f15043b.
+11-14 16:50:39.675 E/system_server(  521): No package ID 7f found for resource ID 0x7f080577.
+11-14 16:50:39.676 E/system_server(  521): No package ID 7f found for resource ID 0x7f140ba2.
+11-14 16:50:39.676 E/system_server(  521): No package ID 7f found for resource ID 0x7f080606.
+11-14 16:50:39.676 E/system_server(  521): No package ID 7f found for resource ID 0x7f141fd7.
+11-14 16:50:39.765 W/system_server(  521): Long monitor contention with owner android.bg (549) at void com.android.server.pm.ShortcutService.injectPostToHandlerDebounced(java.lang.Object, java.lang.Runnable)(ShortcutService.java:1768) waite
+11-14 16:50:41.634 E/system_server(  521): No package ID 7f found for resource ID 0x7f08038b.
+11-14 16:50:41.634 E/system_server(  521): No package ID 7f found for resource ID 0x7f150be5.
+11-14 16:50:41.634 E/system_server(  521): No package ID 7f found for resource ID 0x7f150be5.
+11-14 16:50:41.634 E/system_server(  521): No package ID 7f found for resource ID 0x7f150be4.
+11-14 16:50:41.734 E/system_server(  521): No package ID 7f found for resource ID 0x7f080107.
+11-14 16:50:41.734 E/system_server(  521): No package ID 7f found for resource ID 0x7f150560.
+11-14 16:51:03.034 E/system_server(  521): No package ID 7f found for resource ID 0x7f08038b.
+11-14 16:51:03.036 E/system_server(  521): No package ID 7f found for resource ID 0x7f150be5.
+11-14 16:51:03.047 E/system_server(  521): No package ID 7f found for resource ID 0x7f150be5.
+11-14 16:51:03.048 E/system_server(  521): No package ID 7f found for resource ID 0x7f150be4.
+11-14 16:51:16.071 W/system_server(  521): Long monitor contention with owner ActivityManager (550) at void com.android.server.am.BroadcastQueueModernImpl.checkPendingColdStartValidity()(BroadcastQueueModernImpl.java:551) waiters=0 in andro
+11-14 16:51:34.060 E/system_server(  521): No package ID 7f found for resource ID 0x7f080107.
+11-14 16:51:34.060 E/system_server(  521): No package ID 7f found for resource ID 0x7f150560.
+11-14 16:51:37.106 W/system_server(  521): Long monitor contention with owner binder:521_2 (535) at void com.android.server.job.controllers.TimeController.checkExpiredDelaysAndResetAlarm()(TimeController.java:322) waiters=0 in void com.andr
+11-14 16:51:40.043 E/system_server(  521): No package ID 7f found for resource ID 0x7f080107.
+11-14 16:51:40.043 E/system_server(  521): No package ID 7f found for resource ID 0x7f150560.
+11-14 16:51:50.949 E/system_server(  521): No package ID 7f found for resource ID 0x7f080107.
+11-14 16:51:50.965 E/system_server(  521): No package ID 7f found for resource ID 0x7f150560.
+11-14 16:52:46.178 W/system_server(  521): Long monitor contention with owner ActivityManager (550) at void com.android.server.am.BroadcastQueueModernImpl.checkPendingColdStartValidity()(BroadcastQueueModernImpl.java:551) waiters=2 in andro
+11-14 16:52:51.232 E/system_server(  521): No package ID 7f found for resource ID 0x7f080107.
+11-14 16:52:51.241 E/system_server(  521): No package ID 7f found for resource ID 0x7f150560.
+11-14 16:52:51.660 W/system_server(  521): Long monitor contention with owner binder:521_17 (2357) at android.content.ComponentName com.android.server.am.ActivityManagerService.startService(android.app.IApplicationThread, android.content.In
+11-14 16:53:01.024 E/system_server(  521): No package ID 7f found for resource ID 0x7f080107.
+11-14 16:53:01.024 E/system_server(  521): No package ID 7f found for resource ID 0x7f150560.
+11-14 16:54:47.576 W/binder:521_E(  521): type=1400 audit(0.0:178): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 16:54:47.576 W/binder:521_E(  521): type=1400 audit(0.0:179): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 16:54:47.576 W/binder:521_E(  521): type=1400 audit(0.0:180): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 16:54:47.900 W/binder:521_E(  521): type=1400 audit(0.0:181): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+11-14 16:54:47.904 W/binder:521_E(  521): type=1400 audit(0.0:182): avc:  denied  { getopt } for  scontext=u:r:system_server:s0 tcontext=u:r:shell:s0 tclass=unix_stream_socket permissive=0
+--- last lines before the stream ended ---
+11-14 16:55:03.092 E/PersistableBundle(  397): Failed at frameworks/native/libs/binder/PersistableBundle.cpp:160 (erase)
+11-14 16:55:03.166 W/AMessage(  465): failed to post message as target looper for handler 0 is gone.
+11-14 16:55:03.194 W/MediaPlayer( 6145): mediaplayer went away with unhandled events
+11-14 16:55:03.195 W/MediaPlayer( 6145): mediaplayer went away with unhandled events
+11-14 16:55:03.549 W/WindowOnBackDispatcher( 6145): OnBackInvokedCallback is not enabled for the application.
+11-14 16:55:03.549 W/WindowOnBackDispatcher( 6145): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+11-14 16:55:03.676 W/WindowOnBackDispatcher( 6145): OnBackInvokedCallback is not enabled for the application.
+11-14 16:55:03.676 W/WindowOnBackDispatcher( 6145): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+11-14 16:55:03.855 W/ProcessStats(  521): Tracking association SourceState{ad65b5e com.ttmrase.crownfall/10192 BTop #12804} whose proc state 2 is better than process ProcessState{1ccdedf com.google.android.gms.persistent/10132 pkg=com.googl
+11-14 16:55:05.569 W/WindowMagnificationMgr(  521): requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+11-14 16:55:05.609 W/PageIndicator(  844): Total number of pages invalid: 0. Assuming 1 page.
+11-14 16:55:05.758 W/OpenGLRenderer( 6123): Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-14 16:55:06.856 W/WindowOnBackDispatcher( 6145): OnBackInvokedCallback is not enabled for the application.
+11-14 16:55:06.856 W/WindowOnBackDispatcher( 6145): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+11-14 16:55:09.727 W/System  ( 6123): A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+11-14 16:55:09.727 W/System  ( 6123): java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+11-14 16:55:09.727 W/System  ( 6123): 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+11-14 16:55:09.727 W/System  ( 6123): 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+11-14 16:55:09.727 W/System  ( 6123): 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+11-14 16:55:09.727 W/System  ( 6123): A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+11-14 16:55:09.727 W/System  ( 6123): java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+11-14 16:55:09.727 W/System  ( 6123): 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+11-14 16:55:09.727 W/System  ( 6123): 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+11-14 16:55:09.727 W/System  ( 6123): 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+11-14 16:55:10.781 W/WindowOnBackDispatcher( 6145): sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@c88335d
+11-14 16:55:10.826 W/InputManager-JNI(  521): Input channel object '1acb040 com.ttmrase.crownfall/com.ttmrase.crownfall.MainActivity (client)' was disposed without first being removed with the input manager!
+11-14 16:55:10.832 W/WindowOnBackDispatcher( 6145): OnBackInvokedCallback is not enabled for the application.
+11-14 16:55:10.832 W/WindowOnBackDispatcher( 6145): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+11-14 16:55:11.133 W/WindowOnBackDispatcher( 6145): OnBackInvokedCallback is not enabled for the application.
+11-14 16:55:11.133 W/WindowOnBackDispatcher( 6145): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+--- main thread of the app (ANR trace) ---
