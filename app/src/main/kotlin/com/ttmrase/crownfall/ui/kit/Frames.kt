@@ -23,12 +23,18 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 
 /** 枠の種類。面の色と縁取りの組み合わせ。 */
@@ -289,36 +295,53 @@ fun GameDivider(
 /**
  * 画面の地。紺から夜へのグラデーションに、上からの淡い光と、ひし形の格子の地紋を重ねる。
  * 一覧の画面（同盟・クエスト・設定など）の背景に使う。
+ *
+ * 動かない絵なので、1 度だけ半分の解像度の画像に焼き、毎フレームは 1 枚貼るだけにする。上に載る光の粒やボタンの光で
+ * 画面は毎フレーム描き直されるので、ここで全面の塗りを 3 枚と画面いっぱいの格子の線を毎回描くと、その分がそのまま毎フレームの負荷になる。
  */
 fun Modifier.screenBackdrop(glow: Color = Color(0xFF3558C8)): Modifier =
     this.drawWithCache {
-        val step = 28.dp.toPx()
-        val lattice =
-            Path().apply {
-                var x = -size.height
-                while (x < size.width) {
-                    moveTo(x, 0f)
-                    lineTo(x + size.height, size.height)
-                    moveTo(x + size.height, 0f)
-                    lineTo(x, size.height)
-                    x += step
-                }
-            }
-        val halo =
-            Brush.radialGradient(
-                listOf(glow.copy(alpha = 0.32f), Color.Transparent),
-                center = Offset(size.width / 2, 0f),
-                radius = size.width * 0.95f,
-            )
-        val vignette =
-            Brush.verticalGradient(0.55f to Color.Transparent, 1f to Cf.Ink.copy(alpha = 0.55f))
-        onDrawBehind {
-            drawRect(Cf.ScreenFill)
-            drawRect(halo)
-            drawPath(lattice, Color.White.copy(alpha = 0.022f), style = Stroke(1.dp.toPx()))
-            drawRect(vignette)
+        val w = (size.width / BACKDROP_DOWNSCALE).toInt().coerceAtLeast(1)
+        val h = (size.height / BACKDROP_DOWNSCALE).toInt().coerceAtLeast(1)
+        val still = ImageBitmap(w, h)
+        CanvasDrawScope().draw(
+            Density(density / BACKDROP_DOWNSCALE, fontScale),
+            layoutDirection,
+            Canvas(still),
+            Size(w.toFloat(), h.toFloat()),
+        ) {
+            backdrop(glow)
         }
+        val whole = IntSize(size.width.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1))
+        onDrawBehind { drawImage(still, dstSize = whole, filterQuality = FilterQuality.Low) }
     }
+
+private fun DrawScope.backdrop(glow: Color) {
+    val step = 28.dp.toPx()
+    val lattice =
+        Path().apply {
+            var x = -size.height
+            while (x < size.width) {
+                moveTo(x, 0f)
+                lineTo(x + size.height, size.height)
+                moveTo(x + size.height, 0f)
+                lineTo(x, size.height)
+                x += step
+            }
+        }
+    drawRect(Cf.ScreenFill)
+    drawRect(
+        Brush.radialGradient(
+            listOf(glow.copy(alpha = 0.32f), Color.Transparent),
+            center = Offset(size.width / 2, 0f),
+            radius = (size.width * 0.95f).coerceAtLeast(1f),
+        ),
+    )
+    drawPath(lattice, Color.White.copy(alpha = 0.022f), style = Stroke(1.dp.toPx()))
+    drawRect(Brush.verticalGradient(0.55f to Color.Transparent, 1f to Cf.Ink.copy(alpha = 0.55f)))
+}
+
+private const val BACKDROP_DOWNSCALE = 2f
 
 /** 中身が無いときの案内（大きなアイコンと一言）。一覧の画面の空の状態に使う。 */
 @Composable

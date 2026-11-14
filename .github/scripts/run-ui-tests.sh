@@ -99,7 +99,7 @@ timeout 60 adb logcat -d > "$out/logs/logcat.txt" 2>&1 || true
     "$out/logs/warn.txt" | cut -c1-200 | tail -25
   echo "--- last lines before the stream ended ---"
   tail -n 12 "$out/logs/warn.txt" | cut -c1-200
-  echo "--- main thread of the app (ANR trace) ---"
+  echo "--- app threads when it hung (ANR trace): main, then the test thread ---"
   python3 - "$out/logs/anr" <<'PY'
 import glob, os, sys
 files = sorted(glob.glob(os.path.join(sys.argv[1], "**", "*"), recursive=True), key=os.path.getmtime, reverse=True)
@@ -109,9 +109,15 @@ for f in files:
     text = open(f, errors="replace").read()
     if "com.ttmrase.crownfall" not in text:
         continue
-    start = text.find('"main"')
-    if start >= 0:
-        print("\n".join(line[:200] for line in text[start:].splitlines()[:45]))
+    # アプリのメインスレッド（先頭だけ）と、テストを動かしているスレッド（"Instr: ..."）。固まったとき、
+    # テストがどの待ちで止まっているかは後者に出る（ui run 145: メインスレッドは暇で、原因が読めなかった）
+    for name, keep in (('"main"', 14), ('"Instr: ', 60)):
+        start = text.find(name)
+        if start < 0:
+            continue
+        block = text[start:].split("\n\n", 1)[0]
+        print("\n".join(line[:200] for line in block.splitlines()[:keep]))
+        print()
     break
 PY
 } >> "$out/result.txt" 2>&1
