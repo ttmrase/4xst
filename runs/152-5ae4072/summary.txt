@@ -1,0 +1,54 @@
+run: 152
+commit: 5ae40723b74632ae6d54ae80cbd50f4174779dfd
+job status: failure
+images: 0
+bytes: 0
+actions: https://github.com/ttmrase/4xst/actions/runs/43630329670
+--- result ---
+gradle exit status: 1
+--- compile errors (e: ...) ---
+--- failed tests ---
+emulator-5554 - 14 Tests 0/34 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 1/34 completed. (0 skipped) (1 failed)
+Tests on emulator-5554 - 14 failed: There was 1 failure(s).
+Test run failed to complete. Expected 34 tests, received 0
+> Task :app:connectedDebugAndroidTest FAILED
+> There were failing tests. See the report at: file:///home/runner/work/4xst/4xst/app/build/reports/androidTests/connected/debug/index.html
+--- per test (androidTest-results xml) ---
+FAIL BuilderUnlockUiTest.secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups
+--- TestRunner (started / finished / failed) ---
+11-14 19:14:30.864 34 tests
+11-14 19:14:30.871 secondBuilderUnlockReachesThePackAndTheBillingSheetAfterBackStoppedThePopups(com.ttmrase.crownfall.BuilderUnlockUiTest)
+--- perf (logcat CrownfallPerf) ---
+--- instrumentation results ---
+Starting 34 tests on emulator-5554 - 14
+Finished 1 tests on emulator-5554 - 14
+--- device state at the end ---
+List of devices attached
+
+2714 /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node /home/runner/work/_actions/reactivecircus/andr
+--- warm-up before the tests ---
+host memory before: used 5215 MB, available 10767 MB
+warm-up start 1: device=device host_available_mb=6720
+warm-up start 2: device=device host_available_mb=6673
+warm-up start 3: device=device host_available_mb=6630
+warm-up start 4: device=device host_available_mb=6603
+warm-up start 5: device=device host_available_mb=6618
+host kernel, out-of-memory kills: 0
+--- crash / ANR lines (live logcat, warnings and above) ---
+11-14 19:08:50.180 E/ActivityManager(  518): ANR in com.google.android.apps.nexuslauncher (com.google.android.apps.nexuslauncher/.NexusLauncherActivity)
+--- waits that ran out in the tests (CrownfallTest) ---
+--- last lines before the stream ended ---
+11-14 19:14:48.357 W/System  ( 7369): 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+11-14 19:14:48.357 W/System  ( 7369): A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+11-14 19:14:48.357 W/System  ( 7369): java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+11-14 19:14:48.357 W/System  ( 7369): 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+11-14 19:14:48.357 W/System  ( 7369): 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+11-14 19:14:48.357 W/System  ( 7369): 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+11-14 19:14:48.877 W/WindowOnBackDispatcher( 7382): sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@c0b739d
+11-14 19:14:48.890 W/InputManager-JNI(  518): Input channel object '63e0ca0 com.ttmrase.crownfall/com.ttmrase.crownfall.MainActivity (client)' was disposed without first being removed with the input m
+11-14 19:14:48.917 W/WindowOnBackDispatcher( 7382): OnBackInvokedCallback is not enabled for the application.
+11-14 19:14:48.917 W/WindowOnBackDispatcher( 7382): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+11-14 19:14:49.110 W/WindowOnBackDispatcher( 7382): OnBackInvokedCallback is not enabled for the application.
+11-14 19:14:49.110 W/WindowOnBackDispatcher( 7382): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+--- app threads when it hung (ANR trace): main, then the test thread ---
