@@ -3,6 +3,7 @@
 Crownfall の画像・フォント・効果音の出所とライセンスを記録する。M10 で決定（docs/02 §18）。
 
 ## 方針
+- **1.3.0 から、建物と装飾は自作のレンダラーで描いた画像（WebP）、地面は自作のテクスチャ。** ベクター（VectorDrawable）は、アイコン・ポートレート・画像が無い密度向けの建物の予備に使う。生成には numpy と Pillow を使う（成果物をコミットするので、ビルドには要らない）。
 - **すべて自作する。** 開発コンテナから外部の素材サイト（Kenney、OpenGameArt、Google Fonts のサイト）に届かず、取り込んだ素材をレビューできず、ライセンスの記録もできないため（2026-10-10 に確認）。
 - 例外はフォントの「ダウンロード方式」だけ（下記）。APK には同梱しない。
 - 実在のブランド・決済事業者・他社ゲームのロゴや固有のデザインは使わない（04 §1）。
@@ -25,6 +26,9 @@ Crownfall の画像・フォント・効果音の出所とライセンスを記�
 | tools/artgen/vec.py（1.3.0） | （共通ライブラリ） | グラデーションつきのベクター画像。VectorDrawable の XML と、確認用の SVG を書き出す |
 | tools/artgen/gen_icons.py + gen_icons2.py（1.3.0） | res/drawable/ic_*.xml（63） | UI のアイコン一式（資源・キュー・兵種・クイックリンク・下部ナビ・報酬・記号）。絵文字の置き換え。`--html <path>` で一覧の見本 |
 | （:app の手続き描画、1.3.0） | 実行時に描画（ui/title/TitleArt.kt） | タイトルの一枚絵（空・月・星・山並み・城下町の影・火の粉） |
+| tools/artgen/render3d.py + gen_sprites3d.py + sprites3d_*.py（1.3.0） | res/drawable-xxxhdpi/bld_*.webp、deco_*.webp | 建物・城のスキン・装飾の 3D 風スプライト（自作のレンダラーで描く。numpy と Pillow が要る）。手順は tools/artgen/README_3D.md |
+| tools/artgen/gen_ground.py（1.3.0） | res/drawable-nodpi/tex_*.webp | 地面の継ぎ目のないテクスチャ（草・土・石畳・森・水・雪・砂・岩） |
+| tools/artgen/gen_portraits.py（1.3.0 で書き直し） | res/drawable/pt_*.xml（54） | 陰影つきのポートレート（vec.py のグラデーション。`--html` で見本） |
 
 ## フォント
 - Compose の Downloadable Fonts（`androidx.compose.ui:ui-text-google-fonts`、Google Fonts のプロバイダ）を使う。ライセンスは SIL Open Font License 1.1（OFL）。
