@@ -13,7 +13,6 @@ import com.ttmrase.crownfall.navigation.CrownfallNavHost
 import com.ttmrase.crownfall.notify.NoticePoster
 import com.ttmrase.crownfall.notify.NotificationPermissionEffect
 import com.ttmrase.crownfall.ui.theme.CrownfallTheme
-import com.ttmrase.crownfall.ui.title.TitleDiag
 
 /** 単一 Activity。前景・背景の遷移を GameRepository に伝える。 */
 class MainActivity : ComponentActivity() {
@@ -23,8 +22,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        // 診断用（一時的）: CI が `am start --ei title_mask <n>` でタイトルの部品を選んで起動する（ui/title/TitleArt.kt の TitleDiag）
-        intent?.getIntExtra(TitleDiag.EXTRA_MASK, -1)?.takeIf { it >= 0 }?.let { TitleDiag.mask = it }
         routeFrom(intent)
         enableEdgeToEdge()
         setContent {

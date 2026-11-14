@@ -16,30 +16,6 @@ adb logcat -c || true
 adb shell settings put global hide_error_dialogs 1 || true
 adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
 
-# 診断（一時的）: 起動した直後のタイトル画面で、エミュレータがプロセスごと落ちる（ui run 120〜138）。
-# 計測テストの最後に 1 部品ずつ描かせても落ちなかった（run 142）ので、落ちるのは「新しいプロセスの最初の描画」のとき。
-# テストの前に、アプリだけを部品ごと（title_mask）に起動し直して、端末が生きているかと runner の空きメモリを記録する。
-# 端末が落ちたら、その部品が原因（そのあとのテストは全滅するが、それが答えになる）。原因を直したら、この節ごと消す。
-probe="$out/logs/coldstart.txt"
-echo "host memory before: $(free -m | awk 'NR==2{print "used " $3 " MB, available " $7 " MB"}')" > "$probe"
-if timeout 900 ./gradlew :app:installDebug -PwithAndroid=true > "$out/logs/install.log" 2>&1; then
-  for m in 0 128 64 16 8 2 4 1 32 255; do
-    # run 143: データを消さずに続けて起動すると、全部品でも落ちなかった。落ちた回との違いは、描画のシェーダーの
-    # キャッシュ（アプリのデータの中）が空だったこと。起動のたびにデータを消して、インストール直後と同じ条件にする
-    timeout 30 adb shell pm clear com.ttmrase.crownfall > /dev/null 2>&1 || true
-    timeout 40 adb shell am start -W -n com.ttmrase.crownfall/.MainActivity --ei title_mask "$m" > /dev/null 2>&1 || true
-    sleep 5
-    state="$(timeout 10 adb get-state 2>&1 | tr -d '\r' | tail -1)"
-    pid="$(timeout 10 adb shell pidof com.ttmrase.crownfall 2>/dev/null | tr -d '\r')"
-    echo "cold start mask=$m device=$state app_pid=${pid:-none} host_available_mb=$(free -m | awk 'NR==2{print $7}')" >> "$probe"
-    [[ "$state" != "device" ]] && break
-  done
-  # テストは、いつもどおりまっさらなデータから始める
-  timeout 30 adb shell pm clear com.ttmrase.crownfall > /dev/null 2>&1 || true
-else
-  echo "installDebug failed: $(grep -E '^e: |FAILED|What went wrong' -A1 "$out/logs/install.log" | head -6 | tr '\n' ' ')" >> "$probe"
-fi
-
 # テストの開始・終了を logcat で追う（固まったとき「どのテストか」を result.txt に出すため）
 adb logcat -v time -s TestRunner:I > "$out/logs/testrunner.txt" 2>&1 &
 logcat_pid=$!
@@ -121,8 +97,6 @@ timeout 60 adb logcat -d > "$out/logs/logcat.txt" 2>&1 || true
   echo "--- crash / ANR lines (live logcat, warnings and above) ---"
   grep -aE 'FATAL EXCEPTION|E/AndroidRuntime|Fatal signal|F/DEBUG|ANR in |am_anr|lowmemorykiller|Low on memory|OutOfMemory|WIN DEATH|Force finishing|Killing [0-9]+:com\.ttmrase|SurfaceFlinger.*(crash|abort|died)' \
     "$out/logs/warn.txt" | cut -c1-200 | tail -25
-  echo "--- title diagnostics (CrownfallDiag) ---"
-  grep -a 'CrownfallDiag' "$out/logs/warn.txt" | cut -c1-120 | tail -24
   echo "--- last lines before the stream ended ---"
   tail -n 12 "$out/logs/warn.txt" | cut -c1-200
   echo "--- main thread of the app (ANR trace) ---"
@@ -145,21 +119,6 @@ timeout 120 adb pull /sdcard/Android/data/com.ttmrase.crownfall/files/screenshot
 for d in app/build/reports/androidTests app/build/outputs/androidTest-results; do
   [[ -d "$d" ]] && cp -r "$d" "$out/logs/$(basename "$d")"
 done
-# 診断の続き（一時的）: 計測テストの新しいプロセスで、タイトルを全部描く（もとの落ち方と同じ条件）。
-# 画像とレポートを集め終えてから試すので、ここで端末が落ちても成果物は残る。
-if [[ "$(timeout 10 adb get-state 2>/dev/null | tr -d '\r' | tail -1)" == "device" ]]; then
-  timeout 180 adb shell am instrument -w -e class 'com.ttmrase.crownfall.ZzTitleDiagTest#coldAll' \
-    com.ttmrase.crownfall.test/androidx.test.runner.AndroidJUnitRunner > "$out/logs/coldall.txt" 2>&1 || true
-  echo "instrumented cold start, all parts: device=$(timeout 10 adb get-state 2>&1 | tr -d '\r' | tail -1)" \
-    "$(grep -aE 'OK \(|FAILURES|Process crashed|shortMsg' "$out/logs/coldall.txt" | head -2 | tr '\n' ' ' | cut -c1-160)" >> "$probe"
-fi
-{
-  echo "--- cold start probe (title parts, new process each) ---"
-  cat "$probe"
-  echo "host memory after: $(free -m | awk 'NR==2{print "used " $3 " MB, available " $7 " MB"}')"
-  echo "--- host kernel: out-of-memory kills ---"
-  sudo -n dmesg 2>/dev/null | grep -iE 'out of memory|oom-kill|killed process' | cut -c1-200 | tail -5
-} >> "$out/result.txt" 2>&1
 cat "$out/result.txt"
 echo "screenshots: $(find "$out/screenshots" -type f | wc -l) file(s); gradle exit status: $status"
 exit "$status"
