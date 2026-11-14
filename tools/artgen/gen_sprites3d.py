@@ -9,7 +9,7 @@ Run:   python3 tools/artgen/gen_sprites3d.py                 # every sprite -> r
 Output: app/src/main/res/drawable-xxxhdpi/<resource name>.webp, 4 px per viewport unit, lossy WebP + alpha.
 Deterministic: no randomness, the same sources give the same bytes.
 
-Every sprite is a function that returns a render3d.Scene.  Units are those of the old vector art (iso.py):
+Every sprite is a function that returns a render3d.Scene.  Units are those of the game's town grid (PlotLayout.kt):
 x, y in grid units (a plot is 0..4 x 0..4), z in viewport units straight up.  See README_3D.md.
 """
 
@@ -26,7 +26,6 @@ from render3d import (G, ZS, Scene, box, capsule, cone, cyl, cyl_x, cyl_y, ellip
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / "app/src/main/res/drawable-xxxhdpi"
-OLD = ROOT / "app/src/main/res/drawable"
 LIP = 1.6          # thickness of a building's ground pad (its top is z = 0, the ground is z = -LIP)
 
 
@@ -715,7 +714,7 @@ def main(argv):
     print("%d sprites in %.1f s -> %s" % (len(res), time.time() - t0, OUT))
     if sheet:
         import sheet3d
-        sheet3d.make(sheet, names, OUT, OLD)
+        sheet3d.make(sheet, names, OUT)
     return 0
 
 

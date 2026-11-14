@@ -9,24 +9,18 @@ Crownfall の画像・フォント・効果音の出所とライセンスを記�
 - 実在のブランド・決済事業者・他社ゲームのロゴや固有のデザインは使わない（04 §1）。
 
 ## グラフィック
-- 自作のベクター（VectorDrawable、Compose の Canvas / Path）。
+- 自作のベクター（VectorDrawable、Compose の Canvas / Path）と、自作のレンダラーで描いたラスター（1.3.0 から。建物・装飾・地面）。
 - 量が多いもの（建物の種類 × レベル帯 5 段階: 1–5 / 6–10 / 11–15 / 16–20 / 21–25）は `tools/artgen/*.py`（標準ライブラリのみ）で VectorDrawable の XML を生成し、生成物をコミットする。スクリプトを再実行すれば同じ結果になること。
 - 生成スクリプトと出力先の一覧は、T10.2 の DONE で Implementer が報告し、Director がこの表に追記する。
 
 | 生成スクリプト | 出力 | 内容 |
 | --- | --- | --- |
-| tools/artgen/iso.py | （共通ライブラリ） | アイソメトリックの図形・色・VectorDrawable の書き出し |
-| tools/artgen/gen_buildings.py | app/src/main/res/drawable/bld_<type>_t<1..5>.xml（18 種 × 5 = 90） | 建物。段階ごとに屋根・旗・塔・装飾・材質（木 → 石 → 大理石 + 金）が増える |
-| tools/artgen/gen_decor.py | res/drawable/deco_*.xml（38）、ui/territory/SpriteIds.kt（生成） | 木・岩・家・街灯・井戸・噴水・看板・城壁 / 塔 / 門 × 5 段階・工事現場 |
-| tools/artgen/gen_buildings.py（M11） | res/drawable/bld_castle_{ice,gold,sakura,dragon}_t1..5.xml | 城のスキン 4 種 × 5 段階（専用の装飾つき） |
-| tools/artgen/gen_decor.py（M11） | res/drawable/deco_tent.xml、deco_temple.xml | ワールドマップの野営地と聖地 |
 | tools/artgen/gen_portraits.py（M11） | res/drawable/pt_<id>.xml、pt_gen_<m|f|n>_<nn>.xml、アバター 12（計 54 枚） | 英雄・ペルソナ・同盟のメンバー・プレイヤーのポートレート（パーツ合成） |
 | （:app の手続き生成、M11） | 実行時に描画（MapArt / MapChunkCache） | ワールドマップのバイオーム・道・霧・雲（seed から決定論） |
-| tools/artgen/preview.py | （開発用。Pillow があるときだけ。成果物ではない） | 見本の PNG（建物・装飾・ポートレート・城のスキン。Director のレビューに使用） |
 | tools/artgen/vec.py（1.3.0） | （共通ライブラリ） | グラデーションつきのベクター画像。VectorDrawable の XML と、確認用の SVG を書き出す |
 | tools/artgen/gen_icons.py + gen_icons2.py（1.3.0） | res/drawable/ic_*.xml（63） | UI のアイコン一式（資源・キュー・兵種・クイックリンク・下部ナビ・報酬・記号）。絵文字の置き換え。`--html <path>` で一覧の見本 |
 | （:app の手続き描画、1.3.0） | 実行時に描画（ui/title/TitleArt.kt） | タイトルの一枚絵（空・月・星・山並み・城下町の影・火の粉） |
-| tools/artgen/render3d.py + gen_sprites3d.py + sprites3d_*.py（1.3.0） | res/drawable-xxxhdpi/bld_*.webp、deco_*.webp | 建物・城のスキン・装飾の 3D 風スプライト（自作のレンダラーで描く。numpy と Pillow が要る）。手順は tools/artgen/README_3D.md |
+| tools/artgen/render3d.py + gen_sprites3d.py + sprites3d_*.py（1.3.0） | res/drawable-xxxhdpi/bld_*.webp（110）、deco_*.webp（44） | 建物 18 種 × 5 段階・城のスキン 4 種 × 5 段階・装飾（木・岩・家・街灯・井戸・噴水・看板・城壁 / 塔 / 門 × 5 段階・工事現場・野営地・聖地）の 3D 風スプライト。自作のレンダラーで描く（numpy と Pillow が要る）。手順は tools/artgen/README_3D.md、見本は sheet3d.py。1.2.0 までの VectorDrawable 版（iso.py・gen_buildings.py・gen_decor.py・preview.py と res/drawable の bld_ / deco_ の XML）は 1.3.0 で削除 |
 | tools/artgen/gen_ground.py（1.3.0） | res/drawable-nodpi/tex_*.webp | 地面の継ぎ目のないテクスチャ（草・土・石畳・森・水・雪・砂・岩） |
 | tools/artgen/gen_portraits.py（1.3.0 で書き直し） | res/drawable/pt_*.xml（54） | 陰影つきのポートレート（vec.py のグラデーション。`--html` で見本） |
 
@@ -49,7 +43,7 @@ Crownfall の画像・フォント・効果音の出所とライセンスを記�
 - `tools/artgen/gen_portraits.py`（標準ライブラリのみ。パーツ＝輪郭・肌・髪・目・口・ひげ・兜や冠・鎧・背景の紋章を組み合わせた胸像の VectorDrawable）。
 - 英雄 12 とペルソナ 8 は SPECS で 1 体ずつ設計（`pt_<id>.xml`）。名前だけの同盟メンバー 22 は look（m 8 / f 8 / n 6、personas.json の fillerMembers.look）ごとに ID のハッシュで組み合わせ（`pt_gen_<look>_<nn>.xml`）、プレイヤーのアバター 12 は m 5 / f 5 / n 2（`pt_avatar_<nn>.xml`）。合計 54 枚、各約 6.5 KB。
 - 枠（レアリティ N 灰 / R 青 / SR 紫 / SSR 金＋流れる光、VIP のリング）はアプリ側の PortraitView で重ねる。リソース名で引くので `res/raw/keep.xml` で縮小から守る。
-- 見本シート: `python3 tools/artgen/preview.py portraits`（`tools/artgen/previews/portraits_sheet.png`）。
+- 見本: `python3 tools/artgen/gen_portraits.py --html <path>`（一覧の HTML。成果物ではない）。
 
 ## BGM（M11 T11.3）
 - `tools/bgmgen/gen_bgm.py`（標準ライブラリのみ。Standard MIDI File・GM 音色。固定シードで決定論的）で 6 曲を生成し `res/raw/bgm_*.mid` に書き出す（6 曲で約 52 KB）。Android 標準の MediaPlayer の MIDI 再生で鳴らす。

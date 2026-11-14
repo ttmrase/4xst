@@ -3,7 +3,7 @@ package com.ttmrase.crownfall.ui.territory
 import com.ttmrase.crownfall.R
 import com.ttmrase.crownfall.core.model.BuildingType
 
-/** tools/artgen/gen_decor.py が生成する（手で編集しない）。建物・装飾のスプライトの ID 表。 */
+/** 建物・装飾のスプライトの ID 表。絵は tools/artgen/gen_sprites3d.py が描く res/drawable-xxxhdpi の WebP（同じ名前で登録する）。 */
 object SpriteIds {
     /** 建物の見た目 [tier]（1..5）の drawable。 */
     fun building(

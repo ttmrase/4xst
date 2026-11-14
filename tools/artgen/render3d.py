@@ -13,7 +13,7 @@ Quick tour
     img = r3.render(sc)                             # PIL RGBA, 4 px per viewport unit
     r3.save_webp(img, "bld_example.webp")
 
-Model units (the same as the old vector art in iso.py)
+Model units (the same as the game's town grid, PlotLayout.kt)
     x, y : grid units.  x runs right-down on screen, y runs left-down.  A building plot is 0..4 x 0..4.
     z    : "z units" = viewport units straight up the screen.
     Radii of round things in plan (cyl, cone, sphere, torus R) are grid units.
@@ -21,7 +21,7 @@ Model units (the same as the old vector art in iso.py)
 Internally everything is converted to an isotropic world space (1 world unit = 1 viewport unit seen
 face-on): X = x * G, Y = y * G, Z = z * ZS with G = 14 * sqrt(2) and ZS = 1 / cos(30 deg).
 
-Camera: orthographic, 45 deg yaw, 30 deg elevation, which reproduces iso.py exactly:
+Camera: orthographic, 45 deg yaw, 30 deg elevation, which reproduces the game's projection exactly:
     sx = CX + (x - y) * 14,   sy = CY + (x + y - S) * 7 - z
 """
 
@@ -1412,7 +1412,7 @@ def save_webp(img, path, quality=90):
 
 
 def selftest():
-    """Check that the camera reproduces iso.py's projection: analytically, and by rendering small spheres
+    """Check that the camera reproduces the game's projection: analytically, and by rendering small spheres
     and locating them in the image."""
     worst = 0.0
     for kind, (_, _, ax, ay, gx, _) in KINDS.items():

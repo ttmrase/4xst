@@ -5,7 +5,7 @@ furniture, the world-map camp and temple, the construction site and the city wal
 Picked up automatically by gen_sprites3d.py (see README_3D.md):
     python3 tools/artgen/gen_sprites3d.py deco_ --png DIR --jobs 4
 
-Units are those of gen_decor.py: grid (0, 0) is the sprite's ground anchor, z is viewport units up.
+Units are those of README_3D.md: grid (0, 0) is the sprite's ground anchor, z is viewport units up.
 Everything here is deterministic (hash noise only, no random module).
 """
 
