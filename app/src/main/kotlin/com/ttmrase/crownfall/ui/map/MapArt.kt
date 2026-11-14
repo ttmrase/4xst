@@ -143,8 +143,12 @@ internal object MapArt {
     }
 
     /**
-     * 川（見た目だけの装飾）。北の端から南の端へ、ゆるく蛇行して流れる折れ線（タイル座標）。拠点は避ける。
+     * 川（見た目だけの装飾）。北の端から南の端へ、ゆるく蛇行して流れる折れ線（タイル座標）。
      * :core の地形にはほとんど水が無いので、マップに「つながった川」を足す。道は川の上に重ねて描く（橋に見える）。
+     *
+     * 拠点は避ける。行ごとに「自然な蛇行からどれだけ横へずらすか」を 1 つ選び、ずれの大きさ・拠点への近さ・
+     * 前の行からの曲がりの合計が最も小さい流れを動的計画法で求める。拠点を 1 つずつ左右へ押しのけるやり方だと、
+     * 城の集まりの中を折り返しながら縫ってしまい、城が水の上に乗って見えた（1.3.0）。集まりは丸ごと迂回する。
      */
     fun river(
         world: WorldMap,
@@ -153,24 +157,60 @@ internal object MapArt {
         val n = world.size
         val start = n * (RIVER_START_MIN + RIVER_START_SPAN * hash(0, 0, seed, 90))
         val phase = hash(1, 0, seed, 91) * RIVER_PHASE
-        val xs = FloatArray(n + 3)
-        for (i in -1..n + 1) {
-            val y = i.toFloat()
-            xs[i + 1] =
+        val rows = n + 3
+        val natural = FloatArray(rows)
+        for (i in 0 until rows) {
+            val y = (i - 1).toFloat()
+            natural[i] =
                 start + n * RIVER_DRIFT * (y / n) + sin(y * RIVER_FREQ + phase) * RIVER_SWAY +
                 (noise(y * 0.1f, 0f, seed, 92) - 0.5f) * RIVER_NOISE
         }
-        // 拠点の近くは、急に折れず、なだらかに押しのける（距離が近いほど強く）。そのあと全体をならす
-        repeat(RIVER_PASSES) {
-            for (i in xs.indices) {
-                val y = (i - 1) + 0.5f
-                for (st in world.structures) {
-                    val dx = xs[i] - (st.x + 0.5f)
-                    val dy = y - (st.y + 0.5f)
-                    val d = hypot(dx, dy)
-                    if (d < RIVER_CLEAR) xs[i] += (if (dx >= 0f) 1f else -1f) * (RIVER_CLEAR - d) * RIVER_PUSH
+        // 候補: 自然な位置から -RIVER_REACH..+RIVER_REACH タイル（RIVER_STEP 刻み）
+        val cols = (2f * RIVER_REACH / RIVER_STEP).roundToInt() + 1
+        val cost = Array(rows) { FloatArray(cols) }
+        val from = Array(rows) { IntArray(cols) }
+        for (i in 0 until rows) {
+            val y = (i - 1) + 0.5f
+            val near = world.structures.filter { abs(y - (it.y + 0.5f)) < RIVER_CLEAR }
+            for (c in 0 until cols) {
+                val shift = c * RIVER_STEP - RIVER_REACH
+                val x = natural[i] + shift
+                var own = shift * shift * RIVER_STRAY_COST
+                if (x < RIVER_EDGE || x > n - RIVER_EDGE) own += RIVER_OFF_MAP_COST
+                for (st in near) {
+                    val d = hypot(x - (st.x + 0.5f), y - (st.y + 0.5f))
+                    if (d < RIVER_CLEAR) {
+                        val k = 1f - d / RIVER_CLEAR
+                        own += k * k * RIVER_CROWD_COST
+                    }
                 }
+                if (i == 0) {
+                    cost[i][c] = own
+                    continue
+                }
+                var best = Float.MAX_VALUE
+                var arg = c
+                for (k in maxOf(0, c - RIVER_TURN)..minOf(cols - 1, c + RIVER_TURN)) {
+                    val bend = (c - k) * RIVER_STEP
+                    val v = cost[i - 1][k] + bend * bend * RIVER_BEND_COST
+                    if (v < best) {
+                        best = v
+                        arg = k
+                    }
+                }
+                cost[i][c] = own + best
+                from[i][c] = arg
             }
+        }
+        var c = 0
+        for (k in 1 until cols) if (cost[rows - 1][k] < cost[rows - 1][c]) c = k
+        val xs = FloatArray(rows)
+        for (i in rows - 1 downTo 0) {
+            xs[i] = natural[i] + c * RIVER_STEP - RIVER_REACH
+            c = from[i][c]
+        }
+        // 刻みの角を取る
+        repeat(RIVER_PASSES) {
             for (i in 1 until xs.lastIndex) xs[i] = (xs[i - 1] + 2f * xs[i] + xs[i + 1]) / 4f
         }
         val out = ArrayList<Offset>()
@@ -648,8 +688,15 @@ internal object MapArt {
     private const val RIVER_SWAY = 3.2f
     private const val RIVER_NOISE = 4f
     private const val RIVER_CLEAR = 4.5f
-    private const val RIVER_PASSES = 3
-    private const val RIVER_PUSH = 0.7f
+    private const val RIVER_PASSES = 2
+    private const val RIVER_REACH = 16f
+    private const val RIVER_STEP = 0.5f
+    private const val RIVER_TURN = 2
+    private const val RIVER_EDGE = 1.5f
+    private const val RIVER_STRAY_COST = 0.02f
+    private const val RIVER_CROWD_COST = 8f
+    private const val RIVER_BEND_COST = 0.6f
+    private const val RIVER_OFF_MAP_COST = 50f
     private const val EXTRA_ROADS = 2
     private const val ROAD_WOBBLE = 0.36f
     private const val RIVER_MAX_WATER = 11

@@ -109,6 +109,30 @@ class MapArtTest {
     }
 
     @Test
+    fun theDecorativeRiverGoesRoundTheStructuresInsteadOfThroughThem() {
+        for (seed in longArrayOf(1L, 7L, 42L, 99L, 2024L)) {
+            val river = MapArt.river(world, seed)
+            // 折れ線の各区間を細かくたどって、どの拠点の中心からも離れていること（水面の半幅 + 城の足元）
+            var nearest = Float.MAX_VALUE
+            for (k in 0 until river.lastIndex) {
+                for (step in 0..4) {
+                    val t = step / 4f
+                    val x = river[k].x + (river[k + 1].x - river[k].x) * t
+                    val y = river[k].y + (river[k + 1].y - river[k].y) * t
+                    for (st in world.structures) {
+                        nearest = minOf(nearest, kotlin.math.hypot(x - (st.x + 0.5f), y - (st.y + 0.5f)))
+                    }
+                }
+            }
+            assertTrue("seed $seed: the river passes $nearest tiles from a structure", nearest >= 1.5f)
+            // 急に折り返さない（1 行で横へ 2 タイル以上は動かない）
+            for (k in 0 until river.lastIndex) {
+                assertTrue("seed $seed: sharp turn at row $k", kotlin.math.abs(river[k + 1].x - river[k].x) < 2f)
+            }
+        }
+    }
+
+    @Test
     fun theMapEdgeNeverEntersTheScreenAndASmallMapIsCentered() {
         // 大きい地図: 左上の端が画面の左上より内側に来ない／右下の端が画面の右下より内側に来ない
         assertEquals(0f, clampOffset(50f, 1000f, 3000f), 0f)
