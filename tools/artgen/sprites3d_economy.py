@@ -94,6 +94,8 @@ def m_logends(centres, r, axis="y", wood="#DDB57A", bark="#6B4424"):
 
 AMBER = r3.m_gold("#E8A52A")                         # warm gold for ore, coins, ingots
 STEEL = r3.m_metal("#C4CBD4")
+BLADE = r3.m_metal("#8C949E")                       # saw steel: darker, so it reads on pale ground
+SAW_RED = r3.m_flat("#B4322A", 0.08, spec=0.2)
 DARK = r3.m_flat("#16100E", 0.05)                    # the inside of doorways and tunnels
 BARK = r3.m_flat("#7A5230", 0.2, scale=0.9, seed=31)
 WET_WOOD = r3.m_planks("#7C5630", 0.12, seed=32, var=0.14)
@@ -255,8 +257,8 @@ class _Saw(r3.Node):
 
 def saw_blade(sc, x, y, z, r=7.4, hub=None, teeth=14):
     """Big circular saw blade facing the left-front; (x, y, z) = its axle."""
-    sc.add(_Saw(x * G, y * G, z * ZS, r, 0.28, teeth, r * 0.2), STEEL, name="saw blade")
-    sc.add(cyl_y(y - 0.035, y + 0.035, x, z, r * 0.26, 0.15), hub or HOOP, cast=False)
+    sc.add(_Saw(x * G, y * G, z * ZS, r, 0.3, teeth, r * 0.2), BLADE, name="saw blade")
+    sc.add(cyl_y(y - 0.04, y + 0.04, x, z, r * 0.3, 0.15), hub or SAW_RED, cast=False)
 
 
 def water_wheel(sc, T, xc, y0, wd, R, wood=None, hub=None, n=10):
@@ -459,7 +461,7 @@ def sawmill(t):
     legs = union(*[box(px, py, px + 0.12, py + 0.12, 0, bz - 1.0) for px in (bx0 + 0.04, bx1 - 0.16) for py in (by0 + 0.03, by1 - 0.15)])
     sc.add(union(box(bx0, by0, bx1, by1, bz - 1.2, bz, 0.2), legs), r3.m_planks("#9A6E3E", 0.12, seed=41), name="bench")
     yb = (by0 + by1) / 2.0
-    saw_blade(sc, 1.74, yb, bz + 1.6, 9.4, hub=T.gold if t >= 4 else None)
+    saw_blade(sc, 1.76, yb, bz + 2.2, 10.2, hub=T.gold if t >= 4 else None)
     lr = 2.7
     sc.add(cyl_x(0.36, 1.42, yb, bz + lr / ZS, lr, 0.3), BARK, name="log")
     sc.add(cyl_x(0.36, 1.43, yb, bz + lr / ZS, lr * 0.86), m_logends([(yb, bz + lr / ZS)], lr * 0.86, "x"), cast=False)
@@ -493,7 +495,7 @@ def quarry(t):
     sc.add(lumpy(turf, 0.5, 0.6, 3), r3.m_ground("grass", "#4C8632"), name="turf")
     sc.add(union(*[box(a - 0.012, b - 0.012, c + 0.012, d + 0.012, z - 1.9, z - 0.2, 0.3) for a, b, c, d, z in top]),
            r3.m_flat("#6E5032", 0.14), cast=False, name="soil")
-    wood = r3.m_planks("#9A6E3E", 0.1, seed=53)
+    wood = r3.m_planks("#8E6232" if t < 4 else "#80562C", 0.1, seed=53)
     # cut blocks (front right)
     nb = 2 + t // 2
     for i in range(min(nb, 3)):
@@ -568,7 +570,7 @@ def gold_mine(t):
     hole = opening("L", pf, ex, 0.0, 0.86, 11.0, T.stone, -1.3, 0.3)
     cut = roofed(sc, T, ex - pw, pb, ex + pw, pf, ph, prh, "y", 0.13, ridge=False, name="adit roof")
     sc.add(sub(box(ex - pw, pb, ex + pw, pf, -0.3, ph + prh + 2), hole, cut), wallm, name="adit")
-    sc.add(_slab("L", pf, ex - 0.5, ex + 0.5, -0.36, -0.31, 0, 12.5), DARK, cast=False, name="tunnel")
+    sc.add(_slab("L", pf, ex - 0.5, ex + 0.5, -0.24, -0.19, 0, 12.5), DARK, cast=False, name="tunnel")
     if not T.stone:
         beam = r3.m_planks("#A87840", 0.2, seed=54)
         sc.add(union(box(ex - 0.6, pf - 0.02, ex - 0.42, pf + 0.08, 0, 12.4, 0.2), box(ex + 0.42, pf - 0.02, ex + 0.6, pf + 0.08, 0, 12.4, 0.2),
@@ -726,19 +728,19 @@ def stall(sc, T, x, y, w, d, c1, c2=CREAM, hgt=14.0, rise=5.0, goods=0):
     sc.add(repeat(tab, "x", sw, n), cloth, cast=False, name="valance")
 
 
-def scales(sc, T, x, y, z0, h=10.0, s=1.0, metal=None, post=None):
+def scales(sc, T, x, y, z0, h=10.0, s=1.0, metal=None, post=None, cast=True):
     """Merchant's balance: a post from z0 with a beam that lies across the screen and two hanging pans."""
     metal = metal or r3.m_gold("#DDA22E")
     zt = z0 + h
     sc.add(capsule((x, y, z0), (x, y, zt), 0.8 * s), post or metal, name="scales post")
     a, tilt = 0.34 * s, 1.1 * s
     e0, e1 = (x - a, y + a, zt - 1.0 + tilt), (x + a, y - a, zt - 1.0 - tilt)
-    sc.add(union(capsule(e0, e1, 0.62 * s), sphere(x, y, zt + 0.5, 0.07 * s)), metal, name="beam")
+    sc.add(union(capsule(e0, e1, 0.62 * s), sphere(x, y, zt + 0.5, 0.07 * s)), metal, cast=cast, name="beam")
     for (px, py, pz), drop in ((e0, 5.0 * s), (e1, 5.6 * s)):
         zp = pz - drop
         k = 0.12 * s
         sc.add(union(capsule((px, py, pz), (px - k, py + k, zp), 0.24), capsule((px, py, pz), (px + k, py - k, zp), 0.24)), metal, cast=False)
-        sc.add(cone(px, py, 0.05 * s, zp - 1.5 * s, zp, 0.19 * s), metal, name="pan")
+        sc.add(cone(px, py, 0.05 * s, zp - 1.5 * s, zp, 0.19 * s), metal, cast=cast, name="pan")
 
 
 def wagon(sc, T, x, y, ln=1.1, wd=0.56, load=1):
@@ -789,10 +791,10 @@ def trading_post(t):
             sc.add(sub(box(tx0, ty0, tx1, ty1, 0, th), *thole), T.wall(), name="tower")
             gold_band(sc, T, tx0, ty0, tx1, ty1, th - 1.4)
             sc.add(hip(tx0, ty0, tx1, ty1, th, 8.0, over=0.12, thick=1.2), T.roof, name="tower roof")
-            scales(sc, T, 0.81, 0.81, th + 7.0, 8.0, 1.0, T.gold)
+            scales(sc, T, 0.81, 0.81, th + 7.0, 8.0, 1.0, T.gold, cast=False)
             gold_band(sc, T, x0, y0, x1, y1, h - 2.2)
         else:
-            scales(sc, T, 1.4, yc, h + rh - 0.5, 9.0, 1.0, brass)
+            scales(sc, T, 1.4, yc, h + rh - 0.5, 10.0, 1.0, brass, cast=False)
         flagpole(sc, T, 2.2, yc, h + rh - 1.0, 11.0, w=7.0, fh=5.0)
         if t >= 5:
             banner(sc, T, "L", y1, 0.98, zb + hh * 0.3 - 0.6, hh * 0.22, 0.3)
@@ -1090,6 +1092,9 @@ def academy(t):
         bc = "#2F5BB0" if t < 5 else None
         banner(sc, T, "L", y1, 1.0, wz - wh * 0.5 - 1.0, hh * 0.17, 0.3, color=bc)
         banner(sc, T, "L", y1, 3.0, wz - wh * 0.5 - 1.0, hh * 0.17, 0.3, color=bc)
+    if t >= 4:
+        for a in (1.34, 2.02):
+            banner(sc, T, "R", x1, a, wz + wh * 0.5, wh * 0.95, 0.2)
     pot = T.gold if t >= 4 else r3.m_flat("#A6603C", 0.1)
     potted(sc, 0.5, 3.45, pot)
     if t >= 2:
