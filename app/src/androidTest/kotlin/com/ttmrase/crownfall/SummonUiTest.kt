@@ -1,5 +1,6 @@
 package com.ttmrase.crownfall
 
+import android.os.SystemClock
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.doubleClick
@@ -42,6 +43,20 @@ class SummonUiTest {
         density: Float,
     ) = Offset((rect.left.value + rect.right.value) / 2 * density, (rect.top.value + rect.bottom.value) / 2 * density)
 
+    /** 時計を止めたまま、[condition] が成り立つまで 1 フレームずつ進める（実時間で [timeoutMs] まで）。 */
+    private fun framesUntil(
+        timeoutMs: Long = 10_000,
+        condition: () -> Boolean,
+    ): Boolean {
+        val end = SystemClock.uptimeMillis() + timeoutMs
+        while (SystemClock.uptimeMillis() < end) {
+            rule.mainClock.advanceTimeByFrame()
+            if (condition()) return true
+            Thread.sleep(FRAME_WAIT_MS)
+        }
+        return condition()
+    }
+
     @Test
     fun tapsDuringTheRitualDoNotFallThroughAndAgainSummonsOnce() {
         val h = AppHarness(rule)
@@ -62,8 +77,10 @@ class SummonUiTest {
             // 演出は有限アニメなので、時計を止めておかないと Compose が演出の終わりまで待ってしまう
             rule.mainClock.autoAdvance = false
             onceNode.performTouchInput { click() }
-            rule.mainClock.advanceTimeBy(500)
-            assertTrue("the ritual (Skip) must be shown", h.hasText(h.str(R.string.summon_skip), true))
+            // 召喚の結果は、別スレッドでの保存を経て届く。時計を止めているので、届くまで実時間で待ちながら 1 フレームずつ進める
+            // （決まった 500ms だけ進めて確かめると、遅いエミュレータでは結果が届く前に確かめてしまう。ui run 151）
+            assertTrue("the ritual (Skip) must be shown", framesUntil { h.hasText(h.str(R.string.summon_skip), true) })
+            rule.mainClock.advanceTimeBy(300)
             val afterFirst = gold(h)
             assertEquals("one summon costs exactly one", before - cost, afterFirst)
             Screenshots.save("summon_ritual_charge")
@@ -105,8 +122,7 @@ class SummonUiTest {
             // 時計を止めてからタップし、段階ごとに撮る
             rule.mainClock.autoAdvance = false
             rule.onAllNodesWithText(h.str(R.string.summon_ten_deal), substring = true)[0].performTouchInput { click() }
-            rule.mainClock.advanceTimeBy(100)
-            assertTrue("the ritual (Skip) must be shown", h.hasText(h.str(R.string.summon_skip), true))
+            assertTrue("the ritual (Skip) must be shown", framesUntil { h.hasText(h.str(R.string.summon_skip), true) })
             for ((i, ms) in listOf(200L, 700L, 700L, 900L).withIndex()) {
                 rule.mainClock.advanceTimeBy(ms)
                 Screenshots.save("summon_ten_stage_${i + 1}")
@@ -121,5 +137,9 @@ class SummonUiTest {
             rule.waitForIdle()
             Screenshots.save("summon_ten_all_flipped")
         }
+    }
+
+    private companion object {
+        const val FRAME_WAIT_MS = 20L
     }
 }
