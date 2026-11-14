@@ -143,17 +143,20 @@ class GroundPlanTest {
         assertEquals(1f, plan.forest(mid, mid), 0f)
         assertEquals(1f, plan.forest(mid + 40f, mid - 40f), 0f)
         assertEquals(0f, plan.forest(mid + 64f, mid), 0f)
+        val water = GroundPlan.RIVER_WIDTH / 2f
         for (gy in listOf(-20f, 0f, 30f)) {
             val x = TerritoryScene.riverX(gy)
-            assertEquals(1f, plan.water(x, gy), 0f)
-            assertEquals(0f, plan.water(x + 4f, gy), 0f)
-            // 川岸は水面より広い
-            assertTrue(plan.water(x + 2.45f, gy) < 0.05f)
-            assertTrue(plan.bank(x + 2.45f, gy) > 0.5f)
-            assertEquals(0f, plan.bank(x + 5f, gy), 0f)
+            // 川岸は水面の下から、水面より広く広がる
+            assertEquals(1f, plan.bank(x, gy), 0f)
+            assertEquals(1f, plan.bank(x + water, gy), 0f)
+            assertTrue(plan.bank(x - water - 0.4f, gy) > 0.5f)
+            assertEquals(0f, plan.bank(x + water + 2.5f, gy), 0f)
         }
         // 川の両端は消える
-        assertEquals(0f, plan.water(TerritoryScene.riverX(TerritoryScene.RIVER_FROM), TerritoryScene.RIVER_FROM), 0.01f)
+        assertEquals(0f, plan.bank(TerritoryScene.riverX(TerritoryScene.RIVER_FROM), TerritoryScene.RIVER_FROM), 0.01f)
+        val sheet = plan.bakeBank()
+        assertEquals(sheet.frame.w * sheet.frame.h, sheet.data.size)
+        assertEquals(1f, sheet.at(TerritoryScene.riverX(10f), 10f), 0.01f)
     }
 
     @Test

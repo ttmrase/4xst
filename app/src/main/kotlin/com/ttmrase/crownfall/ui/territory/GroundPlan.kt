@@ -242,29 +242,19 @@ internal class GroundPlan(
         return ramp(wobble * FOREST_WOBBLE - roundBox(gx - MID, gy - MID, FOREST_REACH, FOREST_CORNER), FOREST_SOFT)
     }
 
-    /** 川の水面の濃さ 0..1。幅はゆるく変わり、両端は消える。 */
-    fun water(
-        gx: Float,
-        gy: Float,
-    ): Float = riverBand(gx, gy, 0f, RIVER_SOFT)
-
-    /** 川岸（砂まじりの土）の濃さ 0..1。水面より [BANK_WIDTH] 広い。 */
+    /**
+     * 川岸（砂）の濃さ 0..1。水面（中心線をなぞる幅 [RIVER_WIDTH] の線）より [BANK_WIDTH] 広く、外の縁はノイズで揺れて
+     * 森の床に溶ける。水面の下も覆う（水は岸の上に描く）。両端は消える。
+     */
     fun bank(
         gx: Float,
         gy: Float,
-    ): Float = riverBand(gx, gy, BANK_WIDTH + edgeNoise(gx, gy) * BANK_RAGGED, BANK_SOFT)
-
-    private fun riverBand(
-        gx: Float,
-        gy: Float,
-        extra: Float,
-        soft: Float,
     ): Float {
-        val half = RIVER_HALF + (GroundNoise.value(gy * RIVER_WIDTH_FREQ, 0f, SALT_RIVER) - HALF) * RIVER_WIDTH_VARY
         val mid = (TerritoryScene.RIVER_FROM + TerritoryScene.RIVER_TO) / 2f
         val span = (TerritoryScene.RIVER_TO - TerritoryScene.RIVER_FROM) / 2f
         val ends = cover(abs(gy - mid), span - RIVER_END_FADE, RIVER_END_FADE)
-        return cover(abs(gx - TerritoryScene.riverX(gy)), half + extra, soft) * ends
+        val half = RIVER_WIDTH / 2f + BANK_WIDTH + edgeNoise(gx, gy) * BANK_RAGGED
+        return cover(abs(gx - TerritoryScene.riverX(gy)), half, BANK_SOFT) * ends
     }
 
     // ---- 道と広場 ----------------------------------------------------------------------------
@@ -535,13 +525,12 @@ internal class GroundPlan(
         return alphaSheet(frame) { gx, gy -> forest(gx, gy) }
     }
 
-    /** 川の水面と川岸の下絵（同じ枠。帯に依らない）。 */
-    fun bakeRiver(): Pair<AlphaSheet, AlphaSheet> {
+    /** 川岸の下絵（帯に依らない）。 */
+    fun bakeBank(): AlphaSheet {
         val x0 = RIVER_CENTER - RIVER_FRAME_HALF
         val w = ceil(2f * RIVER_FRAME_HALF * PAVING_PPU).toInt()
         val h = ceil((TerritoryScene.RIVER_TO - TerritoryScene.RIVER_FROM) * PAVING_PPU).toInt()
-        val frame = SheetFrame(x0, TerritoryScene.RIVER_FROM, PAVING_PPU, w, h)
-        return alphaSheet(frame) { gx, gy -> water(gx, gy) } to alphaSheet(frame) { gx, gy -> bank(gx, gy) }
+        return alphaSheet(SheetFrame(x0, TerritoryScene.RIVER_FROM, PAVING_PPU, w, h)) { gx, gy -> bank(gx, gy) }
     }
 
     private inline fun alphaSheet(
@@ -655,6 +644,9 @@ internal class GroundPlan(
         const val PAVING_PPU = 8f
         const val SHADE_PPU = 5f
         const val FOREST_PPU = 2f
+
+        /** 川の水面の幅（グリッド単位。中心線は [TerritoryScene.riverX]）。 */
+        const val RIVER_WIDTH = 3.6f
 
         private const val MID = PlotLayout.MID
         private const val HALF = 0.5f
@@ -772,10 +764,6 @@ internal class GroundPlan(
         private const val FOREST_SOFT = 3f
         private const val RIVER_CENTER = 45f
         private const val RIVER_FRAME_HALF = 6f
-        private const val RIVER_HALF = 1.8f
-        private const val RIVER_WIDTH_VARY = 0.55f
-        private const val RIVER_WIDTH_FREQ = 0.21f
-        private const val RIVER_SOFT = 0.2f
         private const val RIVER_END_FADE = 3f
         private const val BANK_WIDTH = 0.85f
         private const val BANK_RAGGED = 1.5f
@@ -820,7 +808,6 @@ internal class GroundPlan(
 
         private const val SALT_LAWN = 11
         private const val SALT_FOREST = 21
-        private const val SALT_RIVER = 31
         private const val SALT_PATH = 41
         private const val SALT_LANE = 51
         private const val SALT_APRON = 61

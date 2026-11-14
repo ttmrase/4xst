@@ -201,13 +201,20 @@ internal object MapGround {
         }
         relief(heights, tint, n, per, acc)
 
+        // 下絵（まわりへ 1 タイルはみ出している）の画素 → チャンクの px と、その逆
+        val scale = px / per.toFloat()
         val toChunk =
             Matrix().apply {
-                setScale(px / per.toFloat(), px / per.toFloat())
+                setScale(scale, scale)
                 postTranslate(-px.toFloat(), -px.toFloat())
             }
-        val brush = Brush(canvas, textures, x0, y0, px, n, toChunk)
-        canvas.drawPaint(brush.paint(R.drawable.tex_grass, GRASS_TILES))
+        val toMask =
+            Matrix().apply {
+                setTranslate(px.toFloat(), px.toFloat())
+                postScale(1f / scale, 1f / scale)
+            }
+        val brush = Brush(canvas, textures, x0, y0, px, n, toChunk, toMask)
+        canvas.drawPaint(brush.paint(R.drawable.tex_grass, GRASS_TILES, null))
         if (used[LAYER_FOREST]) brush.fill(forest, R.drawable.tex_forest, FOREST_TILES)
         if (used[LAYER_ROCK]) brush.fill(rock, R.drawable.tex_rock, ROCK_TILES)
         if (used[LAYER_SAND]) brush.fill(sand, R.drawable.tex_sand, SAND_TILES)
@@ -217,7 +224,10 @@ internal object MapGround {
         canvas.drawBitmap(Bitmap.createBitmap(tint, n, n, Bitmap.Config.ARGB_8888), toChunk, brush.plain)
     }
 
-    /** [textures] の絵の具（タイル [tiles] 枚で 1 回くり返す。世界の座標に貼りつくので、チャンクをまたいでつながる）。 */
+    /**
+     * [textures] の絵の具（タイル [tiles] 枚で 1 回くり返す。世界の座標に貼りつくので、チャンクをまたいでつながる）。
+     * [toLocal] は「チャンクの px → 描く先の座標」で、null ならチャンクの px のまま（線や全面の塗り）。
+     */
     fun shader(
         textures: GroundTextures,
         id: Int,
@@ -225,6 +235,7 @@ internal object MapGround {
         x0: Int,
         y0: Int,
         px: Int,
+        toLocal: Matrix? = null,
     ): Shader {
         val texture = textures.get(id)
         val level = GroundPlan.textureLevelFor(texture.levels[0].width / tiles, px.toFloat())
@@ -234,6 +245,7 @@ internal object MapGround {
                 Matrix().apply {
                     setScale(tiles * px / bitmap.width, tiles * px / bitmap.height)
                     postTranslate(-x0.toFloat() * px, -y0.toFloat() * px)
+                    if (toLocal != null) postConcat(toLocal)
                 },
             )
         }
@@ -248,6 +260,7 @@ internal object MapGround {
         private val px: Int,
         private val n: Int,
         private val toChunk: Matrix,
+        private val toMask: Matrix,
     ) {
         val plain = Paint(Paint.FILTER_BITMAP_FLAG)
         private val textured = Paint(Paint.FILTER_BITMAP_FLAG)
@@ -255,18 +268,22 @@ internal object MapGround {
         fun paint(
             id: Int,
             tiles: Float,
+            toLocal: Matrix?,
         ): Paint {
-            textured.shader = shader(textures, id, tiles, x0, y0, px)
+            textured.shader = shader(textures, id, tiles, x0, y0, px, toLocal)
             return textured
         }
 
-        /** 濃さの下絵 [mask] の形に、テクスチャを塗る。 */
+        /**
+         * 濃さの下絵 [mask] の形に、テクスチャを塗る。ALPHA_8 のビットマップを行列つきで貼ると、Paint の shader も
+         * 下絵の画素の座標で貼られるので、Shader には「チャンクの px → 下絵の画素」を掛けておく。
+         */
         fun fill(
             mask: ByteArray,
             id: Int,
             tiles: Float,
         ) {
-            canvas.drawBitmap(alphaBitmap(n, n, mask), toChunk, paint(id, tiles))
+            canvas.drawBitmap(alphaBitmap(n, n, mask), toChunk, paint(id, tiles, toMask))
         }
     }
 

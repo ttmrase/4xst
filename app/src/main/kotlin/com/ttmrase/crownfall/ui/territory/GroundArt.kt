@@ -9,6 +9,7 @@ import android.graphics.ColorFilter
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.graphics.Rect
@@ -98,12 +99,13 @@ internal fun alphaBitmap(
 
 /**
  * 領地の地面を、テクスチャで描く（3D レンダリングの建物が立つ地面）。
- * - 絵の具: 草・森の床・土・石畳（丸石 / 敷石 / 大理石）・水・雪のテクスチャを、グリッド空間に並べる [BitmapShader]。
+ * - 絵の具: 草・森の床・土・石畳（丸石 / 敷石 / 大理石）・砂・水・雪のテクスチャを、グリッド空間に並べる [BitmapShader]。
  *   呼び出し側がアイソメの行列をかけた Canvas に描くので、テクスチャは地面と同じ向きにつぶれ、カメラと一緒に動く。
  * - 型: 「どこが草地で、どこが道か」は [GroundPlan] が帯ごとに 1 度だけ焼く濃さの下絵（ALPHA_8）。下絵を、絵の具を
- *   持たせた Paint で貼ると、下絵の形にテクスチャが抜ける（ALPHA_8 のビットマップは Paint の shader で塗られる）。
+ *   持たせた Paint で貼ると、下絵の形にテクスチャが抜ける（ALPHA_8 のビットマップは Paint の shader で塗られる。[Stencil]）。
  * - 毎フレームの仕事は、テクスチャつきの矩形を数枚貼るだけ: 森の床（草地の外だけ）→ 草地 → 土 → 石畳 → 色むら、
- *   それに川（水のテクスチャを 2 枚ずらして流す）と小物。Shader・Paint・Matrix・下絵はすべて作り置きで、描画では確保しない。
+ *   それに川（岸の砂と、水のテクスチャを 2 枚ずらして流す線）と小物。Shader・Paint・Matrix・Path・下絵はすべて作り置きで、
+ *   描画では確保しない。画面いっぱいに計算するシェーダーは使わない。
  * - 下絵とテクスチャの用意はバックグラウンド。済むまでは [draw] が false を返し、呼び出し側が平らな色で描く。
  *   済んだら [version] が進んで再描画される。次の帯の下絵も先に焼いておく（拡張の演出で待たない）。
  */
@@ -117,14 +119,20 @@ internal class GroundArt private constructor(
     var version by mutableIntStateOf(0)
         private set
 
-    /** テクスチャ 1 種類ぶんの絵の具。[span] グリッド単位で 1 回くり返す。段階ごとの Shader を持ち、倍率で切り替える。 */
+    /** テクスチャ 1 種類ぶんの絵の具。[span] グリッド単位で 1 回くり返し、[turn] 度まわして並べる。 */
     private class Material(
-        texture: GroundTexture,
-        span: Float,
-        turn: Float,
+        private val texture: GroundTexture,
+        private val span: Float,
+        private val turn: Float,
     ) {
-        private val ppu = texture.levels[0].width / span
-        private val shaders =
+        /** 等倍の段階の細かさ（1 グリッド単位あたりの px）。 */
+        val ppu = texture.levels[0].width / span
+
+        /**
+         * 段階ごとの Shader。[toLocal] は「グリッド座標 → 描く先の座標」で、null ならグリッド座標のまま
+         * （線や矩形をグリッド空間に直接描くとき）。
+         */
+        fun shaders(toLocal: Matrix?): Array<BitmapShader> =
             Array(texture.levels.size) { k ->
                 val bitmap = texture.levels[k]
                 BitmapShader(bitmap, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT).apply {
@@ -132,69 +140,135 @@ internal class GroundArt private constructor(
                         Matrix().apply {
                             setScale(span / bitmap.width, span / bitmap.height)
                             postRotate(turn)
+                            if (toLocal != null) postConcat(toLocal)
                         },
                     )
                 }
             }
+    }
+
+    /** 濃さの下絵のビットマップと、その置き場所（左上 [x0], [y0]、1 グリッド単位あたり [ppu] px）。 */
+    private class Mask(
+        val bitmap: Bitmap,
+        x0: Float,
+        y0: Float,
+        ppu: Float,
+    ) {
+        constructor(sheet: AlphaSheet) : this(
+            alphaBitmap(sheet.frame.w, sheet.frame.h, sheet.data),
+            sheet.frame.x0,
+            sheet.frame.y0,
+            sheet.frame.ppu,
+        )
+
+        /** 下絵の画素 → グリッド座標。 */
+        val matrix: Matrix =
+            Matrix().apply {
+                setScale(1f / ppu, 1f / ppu)
+                postTranslate(x0, y0)
+            }
+
+        /** グリッド座標 → 下絵の画素。 */
+        val inverse: Matrix =
+            Matrix().apply {
+                setTranslate(-x0, -y0)
+                postScale(ppu, ppu)
+            }
+    }
+
+    /**
+     * 型抜き: 下絵 [mask] の形に、絵の具 [material] を塗る。
+     * ALPHA_8 のビットマップを行列つきで貼ると、Paint の shader もビットマップの座標（下絵の画素が単位）で貼られる。
+     * そこで Shader の行列に「グリッド座標 → 下絵の画素」を掛けておく。こうすると、細かさや置き場所の違うどの下絵で抜いても、
+     * テクスチャは地面に対して同じ大きさ・同じ位置になる（drawBitmap に矩形を渡す形は、描画エンジンによって shader の
+     * 座標の取り方が変わるので使わない）。
+     */
+    private class Stencil(
+        private val mask: Mask,
+        material: Material,
+    ) {
+        private val shaders = material.shaders(mask.inverse)
+        private val ppu = material.ppu
         private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
 
-        /** 倍率 [sc] に合う段階の Shader を付けた Paint（使い回し）。 */
-        fun use(
+        /** 倍率 [sc] に合う段階のテクスチャで塗る。 */
+        fun draw(
+            canvas: Canvas,
             sc: Float,
             alpha: Int = OPAQUE,
             filter: ColorFilter? = null,
-        ): Paint {
+        ) {
             paint.shader = shaders[GroundPlan.textureLevel(ppu, sc)]
             paint.alpha = alpha
             paint.colorFilter = filter
-            return paint
+            canvas.drawBitmap(mask.bitmap, mask.matrix, paint)
         }
     }
 
-    /** 濃さの下絵のビットマップと、それをグリッド空間に置く行列。 */
-    private class Mask(sheet: AlphaSheet) {
-        val bitmap: Bitmap = alphaBitmap(sheet.frame.w, sheet.frame.h, sheet.data)
-        val matrix: Matrix = frameMatrix(sheet.frame)
-    }
-
-    /** 帯 1 つぶんの下絵。 */
-    private class BandArt(
-        val band: Int,
-        sheets: GroundSheets,
-        val stoneMaterial: Material?,
-        val coreHalf: Float,
-    ) {
-        val lawn = Mask(sheets.lawn)
-        val earth = Mask(sheets.earth)
-        val stone = sheets.stone?.let { Mask(it) }
-        val shade: Bitmap =
-            Bitmap.createBitmap(sheets.shade.data, sheets.shade.frame.w, sheets.shade.frame.h, Bitmap.Config.ARGB_8888)
-        val shadeMatrix: Matrix = frameMatrix(sheets.shade.frame)
-    }
-
-    /** 帯に依らないもの: 絵の具、森の床・川の下絵、小物。 */
+    /** 帯に依らないもの: 絵の具、森の床・川岸・霧の区画の型、川の線、小物。 */
     private class BaseArt(
         textures: GroundTextures,
         plan: GroundPlan,
     ) {
         val grass = Material(textures.get(R.drawable.tex_grass), GRASS_SPAN, GRASS_TURN)
-        val forestFloor = Material(textures.get(R.drawable.tex_forest), FOREST_SPAN, FOREST_TURN)
         val dirt = Material(textures.get(R.drawable.tex_dirt), DIRT_SPAN, DIRT_TURN)
-        val water = Material(textures.get(R.drawable.tex_water), WATER_SPAN, 0f)
         val snow = Material(textures.get(R.drawable.tex_snow), SNOW_SPAN, SNOW_TURN)
-        val sand = Material(textures.get(R.drawable.tex_sand), SAND_SPAN, SAND_TURN)
-        val forest = Mask(plan.bakeForest())
-        val river: Mask
-        val bank: Mask
-        val blob: Bitmap = alphaBitmap(BLOB_PX, BLOB_PX, softSquare(BLOB_PX))
+        private val forestFloor = Material(textures.get(R.drawable.tex_forest), FOREST_SPAN, FOREST_TURN)
+        private val water = Material(textures.get(R.drawable.tex_water), WATER_SPAN, 0f)
+        private val forestMask = Mask(plan.bakeForest())
+        private val blobMask =
+            Mask(alphaBitmap(BLOB_PX, BLOB_PX, softSquare(BLOB_PX)), 0f, 0f, BLOB_PX / (2f * LOCK_HALF))
+        val forest = Stencil(forestMask, forestFloor)
+        val forestSnow = Stencil(forestMask, snow)
+        val bank = Stencil(Mask(plan.bakeBank()), Material(textures.get(R.drawable.tex_sand), SAND_SPAN, SAND_TURN))
+
+        /** 建設できない区画を覆う森の床（左上を原点にした型。描くときに区画の位置へずらす）。 */
+        val lock = Stencil(blobMask, forestFloor)
+        val lockSnow = Stencil(blobMask, snow)
+
+        /** 川の水面: 中心線をなぞる太い線（グリッド空間）と、水の絵の具。 */
+        val river: Path =
+            Path().apply {
+                var gy = TerritoryScene.RIVER_FROM
+                moveTo(TerritoryScene.riverX(gy), gy)
+                while (gy < TerritoryScene.RIVER_TO) {
+                    gy += RIVER_STEP
+                    lineTo(TerritoryScene.riverX(gy), gy)
+                }
+            }
+        val waterShaders = water.shaders(null)
+        val waterPpu = water.ppu
         val atlas: Bitmap = textures.sheet(R.drawable.tex_decals)
         val decals: GroundDecals = plan.decals()
+    }
 
-        init {
-            val (surface, shore) = plan.bakeRiver()
-            river = Mask(surface)
-            bank = Mask(shore)
-        }
+    /** 帯 1 つぶんの下絵と、その型抜き。 */
+    private class BandArt(
+        sheets: GroundSheets,
+        base: BaseArt,
+        stoneMaterial: Material?,
+        val coreHalf: Float,
+    ) {
+        private val lawnMask = Mask(sheets.lawn)
+        val lawn = Stencil(lawnMask, base.grass)
+        val lawnSnow = Stencil(lawnMask, base.snow)
+        val earth = Stencil(Mask(sheets.earth), base.dirt)
+        val stone =
+            if (sheets.stone != null && stoneMaterial != null) {
+                Stencil(
+                    Mask(sheets.stone),
+                    stoneMaterial,
+                )
+            } else {
+                null
+            }
+        val shade: Bitmap =
+            Bitmap.createBitmap(sheets.shade.data, sheets.shade.frame.w, sheets.shade.frame.h, Bitmap.Config.ARGB_8888)
+        val shadeMatrix: Matrix =
+            Matrix().apply {
+                setScale(1f / sheets.shade.frame.ppu, 1f / sheets.shade.frame.ppu)
+                postTranslate(sheets.shade.frame.x0, sheets.shade.frame.y0)
+            }
     }
 
     private var plan: GroundPlan? = null
@@ -211,7 +285,14 @@ internal class GroundArt private constructor(
 
     private val shadePaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val decalPaint = Paint(Paint.FILTER_BITMAP_FLAG)
-    private val scratch = Matrix()
+    private val waterPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = GroundPlan.RIVER_WIDTH
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+        }
+    private val riverScratch = Path()
     private val src = Rect()
     private val dst = RectF()
 
@@ -251,70 +332,49 @@ internal class GroundArt private constructor(
             if (!pending.contains(KEY_BASE)) requestBase(plan)
             return false
         }
-        val to = band(plan, toBand)
+        val to = band(plan, base, toBand)
         val moving = !settled && fromBand != toBand
         val from = if (moving) bands.get(fromBand) else null
         val main = from ?: to ?: bands.get(fromBand) ?: return false
-        val winter = season == SEASON_WINTER
-        // 森の床。草地が必ず覆う範囲は描かない（重ね塗りを減らす）
+        // 森の床（冬は森も雪。木陰の青みは色むらの下絵が足す）。草地が必ず覆う範囲は描かない（重ね塗りを減らす）
         val core = main.coreHalf
         canvas.save()
         canvas.clipOutRect(MID - core, MID - core, MID + core, MID + core)
-        canvas.drawBitmap(base.forest.bitmap, base.forest.matrix, forestMaterial(base, winter).use(sc))
+        (if (season == SEASON_WINTER) base.forestSnow else base.forest).draw(canvas, sc)
         canvas.restore()
-        drawBand(canvas, base, main, sc, OPAQUE, season)
-        if (from != null && to != null) {
-            drawBand(
-                canvas,
-                base,
-                to,
-                sc,
-                (ease * OPAQUE).toInt().coerceIn(0, OPAQUE),
-                season,
-            )
-        }
+        drawBand(canvas, main, sc, OPAQUE, season)
+        if (from != null && to != null) drawBand(canvas, to, sc, (ease * OPAQUE).toInt().coerceIn(0, OPAQUE), season)
         if (settled) retain(toBand)
         drawRiver(canvas, base, sc, seconds)
         drawDecals(canvas, base, sc, ox, oy, viewW, viewH, fromBand, toBand, ease, moving, season)
         return true
     }
 
-    /** 森の床の絵の具。冬は森も雪（木陰の青みは、色むらの下絵が足す）。 */
-    private fun forestMaterial(
-        base: BaseArt,
-        winter: Boolean,
-    ): Material = if (winter) base.snow else base.forestFloor
-
     /** 帯 1 つぶん: 草地 → 土 → 石畳 → 色むら。 */
     private fun drawBand(
         canvas: Canvas,
-        base: BaseArt,
         art: BandArt,
         sc: Float,
         alpha: Int,
         season: String?,
     ) {
         // 領地のテーマ: 春は明るい若草、秋は枯れ草色（同じ草のテクスチャを色フィルタで染める）、冬は雪
-        val lawn =
-            when (season) {
-                SEASON_WINTER -> base.snow.use(sc, alpha)
-                SEASON_SPRING -> base.grass.use(sc, alpha, SPRING_GRASS)
-                SEASON_AUTUMN -> base.grass.use(sc, alpha, AUTUMN_GRASS)
-                else -> base.grass.use(sc, alpha)
-            }
-        canvas.drawBitmap(art.lawn.bitmap, art.lawn.matrix, lawn)
-        canvas.drawBitmap(art.earth.bitmap, art.earth.matrix, base.dirt.use(sc, alpha))
-        val stone = art.stone
-        val material = art.stoneMaterial
-        if (stone != null && material != null) canvas.drawBitmap(stone.bitmap, stone.matrix, material.use(sc, alpha))
+        when (season) {
+            SEASON_WINTER -> art.lawnSnow.draw(canvas, sc, alpha)
+            SEASON_SPRING -> art.lawn.draw(canvas, sc, alpha, SPRING_GRASS)
+            SEASON_AUTUMN -> art.lawn.draw(canvas, sc, alpha, AUTUMN_GRASS)
+            else -> art.lawn.draw(canvas, sc, alpha)
+        }
+        art.earth.draw(canvas, sc, alpha)
+        art.stone?.draw(canvas, sc, alpha)
         shadePaint.alpha = alpha
         shadePaint.colorFilter = if (season == SEASON_WINTER) SNOW_SHADOWS else null
         canvas.drawBitmap(art.shade, art.shadeMatrix, shadePaint)
     }
 
     /**
-     * 川: 岸の土、その上に水面。水のテクスチャは 2 枚を違う速さで下流（グリッドの +y）へ流して重ねる（波頭がずれて揺らめく）。
-     * Shader の行列は変えず、Canvas ごとずらして、型（下絵）だけ逆へ戻す。
+     * 川: 岸の砂、その上に水面。水面は中心線をなぞる太い線で、水のテクスチャを 2 枚、違う速さで下流（グリッドの +y）へ
+     * 流して重ねる（波頭がずれて揺らめく）。Shader の行列は変えず、Canvas ごとずらして、線だけ逆へ戻す。
      */
     private fun drawRiver(
         canvas: Canvas,
@@ -322,24 +382,24 @@ internal class GroundArt private constructor(
         sc: Float,
         seconds: Float,
     ) {
-        canvas.drawBitmap(base.bank.bitmap, base.bank.matrix, base.sand.use(sc))
-        flow(canvas, base.river, 0f, (seconds * WATER_FLOW) % WATER_SPAN, base.water.use(sc))
-        val drift = (seconds * WATER_FLOW_TOP) % WATER_SPAN + WATER_TOP_SHIFT
-        flow(canvas, base.river, WATER_TOP_SHIFT, drift, base.water.use(sc, WATER_TOP_ALPHA))
+        base.bank.draw(canvas, sc)
+        waterPaint.shader = base.waterShaders[GroundPlan.textureLevel(base.waterPpu, sc)]
+        waterPaint.alpha = OPAQUE
+        flow(canvas, base.river, 0f, (seconds * WATER_FLOW) % WATER_SPAN)
+        waterPaint.alpha = WATER_TOP_ALPHA
+        flow(canvas, base.river, WATER_TOP_SHIFT, (seconds * WATER_FLOW_TOP) % WATER_SPAN + WATER_TOP_SHIFT)
     }
 
     private fun flow(
         canvas: Canvas,
-        mask: Mask,
+        river: Path,
         dx: Float,
         dy: Float,
-        paint: Paint,
     ) {
         canvas.save()
         canvas.translate(dx, dy)
-        scratch.set(mask.matrix)
-        scratch.postTranslate(-dx, -dy)
-        canvas.drawBitmap(mask.bitmap, scratch, paint)
+        river.offset(-dx, -dy, riverScratch)
+        canvas.drawPath(riverScratch, waterPaint)
         canvas.restore()
     }
 
@@ -397,19 +457,21 @@ internal class GroundArt private constructor(
         season: String?,
     ) {
         val base = this.base ?: return
-        scratch.setScale(2f * LOCK_HALF / BLOB_PX, 2f * LOCK_HALF / BLOB_PX)
-        scratch.postTranslate(gx - LOCK_HALF, gy - LOCK_HALF)
-        canvas.drawBitmap(base.blob, scratch, forestMaterial(base, season == SEASON_WINTER).use(sc))
+        canvas.save()
+        canvas.translate(gx - LOCK_HALF, gy - LOCK_HALF)
+        (if (season == SEASON_WINTER) base.lockSnow else base.lock).draw(canvas, sc)
+        canvas.restore()
     }
 
     /** 帯 [band] の下絵。まだ無ければ null を返して、焼き始める。 */
     private fun band(
         plan: GroundPlan,
+        base: BaseArt,
         band: Int,
     ): BandArt? {
         val ready = bands.get(band)
         // 焼いている間は、描くたびに頼み直さない（頼むたびにラムダを確保しない）
-        if (ready == null && !pending.contains(band)) requestBand(plan, band)
+        if (ready == null && !pending.contains(band)) requestBand(plan, base, band)
         return ready
     }
 
@@ -428,6 +490,7 @@ internal class GroundArt private constructor(
 
     private fun requestBand(
         plan: GroundPlan,
+        base: BaseArt,
         band: Int,
     ) {
         if (band !in 1..PlotLayout.BANDS) return
@@ -435,7 +498,7 @@ internal class GroundArt private constructor(
         work(band) {
             for (b in band..minOf(band + 1, PlotLayout.BANDS)) {
                 if (gen != generation || bands.get(b) != null) continue
-                val made = BandArt(b, plan.bake(b), stoneFor(b), plan.lawnCoreHalf(b))
+                val made = BandArt(plan.bake(b), base, stoneFor(b), plan.lawnCoreHalf(b))
                 if (gen == generation) {
                     bands.set(b, made)
                     version++
@@ -518,6 +581,9 @@ internal class GroundArt private constructor(
         private const val STONE_KINDS = 3
         private const val COBBLE_UNTIL = 3
 
+        /** 川の中心線を折れ線にする刻み（グリッド単位）。 */
+        private const val RIVER_STEP = 1f
+
         /** 川の流れ（グリッド単位 / 秒）。上の層は少し速く、横にずらして重ねる。 */
         private const val WATER_FLOW = 0.5f
         private const val WATER_FLOW_TOP = 0.85f
@@ -555,12 +621,6 @@ internal class GroundArt private constructor(
 
         /** 冬: 色むら（日なた・木陰・踏み跡）は、すべて雪の上の青い影にする。 */
         private val SNOW_SHADOWS: ColorFilter = PorterDuffColorFilter(0xFF5F7FA8.toInt(), PorterDuff.Mode.SRC_IN)
-
-        private fun frameMatrix(frame: SheetFrame): Matrix =
-            Matrix().apply {
-                setScale(1f / frame.ppu, 1f / frame.ppu)
-                postTranslate(frame.x0, frame.y0)
-            }
 
         /** 縁がやわらかく消える正方形の型（[n] x [n]）。 */
         private fun softSquare(n: Int): ByteArray {
