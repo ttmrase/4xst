@@ -17,7 +17,7 @@ import org.junit.runner.RunWith
 class ZzTitleDiagTest {
     @After
     fun restore() {
-        TitleDiag.mask = 0
+        TitleDiag.mask = TitleDiag.ALL
     }
 
     private fun show(

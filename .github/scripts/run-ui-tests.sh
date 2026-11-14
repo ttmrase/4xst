@@ -24,7 +24,9 @@ probe="$out/logs/coldstart.txt"
 echo "host memory before: $(free -m | awk 'NR==2{print "used " $3 " MB, available " $7 " MB"}')" > "$probe"
 if timeout 900 ./gradlew :app:installDebug -PwithAndroid=true > "$out/logs/install.log" 2>&1; then
   for m in 0 128 64 16 8 2 4 1 32 255; do
-    timeout 20 adb shell am force-stop com.ttmrase.crownfall > /dev/null 2>&1 || true
+    # run 143: データを消さずに続けて起動すると、全部品でも落ちなかった。落ちた回との違いは、描画のシェーダーの
+    # キャッシュ（アプリのデータの中）が空だったこと。起動のたびにデータを消して、インストール直後と同じ条件にする
+    timeout 30 adb shell pm clear com.ttmrase.crownfall > /dev/null 2>&1 || true
     timeout 40 adb shell am start -W -n com.ttmrase.crownfall/.MainActivity --ei title_mask "$m" > /dev/null 2>&1 || true
     sleep 5
     state="$(timeout 10 adb get-state 2>&1 | tr -d '\r' | tail -1)"

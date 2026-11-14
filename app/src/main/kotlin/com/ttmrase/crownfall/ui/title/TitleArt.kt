@@ -47,7 +47,7 @@ import kotlin.math.sin
 
 /**
  * タイトルの絵を部品ごとに切る診断用のスイッチ（CI のエミュレータが、タイトルを描いた直後に落ちる原因の切り分け。ui run 120〜134）。
- * 通常はすべて描く。エミュレータの計測テスト（androidTest）の中では既定で何も描かず、診断テストが 1 つずつ有効にする。
+ * 既定はすべて描く。CI のスクリプトと診断テストが、部品を選んで起動する。
  * 原因が分かって直したら、この仕組みごと消す。
  */
 object TitleDiag {
@@ -65,13 +65,9 @@ object TitleDiag {
     const val EXTRA_MASK = "title_mask"
 
     @Volatile
-    var mask: Int = if (underInstrumentation()) 0 else ALL
+    var mask: Int = ALL
 
     fun on(bit: Int): Boolean = mask and bit != 0
-
-    private fun underInstrumentation(): Boolean =
-        android.os.Build.FINGERPRINT != "robolectric" &&
-            runCatching { Class.forName("androidx.test.espresso.Espresso") }.isSuccess
 }
 
 /**
